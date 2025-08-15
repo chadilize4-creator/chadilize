@@ -239,7 +239,7 @@ body{
   .name-row .btn{ width:100%; }
 }
 
-@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
+@media (max-width:420px){ .controls{grid-template-columns: 1fr 1 fr 1fr} }
 </style>
 </head>
 <body>
@@ -422,9 +422,13 @@ function playTap(){ const ctx = audio(), now = ctx.currentTime;
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
 /* ===== state & API ===== */
+/* Per-user local cache key:
+   We ONLY use initDataUnsafe.user.id for choosing a localStorage bucket.
+   The server still validates identity using tg.initData (HMAC "WebAppData"). */
 const params = new URLSearchParams(location.search);
-const TOKEN = params.get('token') || 'guest';
-const STORAGE_KEY = `chad_state_${TOKEN}`;
+const tokenHint = params.get('token') || null;                   // optional dev fallback
+const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
+const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
 function loadStateLocal(){
   const raw = localStorage.getItem(STORAGE_KEY);
