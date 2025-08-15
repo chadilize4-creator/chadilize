@@ -14,33 +14,31 @@
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
 
-  /* exact viewport height from Telegram (JS sets this) */
-  --app-h: 100svh;              /* fallback before JS adjusts */
-  --topbar-h: 64px;             /* JS measures real height */
-  --bottom-h: 120px;            /* JS measures real height */
+  --app-h: 100svh;            /* JS updates from Telegram viewport */
+  --topbar-h: 64px;
+  --bottom-h: 120px;
 }
 
-/* Tap highlight & focus ring removal */
+/* Remove mobile tap highlight / focus ring on orb */
 *{ -webkit-tap-highlight-color: transparent; }
 .orb:focus, .orb:focus-visible { outline: none; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
 
-/* full-screen baseline; allow scrolling */
+/* base */
 html,body{height:100%}
 body{
   margin:0; color:var(--ink);
   font-family:Inter,system-ui,Roboto,Arial;
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
-  overflow:auto; /* scrollable */
+  overflow:auto; /* scroll allowed */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* page container can grow */
-.stage{
-  min-height:var(--app-h); height:auto;
-  display:flex; align-items:center; justify-content:center; padding:18px;
-}
+/* stage can grow */
+.stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
+
+/* phone wrapper */
 .phone{
   width:100%; max-width:520px; min-height:var(--app-h); height:auto;
   border-radius:20px; padding:14px; position:relative; overflow:hidden;
@@ -68,6 +66,8 @@ body{
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
 }
 .visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
+
+/* smoke backdrop */
 .smoke{
   position:absolute; inset:6% 6% 18%; z-index:1; pointer-events:none; filter:blur(22px) contrast(105%);
   background:
@@ -78,15 +78,28 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* orb */
-.orb{pointer-events:auto;width:88%;aspect-ratio:1/1;border-radius:50%;
+/* orb (moved 1cm up) */
+.orb{
+  pointer-events:auto;width:88%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
   box-shadow:inset 0 -22px 70px rgba(0,0,0,0.72), 0 30px 100px rgba(0,0,0,0.64);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative}
+  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative;
+  transform: translateY(-1cm); /* << move up exactly 1cm (approx on some devices) */
+}
 .orb::after{content:""; position:absolute; inset:8px; border-radius:50%;
   box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22)}
 .orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
+
+/* subtle DOM particles */
+.p{ position:absolute; width:6px; height:6px; border-radius:50%;
+    background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0;
+    animation:pop600ms 600ms ease-out forwards }
+@keyframes pop600ms{
+  0%{ transform:translate(0,0) scale(.8); opacity:.35 }
+  80%{ opacity:.1 }
+  100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 }
+}
 
 /* bottom controls — sticky just above gesture bar */
 .bottom{
@@ -104,7 +117,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays */
+/* overlays (modals) */
 .overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));display:none;align-items:center;justify-content:center;z-index:120;padding:12px}
 .overlay.show{display:flex}
 .panel{
@@ -112,6 +125,8 @@ body{
   width:100%;max-width:920px;color:#ddd;box-shadow:0 28px 100px rgba(0,0,0,0.6);
   max-height:calc(var(--app-h) - 24px); overflow:auto
 }
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
+.note{font-size:13px;color:#9aa3ab}
 
 /* 9:16 DOM games */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018);
@@ -145,7 +160,7 @@ body{
 .mini-grid{ width:100%; aspect-ratio:1/1; position:relative; display:grid; gap:2px; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr) }
 .mini-grid .cell{ box-shadow:none }
 
-/* Snake on-screen arrows (D-pad) */
+/* Snake D-pad */
 .dpad{
   position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
   transform:translateX(-50%); display:grid; grid-template-areas: ". up ." "left . right" ". down .";
@@ -177,8 +192,37 @@ body{
 .tpad .down{grid-area:down}
 .tpad .right{grid-area:right}
 
+/* ======= Name modal (pretty) ======= */
+#nameOverlay .panel{
+  max-width:520px; padding:18px 18px 22px;
+  background:
+    radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,0.06), transparent 40%),
+    linear-gradient(180deg,#08131b,#0a0f13);
+}
+.name-card{
+  display:flex; flex-direction:column; gap:14px;
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:14px; padding:16px;
+  background:linear-gradient(180deg, #0f1520, #0b1118);
+  box-shadow:0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.name-title{ font-size:20px; font-weight:800 }
+.name-sub{ font-size:13px; color:#9aa3ab }
+.name-row{ display:flex; gap:10px; align-items:center }
+.name-input{
+  flex:1; padding:12px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
+  border:1px solid rgba(255,255,255,.06); border-radius:12px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.btn{
+  border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer; user-select:none;
+  border:1px solid var(--glass); background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa); color:#051022;
+  box-shadow:0 18px 50px rgba(0,0,0,.6)
+}
+.err{ color:#ff8b8b; font-size:12px; min-height:16px }
+
+/* text */
 .note{font-size:13px;color:#9aa3ab}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
 </head>
@@ -225,10 +269,10 @@ body{
           </div>
 
           <div class="row" style="gap:10px">
-            <div class="tile level" style="flex:1; min-height:68px" onclick="openSnake()">
+            <div class="tile level" style="flex:1; min-height:68px" onclick="requestGame(openSnake)">
               <div><div style="font-weight:800">Snake</div><div class="note">9:16 • on-screen arrows</div></div>
             </div>
-            <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
+            <div class="tile level" style="flex:1; min-height:68px" onclick="requestGame(openTetris)">
               <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • 9:16 shell • on-screen controls</div></div>
             </div>
           </div>
@@ -243,6 +287,21 @@ body{
             <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('buyOverlay')">Close</button>
           </div>
           <div id="cardsList" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- NAME overlay -->
+      <div class="overlay" id="nameOverlay">
+        <div class="panel">
+          <div class="name-card">
+            <div class="name-title">Choose your name</div>
+            <div class="name-sub">This name is shown on leaderboards and must be unique.</div>
+            <div class="name-row">
+              <input id="nameInput" class="name-input" maxlength="18" placeholder="letters, numbers, _ -" inputmode="latin-name" autocomplete="off" />
+              <button id="nameSave" class="btn">Save</button>
+            </div>
+            <div id="nameErr" class="err"></div>
+          </div>
         </div>
       </div>
 
@@ -334,6 +393,19 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
+/* ===== Simple sound (WebAudio) ===== */
+let _audioCtx=null;
+function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
+function playTap(){
+  const ctx = audio(); const now = ctx.currentTime;
+  // tiny click + short sine "tick"
+  const osc = ctx.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(240, now);
+  const gain = ctx.createGain(); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now+0.07);
+  osc.connect(gain).connect(ctx.destination); osc.start(now); osc.stop(now+0.08);
+}
+/* Resume on first gesture */
+window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
+
 /* ===== Storage & API ===== */
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || 'guest';
@@ -341,17 +413,17 @@ const STORAGE_KEY = `chad_state_${TOKEN}`;
 
 function loadStateLocal(){
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{} };
+  if (!raw) return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null };
   try{
     const o = JSON.parse(raw);
     return { chads: BigInt(o.chads||"0"), gen: BigInt(o.gen||"0"), acc: BigInt(o.acc||"0"),
-             last: o.last||Math.floor(Date.now()/1000), level:o.level||1, purchases:o.purchases||{} };
-  }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{} }; }
+             last: o.last||Math.floor(Date.now()/1000), level:o.level||1, purchases:o.purchases||{}, name:o.name||null };
+  }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null }; }
 }
 function saveStateLocal(s){
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     chads:s.chads.toString(), gen:s.gen.toString(), acc:s.acc.toString(),
-    last:s.last, level:s.level, purchases:s.purchases
+    last:s.last, level:s.level, purchases:s.purchases, name:s.name||null
   }));
 }
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
@@ -362,6 +434,7 @@ function refreshUI(){
   document.getElementById('levelText').textContent = state.level;
 }
 
+/* API helpers */
 async function apiGetProfile(){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/profile', { headers:{'Telegram-Init-Data': tg.initData || ''} });
@@ -372,21 +445,34 @@ async function apiClickLogo(){
   const r = await fetch('/api/click_logo', { method:'POST', headers:{'Telegram-Init-Data': tg.initData || ''} });
   if (!r.ok) throw new Error('Click failed'); return await r.json();
 }
+async function apiCheckName(name){
+  if (!tg) throw new Error("No Telegram");
+  const r = await fetch('/api/check_name', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Telegram-Init-Data': tg.initData || '' },
+    body: JSON.stringify({ name })
+  });
+  if (!r.ok) throw new Error('check_name failed');
+  return await r.json(); // expect { ok:true } or { ok:false, reason:'taken' }
+}
 
 /* ===== Particles + Orb ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
-  const x = clientX - rect.left, y = clientY - rect.top;
-  const count = 8 + Math.floor(Math.random()*6);
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const count = 7 + Math.floor(Math.random()*5);
   for(let i=0;i<count;i++){
     const s = document.createElement('span');
-    s.style.cssText='position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.6);filter:blur(.3px);opacity:0;animation:pop600ms ease-out forwards';
-    const angle = Math.random()*Math.PI*2, dist = 20 + Math.random()*40;
-    s.style.left = x+'px'; s.style.top = y+'px';
+    s.className = 'p';
+    const angle = Math.random()*Math.PI*2;
+    const dist = 18 + Math.random()*34;
+    s.style.left = `${x}px`; s.style.top = `${y}px`;
     s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
     s.style.setProperty('--dy', `${Math.sin(angle)*dist}px`);
-    s.className='p'; pLayer.appendChild(s); setTimeout(()=> s.remove(), 650);
+    pLayer.appendChild(s);
+    setTimeout(()=> s.remove(), 620);
   }
 }
 function pulse(){
@@ -400,6 +486,7 @@ function pulse(){
     setTimeout(()=>{ pulse.style.opacity='0'; pulse.style.transform='scale(1.4)'; }, 420);
   }, 20);
 }
+
 let lastTap = 0; const COOLDOWN_MS = 500;
 async function handleOrbTap(e){
   const now = Date.now();
@@ -410,11 +497,20 @@ async function handleOrbTap(e){
   lastTap = now;
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
-  spawnParticles(cx, cy); pulse();
+  spawnParticles(cx, cy);
+  pulse();
+  playTap();
+
   try{
-    if (tg){ const data = await apiClickLogo(); state.chads = BigInt(data.total_points); }
-    else { state.chads += 1n; saveStateLocal(state); }
-  }catch{ state.chads += 1n; saveStateLocal(state); }
+    if (tg){
+      const data = await apiClickLogo();
+      state.chads = BigInt(data.total_points);
+    }else{
+      state.chads += 1n; saveStateLocal(state);
+    }
+  }catch{
+    state.chads += 1n; saveStateLocal(state);
+  }
   refreshUI();
 }
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
@@ -457,6 +553,41 @@ function populateCards(){
   });
 }
 
+/* ===== Name modal flow ===== */
+let _postGameOpen = null; // callback to run after we get a name
+function requestGame(next){
+  if (state.name){ next(); return; }
+  _postGameOpen = next;
+  openOverlay('nameOverlay');
+  const inp = document.getElementById('nameInput'); document.getElementById('nameErr').textContent=''; inp.value = ''; setTimeout(()=> inp.focus(), 80);
+}
+function isNameValid(n){ return /^[A-Za-z0-9_-]{3,18}$/.test(n); }
+async function saveName(){
+  const input = document.getElementById('nameInput');
+  const err = document.getElementById('nameErr');
+  const n = (input.value||'').trim();
+  if (!isNameValid(n)){ err.textContent = '3–18 chars: letters, numbers, _ or -'; return; }
+
+  try{
+    if (tg){
+      const res = await apiCheckName(n);
+      if (!res.ok){ err.textContent = res.reason==='taken' ? 'That name is already taken. Try another.' : 'Could not save name.'; return; }
+    }else{
+      // local fallback uniqueness (same device only)
+      const taken = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
+      if (taken.includes(n)){ err.textContent = 'That name is already taken (local test).'; return; }
+      taken.push(n); localStorage.setItem('local_taken_names', JSON.stringify(taken));
+    }
+    state.name = n; saveStateLocal(state);
+    closeOverlay('nameOverlay');
+    if (_postGameOpen){ const cb=_postGameOpen; _postGameOpen = null; cb(); }
+  }catch(e){
+    err.textContent = 'Network error. Please try again.';
+  }
+}
+document.getElementById('nameSave').addEventListener('click', saveName);
+document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
+
 /* ===== Shared DOM grid helpers ===== */
 function buildGrid(container, cols, rows){
   container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -482,7 +613,7 @@ function renderMiniShape(grid, shape, cls){
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) if (shape[y][x]) grid.add(offX+x, offY+y, cls);
 }
 
-/* ===== Snake (DOM, 9:16) with on-screen arrows ===== */
+/* ===== Snake (DOM, 9:16) with D-pad ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
   const cols = 18, rows = 32;
@@ -583,15 +714,9 @@ document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
-
 const T_COLS=10, T_ROWS=20;
-const SHAPES = {
-  I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]],
-  S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]],
-  J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]],
-};
+const SHAPES = { I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]], S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]], J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]] };
 const COLORS = { I:'block-I', O:'block-O', T:'block-T', S:'block-S', Z:'block-Z', J:'block-J', L:'block-L' };
-
 function rotate(m){ const h=m.length,w=m[0].length; const o=Array.from({length:w},()=>Array(h).fill(0)); for(let y=0;y<h;y++) for(let x=0;x<w;x++) o[x][h-1-y]=m[y][x]; return o; }
 function randBag(){ const a = Object.keys(SHAPES); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function collides(grid, shape, x, y){
@@ -617,8 +742,7 @@ function createTetris(){
     const shape = SHAPES[type].map(r=>r.slice());
     return { type, shape, x:Math.floor((T_COLS-shape[0].length)/2), y:-shape.length };
   }
-  const G = { grid, next, piece: null, getNext: nextPiece, hold:null, holdUsed:false,
-              score:0, level:1, lines:0, sessionEarned:0, tick:700 };
+  const G = { grid, next, piece: null, getNext: nextPiece, hold:null, holdUsed:false, score:0, level:1, lines:0, sessionEarned:0, tick:700 };
   G.piece = G.getNext();
   renderMiniShape(nextUI, SHAPES[G.next], COLORS[G.next]);
   return G;
@@ -664,7 +788,7 @@ function lockPiece(G){
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
 
-/* Movement helpers shared by keyboard + buttons */
+/* Movement helpers (keyboard + buttons) */
 function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
 function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
 function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
@@ -696,7 +820,6 @@ function startTetris(){
   if (tLoop) clearInterval(tLoop);
   tLoop = setInterval(()=>{ drop(T); renderTetris(T); document.getElementById('tLevel').textContent=T.level; }, T.tick);
 
-  /* On-screen buttons */
   const tpad = document.getElementById('tpad');
   const bind = (sel, fn)=> {
     const b = tpad.querySelector(sel);
@@ -723,9 +846,11 @@ async function bootstrap(){
   if (tg){
     try{
       const s = await apiGetProfile();
-      state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{} };
+      state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{}, name:s.name||null };
     }catch{ state = loadStateLocal(); }
-  }else{ state = loadStateLocal(); }
+  }else{
+    state = loadStateLocal();
+  }
   refreshUI();
   setInterval(()=>{
     state.acc += state.gen;
@@ -739,9 +864,9 @@ async function bootstrap(){
 window.addEventListener('load', bootstrap);
 
 /* expose */
+function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
+window.requestGame = requestGame;
 window.closeOverlay = closeOverlay;
-window.openSnake = openSnake;
-window.openTetris = openTetris;
 window.onQuitTetris = onQuitTetris;
 </script>
 </body>
