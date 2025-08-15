@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>ChadiliZe — Telegram Mini App</title>
 
-<!-- Telegram Mini Apps SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
@@ -14,14 +13,13 @@
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
 
-  --app-h: 100svh;            /* JS updates from Telegram viewport */
+  --app-h: 100svh;
   --topbar-h: 64px;
   --bottom-h: 120px;
 }
 
-/* Remove mobile tap highlight / focus ring on orb */
+/* tap highlight & callout */
 *{ -webkit-tap-highlight-color: transparent; }
-.orb:focus, .orb:focus-visible { outline: none; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
 
 /* base */
@@ -31,14 +29,10 @@ body{
   font-family:Inter,system-ui,Roboto,Arial;
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
-  overflow:auto; /* scroll allowed */
+  overflow:auto;
   padding-bottom: env(safe-area-inset-bottom);
 }
-
-/* stage can grow */
 .stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
-
-/* phone wrapper */
 .phone{
   width:100%; max-width:520px; min-height:var(--app-h); height:auto;
   border-radius:20px; padding:14px; position:relative; overflow:hidden;
@@ -60,14 +54,14 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* main area: at least the visible gap between top and bottom */
+/* main */
 .main{
   min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
 }
 .visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
 
-/* smoke backdrop */
+/* smoke */
 .smoke{
   position:absolute; inset:6% 6% 18%; z-index:1; pointer-events:none; filter:blur(22px) contrast(105%);
   background:
@@ -78,20 +72,22 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* orb (moved 1cm up) */
+/* ORB — lifted exactly ~1cm and locked (no click wobble) */
 .orb{
   pointer-events:auto;width:88%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
   box-shadow:inset 0 -22px 70px rgba(0,0,0,0.72), 0 30px 100px rgba(0,0,0,0.64);
   display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative;
-  transform: translateY(-1cm); /* << move up exactly 1cm (approx on some devices) */
+  transform: translateY(-1cm);           /* << 1 cm up */
+  will-change: transform;                /* stabilize render */
 }
+.orb:focus,.orb:focus-visible{outline:none} /* no focus jump */
 .orb::after{content:""; position:absolute; inset:8px; border-radius:50%;
   box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22)}
 .orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-/* subtle DOM particles */
+/* particles (subtle) */
 .p{ position:absolute; width:6px; height:6px; border-radius:50%;
     background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0;
     animation:pop600ms 600ms ease-out forwards }
@@ -101,7 +97,7 @@ body{
   100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 }
 }
 
-/* bottom controls — sticky just above gesture bar */
+/* bottom */
 .bottom{
   position: sticky;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
@@ -117,7 +113,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays (modals) */
+/* overlays */
 .overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));display:none;align-items:center;justify-content:center;z-index:120;padding:12px}
 .overlay.show{display:flex}
 .panel{
@@ -160,7 +156,7 @@ body{
 .mini-grid{ width:100%; aspect-ratio:1/1; position:relative; display:grid; gap:2px; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(4,1fr) }
 .mini-grid .cell{ box-shadow:none }
 
-/* Snake D-pad */
+/* D-pads */
 .dpad{
   position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
   transform:translateX(-50%); display:grid; grid-template-areas: ". up ." "left . right" ". down .";
@@ -174,7 +170,6 @@ body{
 }
 .dpad .up{grid-area:up} .dpad .left{grid-area:left} .dpad .right{grid-area:right} .dpad .down{grid-area:down}
 
-/* Tetris on-screen controls */
 .tpad{
   position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
   transform:translateX(-50%); z-index:85; pointer-events:auto;
@@ -184,15 +179,10 @@ body{
     "ccw cw drop hold"
     ".   left down right";
 }
-.tpad .ccw{ grid-area:ccw }
-.tpad .cw{  grid-area:cw }
-.tpad .drop{grid-area:drop}
-.tpad .hold{grid-area:hold}
-.tpad .left{grid-area:left}
-.tpad .down{grid-area:down}
-.tpad .right{grid-area:right}
+.tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold }
+.tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* ======= Name modal (pretty) ======= */
+/* Name modal */
 #nameOverlay .panel{
   max-width:520px; padding:18px 18px 22px;
   background:
@@ -221,8 +211,6 @@ body{
 }
 .err{ color:#ff8b8b; font-size:12px; min-height:16px }
 
-/* text */
-.note{font-size:13px;color:#9aa3ab}
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
 </head>
@@ -244,7 +232,8 @@ body{
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
           <div class="p-layer" id="pLayer"></div>
-          <div class="orb" id="orb" role="button" tabindex="0" aria-label="Tap to earn +1 chad">
+          <!-- removed tabindex to prevent focus scroll/jitter -->
+          <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
             <div class="title">CHΔD</div>
             <div id="pulse"></div>
           </div>
@@ -322,7 +311,6 @@ body{
           </div>
           <div class="game-9x16">
             <div id="snakeGrid" class="grid"></div>
-            <!-- Snake D-pad -->
             <div class="dpad" id="dpad">
               <button class="up"   data-dir="up">▲</button>
               <button class="left" data-dir="left">◀</button>
@@ -354,7 +342,6 @@ body{
                 <div class="card"><div class="label">Hold</div><div id="holdGrid" class="mini-grid"></div></div>
               </div>
             </div>
-            <!-- Tetris pad -->
             <div class="tpad" id="tpad">
               <button class="ccw">↺</button>
               <button class="cw">↻</button>
@@ -393,20 +380,18 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== Simple sound (WebAudio) ===== */
+/* ===== sound (WebAudio tiny tick) ===== */
 let _audioCtx=null;
 function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
 function playTap(){
   const ctx = audio(); const now = ctx.currentTime;
-  // tiny click + short sine "tick"
   const osc = ctx.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(240, now);
   const gain = ctx.createGain(); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now+0.07);
   osc.connect(gain).connect(ctx.destination); osc.start(now); osc.stop(now+0.08);
 }
-/* Resume on first gesture */
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-/* ===== Storage & API ===== */
+/* ===== state & API ===== */
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || 'guest';
 const STORAGE_KEY = `chad_state_${TOKEN}`;
@@ -434,7 +419,6 @@ function refreshUI(){
   document.getElementById('levelText').textContent = state.level;
 }
 
-/* API helpers */
 async function apiGetProfile(){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/profile', { headers:{'Telegram-Init-Data': tg.initData || ''} });
@@ -452,11 +436,11 @@ async function apiCheckName(name){
     headers:{ 'Content-Type':'application/json', 'Telegram-Init-Data': tg.initData || '' },
     body: JSON.stringify({ name })
   });
-  if (!r.ok) throw new Error('check_name failed');
-  return await r.json(); // expect { ok:true } or { ok:false, reason:'taken' }
+  // If your backend isn't deployed yet, this will 404 — handled in caller
+  return r.ok ? r.json() : Promise.reject(new Error('check_name non-200'));
 }
 
-/* ===== Particles + Orb ===== */
+/* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
@@ -490,11 +474,9 @@ function pulse(){
 let lastTap = 0; const COOLDOWN_MS = 500;
 async function handleOrbTap(e){
   const now = Date.now();
-  if (now - lastTap < COOLDOWN_MS){
-    document.getElementById('orb').animate([{transform:'scale(1)'},{transform:'scale(.985)'},{transform:'scale(1)'}],{duration:140});
-    return;
-  }
+  if (now - lastTap < COOLDOWN_MS){ return; }  /* no bounce animation */
   lastTap = now;
+
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
   spawnParticles(cx, cy);
@@ -515,7 +497,6 @@ async function handleOrbTap(e){
 }
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
 document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {passive:true});
-document.getElementById('orb').addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' '){ e.preventDefault(); handleOrbTap(e); }});
 
 /* ===== Overlays & shop ===== */
 function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
@@ -554,9 +535,10 @@ function populateCards(){
 }
 
 /* ===== Name modal flow ===== */
-let _postGameOpen = null; // callback to run after we get a name
+let _postGameOpen = null;
 function requestGame(next){
   if (state.name){ next(); return; }
+  closeOverlay('playOverlay');              // ensure only one overlay at a time
   _postGameOpen = next;
   openOverlay('nameOverlay');
   const inp = document.getElementById('nameInput'); document.getElementById('nameErr').textContent=''; inp.value = ''; setTimeout(()=> inp.focus(), 80);
@@ -568,27 +550,34 @@ async function saveName(){
   const n = (input.value||'').trim();
   if (!isNameValid(n)){ err.textContent = '3–18 chars: letters, numbers, _ or -'; return; }
 
+  // Try server; if fails, fallback to local device check so you can still test in Telegram.
+  let ok=false, taken=false;
   try{
     if (tg){
-      const res = await apiCheckName(n);
-      if (!res.ok){ err.textContent = res.reason==='taken' ? 'That name is already taken. Try another.' : 'Could not save name.'; return; }
-    }else{
-      // local fallback uniqueness (same device only)
-      const taken = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
-      if (taken.includes(n)){ err.textContent = 'That name is already taken (local test).'; return; }
-      taken.push(n); localStorage.setItem('local_taken_names', JSON.stringify(taken));
+      const res = await apiCheckName(n);     // expects {ok:true} or {ok:false,reason:'taken'}
+      ok = !!res.ok; taken = res.reason==='taken';
     }
-    state.name = n; saveStateLocal(state);
-    closeOverlay('nameOverlay');
-    if (_postGameOpen){ const cb=_postGameOpen; _postGameOpen = null; cb(); }
-  }catch(e){
-    err.textContent = 'Network error. Please try again.';
+  }catch(e){ /* ignore and fallback */ }
+
+  if (!ok && tg){      // server rejected or unreachable
+    const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
+    if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
+  } else if (!tg){     // no Telegram env (local browser)
+    const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
+    if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
   }
+
+  if (taken){ err.textContent = 'That name is already taken. Try another.'; return; }
+  if (!ok){ err.textContent = 'Could not save name. Check your connection and try again.'; return; }
+
+  state.name = n; saveStateLocal(state);
+  closeOverlay('nameOverlay');
+  if (_postGameOpen){ const cb=_postGameOpen; _postGameOpen = null; cb(); }
 }
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* ===== Shared DOM grid helpers ===== */
+/* ===== Grid helpers ===== */
 function buildGrid(container, cols, rows){
   container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
@@ -613,7 +602,7 @@ function renderMiniShape(grid, shape, cls){
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) if (shape[y][x]) grid.add(offX+x, offY+y, cls);
 }
 
-/* ===== Snake (DOM, 9:16) with D-pad ===== */
+/* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
   const cols = 18, rows = 32;
@@ -663,7 +652,6 @@ function stepSnake(G){
   } else G.snake.pop();
   return 'ok';
 }
-/* Keyboard + D-pad */
 function attachSnakeInput(G){
   function setDir(d){
     if      (d==='up'   && G.dir.y!==1)  G.nextDir={x:0,y:-1};
@@ -710,7 +698,7 @@ function onQuitSnake(){
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris (DOM 10x20) + on-screen pad ===== */
+/* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -788,7 +776,7 @@ function lockPiece(G){
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
 
-/* Movement helpers (keyboard + buttons) */
+/* Tetris controls (keyboard + on-screen) */
 function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
 function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
 function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
@@ -802,7 +790,6 @@ function tHold(){
   else { T.piece={type:tmp.type, shape:tmp.shape.map(r=>r.slice()), x:Math.floor((T_COLS-tmp.shape[0].length)/2), y:-tmp.shape.length}; }
   T.holdUsed=true; renderTetris(T);
 }
-
 function startTetris(){
   T = createTetris(); renderTetris(T);
   function key(e){
@@ -827,13 +814,10 @@ function startTetris(){
     b.addEventListener('click', h);
     b.addEventListener('touchstart', h, {passive:false});
   };
-  bind('.left', ()=> tMove(-1));
-  bind('.right', ()=> tMove(1));
-  bind('.down', ()=> tSoftDrop());
-  bind('.cw',  ()=> tRotateCW());
-  bind('.ccw', ()=> tRotateCCW());
-  bind('.drop',()=> tHardDrop());
-  bind('.hold',()=> tHold());
+  bind('.left', ()=> tMove(-1)); bind('.right', ()=> tMove(1));
+  bind('.down', ()=> tSoftDrop()); bind('.cw', ()=> tRotateCW());
+  bind('.ccw', ()=> tRotateCCW()); bind('.drop', ()=> tHardDrop());
+  bind('.hold', ()=> tHold());
 }
 function openTetris(){ closeOverlay('playOverlay'); openOverlay('tetrisModal'); setTimeout(()=> startTetris(), 40); }
 function onQuitTetris(){
@@ -868,6 +852,8 @@ function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 window.requestGame = requestGame;
 window.closeOverlay = closeOverlay;
 window.onQuitTetris = onQuitTetris;
+document.getElementById('nameSave').addEventListener('click', saveName);
+document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 </script>
 </body>
 </html>
