@@ -28,7 +28,7 @@ body{
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ====== LOADER (full image, no spinner) ====== */
+/* ====== LOADER (full image, no spinner; a touch brighter) ====== */
 #loader{
   position: fixed; inset: 0; z-index: 9999;
   background: #000;
@@ -37,15 +37,14 @@ body{
 }
 #loader.hide{ opacity:0; pointer-events:none; }
 #loader img{
-  /* Show the whole image without cropping */
   width: 100vw;
-  height: 100svh;              /* fits small viewport on mobile */
-  height: var(--app-h);        /* Telegram viewport override when ready */
-  object-fit: contain;         /* keep entire image visible */
-  object-position: center;     /* center it */
-  max-width: 100%;
-  max-height: 100%;
-  display:block;
+  height: 100svh;
+  height: var(--app-h);
+  object-fit: contain;
+  object-position: center;
+  display:block; max-width:100%; max-height:100%;
+  /* pop a bit without overdoing it */
+  filter: brightness(1.1) contrast(1.05) saturate(1.08);
 }
 
 /* ===== App shell ===== */
@@ -126,10 +125,22 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* bottom (sticky) */
-.bottom{ position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left:12px; right:12px; z-index:70; margin-top:16px; }
-.controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
+/* ===== Bottom controls (stabilized; no sideways wiggle) ===== */
+.bottom{
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  left:12px; right:12px; z-index:70; margin-top:16px;
+  contain: layout paint;           /* isolate from layout shifts above */
+  transform: translateZ(0);        /* own layer for subpixel stability */
+}
+.controls{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));  /* fixed, equal columns */
+  gap:12px; align-items:stretch;
+}
 .tile{
+  width:100%;
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
   border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none
 }
@@ -238,9 +249,7 @@ body{
 .name-title{ font-size:22px; font-weight:900 }
 .name-sub{ font-size:13px; color:#9aa3ab }
 
-.name-row{
-  display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px;
-}
+.name-row{ display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px; }
 .name-input{
   min-width:0;
   padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
@@ -258,14 +267,13 @@ body{
   .name-row{ grid-template-columns: 1fr; }
   .name-row .btn{ width:100%; }
 }
-@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
+@media (max-width:420px){ .controls{grid-template-columns: repeat(3, minmax(0,1fr)); } }
 </style>
 </head>
 <body>
 
   <!-- ===== FULLSCREEN LOADER IMAGE ===== -->
   <div id="loader" aria-label="Loading">
-    <!-- Use your uploaded path on Vercel/GitHub -->
     <img id="loaderImg" src="./img/loader.jpg" alt="Loading…">
   </div>
 
@@ -436,14 +444,13 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== Loader hide: after image loads + 3s (fallback at 6s) ===== */
+/* ===== Loader hide: after image loads + 4s (fallback at 7s) ===== */
 const loader = document.getElementById('loader');
 const loaderImg = document.getElementById('loaderImg');
 function hideLoader(){ loader?.classList.add('hide'); setTimeout(()=> loader?.remove(), 400); }
-if (loaderImg?.complete) { setTimeout(hideLoader, 3000); }
-else { loaderImg?.addEventListener('load', ()=> setTimeout(hideLoader, 3000)); }
-// network fallback
-setTimeout(hideLoader, 6000);
+if (loaderImg?.complete) { setTimeout(hideLoader, 4000); }
+else { loaderImg?.addEventListener('load', ()=> setTimeout(hideLoader, 4000)); }
+setTimeout(hideLoader, 7000); // network fallback
 
 /* ===== tap sound ===== */
 let _audioCtx=null;
