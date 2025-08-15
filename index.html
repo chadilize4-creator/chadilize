@@ -28,25 +28,27 @@ body{
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ====== LOADER (3s minimum) ====== */
+/* ====== LOADER (full image, no spinner) ====== */
 #loader{
-  position:fixed; inset:0; z-index:9999;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.3), rgba(0,0,0,.5)),
-    url("img/loader.jpg") center center / cover no-repeat,
-    #000;
-  display:grid; place-items:center;
-  transition: opacity .4s ease;
+  position: fixed; inset: 0; z-index: 9999;
+  background: #000;
+  display:flex; align-items:center; justify-content:center;
+  opacity:1; transition: opacity .35s ease;
 }
-#loader::after{
-  content:""; width:44px; height:44px; border-radius:50%;
-  border:3px solid rgba(255,255,255,.25); border-top-color:#fff;
-  animation:spin 1s linear infinite;
-  filter:drop-shadow(0 0 10px rgba(255,255,255,.25));
+#loader.hide{ opacity:0; pointer-events:none; }
+#loader img{
+  /* Show the whole image without cropping */
+  width: 100vw;
+  height: 100svh;              /* fits small viewport on mobile */
+  height: var(--app-h);        /* Telegram viewport override when ready */
+  object-fit: contain;         /* keep entire image visible */
+  object-position: center;     /* center it */
+  max-width: 100%;
+  max-height: 100%;
+  display:block;
 }
-#loader.fade{ opacity:0; pointer-events:none; }
-@keyframes spin{ to{ transform:rotate(360deg)} }
 
+/* ===== App shell ===== */
 .stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
 .phone{
   width:100%; max-width:520px; min-height:var(--app-h); height:auto;
@@ -105,7 +107,7 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (1cm up) — slightly bigger (94%) */
+/* ORB (1cm up, no wobble) — a little bigger */
 .orb{
   pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
@@ -136,7 +138,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays */
+/* overlays (padding responsive so panel never overflows) */
 .overlay{
   position:fixed; inset:0;
   background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
@@ -256,13 +258,16 @@ body{
   .name-row{ grid-template-columns: 1fr; }
   .name-row .btn{ width:100%; }
 }
-@media (max-width:420px){ .controls{grid-template-columns: 1fr 1 fr 1fr} }
+@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
 </head>
 <body>
 
-  <!-- LOADER overlay -->
-  <div id="loader" aria-hidden="true"></div>
+  <!-- ===== FULLSCREEN LOADER IMAGE ===== -->
+  <div id="loader" aria-label="Loading">
+    <!-- Use your uploaded path on Vercel/GitHub -->
+    <img id="loaderImg" src="./img/loader.jpg" alt="Loading…">
+  </div>
 
   <div class="stage">
     <div class="phone" id="phone">
@@ -430,6 +435,15 @@ try{ tg?.ready(); tg?.expand(); }catch{}
 applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
+
+/* ===== Loader hide: after image loads + 3s (fallback at 6s) ===== */
+const loader = document.getElementById('loader');
+const loaderImg = document.getElementById('loaderImg');
+function hideLoader(){ loader?.classList.add('hide'); setTimeout(()=> loader?.remove(), 400); }
+if (loaderImg?.complete) { setTimeout(hideLoader, 3000); }
+else { loaderImg?.addEventListener('load', ()=> setTimeout(hideLoader, 3000)); }
+// network fallback
+setTimeout(hideLoader, 6000);
 
 /* ===== tap sound ===== */
 let _audioCtx=null;
@@ -844,18 +858,13 @@ function onQuitTetris(){
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
-/* ===== Bootstrap + Loader sync ===== */
+/* ===== Bootstrap ===== */
 async function bootstrap(){
   if (tg){
-    try{
-      const s = await apiGetProfile();
+    try{ const s = await apiGetProfile();
       state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{}, name:s.name||null };
-    }catch{
-      state = loadStateLocal();
-    }
-  }else{
-    state = loadStateLocal();
-  }
+    }catch{ state = loadStateLocal(); }
+  }else{ state = loadStateLocal(); }
   refreshUI();
   if (!state.name){ openNameModal(); }
 
@@ -868,15 +877,7 @@ async function bootstrap(){
     state.last = Math.floor(Date.now()/1000);
   }, 1000);
 }
-
-function hideLoader(){ const el=document.getElementById('loader'); if(!el) return; el.classList.add('fade'); setTimeout(()=> el.remove(), 450); }
-
-window.addEventListener('load', ()=>{
-  // 3s minimum loader
-  const minTime = new Promise(res=> setTimeout(res, 3000));
-  const boot = (async()=>{ await bootstrap(); })();
-  Promise.all([minTime, boot]).then(hideLoader);
-});
+window.addEventListener('load', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
