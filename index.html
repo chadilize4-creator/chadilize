@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>ChadiliZe — Telegram Mini App</title>
 
-<!-- Telegram Mini Apps SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
@@ -39,11 +38,8 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* ====== Top bar ====== */
-.topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  min-height:52px;
-}
+/* ===== Top bar ===== */
+.topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
 .userpill{
   display:flex; align-items:center; gap:10px;
   padding:8px 12px; border-radius:12px;
@@ -60,10 +56,8 @@ body{
   background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
 }
-.userpill .name{
-  font-weight:800; letter-spacing:.2px;
-  max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
+.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
 .stat{
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
   padding:10px 14px;border-radius:10px;border:1px solid var(--glass);
@@ -73,7 +67,7 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* ====== Main ====== */
+/* ===== Main ===== */
 .main{
   min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
@@ -107,17 +101,11 @@ body{
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
 /* particles */
-.p{ position:absolute; width:6px; height:6px; border-radius:50%;
-    background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0;
-    animation:pop600ms 600ms ease-out forwards }
+.p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
 /* bottom (sticky) */
-.bottom{
-  position: sticky;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-  left:12px; right:12px; z-index:70; margin-top:16px;
-}
+.bottom{ position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left:12px; right:12px; z-index:70; margin-top:16px; }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
@@ -128,11 +116,17 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays */
-.overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));display:none;align-items:center;justify-content:center;z-index:120;padding:12px}
+/* overlays (padding responsive so panel never overflows) */
+.overlay{
+  position:fixed; inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
+  display:none; align-items:center; justify-content:center; z-index:120;
+  padding: clamp(8px, 3vw, 16px);
+}
 .overlay.show{display:flex}
 .panel{
-  background:linear-gradient(180deg,#071017,#0b0f12);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
+  background:linear-gradient(180deg,#071017,#0b0f12);
+  padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
   width:100%;max-width:920px;color:#ddd;box-shadow:0 28px 100px rgba(0,0,0,0.6);
   max-height:calc(var(--app-h) - 24px); overflow:auto
 }
@@ -197,21 +191,22 @@ body{
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold }
 .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* ====== Name modal (prettier) ====== */
+/* ===== Name modal (made fully responsive) ===== */
 #nameOverlay .panel{
-  max-width:560px; padding:0; border-radius:18px; overflow:hidden;
-  background:transparent; border:none;
+  width: min(560px, 100%);           /* never wider than viewport */
+  max-width: 100%;
+  padding: 0; border-radius:18px; overflow:hidden;
+  background:transparent; border:none; box-shadow:none;
 }
 .name-wrap{
-  width:100%; background:
+  width:100%; box-sizing:border-box;
+  background:
     radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,0.10), transparent 40%),
     linear-gradient(180deg,#08131b,#0a0f13);
   border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px 18px 22px;
   box-shadow:0 30px 100px rgba(0,0,0,.65);
 }
-.name-hero{
-  display:flex; align-items:center; gap:12px; margin-bottom:10px;
-}
+.name-hero{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
 .preview-avatar{
   width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
   font-weight:900; font-size:18px; color:#07131b;
@@ -220,9 +215,14 @@ body{
 }
 .name-title{ font-size:22px; font-weight:900 }
 .name-sub{ font-size:13px; color:#9aa3ab }
-.name-row{ display:flex; gap:10px; align-items:center; margin-top:12px }
+
+/* grid row prevents overflow; collapses on small screens */
+.name-row{
+  display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px;
+}
 .name-input{
-  flex:1; padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
+  min-width:0;                 /* allow shrink inside grid */
+  padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
   border:1px solid rgba(255,255,255,.08); border-radius:12px;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
 }
@@ -232,6 +232,12 @@ body{
   box-shadow:0 18px 50px rgba(0,0,0,.6)
 }
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
+
+/* On very narrow phones put Save on its own line and full width */
+@media (max-width:380px){
+  .name-row{ grid-template-columns: 1fr; }
+  .name-row .btn{ width:100%; }
+}
 
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
@@ -258,7 +264,6 @@ body{
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
           <div class="p-layer" id="pLayer"></div>
-          <!-- no tabindex to avoid focus scroll/jitter -->
           <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
             <div class="title">CHΔD</div>
             <div id="pulse"></div>
@@ -304,7 +309,7 @@ body{
         </div>
       </div>
 
-      <!-- NAME overlay (opens on app start if no name) -->
+      <!-- NAME overlay -->
       <div class="overlay" id="nameOverlay">
         <div class="panel">
           <div class="name-wrap">
@@ -390,18 +395,13 @@ body{
   </div>
 
 <script>
-/* ===== Telegram viewport sizing ===== */
+/* ===== Telegram viewport ===== */
 const tg = window.Telegram?.WebApp ?? null;
-function applyAppHeight(){
-  const h = tg?.viewportHeight || window.innerHeight;
-  document.documentElement.style.setProperty('--app-h', h + 'px');
-}
+function applyAppHeight(){ const h = tg?.viewportHeight || window.innerHeight; document.documentElement.style.setProperty('--app-h', h + 'px'); }
 function applyChromeHeights(){
-  const top = document.getElementById('topbar');
-  const bottom = document.getElementById('bottom');
+  const top = document.getElementById('topbar'); const bottom = document.getElementById('bottom');
   const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0;
-  const topH = top?.offsetHeight || 0;
-  const bottomH = (bottom?.offsetHeight || 0) + 8 + safe;
+  const topH = top?.offsetHeight || 0; const bottomH = (bottom?.offsetHeight || 0) + 8 + safe;
   document.documentElement.style.setProperty('--topbar-h', topH + 'px');
   document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
 }
@@ -410,19 +410,18 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== tiny tap sound ===== */
+/* ===== tap sound ===== */
 let _audioCtx=null;
 function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
-function playTap(){
-  const ctx = audio(); const now = ctx.currentTime;
-  const o = ctx.createOscillator(); const g = ctx.createGain();
+function playTap(){ const ctx = audio(), now = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
   o.type='sine'; o.frequency.setValueAtTime(240, now);
   g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.07);
   o.connect(g).connect(ctx.destination); o.start(now); o.stop(now+0.08);
 }
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-/* ===== state & minimal API ===== */
+/* ===== state & API ===== */
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || 'guest';
 const STORAGE_KEY = `chad_state_${TOKEN}`;
@@ -444,6 +443,7 @@ function saveStateLocal(s){
 }
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
+
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
@@ -464,8 +464,7 @@ async function apiClickLogo(){
 async function apiCheckName(name){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/check_name', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'Telegram-Init-Data': tg.initData || '' },
+    method:'POST', headers:{ 'Content-Type':'application/json', 'Telegram-Init-Data': tg.initData || '' },
     body: JSON.stringify({ name })
   });
   return r.ok ? r.json() : Promise.reject(new Error('check_name non-200'));
@@ -475,19 +474,15 @@ async function apiCheckName(name){
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
+  const x = clientX - rect.left, y = clientY - rect.top;
   const count = 7 + Math.floor(Math.random()*5);
   for(let i=0;i<count;i++){
-    const s = document.createElement('span');
-    s.className = 'p';
-    const angle = Math.random()*Math.PI*2;
-    const dist = 18 + Math.random()*34;
+    const s = document.createElement('span'); s.className = 'p';
+    const a = Math.random()*Math.PI*2, d = 18 + Math.random()*34;
     s.style.left = `${x}px`; s.style.top = `${y}px`;
-    s.style.setProperty('--dx', `${Math.cos(angle)*dist}px`);
-    s.style.setProperty('--dy', `${Math.sin(angle)*dist}px`);
-    pLayer.appendChild(s);
-    setTimeout(()=> s.remove(), 620);
+    s.style.setProperty('--dx', `${Math.cos(a)*d}px`);
+    s.style.setProperty('--dy', `${Math.sin(a)*d}px`);
+    pLayer.appendChild(s); setTimeout(()=> s.remove(), 620);
   }
 }
 function pulse(){
@@ -501,27 +496,16 @@ function pulse(){
     setTimeout(()=>{ pulse.style.opacity='0'; pulse.style.transform='scale(1.4)'; }, 420);
   }, 20);
 }
-
 let lastTap = 0; const COOLDOWN_MS = 500;
 async function handleOrbTap(e){
-  const now = Date.now();
-  if (now - lastTap < COOLDOWN_MS){ return; }
-  lastTap = now;
-
+  const now = Date.now(); if (now - lastTap < COOLDOWN_MS){ return; } lastTap = now;
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
   spawnParticles(cx, cy); pulse(); playTap();
-
   try{
-    if (tg){
-      const data = await apiClickLogo();
-      state.chads = BigInt(data.total_points);
-    }else{
-      state.chads += 1n; saveStateLocal(state);
-    }
-  }catch{
-    state.chads += 1n; saveStateLocal(state);
-  }
+    if (tg){ const data = await apiClickLogo(); state.chads = BigInt(data.total_points); }
+    else { state.chads += 1n; saveStateLocal(state); }
+  }catch{ state.chads += 1n; saveStateLocal(state); }
   refreshUI();
 }
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
@@ -543,8 +527,7 @@ function populateCards(){
   const container = document.getElementById('cardsList'); if(!container) return;
   container.innerHTML = '';
   CARD_TYPES.forEach(c=>{
-    const d = document.createElement('div');
-    d.className = 'tile level'; d.style.marginBottom='8px';
+    const d = document.createElement('div'); d.className = 'tile level'; d.style.marginBottom='8px';
     d.innerHTML = `
       <div style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px">
         <div>
@@ -578,52 +561,31 @@ function livePreviewInitials(){
   document.getElementById('namePreviewAvatar').textContent = initials || '?';
 }
 function isValidNameWords(n){
-  // Up to 8 words, each word: letters/numbers/_/- (no empty), allow single spaces between
-  if (!n) return false;
-  const words = n.trim().split(/\s+/);
-  if (words.length===0 || words.length>8) return false;
+  const words = (n||'').trim().split(/\s+/); if (words.length===0 || words.length>8) return false;
   return words.every(w => /^[A-Za-z0-9_-]{1,16}$/.test(w));
 }
 async function openNameModal(){
   openOverlay('nameOverlay');
-  const inp = document.getElementById('nameInput');
-  const err = document.getElementById('nameErr');
-  err.textContent=''; inp.value=''; livePreviewInitials();
-  setTimeout(()=> inp.focus(), 80);
+  const inp = document.getElementById('nameInput'); const err = document.getElementById('nameErr');
+  err.textContent=''; inp.value=''; livePreviewInitials(); setTimeout(()=> inp.focus(), 80);
 }
 async function saveName(){
-  const input = document.getElementById('nameInput');
-  const err = document.getElementById('nameErr');
+  const input = document.getElementById('nameInput'); const err = document.getElementById('nameErr');
   const n = (input.value||'').trim().replace(/\s+/g,' ').substring(0,60);
   if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars per word.'; return; }
-
   let ok=false, taken=false;
-  try{
-    if (tg){
-      const res = await apiCheckName(n);   // expects { ok:true } OR { ok:false, reason:'taken' }
-      ok = !!res.ok; taken = res.reason==='taken';
-    }
-  }catch(e){ /* allow fallback */ }
-
-  if (!ok && tg){
-    const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
-    if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
-  } else if (!tg){
-    const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
-    if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
-  }
-
+  try{ if (tg){ const res = await apiCheckName(n); ok = !!res.ok; taken = res.reason==='taken'; } }catch(e){}
+  if (!ok && tg){ const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]'); if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true; }
+  if (!tg){ const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]'); if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true; }
   if (taken){ err.textContent = 'That name is already taken. Try another.'; return; }
   if (!ok){ err.textContent = 'Could not save name. Check your connection and try again.'; return; }
-
-  state.name = n; saveStateLocal(state); setUserPill(n);
-  closeOverlay('nameOverlay');
+  state.name = n; saveStateLocal(state); setUserPill(n); closeOverlay('nameOverlay');
 }
 document.getElementById('nameInput').addEventListener('input', livePreviewInitials);
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* ===== DOM grid helpers ===== */
+/* ===== Grid helpers ===== */
 function buildGrid(container, cols, rows){
   container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
@@ -642,7 +604,7 @@ function renderMiniShape(grid, shape, cls){
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) if (shape[y][x]) grid.add(offX+x, offY+y, cls);
 }
 
-/* ===== Snake (DOM) ===== */
+/* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
   const cols = 18, rows = 32;
@@ -658,8 +620,7 @@ function createSnakeGame(){
     if (!conflict) obstacles.push({x,y}); tries++;
   }
   function randomFood(){
-    let fx=0,fy=0,t=0;
-    do{ fx=Math.floor(Math.random()*cols); fy=Math.floor(Math.random()*rows); t++; }
+    let fx=0,fy=0,t=0; do{ fx=Math.floor(Math.random()*cols); fy=Math.floor(Math.random()*rows); t++; }
     while(t<4000 && (snake.some(s=>s.x===fx&&s.y===fy) || obstacles.some(o=>o.x===fx&&o.y===fy)));
     return {x:fx,y:fy};
   }
@@ -736,7 +697,7 @@ function onQuitSnake(){
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris (DOM) ===== */
+/* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -802,7 +763,7 @@ function lockPiece(G){
       document.getElementById('tScore').textContent = G.score;
       document.getElementById('tEarned').textContent = G.sessionEarned;
       renderTetris(G);
-      if (!tLoop) tLoop = setInterval(()=>{ drop(G); renderTetris(G); document.getElementById('tLevel').textContent=G.level; }, G.tick);
+      if (!tLoop) tLoop = setInterval(()=>{ drop(G); renderTetris(G); document.getElementById('tLevel').textContent=T.level; }, G.tick);
     }, 170);
   }
   G.piece = G.getNext(); G.holdUsed=false;
@@ -861,20 +822,15 @@ function onQuitTetris(){
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
-/* ===== Bootstrap (ask name immediately if missing) ===== */
+/* ===== Bootstrap ===== */
 async function bootstrap(){
   if (tg){
-    try{
-      const s = await apiGetProfile();
+    try{ const s = await apiGetProfile();
       state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{}, name:s.name||null };
     }catch{ state = loadStateLocal(); }
-  }else{
-    state = loadStateLocal();
-  }
+  }else{ state = loadStateLocal(); }
   refreshUI();
-
-  // Ask for name immediately if not set
-  if (!state.name){ openNameModal(); }
+  if (!state.name){ openNameModal(); }   // ask immediately
 
   setInterval(()=>{
     state.acc += state.gen;
@@ -887,7 +843,7 @@ async function bootstrap(){
 }
 window.addEventListener('load', bootstrap);
 
-/* expose small helpers for inline buttons */
+/* expose */
 window.closeOverlay = closeOverlay;
 window.onQuitTetris = onQuitTetris;
 </script>
