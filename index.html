@@ -20,24 +20,29 @@
   --bottom-h: 120px;            /* JS measures real height */
 }
 
-/* full-screen + no scroll */
+/* Tap highlight & focus ring removal */
+*{ -webkit-tap-highlight-color: transparent; }
+.orb:focus, .orb:focus-visible { outline: none; }
+.orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
+
+/* full-screen baseline; allow scrolling */
 html,body{height:100%}
 body{
   margin:0; color:var(--ink);
   font-family:Inter,system-ui,Roboto,Arial;
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
-  overflow:hidden; /* prevent page scroll in Telegram */
-  padding-bottom: env(safe-area-inset-bottom); /* keep above gesture bar */
-}
-.stage{
-  height:var(--app-h); min-height:var(--app-h);
-  display:flex; align-items:center; justify-content:center; padding:18px;
+  overflow:auto; /* scrollable */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* phone container uses the exact app height */
+/* page container can grow */
+.stage{
+  min-height:var(--app-h); height:auto;
+  display:flex; align-items:center; justify-content:center; padding:18px;
+}
 .phone{
-  width:100%; max-width:520px; height:var(--app-h);
+  width:100%; max-width:520px; min-height:var(--app-h); height:auto;
   border-radius:20px; padding:14px; position:relative; overflow:hidden;
   background:
     radial-gradient(800px 400px at 10% 10%, rgba(255,107,107,0.03), transparent 5%),
@@ -57,9 +62,9 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* main area is EXACTLY the leftover height between topbar and bottom */
+/* main area: at least the visible gap between top and bottom */
 .main{
-  height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
+  min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
 }
 .visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
@@ -83,11 +88,11 @@ body{
 .orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-/* bottom controls — always just above the gesture bar */
+/* bottom controls — sticky just above gesture bar */
 .bottom{
-  position:absolute;left:12px;right:12px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);  /* <- lifted */
-  z-index:70
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  left:12px; right:12px; z-index:70; margin-top:16px;
 }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
@@ -154,7 +159,7 @@ body{
 }
 .dpad .up{grid-area:up} .dpad .left{grid-area:left} .dpad .right{grid-area:right} .dpad .down{grid-area:down}
 
-/* NEW: Tetris on-screen controls */
+/* Tetris on-screen controls */
 .tpad{
   position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
   transform:translateX(-50%); z-index:85; pointer-events:auto;
@@ -190,7 +195,7 @@ body{
         </div>
       </div>
 
-      <!-- the orb now centers in the computed free space -->
+      <!-- main -->
       <div class="main" id="main">
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
@@ -290,7 +295,7 @@ body{
                 <div class="card"><div class="label">Hold</div><div id="holdGrid" class="mini-grid"></div></div>
               </div>
             </div>
-            <!-- NEW: Tetris pad -->
+            <!-- Tetris pad -->
             <div class="tpad" id="tpad">
               <button class="ccw">↺</button>
               <button class="cw">↻</button>
@@ -309,30 +314,22 @@ body{
   </div>
 
 <script>
-/* ===== Telegram viewport: lock app to full height (no scroll) ===== */
+/* ===== Telegram viewport sizing ===== */
 const tg = window.Telegram?.WebApp ?? null;
-
 function applyAppHeight(){
   const h = tg?.viewportHeight || window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
 }
-
-/* measure top + bottom so the orb can be centered in the visible space */
 function applyChromeHeights(){
   const top = document.getElementById('topbar');
   const bottom = document.getElementById('bottom');
-  const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0; // safe-area inset
+  const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0;
   const topH = top?.offsetHeight || 0;
-  const bottomH = (bottom?.offsetHeight || 0) + 8 + safe; // small lift above the white bar
+  const bottomH = (bottom?.offsetHeight || 0) + 8 + safe;
   document.documentElement.style.setProperty('--topbar-h', topH + 'px');
   document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
 }
-
-try{
-  tg?.ready();
-  // Ask Telegram to maximize height; we still compute with viewportHeight
-  tg?.expand(); // expansion method (availability varies by client). :contentReference[oaicite:1]{index=1}
-}catch{}
+try{ tg?.ready(); tg?.expand(); }catch{}
 applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
@@ -552,7 +549,6 @@ function attachSnakeInput(G){
     if (k==='ArrowRight'||k==='d'||k==='D') setDir('right');
   }
   window.addEventListener('keydown', key, {passive:false});
-
   const dpad = document.getElementById('dpad');
   dpad.querySelectorAll('button').forEach(btn=>{
     const dir = btn.dataset.dir;
@@ -560,7 +556,6 @@ function attachSnakeInput(G){
     btn.addEventListener('click', handler);
     btn.addEventListener('touchstart', handler, {passive:false});
   });
-
   return ()=>{ window.removeEventListener('keydown', key); };
 }
 document.getElementById('snakeStart').addEventListener('click', ()=>{
@@ -669,7 +664,7 @@ function lockPiece(G){
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
 
-/* Movement helpers so both keyboard and buttons call the same code */
+/* Movement helpers shared by keyboard + buttons */
 function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
 function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
 function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
@@ -701,7 +696,7 @@ function startTetris(){
   if (tLoop) clearInterval(tLoop);
   tLoop = setInterval(()=>{ drop(T); renderTetris(T); document.getElementById('tLevel').textContent=T.level; }, T.tick);
 
-  /* Wire the on-screen buttons */
+  /* On-screen buttons */
   const tpad = document.getElementById('tpad');
   const bind = (sel, fn)=> {
     const b = tpad.querySelector(sel);
