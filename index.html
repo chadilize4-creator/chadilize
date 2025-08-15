@@ -5,24 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>ChadiliZe — Telegram Mini App</title>
 
+<!-- Telegram Mini Apps SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 :root{
-  --bg1:#06060a; --ink:#e8edf4; --glass:rgba(255,255,255,0.03);
+  --bg1:#06060a; --ink:#e8edf4; --glass:rgba(255,255,255,0.06);
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
-
-  --app-h: 100svh;
-  --topbar-h: 64px;
-  --bottom-h: 120px;
+  --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
 
-/* tap highlight & callout */
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
 
-/* base */
 html,body{height:100%}
 body{
   margin:0; color:var(--ink);
@@ -43,8 +39,31 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* HUD */
-.topbar{display:flex;justify-content:flex-end}
+/* ====== Top bar ====== */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  min-height:52px;
+}
+.userpill{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; border-radius:12px;
+  background:
+    radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
+    linear-gradient(180deg,#0b1218,#0a0e12);
+  border:1px solid var(--glass);
+  box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.userpill .avatar{
+  width:28px; height:28px; border-radius:50%;
+  display:grid; place-items:center; font-weight:900; font-size:12px;
+  color:#061018;
+  background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.userpill .name{
+  font-weight:800; letter-spacing:.2px;
+  max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .stat{
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
   padding:10px 14px;border-radius:10px;border:1px solid var(--glass);
@@ -54,7 +73,7 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* main */
+/* ====== Main ====== */
 .main{
   min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
@@ -72,32 +91,28 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB — lifted exactly ~1cm and locked (no click wobble) */
+/* ORB (1cm up, no wobble) */
 .orb{
   pointer-events:auto;width:88%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
   box-shadow:inset 0 -22px 70px rgba(0,0,0,0.72), 0 30px 100px rgba(0,0,0,0.64);
   display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative;
-  transform: translateY(-1cm);           /* << 1 cm up */
-  will-change: transform;                /* stabilize render */
+  transform: translateY(-1cm);
+  will-change: transform;
 }
-.orb:focus,.orb:focus-visible{outline:none} /* no focus jump */
+.orb:focus,.orb:focus-visible{outline:none}
 .orb::after{content:""; position:absolute; inset:8px; border-radius:50%;
   box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22)}
 .orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-/* particles (subtle) */
+/* particles */
 .p{ position:absolute; width:6px; height:6px; border-radius:50%;
     background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0;
     animation:pop600ms 600ms ease-out forwards }
-@keyframes pop600ms{
-  0%{ transform:translate(0,0) scale(.8); opacity:.35 }
-  80%{ opacity:.1 }
-  100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 }
-}
+@keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* bottom */
+/* bottom (sticky) */
 .bottom{
   position: sticky;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
@@ -182,26 +197,33 @@ body{
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold }
 .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* Name modal */
+/* ====== Name modal (prettier) ====== */
 #nameOverlay .panel{
-  max-width:520px; padding:18px 18px 22px;
-  background:
-    radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,0.06), transparent 40%),
+  max-width:560px; padding:0; border-radius:18px; overflow:hidden;
+  background:transparent; border:none;
+}
+.name-wrap{
+  width:100%; background:
+    radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,0.10), transparent 40%),
     linear-gradient(180deg,#08131b,#0a0f13);
+  border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px 18px 22px;
+  box-shadow:0 30px 100px rgba(0,0,0,.65);
 }
-.name-card{
-  display:flex; flex-direction:column; gap:14px;
-  border:1px solid rgba(255,255,255,0.06);
-  border-radius:14px; padding:16px;
-  background:linear-gradient(180deg, #0f1520, #0b1118);
-  box-shadow:0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+.name-hero{
+  display:flex; align-items:center; gap:12px; margin-bottom:10px;
 }
-.name-title{ font-size:20px; font-weight:800 }
+.preview-avatar{
+  width:48px; height:48px; border-radius:14px; display:grid; place-items:center;
+  font-weight:900; font-size:18px; color:#07131b;
+  background:conic-gradient(from 210deg, #8bd3ff, #6ec8ff, #a8e0ff);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.name-title{ font-size:22px; font-weight:900 }
 .name-sub{ font-size:13px; color:#9aa3ab }
-.name-row{ display:flex; gap:10px; align-items:center }
+.name-row{ display:flex; gap:10px; align-items:center; margin-top:12px }
 .name-input{
-  flex:1; padding:12px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
-  border:1px solid rgba(255,255,255,.06); border-radius:12px;
+  flex:1; padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
+  border:1px solid rgba(255,255,255,.08); border-radius:12px;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
 }
 .btn{
@@ -209,7 +231,7 @@ body{
   border:1px solid var(--glass); background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa); color:#051022;
   box-shadow:0 18px 50px rgba(0,0,0,.6)
 }
-.err{ color:#ff8b8b; font-size:12px; min-height:16px }
+.err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
 
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
@@ -218,8 +240,12 @@ body{
   <div class="stage">
     <div class="phone" id="phone">
 
-      <!-- HUD -->
+      <!-- TOP BAR -->
       <div class="topbar" id="topbar">
+        <div id="userPill" class="userpill" style="visibility:hidden">
+          <div class="avatar" id="userAvatar">?</div>
+          <div class="name" id="userName">Player</div>
+        </div>
         <div class="stat">
           <div class="label">chad</div>
           <div class="value"><span id="chadCount">0</span></div>
@@ -227,12 +253,12 @@ body{
         </div>
       </div>
 
-      <!-- main -->
+      <!-- MAIN -->
       <div class="main" id="main">
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
           <div class="p-layer" id="pLayer"></div>
-          <!-- removed tabindex to prevent focus scroll/jitter -->
+          <!-- no tabindex to avoid focus scroll/jitter -->
           <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
             <div class="title">CHΔD</div>
             <div id="pulse"></div>
@@ -240,7 +266,7 @@ body{
         </div>
       </div>
 
-      <!-- bottom -->
+      <!-- BOTTOM -->
       <div class="bottom" id="bottom">
         <div class="controls">
           <div class="tile play" id="playBtn">Play<br>Games</div>
@@ -249,19 +275,18 @@ body{
         </div>
       </div>
 
-      <!-- Play overlay -->
+      <!-- PLAY overlay -->
       <div class="overlay" id="playOverlay">
         <div class="panel">
           <div class="row">
             <h2>Play Games</h2>
             <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('playOverlay')">Close</button>
           </div>
-
           <div class="row" style="gap:10px">
-            <div class="tile level" style="flex:1; min-height:68px" onclick="requestGame(openSnake)">
+            <div class="tile level" style="flex:1; min-height:68px" onclick="openSnake()">
               <div><div style="font-weight:800">Snake</div><div class="note">9:16 • on-screen arrows</div></div>
             </div>
-            <div class="tile level" style="flex:1; min-height:68px" onclick="requestGame(openTetris)">
+            <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
               <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • 9:16 shell • on-screen controls</div></div>
             </div>
           </div>
@@ -279,14 +304,19 @@ body{
         </div>
       </div>
 
-      <!-- NAME overlay -->
+      <!-- NAME overlay (opens on app start if no name) -->
       <div class="overlay" id="nameOverlay">
         <div class="panel">
-          <div class="name-card">
-            <div class="name-title">Choose your name</div>
-            <div class="name-sub">This name is shown on leaderboards and must be unique.</div>
+          <div class="name-wrap">
+            <div class="name-hero">
+              <div id="namePreviewAvatar" class="preview-avatar">?</div>
+              <div>
+                <div class="name-title">Choose your name</div>
+                <div class="name-sub">Up to <b>8 words</b>. Letters, numbers, underscores and dashes allowed.</div>
+              </div>
+            </div>
             <div class="name-row">
-              <input id="nameInput" class="name-input" maxlength="18" placeholder="letters, numbers, _ -" inputmode="latin-name" autocomplete="off" />
+              <input id="nameInput" class="name-input" maxlength="60" placeholder="e.g. Chad Master" autocomplete="off" />
               <button id="nameSave" class="btn">Save</button>
             </div>
             <div id="nameErr" class="err"></div>
@@ -380,18 +410,19 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== sound (WebAudio tiny tick) ===== */
+/* ===== tiny tap sound ===== */
 let _audioCtx=null;
 function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
 function playTap(){
   const ctx = audio(); const now = ctx.currentTime;
-  const osc = ctx.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(240, now);
-  const gain = ctx.createGain(); gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now+0.07);
-  osc.connect(gain).connect(ctx.destination); osc.start(now); osc.stop(now+0.08);
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(240, now);
+  g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.07);
+  o.connect(g).connect(ctx.destination); o.start(now); o.stop(now+0.08);
 }
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-/* ===== state & API ===== */
+/* ===== state & minimal API ===== */
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || 'guest';
 const STORAGE_KEY = `chad_state_${TOKEN}`;
@@ -417,6 +448,7 @@ function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
   document.getElementById('levelText').textContent = state.level;
+  setUserPill(state.name);
 }
 
 async function apiGetProfile(){
@@ -436,7 +468,6 @@ async function apiCheckName(name){
     headers:{ 'Content-Type':'application/json', 'Telegram-Init-Data': tg.initData || '' },
     body: JSON.stringify({ name })
   });
-  // If your backend isn't deployed yet, this will 404 — handled in caller
   return r.ok ? r.json() : Promise.reject(new Error('check_name non-200'));
 }
 
@@ -474,14 +505,12 @@ function pulse(){
 let lastTap = 0; const COOLDOWN_MS = 500;
 async function handleOrbTap(e){
   const now = Date.now();
-  if (now - lastTap < COOLDOWN_MS){ return; }  /* no bounce animation */
+  if (now - lastTap < COOLDOWN_MS){ return; }
   lastTap = now;
 
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
-  spawnParticles(cx, cy);
-  pulse();
-  playTap();
+  spawnParticles(cx, cy); pulse(); playTap();
 
   try{
     if (tg){
@@ -498,7 +527,7 @@ async function handleOrbTap(e){
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
 document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {passive:true});
 
-/* ===== Overlays & shop ===== */
+/* ===== overlays & shop ===== */
 function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
 function closeOverlay(id){ document.getElementById(id)?.classList.remove('show'); }
 document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'), {passive:true});
@@ -534,35 +563,52 @@ function populateCards(){
   });
 }
 
-/* ===== Name modal flow ===== */
-let _postGameOpen = null;
-function requestGame(next){
-  if (state.name){ next(); return; }
-  closeOverlay('playOverlay');              // ensure only one overlay at a time
-  _postGameOpen = next;
-  openOverlay('nameOverlay');
-  const inp = document.getElementById('nameInput'); document.getElementById('nameErr').textContent=''; inp.value = ''; setTimeout(()=> inp.focus(), 80);
+/* ===== Name UX ===== */
+function setUserPill(name){
+  const pill = document.getElementById('userPill');
+  if (!name){ pill.style.visibility='hidden'; return; }
+  const initials = name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '?';
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userName').textContent = name;
+  pill.style.visibility = 'visible';
 }
-function isNameValid(n){ return /^[A-Za-z0-9_-]{3,18}$/.test(n); }
+function livePreviewInitials(){
+  const n = (document.getElementById('nameInput').value||'').trim();
+  const initials = n ? n.split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') : '?';
+  document.getElementById('namePreviewAvatar').textContent = initials || '?';
+}
+function isValidNameWords(n){
+  // Up to 8 words, each word: letters/numbers/_/- (no empty), allow single spaces between
+  if (!n) return false;
+  const words = n.trim().split(/\s+/);
+  if (words.length===0 || words.length>8) return false;
+  return words.every(w => /^[A-Za-z0-9_-]{1,16}$/.test(w));
+}
+async function openNameModal(){
+  openOverlay('nameOverlay');
+  const inp = document.getElementById('nameInput');
+  const err = document.getElementById('nameErr');
+  err.textContent=''; inp.value=''; livePreviewInitials();
+  setTimeout(()=> inp.focus(), 80);
+}
 async function saveName(){
   const input = document.getElementById('nameInput');
   const err = document.getElementById('nameErr');
-  const n = (input.value||'').trim();
-  if (!isNameValid(n)){ err.textContent = '3–18 chars: letters, numbers, _ or -'; return; }
+  const n = (input.value||'').trim().replace(/\s+/g,' ').substring(0,60);
+  if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars per word.'; return; }
 
-  // Try server; if fails, fallback to local device check so you can still test in Telegram.
   let ok=false, taken=false;
   try{
     if (tg){
-      const res = await apiCheckName(n);     // expects {ok:true} or {ok:false,reason:'taken'}
+      const res = await apiCheckName(n);   // expects { ok:true } OR { ok:false, reason:'taken' }
       ok = !!res.ok; taken = res.reason==='taken';
     }
-  }catch(e){ /* ignore and fallback */ }
+  }catch(e){ /* allow fallback */ }
 
-  if (!ok && tg){      // server rejected or unreachable
+  if (!ok && tg){
     const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
     if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
-  } else if (!tg){     // no Telegram env (local browser)
+  } else if (!tg){
     const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]');
     if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true;
   }
@@ -570,28 +616,22 @@ async function saveName(){
   if (taken){ err.textContent = 'That name is already taken. Try another.'; return; }
   if (!ok){ err.textContent = 'Could not save name. Check your connection and try again.'; return; }
 
-  state.name = n; saveStateLocal(state);
+  state.name = n; saveStateLocal(state); setUserPill(n);
   closeOverlay('nameOverlay');
-  if (_postGameOpen){ const cb=_postGameOpen; _postGameOpen = null; cb(); }
 }
+document.getElementById('nameInput').addEventListener('input', livePreviewInitials);
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* ===== Grid helpers ===== */
+/* ===== DOM grid helpers ===== */
 function buildGrid(container, cols, rows){
   container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
   container.innerHTML = '';
   const cells = new Array(cols*rows);
-  for(let i=0;i<cols*rows;i++){
-    const c = document.createElement('div'); c.className = 'cell';
-    cells[i] = c; container.appendChild(c);
-  }
+  for(let i=0;i<cols*rows;i++){ const c = document.createElement('div'); c.className = 'cell'; cells[i] = c; container.appendChild(c); }
   const idx = (x,y)=> y*cols + x;
-  return { cells, idx, cols, rows,
-    clear(x,y){ const el=cells[idx(x,y)]; if(el) el.className='cell'; },
-    add(x,y,cls){ const el=cells[idx(x,y)]; if(el) el.classList.add(cls); }
-  };
+  return { cells, idx, cols, rows, clear(x,y){ const el=cells[idx(x,y)]; if(el) el.className='cell'; }, add(x,y,cls){ const el=cells[idx(x,y)]; if(el) el.classList.add(cls); } };
 }
 function buildMiniGrid(el){ el.innerHTML=''; return buildGrid(el, 4, 4); }
 function renderMiniShape(grid, shape, cls){
@@ -602,7 +642,7 @@ function renderMiniShape(grid, shape, cls){
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) if (shape[y][x]) grid.add(offX+x, offY+y, cls);
 }
 
-/* ===== Snake ===== */
+/* ===== Snake (DOM) ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
   const cols = 18, rows = 32;
@@ -630,9 +670,7 @@ function drawSnake(G){
   for(let y=0;y<G.rows;y++) for(let x=0;x<G.cols;x++) G.grid.clear(x,y);
   for(const o of G.obstacles) G.grid.add(o.x,o.y,'obstacle');
   G.grid.add(G.food.x,G.food.y,'food');
-  for (let i=0;i<G.snake.length;i++){
-    const seg=G.snake[i]; G.grid.add(seg.x,seg.y, i===0?'snake-head':'snake-cell');
-  }
+  for (let i=0;i<G.snake.length;i++){ const seg=G.snake[i]; G.grid.add(seg.x,seg.y, i===0?'snake-head':'snake-cell'); }
   if (G.justAte){ G.grid.add(G.justAte.x,G.justAte.y,'growth'); G.justAte=null; }
   document.getElementById('snakeScore').textContent = G.score;
   document.getElementById('snakeEarned').textContent = G.sessionEarned;
@@ -698,7 +736,7 @@ function onQuitSnake(){
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris ===== */
+/* ===== Tetris (DOM) ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -775,8 +813,6 @@ function lockPiece(G){
   }
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
-
-/* Tetris controls (keyboard + on-screen) */
 function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
 function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
 function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
@@ -825,7 +861,7 @@ function onQuitTetris(){
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
-/* ===== Bootstrap ===== */
+/* ===== Bootstrap (ask name immediately if missing) ===== */
 async function bootstrap(){
   if (tg){
     try{
@@ -836,6 +872,10 @@ async function bootstrap(){
     state = loadStateLocal();
   }
   refreshUI();
+
+  // Ask for name immediately if not set
+  if (!state.name){ openNameModal(); }
+
   setInterval(()=>{
     state.acc += state.gen;
     if (state.acc >= 3600n){
@@ -847,13 +887,9 @@ async function bootstrap(){
 }
 window.addEventListener('load', bootstrap);
 
-/* expose */
-function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
-window.requestGame = requestGame;
+/* expose small helpers for inline buttons */
 window.closeOverlay = closeOverlay;
 window.onQuitTetris = onQuitTetris;
-document.getElementById('nameSave').addEventListener('click', saveName);
-document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 </script>
 </body>
 </html>
