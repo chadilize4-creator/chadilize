@@ -85,9 +85,9 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (1cm up, no wobble) */
+/* ORB (1cm up, no wobble) — made a little bigger */
 .orb{
-  pointer-events:auto;width:88%;aspect-ratio:1/1;border-radius:50%;
+  pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
   box-shadow:inset 0 -22px 70px rgba(0,0,0,0.72), 0 30px 100px rgba(0,0,0,0.64);
   display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative;
@@ -191,9 +191,9 @@ body{
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold }
 .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* ===== Name modal (made fully responsive) ===== */
+/* ===== Name modal (responsive) ===== */
 #nameOverlay .panel{
-  width: min(560px, 100%);           /* never wider than viewport */
+  width: min(560px, 100%);
   max-width: 100%;
   padding: 0; border-radius:18px; overflow:hidden;
   background:transparent; border:none; box-shadow:none;
@@ -216,12 +216,11 @@ body{
 .name-title{ font-size:22px; font-weight:900 }
 .name-sub{ font-size:13px; color:#9aa3ab }
 
-/* grid row prevents overflow; collapses on small screens */
 .name-row{
   display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px;
 }
 .name-input{
-  min-width:0;                 /* allow shrink inside grid */
+  min-width:0;
   padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
   border:1px solid rgba(255,255,255,.08); border-radius:12px;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
@@ -233,13 +232,11 @@ body{
 }
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
 
-/* On very narrow phones put Save on its own line and full width */
 @media (max-width:380px){
   .name-row{ grid-template-columns: 1fr; }
   .name-row .btn{ width:100%; }
 }
-
-@media (max-width:420px){ .controls{grid-template-columns: 1fr 1 fr 1fr} }
+@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
 </head>
 <body>
@@ -421,12 +418,9 @@ function playTap(){ const ctx = audio(), now = ctx.currentTime;
 }
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-/* ===== state & API ===== */
-/* Per-user local cache key:
-   We ONLY use initDataUnsafe.user.id for choosing a localStorage bucket.
-   The server still validates identity using tg.initData (HMAC "WebAppData"). */
+/* ===== state & API (per-user local cache key) ===== */
 const params = new URLSearchParams(location.search);
-const tokenHint = params.get('token') || null;                   // optional dev fallback
+const tokenHint = params.get('token') || null;   // dev fallback if testing outside Telegram
 const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
 const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
@@ -834,7 +828,7 @@ async function bootstrap(){
     }catch{ state = loadStateLocal(); }
   }else{ state = loadStateLocal(); }
   refreshUI();
-  if (!state.name){ openNameModal(); }   // ask immediately
+  if (!state.name){ openNameModal(); }
 
   setInterval(()=>{
     state.acc += state.gen;
