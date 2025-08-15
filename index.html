@@ -13,7 +13,11 @@
   --bg1:#06060a; --ink:#e8edf4; --glass:rgba(255,255,255,0.03);
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
-  --app-h: 100svh; /* fallback before JS sets exact height */
+
+  /* exact viewport height from Telegram (JS sets this) */
+  --app-h: 100svh;              /* fallback before JS adjusts */
+  --topbar-h: 64px;             /* JS measures real height */
+  --bottom-h: 120px;            /* JS measures real height */
 }
 
 /* full-screen + no scroll */
@@ -24,21 +28,22 @@ body{
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
   overflow:hidden; /* prevent page scroll in Telegram */
-  padding-bottom: env(safe-area-inset-bottom); /* safe area */
+  padding-bottom: env(safe-area-inset-bottom); /* keep above gesture bar */
 }
 .stage{
-  height:var(--app-h); min-height:var(--app-h); /* lock to Telegram viewport */
+  height:var(--app-h); min-height:var(--app-h);
   display:flex; align-items:center; justify-content:center; padding:18px;
 }
 
-/* phone-ish container (kept responsive) */
+/* phone container uses the exact app height */
 .phone{
-  width:100%; max-width:520px; height:100%;
+  width:100%; max-width:520px; height:var(--app-h);
   border-radius:20px; padding:14px; position:relative; overflow:hidden;
   background:
     radial-gradient(800px 400px at 10% 10%, rgba(255,107,107,0.03), transparent 5%),
     linear-gradient(180deg,#070708,#0b0b0c);
   box-shadow:0 28px 90px rgba(0,0,0,0.7);
+  display:flex; flex-direction:column;
 }
 
 /* HUD */
@@ -52,9 +57,12 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* main visual */
-.main{flex:1;display:flex;align-items:center;justify-content:center;position:relative;margin-top:8px}
-.visual{width:88%;height:88%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
+/* main area is EXACTLY the leftover height between topbar and bottom */
+.main{
+  height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
+  display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
+}
+.visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
 .smoke{
   position:absolute; inset:6% 6% 18%; z-index:1; pointer-events:none; filter:blur(22px) contrast(105%);
   background:
@@ -75,8 +83,12 @@ body{
 .orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-/* bottom controls */
-.bottom{position:absolute;left:12px;right:12px;bottom:12px;z-index:70}
+/* bottom controls — always just above the gesture bar */
+.bottom{
+  position:absolute;left:12px;right:12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);  /* <- lifted */
+  z-index:70
+}
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
@@ -88,12 +100,13 @@ body{
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
 /* overlays */
-.overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
-  display:none;align-items:center;justify-content:center;z-index:120;padding:12px}
+.overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));display:none;align-items:center;justify-content:center;z-index:120;padding:12px}
 .overlay.show{display:flex}
-.panel{background:linear-gradient(180deg,#071017,#0b0f12);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
+.panel{
+  background:linear-gradient(180deg,#071017,#0b0f12);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
   width:100%;max-width:920px;color:#ddd;box-shadow:0 28px 100px rgba(0,0,0,0.6);
-  max-height:calc(var(--app-h) - 24px); overflow:auto}
+  max-height:calc(var(--app-h) - 24px); overflow:auto
+}
 
 /* 9:16 DOM games */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018);
@@ -129,16 +142,35 @@ body{
 
 /* Snake on-screen arrows (D-pad) */
 .dpad{
-  position:absolute; left:50%; bottom:calc(6px + env(safe-area-inset-bottom));
-  transform:translateX(-50%); display:grid; grid-template-areas: ". up ."
-  "left . right" ". down ."; gap:8px; z-index:80; pointer-events:auto;
+  position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
+  transform:translateX(-50%); display:grid; grid-template-areas: ". up ." "left . right" ". down .";
+  gap:8px; z-index:80; pointer-events:auto;
 }
-.dpad button{
+.dpad button,
+.tpad button{
   width:56px; height:56px; border-radius:14px; border:1px solid var(--glass);
   background:linear-gradient(180deg,#181b20,#0f1114); color:#dce3ea; font-weight:900;
   box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px; cursor:pointer
 }
 .dpad .up{grid-area:up} .dpad .left{grid-area:left} .dpad .right{grid-area:right} .dpad .down{grid-area:down}
+
+/* NEW: Tetris on-screen controls */
+.tpad{
+  position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
+  transform:translateX(-50%); z-index:85; pointer-events:auto;
+  display:grid; gap:8px;
+  grid-template-columns: repeat(4, 56px);
+  grid-template-areas:
+    "ccw cw drop hold"
+    ".   left down right";
+}
+.tpad .ccw{ grid-area:ccw }
+.tpad .cw{  grid-area:cw }
+.tpad .drop{grid-area:drop}
+.tpad .hold{grid-area:hold}
+.tpad .left{grid-area:left}
+.tpad .down{grid-area:down}
+.tpad .right{grid-area:right}
 
 .note{font-size:13px;color:#9aa3ab}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
@@ -150,7 +182,7 @@ body{
     <div class="phone" id="phone">
 
       <!-- HUD -->
-      <div class="topbar">
+      <div class="topbar" id="topbar">
         <div class="stat">
           <div class="label">chad</div>
           <div class="value"><span id="chadCount">0</span></div>
@@ -158,7 +190,8 @@ body{
         </div>
       </div>
 
-      <div class="main">
+      <!-- the orb now centers in the computed free space -->
+      <div class="main" id="main">
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
           <div class="p-layer" id="pLayer"></div>
@@ -170,7 +203,7 @@ body{
       </div>
 
       <!-- bottom -->
-      <div class="bottom">
+      <div class="bottom" id="bottom">
         <div class="controls">
           <div class="tile play" id="playBtn">Play<br>Games</div>
           <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Level</div><div id="levelText" style="font-weight:900;font-size:18px">1</div></div></div>
@@ -191,7 +224,7 @@ body{
               <div><div style="font-weight:800">Snake</div><div class="note">9:16 • on-screen arrows</div></div>
             </div>
             <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
-              <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • 9:16 shell</div></div>
+              <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • 9:16 shell • on-screen controls</div></div>
             </div>
           </div>
         </div>
@@ -225,7 +258,7 @@ body{
           </div>
           <div class="game-9x16">
             <div id="snakeGrid" class="grid"></div>
-            <!-- D-pad -->
+            <!-- Snake D-pad -->
             <div class="dpad" id="dpad">
               <button class="up"   data-dir="up">▲</button>
               <button class="left" data-dir="left">◀</button>
@@ -257,6 +290,16 @@ body{
                 <div class="card"><div class="label">Hold</div><div id="holdGrid" class="mini-grid"></div></div>
               </div>
             </div>
+            <!-- NEW: Tetris pad -->
+            <div class="tpad" id="tpad">
+              <button class="ccw">↺</button>
+              <button class="cw">↻</button>
+              <button class="drop">⭳</button>
+              <button class="hold">⧉</button>
+              <button class="left">◀</button>
+              <button class="down">▼</button>
+              <button class="right">▶</button>
+            </div>
           </div>
           <p class="note">←/→ Move • ↑ / X rotate • Z counter-rotate • ↓ soft drop • Space hard drop • C hold</p>
         </div>
@@ -268,18 +311,33 @@ body{
 <script>
 /* ===== Telegram viewport: lock app to full height (no scroll) ===== */
 const tg = window.Telegram?.WebApp ?? null;
+
 function applyAppHeight(){
   const h = tg?.viewportHeight || window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
 }
+
+/* measure top + bottom so the orb can be centered in the visible space */
+function applyChromeHeights(){
+  const top = document.getElementById('topbar');
+  const bottom = document.getElementById('bottom');
+  const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0; // safe-area inset
+  const topH = top?.offsetHeight || 0;
+  const bottomH = (bottom?.offsetHeight || 0) + 8 + safe; // small lift above the white bar
+  document.documentElement.style.setProperty('--topbar-h', topH + 'px');
+  document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
+}
+
 try{
   tg?.ready();
-  tg?.expand(); // ask for max height (where supported)
-  applyAppHeight();
-  tg?.onEvent?.('viewportChanged', applyAppHeight);
-}catch{ applyAppHeight(); }
+  // Ask Telegram to maximize height; we still compute with viewportHeight
+  tg?.expand(); // expansion method (availability varies by client). :contentReference[oaicite:1]{index=1}
+}catch{}
+applyAppHeight(); applyChromeHeights();
+tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
+window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== Storage & API (same as before) ===== */
+/* ===== Storage & API ===== */
 const params = new URLSearchParams(location.search);
 const TOKEN = params.get('token') || 'guest';
 const STORAGE_KEY = `chad_state_${TOKEN}`;
@@ -299,7 +357,6 @@ function saveStateLocal(s){
     last:s.last, level:s.level, purchases:s.purchases
   }));
 }
-
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
 function refreshUI(){
@@ -311,14 +368,12 @@ function refreshUI(){
 async function apiGetProfile(){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/profile', { headers:{'Telegram-Init-Data': tg.initData || ''} });
-  if (!r.ok) throw new Error('Profile failed');
-  return await r.json();
+  if (!r.ok) throw new Error('Profile failed'); return await r.json();
 }
 async function apiClickLogo(){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/click_logo', { method:'POST', headers:{'Telegram-Init-Data': tg.initData || ''} });
-  if (!r.ok) throw new Error('Click failed');
-  return await r.json();
+  if (!r.ok) throw new Error('Click failed'); return await r.json();
 }
 
 /* ===== Particles + Orb ===== */
@@ -508,7 +563,6 @@ function attachSnakeInput(G){
 
   return ()=>{ window.removeEventListener('keydown', key); };
 }
-
 document.getElementById('snakeStart').addEventListener('click', ()=>{
   S = createSnakeGame(); const cleanup = attachSnakeInput(S);
   if (sLoop) clearInterval(sLoop);
@@ -522,15 +576,15 @@ document.getElementById('snakeStart').addEventListener('click', ()=>{
   S.cleanup = cleanup;
 });
 document.getElementById('snakePause').addEventListener('click', ()=>{ if(!S) return; S.paused=!S.paused; document.getElementById('snakePause').textContent = S.paused?'Resume':'Pause'; });
-document.getElementById('snakeQuit').addEventListener('click', ()=> onQuitSnake());
-function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 function onQuitSnake(){
   if (S?.sessionEarned>0){ state.chads += BigInt(S.sessionEarned); refreshUI(); saveStateLocal(state); alert(`Added ${S.sessionEarned} chads to balance.`); }
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup();
   S=null; closeOverlay('snakeModal');
 }
+function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
+document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris (DOM 10x20) ===== */
+/* ===== Tetris (DOM 10x20) + on-screen pad ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -614,26 +668,54 @@ function lockPiece(G){
   }
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
+
+/* Movement helpers so both keyboard and buttons call the same code */
+function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
+function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
+function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
+function tSoftDrop(){ if(!T) return; drop(T); renderTetris(T); }
+function tHardDrop(){ if(!T) return; while(!collides(T.grid,T.piece.shape,T.piece.x,T.piece.y+1)) T.piece.y++; lockPiece(T); renderTetris(T); }
+function tHold(){
+  if(!T || T.holdUsed) return;
+  const tmp=T.hold; T.hold={type:T.piece.type, shape:T.piece.shape.map(r=>r.slice())};
+  renderMiniShape(holdUI, T.hold.shape, COLORS[T.hold.type]);
+  if (!tmp){ T.piece=T.getNext(); renderMiniShape(nextUI, SHAPES[T.next], COLORS[T.next]); }
+  else { T.piece={type:tmp.type, shape:tmp.shape.map(r=>r.slice()), x:Math.floor((T_COLS-tmp.shape[0].length)/2), y:-tmp.shape.length}; }
+  T.holdUsed=true; renderTetris(T);
+}
+
 function startTetris(){
   T = createTetris(); renderTetris(T);
   function key(e){
     if (!T) return; const k=e.key;
-    if (k==='ArrowLeft'){ e.preventDefault(); T.piece.x--; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x++; renderTetris(T); }
-    if (k==='ArrowRight'){ e.preventDefault(); T.piece.x++; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x--; renderTetris(T); }
-    if (k==='ArrowUp'||k==='x'||k==='X'){ e.preventDefault(); const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
-    if (k==='z'||k==='Z'){ e.preventDefault(); const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
-    if (k==='ArrowDown'){ e.preventDefault(); drop(T); renderTetris(T); }
-    if (e.code==='Space'){ e.preventDefault(); while(!collides(T.grid,T.piece.shape,T.piece.x,T.piece.y+1)) T.piece.y++; lockPiece(T); renderTetris(T); }
-    if (k==='c'||k==='C'){ if (!T.holdUsed){ const tmp=T.hold; T.hold={type:T.piece.type, shape:T.piece.shape.map(r=>r.slice())};
-        renderMiniShape(holdUI, T.hold.shape, COLORS[T.hold.type]);
-        if (!tmp){ T.piece=T.getNext(); renderMiniShape(nextUI, SHAPES[T.next], COLORS[T.next]); }
-        else { T.piece={type:tmp.type, shape:tmp.shape.map(r=>r.slice()), x:Math.floor((T_COLS-tmp.shape[0].length)/2), y:-tmp.shape.length}; }
-        T.holdUsed=true; renderTetris(T); } }
+    if (k==='ArrowLeft'){ e.preventDefault(); tMove(-1); }
+    if (k==='ArrowRight'){ e.preventDefault(); tMove(1); }
+    if (k==='ArrowUp'||k==='x'||k==='X'){ e.preventDefault(); tRotateCW(); }
+    if (k==='z'||k==='Z'){ e.preventDefault(); tRotateCCW(); }
+    if (k==='ArrowDown'){ e.preventDefault(); tSoftDrop(); }
+    if (e.code==='Space'){ e.preventDefault(); tHardDrop(); }
+    if (k==='c'||k==='C'){ e.preventDefault(); tHold(); }
   }
   window.addEventListener('keydown', key);
   T.cleanup = ()=> window.removeEventListener('keydown', key);
   if (tLoop) clearInterval(tLoop);
   tLoop = setInterval(()=>{ drop(T); renderTetris(T); document.getElementById('tLevel').textContent=T.level; }, T.tick);
+
+  /* Wire the on-screen buttons */
+  const tpad = document.getElementById('tpad');
+  const bind = (sel, fn)=> {
+    const b = tpad.querySelector(sel);
+    const h = (e)=>{ e.preventDefault(); fn(); };
+    b.addEventListener('click', h);
+    b.addEventListener('touchstart', h, {passive:false});
+  };
+  bind('.left', ()=> tMove(-1));
+  bind('.right', ()=> tMove(1));
+  bind('.down', ()=> tSoftDrop());
+  bind('.cw',  ()=> tRotateCW());
+  bind('.ccw', ()=> tRotateCCW());
+  bind('.drop',()=> tHardDrop());
+  bind('.hold',()=> tHold());
 }
 function openTetris(){ closeOverlay('playOverlay'); openOverlay('tetrisModal'); setTimeout(()=> startTetris(), 40); }
 function onQuitTetris(){
@@ -661,7 +743,7 @@ async function bootstrap(){
 }
 window.addEventListener('load', bootstrap);
 
-/* expose for inline buttons */
+/* expose */
 window.closeOverlay = closeOverlay;
 window.openSnake = openSnake;
 window.openTetris = openTetris;
