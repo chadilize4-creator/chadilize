@@ -36,7 +36,7 @@ body{
   display:flex; align-items:center; justify-content:center;
   background:#000;
 }
-.loader img{ width:100%; height:100%; object-fit:cover; filter:brightness(1.12); } /* slight pop */
+.loader img{ width:100%; height:100%; object-fit:cover; filter:brightness(1.12); }
 .loader.fade{ opacity:0; transition:opacity .35s ease; pointer-events:none }
 
 .stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
@@ -54,16 +54,17 @@ body{
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
 .userpill{
   display:flex; align-items:center; gap:10px;
-  padding:8px 12px; border-radius:12px;
+  padding:8px 12px; border-radius:12px; overflow:visible; /* allow avatar to spill out */
   background:
     radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
     linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass);
   box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
 }
+/* >>> 2× bigger avatar <<< */
 .avatar{
-  width:28px; height:28px; border-radius:50%; overflow:hidden;
-  display:grid; place-items:center; font-weight:900; font-size:12px;
+  width:56px; height:56px; border-radius:50%; overflow:hidden;
+  display:grid; place-items:center; font-weight:900; font-size:16px;
   color:#061018;
   background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
@@ -98,7 +99,7 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (1cm up) */
+/* ORB */
 .orb{
   pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
@@ -116,7 +117,7 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* bottom (fixed layout; no shifting) */
+/* bottom */
 .bottom{ position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left:12px; right:12px; z-index:70; margin-top:16px; }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
@@ -168,7 +169,7 @@ body{
 .avatarSub{ color:#9aa3ab; font-size:14px }
 .avatarGrid{
   display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;
-  padding:8px 2px 82px; /* bottom space for sticky select bar */
+  padding:8px 2px 82px;
 }
 @media(min-width:520px){ .avatarGrid{ grid-template-columns:repeat(5, 1fr) } }
 @media(min-width:760px){ .avatarGrid{ grid-template-columns:repeat(6, 1fr) } }
@@ -214,19 +215,17 @@ body{
 .cTitle{ font-size:18px; font-weight:900 }
 .cText{ font-size:14px; color:#aeb6bd }
 .cButtons{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px }
-
-/* NEW: red cancel & green confirm */
-.btnRed{
-  border-radius:12px; padding:12px 14px; font-weight:900;
-  border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3));
-  color:#2a0000; box-shadow:0 22px 60px rgba(0,0,0,.6);
+/* NO = red */
+.btnDanger{
+  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3)); color:#2a0000;
+  box-shadow:0 22px 60px rgba(0,0,0,.6)
 }
-.btnGreen{
-  border-radius:12px; padding:12px 14px; font-weight:900;
-  border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg, var(--green1), var(--green2) 60%, var(--green3));
-  color:#062b18; box-shadow:0 22px 60px rgba(0,0,0,.6);
+/* YES = green */
+.btnSuccess{
+  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, var(--green1), var(--green2) 60%, var(--green3)); color:#062b18;
+  box-shadow:0 22px 60px rgba(0,0,0,.6)
 }
 
 /* ===== Toasts ===== */
@@ -402,8 +401,8 @@ body{
             </div>
           </div>
           <div class="cButtons">
-            <button class="btnRed" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
-            <button class="btnGreen" id="confirmYesBtn">Yes, choose this</button>
+            <button class="btnDanger" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
+            <button class="btnSuccess" id="confirmYesBtn">Yes, choose this</button>
           </div>
         </div>
       </div>
@@ -515,7 +514,7 @@ window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} 
 
 /* ===== local state ===== */
 const params = new URLSearchParams(location.search);
-const tokenHint = params.get('token') || null;   // dev fallback if testing outside Telegram
+const tokenHint = params.get('token') || null;
 const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
 const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
@@ -550,7 +549,7 @@ function refreshUI(){
   setUserPill(state.name, state.avatarIdx);
 }
 
-/* ===== API placeholders (server optional) ===== */
+/* ===== API placeholders ===== */
 async function apiGetProfile(){ throw new Error('skip server in this build'); }
 async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
 async function apiCheckName(){ return {ok:true} }
@@ -630,7 +629,7 @@ function populateCards(){
   });
 }
 
-/* ===== Name UX ===== */
+/* ===== Name & avatar UX ===== */
 function setUserPill(name, avatarIdx){
   const pill = document.getElementById('userPill');
   const avatarBox = document.getElementById('userAvatar');
@@ -668,7 +667,7 @@ async function saveName(){
   const input = document.getElementById('nameInput'); const err = document.getElementById('nameErr');
   const n = (input.value||'').trim().replace(/\s+/g,' ').substring(0,60);
   if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars per word.'; return; }
-  try{ await apiCheckName(n); }catch{ /* fallback ok */ }
+  try{ await apiCheckName(n); }catch{}
   state.name = n; saveStateLocal(state); setUserPill(n, state.avatarIdx); closeOverlay('nameOverlay');
   if (!state.avatarLocked) openAvatarModal();
 }
@@ -678,7 +677,7 @@ document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key
 
 /* ===== Avatar modal logic ===== */
 const AVATAR_COUNT = 37;
-function avatarPath(i){ return `img/profile${i}.png`; } // adjust if your filenames differ
+function avatarPath(i){ return `img/profile${i}.png`; }
 
 let selectedAvatar = null;
 function openAvatarModal(){
