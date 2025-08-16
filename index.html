@@ -54,23 +54,26 @@ body{
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
 .userpill{
   display:flex; align-items:center; gap:10px;
-  padding:8px 12px; border-radius:12px; overflow:visible; /* allow avatar to spill out */
+  padding:8px 12px; border-radius:12px;
   background:
     radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
     linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass);
   box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:visible;               /* let avatar overflow without changing layout */
 }
-/* >>> 2× bigger avatar <<< */
 .avatar{
-  width:56px; height:56px; border-radius:50%; overflow:hidden;
-  display:grid; place-items:center; font-weight:900; font-size:16px;
+  width:28px; height:28px; border-radius:50%; overflow:hidden;
+  display:grid; place-items:center; font-weight:900; font-size:12px;
   color:#061018;
   background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
+  transform:scale(2);             /* VISUALLY 2× BIGGER */
+  transform-origin:left center;   /* grow outwards; doesn’t affect layout box */
+  z-index:1;
 }
+.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-left:18px } /* keep text clear of scaled avatar */
 .avatar img{width:100%; height:100%; object-fit:cover; display:block}
-.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .stat{
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -215,17 +218,14 @@ body{
 .cTitle{ font-size:18px; font-weight:900 }
 .cText{ font-size:14px; color:#aeb6bd }
 .cButtons{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px }
-/* NO = red */
 .btnDanger{
   border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
   background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3)); color:#2a0000;
   box-shadow:0 22px 60px rgba(0,0,0,.6)
 }
-/* YES = green */
-.btnSuccess{
-  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg, var(--green1), var(--green2) 60%, var(--green3)); color:#062b18;
-  box-shadow:0 22px 60px rgba(0,0,0,.6)
+.btnGhost{
+  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,#12161b,#0c0f12); color:#e7edf5
 }
 
 /* ===== Toasts ===== */
@@ -401,8 +401,8 @@ body{
             </div>
           </div>
           <div class="cButtons">
-            <button class="btnDanger" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
-            <button class="btnSuccess" id="confirmYesBtn">Yes, choose this</button>
+            <button class="btnGhost" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
+            <button class="btnDanger" id="confirmYesBtn">Yes, choose this</button>
           </div>
         </div>
       </div>
@@ -550,11 +550,11 @@ function refreshUI(){
 }
 
 /* ===== API placeholders ===== */
-async function apiGetProfile(){ throw new Error('skip server in this build'); }
+async function apiGetProfile(){ throw new Error('skip server'); }
 async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
 async function apiCheckName(){ return {ok:true} }
 
-/* ===== particles + orb ===== */
+/* ===== orb + particles ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
@@ -596,9 +596,9 @@ document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {pas
 /* ===== overlays & shop ===== */
 function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
 function closeOverlay(id){ document.getElementById(id)?.classList.remove('show'); }
-document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'), {passive:true});
-document.getElementById('buyBtn').addEventListener('click', ()=> { populateCards(); openOverlay('buyOverlay'); }, {passive:true});
-document.getElementById('levelBtn').addEventListener('click', ()=> showToast('Leveling soon ✨'), {passive:true});
+document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'));
+document.getElementById('buyBtn').addEventListener('click', ()=> { populateCards(); openOverlay('buyOverlay'); });
+document.getElementById('levelBtn').addEventListener('click', ()=> showToast('Leveling soon ✨'));
 
 const CARD_TYPES = [
   { id:'c1', title:'Starter', cost:50n,  add:1n,  desc:'+1 chad/hr' },
@@ -629,7 +629,7 @@ function populateCards(){
   });
 }
 
-/* ===== Name & avatar UX ===== */
+/* ===== Name & avatar ===== */
 function setUserPill(name, avatarIdx){
   const pill = document.getElementById('userPill');
   const avatarBox = document.getElementById('userAvatar');
@@ -675,7 +675,7 @@ document.getElementById('nameInput').addEventListener('input', livePreviewInitia
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* ===== Avatar modal logic ===== */
+/* Avatar picker */
 const AVATAR_COUNT = 37;
 function avatarPath(i){ return `img/profile${i}.png`; }
 
@@ -712,7 +712,7 @@ document.getElementById('confirmYesBtn').addEventListener('click', ()=>{
   showToast('Profile locked. Welcome, <span class="accent">'+(state.name||'Player')+'</span>!');
 });
 
-/* ===== Toasts / fancy alert ===== */
+/* Toasts / alerts */
 function showToast(html){
   const wrap = document.getElementById('toastWrap');
   const t = document.createElement('div'); t.className='toast'; t.innerHTML = html;
