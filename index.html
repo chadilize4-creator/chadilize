@@ -15,7 +15,6 @@
   --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
 
-/* global box sizing prevents tiny overflows/clipping */
 *, *::before, *::after { box-sizing: border-box; }
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
@@ -41,16 +40,8 @@ body{
 }
 
 /* ===== Loading (splash) ===== */
-#loader {
-  position: fixed; inset: 0; z-index: 1000;
-  display: flex; align-items: center; justify-content: center;
-  background: #000;
-}
-#loader img{
-  width: 100%; height: 100%;
-  object-fit: contain;              /* keep full poster visible */
-  filter: brightness(1.18);         /* <— slight pop */
-}
+#loader { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; background:#000; }
+#loader img{ width:100%; height:100%; object-fit:contain; filter:brightness(1.18); }
 
 /* ===== Top bar ===== */
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
@@ -99,7 +90,7 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB — bigger, fixed position (no wobble) */
+/* ORB */
 .orb{
   pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
@@ -118,21 +109,19 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* ===== Bottom bar — fixed, centered; no shifting or clipping ===== */
+/* ===== Bottom bar (fixed, centered) ===== */
 .bottom{
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-  width: calc(100% - 28px);               /* account for phone padding (14px x2) */
+  width: calc(100% - 28px);
   max-width: calc(520px - 28px);
   z-index: 70;
 }
-.controls{
-  width:100%; display:grid; grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch;
-}
+.controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
-  min-width:0;                             /* prevent grid overflow on narrow screens */
+  min-width:0;
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
   border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none
 }
@@ -165,6 +154,20 @@ body{
   background:
     repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 100%),
     repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 100%) }
+
+/* FX overlay for Snake floating +chads */
+.snake-fx{ position:absolute; inset:0; pointer-events:none; }
+.fly{
+  position:absolute; font-weight:900; color:#9ef0c4;
+  text-shadow:0 0 12px rgba(120,255,150,0.9);
+  animation:flyUp 1200ms ease-out forwards;
+  will-change: transform, opacity;
+}
+@keyframes flyUp{
+  0%{ transform:translate(-50%,-50%) translateY(0); opacity:1; }
+  100%{ transform:translate(-50%,-50%) translateY(-28px); opacity:0; }
+}
+
 .cell{ background:#0f151a; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03); transition:transform .12s ease, filter .12s ease }
 .snake-cell{ background:linear-gradient(180deg, rgba(180,255,200,0.9), rgba(60,140,70,1)); box-shadow:0 0 12px rgba(120,255,150,0.6) }
 .snake-head{ background:radial-gradient(circle at 50% 40%, #d8f0b8, #2e7d32 75%); box-shadow:0 0 14px rgba(120,255,150,0.9) }
@@ -373,6 +376,8 @@ body{
           </div>
           <div class="game-9x16">
             <div id="snakeGrid" class="grid"></div>
+            <!-- FX layer for +chads popups -->
+            <div id="snakeFx" class="snake-fx"></div>
             <div class="dpad" id="dpad">
               <button class="up"   data-dir="up">▲</button>
               <button class="left" data-dir="left">◀</button>
@@ -444,7 +449,6 @@ function hideSplashWhenReady(){
   const left = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashStart));
   setTimeout(()=>{ const el = document.getElementById('loader'); if (el) el.style.display = 'none'; }, left);
 }
-// ensure image is loaded, then hide after min time
 (()=>{ const im = new Image(); im.onload = hideSplashWhenReady; im.onerror = hideSplashWhenReady; im.src = '/img/loader.jpg'; })();
 
 /* ===== tap sound ===== */
@@ -643,7 +647,36 @@ function renderMiniShape(grid, shape, cls){
 }
 
 /* ===== Snake ===== */
-const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
+const snakeGridEl = document.getElementById('snakeGrid');
+const snakeFxEl   = document.getElementById('snakeFx');
+let S=null, sLoop=null;
+
+/* popup +chads at a grid cell */
+function showChadPopup(G, cellX, cellY, amount){
+  const rect = snakeGridEl.getBoundingClientRect();
+  const cs = getComputedStyle(snakeGridEl);
+  const padL = parseFloat(cs.paddingLeft)||0, padR=parseFloat(cs.paddingRight)||0;
+  const padT = parseFloat(cs.paddingTop)||0,  padB=parseFloat(cs.paddingBottom)||0;
+  const gap  = parseFloat(cs.gap)||0;
+
+  const innerW = rect.width  - padL - padR;
+  const innerH = rect.height - padT - padB;
+
+  const cellW  = (innerW - (G.cols-1)*gap) / G.cols;
+  const cellH  = (innerH - (G.rows-1)*gap) / G.rows;
+
+  const xPx = padL + cellX*(cellW+gap) + cellW/2;
+  const yPx = padT + cellY*(cellH+gap) + cellH/2;
+
+  const s = document.createElement('span');
+  s.className = 'fly';
+  s.textContent = `+${amount}`;
+  s.style.left = `${xPx}px`;
+  s.style.top  = `${yPx}px`;
+  snakeFxEl.appendChild(s);
+  setTimeout(()=> s.remove(), 1300);
+}
+
 function createSnakeGame(){
   const cols = 18, rows = 32;
   const grid = buildGrid(snakeGridEl, cols, rows);
@@ -662,8 +695,15 @@ function createSnakeGame(){
     while(t<4000 && (snake.some(s=>s.x===fx&&s.y===fy) || obstacles.some(o=>o.x===fx&&o.y===fy)));
     return {x:fx,y:fy};
   }
-  return { cols, rows, grid, dir:{x:1,y:0}, nextDir:{x:1,y:0}, snake, obstacles,
-           food:randomFood(), score:0, sessionEarned:0, tick:140, paused:false, justAte:null };
+  return {
+    cols, rows, grid,
+    dir:{x:1,y:0}, nextDir:{x:1,y:0},
+    snake, obstacles, food:randomFood(),
+    score:0,
+    sessionEarned:0,     // total chads earned this run
+    bounty:40,           // first coin worth 40, then +10 each time
+    tick:140, paused:false, justAte:null
+  };
 }
 function drawSnake(G){
   for(let y=0;y<G.rows;y++) for(let x=0;x<G.cols;x++) G.grid.clear(x,y);
@@ -681,12 +721,20 @@ function stepSnake(G){
   if (G.snake.some((s,idx)=> idx>0 && s.x===head.x && s.y===head.y)) return 'dead';
   if (G.obstacles.some(o=>o.x===head.x && o.y===head.y)) return 'dead';
   G.snake.unshift(head);
+
   if (head.x===G.food.x && head.y===G.food.y){
-    G.score++; G.sessionEarned++; G.justAte={x:head.x,y:head.y};
+    G.score++;
+    G.sessionEarned += G.bounty;            // award chads
+    showChadPopup(G, head.x, head.y, G.bounty);
+    G.bounty += 10;                          // next coin worth +10 more
+    G.justAte={x:head.x,y:head.y};
+    // respawn food
     let fx,fy,t=0; do{ fx=Math.floor(Math.random()*G.cols); fy=Math.floor(Math.random()*G.rows); t++; }
     while(t<4000 && (G.snake.some(s=>s.x===fx&&s.y===fy) || G.obstacles.some(o=>o.x===fx&&o.y===fy)));
     G.food.x=fx; G.food.y=fy;
-  } else G.snake.pop();
+  } else {
+    G.snake.pop();
+  }
   return 'ok';
 }
 function attachSnakeInput(G){
@@ -715,7 +763,9 @@ function attachSnakeInput(G){
   return ()=>{ window.removeEventListener('keydown', key); };
 }
 document.getElementById('snakeStart').addEventListener('click', ()=>{
-  S = createSnakeGame(); const cleanup = attachSnakeInput(S);
+  S = createSnakeGame();
+  if (snakeFxEl) snakeFxEl.innerHTML = '';
+  const cleanup = attachSnakeInput(S);
   if (sLoop) clearInterval(sLoop);
   drawSnake(S);
   sLoop = setInterval(()=>{
@@ -730,12 +780,13 @@ document.getElementById('snakePause').addEventListener('click', ()=>{ if(!S) ret
 function onQuitSnake(){
   if (S?.sessionEarned>0){ state.chads += BigInt(S.sessionEarned); refreshUI(); saveStateLocal(state); alert(`Added ${S.sessionEarned} chads to balance.`); }
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup();
+  if (snakeFxEl) snakeFxEl.innerHTML = '';
   S=null; closeOverlay('snakeModal');
 }
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris ===== */
+/* ===== Tetris (unchanged gameplay) ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -796,7 +847,8 @@ function lockPiece(G){
     if (tLoop) { clearInterval(tLoop); tLoop=null; }
     setTimeout(()=>{
       for (const r of cleared){ G.grid.splice(r,1); G.grid.unshift(new Array(T_COLS).fill(0)); }
-      G.lines += cleared.length; G.score += cleared.length*100; G.level = 1 + Math.floor(G.lines/8);
+      G.lines += cleared.length; G.score += cleared.length*100;
+      G.level = 1 + Math.floor(G.lines/8);
       G.sessionEarned += 70*cleared.length;
       document.getElementById('tScore').textContent = G.score;
       document.getElementById('tEarned').textContent = G.sessionEarned;
