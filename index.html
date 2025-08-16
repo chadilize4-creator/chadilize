@@ -12,12 +12,27 @@
   --bg1:#06060a; --ink:#e8edf4; --glass:rgba(255,255,255,0.06);
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
-  --app-h: 100svh; --topbar-h: 64px; --bottom-h: 128px; /* a hair taller so buttons never clip */
+  --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
 
-/* =============== Global =============== */
+/* ===== Loader ===== */
+.loader{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:#000;
+  opacity:0; pointer-events:none; transition:opacity .35s ease;
+}
+.loader.show{ opacity:1; pointer-events:auto; }
+.loader img{
+  width:100%; height:100%; object-fit:cover;
+  filter:brightness(1.16) saturate(1.08);   /* a little brighter so it pops */
+  user-select:none; -webkit-user-drag:none;
+}
+
+/* base */
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
+
 html,body{height:100%}
 body{
   margin:0; color:var(--ink);
@@ -27,9 +42,9 @@ body{
   overflow:auto;
   padding-bottom: env(safe-area-inset-bottom);
 }
-.stage{ min-height:var(--app-h); display:flex; align-items:center; justify-content:center; padding:18px }
+.stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
 .phone{
-  width:100%; max-width:520px; min-height:var(--app-h);
+  width:100%; max-width:520px; min-height:var(--app-h); height:auto;
   border-radius:20px; padding:14px; position:relative; overflow:hidden;
   background:
     radial-gradient(800px 400px at 10% 10%, rgba(255,107,107,0.03), transparent 5%),
@@ -38,21 +53,7 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* =============== 4s Loading Screen =============== */
-.loader {
-  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-  background:#000; z-index:9999;
-}
-.loader img{
-  width:100%; height:100%; object-fit:cover; object-position:center;
-  /* make it pop a bit more */
-  filter: brightness(1.18) contrast(1.05) saturate(1.04);
-  user-select:none; -webkit-user-drag:none; pointer-events:none;
-}
-.loader.fade { animation:fadeOut .35s ease forwards }
-@keyframes fadeOut { to { opacity:0; visibility:hidden } }
-
-/* =============== Top bar =============== */
+/* ===== Top bar ===== */
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
 .userpill{
   display:flex; align-items:center; gap:10px;
@@ -64,12 +65,13 @@ body{
   box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
 }
 .userpill .avatar{
-  width:28px; height:28px; border-radius:50%;
+  width:28px; height:28px; border-radius:50%; overflow:hidden;
   display:grid; place-items:center; font-weight:900; font-size:12px;
   color:#061018;
   background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
 }
+.userpill .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
 .userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .stat{
@@ -81,7 +83,7 @@ body{
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* =============== Main =============== */
+/* ===== Main ===== */
 .main{
   min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
@@ -99,7 +101,7 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (big, 1cm up, no wobble) */
+/* ORB (bit bigger, 1cm up, no wobble) */
 .orb{
   pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
@@ -118,16 +120,9 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* =============== Bottom buttons (locked, no wiggle) =============== */
-.bottom{
-  position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); left:12px; right:12px;
-  z-index:70; margin-top:16px;
-}
-.controls{
-  width:100%;
-  display:grid; grid-template-columns: 1fr 1.1fr 1fr; gap:12px; align-items:stretch;
-  transform: translateZ(0); /* prevent sub-pixel jiggle */
-}
+/* bottom (sticky & stable widths) */
+.bottom{ position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left:12px; right:12px; z-index:70; margin-top:16px; }
+.controls{width:100%;display:grid;grid-template-columns: 1fr 1fr 1fr; gap:12px; align-items:stretch}
 .tile{
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
   border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none
@@ -137,7 +132,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* =============== Overlays (generic) =============== */
+/* overlays (responsive panel) */
 .overlay{
   position:fixed; inset:0;
   background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
@@ -154,7 +149,7 @@ body{
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
 .note{font-size:13px;color:#9aa3ab}
 
-/* =============== DOM games shell =============== */
+/* 9:16 DOM games (unchanged) */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018);
   border-radius:10px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:8px}
 .grid{ position:absolute; inset:0; display:grid; gap:2px; padding:8px;
@@ -212,15 +207,12 @@ body{
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold }
 .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* Snake +chads floater */
-.gain-floating{
-  position:absolute; color:#a6ffd0; font-weight:900; text-shadow:0 0 10px rgba(120,255,160,.45);
-  animation:floatUp 900ms ease-out forwards; pointer-events:none; z-index:6;
+/* ===== Name modal ===== */
+#nameOverlay .panel{
+  width: min(560px, 100%); max-width: 100%;
+  padding: 0; border-radius:18px; overflow:hidden;
+  background:transparent; border:none; box-shadow:none;
 }
-@keyframes floatUp{ 0%{ opacity:0; transform:translate(-50%,-4px) scale(.96)} 20%{opacity:1} 100%{ opacity:0; transform:translate(-50%,-42px) scale(1)} }
-
-/* =============== Name modal =============== */
-#nameOverlay .panel{ width:min(560px,100%); max-width:100%; padding:0; border-radius:18px; overflow:hidden; background:transparent; border:none; box-shadow:none; }
 .name-wrap{
   width:100%; box-sizing:border-box;
   background:
@@ -249,51 +241,52 @@ body{
   box-shadow:0 18px 50px rgba(0,0,0,.6)
 }
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
-
 @media (max-width:380px){ .name-row{ grid-template-columns: 1fr; } .name-row .btn{ width:100%; } }
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
-/* =============== Fancy message dialog =============== */
-.msg-overlay{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.55); backdrop-filter: blur(8px);
-  z-index:1300; padding:16px;
+/* ===== Profile picker ===== */
+#profileOverlay .panel{ width:min(680px,100%); }
+.profile-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.lock-note{ font-size:12px; color:#b0bac2 }
+.avatar-grid{
+  display:grid; gap:10px;
+  grid-template-columns: repeat(4, 1fr);
+  max-height: calc(var(--app-h) - 180px);
+  overflow:auto;
 }
-.msg-overlay.show{ display:flex; }
-.msg-card{
-  width:min(520px, 94vw);
-  background:
-    radial-gradient(1200px 500px at -10% -10%, rgba(100,180,255,.06), transparent 35%),
-    linear-gradient(180deg,#0b1218,#0a0e12);
-  border-radius:16px; border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 30px 120px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04);
-  color:#e7edf5; padding:18px;
-  transform:scale(.96); opacity:0; animation:popIn .18s ease forwards;
+@media (min-width:420px){ .avatar-grid{ grid-template-columns: repeat(5, 1fr); } }
+@media (min-width:560px){ .avatar-grid{ grid-template-columns: repeat(6, 1fr); } }
+.avatar-option{
+  aspect-ratio:1/1; border-radius:14px; overflow:hidden; cursor:pointer;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,#0d1115,#0a0d10);
+  box-shadow:0 10px 30px rgba(0,0,0,.45);
+  position:relative;
 }
-@keyframes popIn{ to{ transform:scale(1); opacity:1 } }
-.msg-head{ display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-.msg-icon{
-  width:40px; height:40px; border-radius:10px; display:grid; place-items:center; font-size:20px; font-weight:900; color:#041015;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.45);
+.avatar-option img{ width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-option.selected{ outline:2px solid #4aa3ff; outline-offset:-2px; box-shadow:0 0 0 3px rgba(74,163,255,.25), 0 16px 40px rgba(0,0,0,.6) }
+.profile-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
+.btn-ghost{
+  border-radius:10px; padding:10px 12px; font-weight:800; cursor:pointer;
+  border:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg,#15181c,#0d1013); color:#d9e4ee;
 }
-.msg-icon.success{ background:conic-gradient(from 200deg,#a6ffc6,#63e6a5,#9ef0c4) }
-.msg-icon.error{ background:conic-gradient(from 200deg,#ffb3b3,#ff6d6d,#ff9ea0) }
-.msg-icon.info{ background:conic-gradient(from 200deg,#91c7ff,#5aa4ff,#9dd0ff) }
-.msg-title{ font-weight:900; font-size:18px }
-.msg-body{ color:#b9c3cc; margin:6px 0 14px }
-.msg-actions{ display:flex; justify-content:flex-end; gap:8px }
-.msg-btn{
-  border-radius:12px; padding:10px 14px; font-weight:800; cursor:pointer; border:1px solid var(--glass);
-  background:linear-gradient(180deg,var(--gold1),var(--gold2) 60%, var(--gold3)); color:#261902;
-  box-shadow:0 18px 60px rgba(0,0,0,.55)
+.btn-accept{ background:linear-gradient(180deg,#8df0b7,#2fc78c 60%,#0f6b42); border:1px solid rgba(0,0,0,.25); color:#062b18 }
+.btn-accept[disabled]{ opacity:.6; cursor:not-allowed }
+
+/* ===== Floating reward label (snake) ===== */
+.fly{
+  position:absolute; pointer-events:none; z-index:60;
+  font-weight:900; color:#aaffc1; text-shadow:0 2px 10px rgba(0,0,0,.55);
+  animation:flyUp 900ms ease-out forwards;
 }
+@keyframes flyUp{ 0%{ transform:translate(-50%, 0); opacity:1 } 100%{ transform:translate(-50%, -26px); opacity:0 } }
 </style>
 </head>
 <body>
 
-  <!-- Loader -->
-  <div id="loader" class="loader" aria-hidden="true">
-    <img src="img/loader.jpg" alt="Loading...">
+  <!-- Loader (4 seconds) -->
+  <div class="loader show" id="loader">
+    <img src="/img/loader.jpg" alt="Loading">
   </div>
 
   <div class="stage">
@@ -382,6 +375,21 @@ body{
         </div>
       </div>
 
+      <!-- PROFILE overlay (one-time) -->
+      <div class="overlay" id="profileOverlay">
+        <div class="panel">
+          <div class="profile-head">
+            <h2>Select your profile</h2>
+            <div class="lock-note">Choose wisely — you <b>can’t change</b> later.</div>
+          </div>
+          <div id="avatarGrid" class="avatar-grid" aria-label="Available avatars"></div>
+          <div class="profile-actions">
+            <button class="btn-ghost" onclick="closeOverlay('profileOverlay')" id="cancelProfileBtn" style="display:none">Close</button>
+            <button class="btn-accept" id="confirmProfileBtn" disabled>Use this avatar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- SNAKE Modal -->
       <div class="overlay" id="snakeModal">
         <div class="panel">
@@ -448,15 +456,13 @@ body{
   </div>
 
 <script>
-/* ===== Telegram viewport ===== */
+/* ===== Telegram viewport + loader timing ===== */
 const tg = window.Telegram?.WebApp ?? null;
 function applyAppHeight(){ const h = tg?.viewportHeight || window.innerHeight; document.documentElement.style.setProperty('--app-h', h + 'px'); }
 function applyChromeHeights(){
-  const top = document.getElementById('topbar');
-  const bottom = document.getElementById('bottom');
+  const top = document.getElementById('topbar'); const bottom = document.getElementById('bottom');
   const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0;
-  const topH = top?.offsetHeight || 0;
-  const bottomH = (bottom?.offsetHeight || 0) + 10 + safe;
+  const topH = top?.offsetHeight || 0; const bottomH = (bottom?.offsetHeight || 0) + 8 + safe;
   document.documentElement.style.setProperty('--topbar-h', topH + 'px');
   document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
 }
@@ -465,46 +471,8 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== 4s loader ===== */
-(function(){
-  const el = document.getElementById('loader');
-  const MIN_MS = 4000;
-  const t0 = Date.now();
-  function done(){
-    const wait = Math.max(0, MIN_MS - (Date.now() - t0));
-    setTimeout(()=> el.classList.add('fade'), wait);
-    setTimeout(()=> el.remove(), wait + 400);
-  }
-  // when image finishes or fails, finish
-  const img = el.querySelector('img');
-  img.addEventListener('load', done);
-  img.addEventListener('error', done);
-})();
-
-/* ===== tiny UI dialog (replaces alert) ===== */
-function showDialog({title='ChadiliZe', message='', type='info'}){
-  return new Promise(resolve=>{
-    const o = document.createElement('div');
-    o.className = 'msg-overlay show';
-    const icon = type==='success' ? '✓' : type==='error' ? '!' : 'i';
-    const icls = type==='success' ? 'success' : type==='error' ? 'error' : 'info';
-    o.innerHTML = `
-      <div class="msg-card">
-        <div class="msg-head">
-          <div class="msg-icon ${icls}">${icon}</div>
-          <div class="msg-title">${title}</div>
-        </div>
-        <div class="msg-body">${message}</div>
-        <div class="msg-actions">
-          <button class="msg-btn">OK</button>
-        </div>
-      </div>`;
-    document.body.appendChild(o);
-    const close = ()=>{ o.classList.remove('show'); setTimeout(()=>{ o.remove(); resolve(); }, 120); };
-    o.querySelector('.msg-btn').addEventListener('click', close);
-    o.addEventListener('click', (e)=>{ if(e.target===o) close(); });
-  });
-}
+/* Loader: hide after 4 seconds (image stays full brightness) */
+window.addEventListener('load', ()=> { setTimeout(()=> document.getElementById('loader')?.classList.remove('show'), 4000); });
 
 /* ===== tap sound ===== */
 let _audioCtx=null;
@@ -519,27 +487,59 @@ window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} 
 
 /* ===== state & API (per-user local cache key) ===== */
 const params = new URLSearchParams(location.search);
-const tokenHint = params.get('token') || null;   // dev fallback if testing outside Telegram
+const tokenHint = params.get('token') || null;
 const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
 const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
 function loadStateLocal(){
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null };
+  if (!raw) return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, profileId:null };
   try{
     const o = JSON.parse(raw);
     return { chads: BigInt(o.chads||"0"), gen: BigInt(o.gen||"0"), acc: BigInt(o.acc||"0"),
-             last: o.last||Math.floor(Date.now()/1000), level:o.level||1, purchases:o.purchases||{}, name:o.name||null };
-  }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null }; }
+             last: o.last||Math.floor(Date.now()/1000), level:o.level||1, purchases:o.purchases||{},
+             name:o.name||null, profileId:o.profileId||null };
+  }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, profileId:null }; }
 }
 function saveStateLocal(s){
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     chads:s.chads.toString(), gen:s.gen.toString(), acc:s.acc.toString(),
-    last:s.last, level:s.level, purchases:s.purchases, name:s.name||null
+    last:s.last, level:s.level, purchases:s.purchases, name:s.name||null, profileId:s.profileId||null
   }));
 }
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
+
+function getProfileSrc(i){
+  return `/img/profile${i}.png`; // primary naming
+}
+function createAvatarImg(i){
+  const img = new Image();
+  img.src = getProfileSrc(i);
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = `/img/profile.${i}.png`; // fallback if your files are named with a dot
+  };
+  img.alt = `Profile ${i}`;
+  return img;
+}
+
+function setUserPill(name){
+  const pill = document.getElementById('userPill');
+  if (!name){ pill.style.visibility='hidden'; return; }
+  // Name
+  document.getElementById('userName').textContent = name;
+  // Avatar
+  const av = document.getElementById('userAvatar');
+  av.innerHTML = '';
+  if (state.profileId){
+    av.appendChild(createAvatarImg(state.profileId));
+  }else{
+    const initials = name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '?';
+    av.textContent = initials;
+  }
+  pill.style.visibility = 'visible';
+}
 
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
@@ -548,7 +548,7 @@ function refreshUI(){
   setUserPill(state.name);
 }
 
-/* ===== API helpers ===== */
+/* ===== Backend calls (optional if not in Telegram) ===== */
 async function apiGetProfile(){
   if (!tg) throw new Error("No Telegram");
   const r = await fetch('/api/profile', { headers:{'Telegram-Init-Data': tg.initData || ''} });
@@ -614,7 +614,7 @@ function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
 function closeOverlay(id){ document.getElementById(id)?.classList.remove('show'); }
 document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'), {passive:true});
 document.getElementById('buyBtn').addEventListener('click', ()=> { populateCards(); openOverlay('buyOverlay'); }, {passive:true});
-document.getElementById('levelBtn').addEventListener('click', ()=> showDialog({title:'Coming soon', message:'Leveling soon ✨', type:'info'}), {passive:true});
+document.getElementById('levelBtn').addEventListener('click', ()=> alert('Leveling soon ✨'), {passive:true});
 
 const CARD_TYPES = [
   { id:'c1', title:'Starter', cost:50n,  add:1n,  desc:'+1 chad/hr' },
@@ -634,11 +634,8 @@ function populateCards(){
         </div>
         <div class="tile buy" style="padding:8px 12px">Buy</div>
       </div>`;
-    d.querySelector('.tile.buy').addEventListener('click', async ()=>{
-      if (state.chads < c.cost){
-        await showDialog({title:'Not enough chads', message:`You need ${fmt(c.cost - state.chads)} more chads.`, type:'error'});
-        return;
-      }
+    d.querySelector('.tile.buy').addEventListener('click', ()=>{
+      if (state.chads < c.cost){ alert('Not enough chads'); return; }
       state.chads -= c.cost; state.gen += c.add;
       state.purchases = state.purchases||{}; state.purchases[c.id] = (state.purchases[c.id]||0)+1;
       refreshUI(); saveStateLocal(state); populateCards();
@@ -648,14 +645,6 @@ function populateCards(){
 }
 
 /* ===== Name UX ===== */
-function setUserPill(name){
-  const pill = document.getElementById('userPill');
-  if (!name){ pill.style.visibility='hidden'; return; }
-  const initials = name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '?';
-  document.getElementById('userAvatar').textContent = initials;
-  document.getElementById('userName').textContent = name;
-  pill.style.visibility = 'visible';
-}
 function livePreviewInitials(){
   const n = (document.getElementById('nameInput').value||'').trim();
   const initials = n ? n.split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') : '?';
@@ -673,7 +662,7 @@ async function openNameModal(){
 async function saveName(){
   const input = document.getElementById('nameInput'); const err = document.getElementById('nameErr');
   const n = (input.value||'').trim().replace(/\s+/g,' ').substring(0,60);
-  if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars per word.'; return; }
+  if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars/word.'; return; }
   let ok=false, taken=false;
   try{ if (tg){ const res = await apiCheckName(n); ok = !!res.ok; taken = res.reason==='taken'; } }catch(e){}
   if (!ok && tg){ const bag = JSON.parse(localStorage.getItem('local_taken_names')||'[]'); if (bag.includes(n)) taken = true; else bag.push(n), localStorage.setItem('local_taken_names', JSON.stringify(bag)), ok=true; }
@@ -681,10 +670,50 @@ async function saveName(){
   if (taken){ err.textContent = 'That name is already taken. Try another.'; return; }
   if (!ok){ err.textContent = 'Could not save name. Check your connection and try again.'; return; }
   state.name = n; saveStateLocal(state); setUserPill(n); closeOverlay('nameOverlay');
+
+  // Immediately ask for profile if none chosen yet
+  if (!state.profileId) openProfileModal();
 }
 document.getElementById('nameInput').addEventListener('input', livePreviewInitials);
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
+
+/* ===== Profile picker (one-time) ===== */
+const PROFILE_COUNT = 37;
+let _pickedProfile = null;
+
+function buildAvatarGrid(){
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = '';
+  for (let i=1;i<=PROFILE_COUNT;i++){
+    const card = document.createElement('div');
+    card.className = 'avatar-option';
+    const img = createAvatarImg(i);
+    card.appendChild(img);
+    card.addEventListener('click', ()=>{
+      _pickedProfile = i;
+      document.querySelectorAll('.avatar-option').forEach(el=> el.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('confirmProfileBtn').disabled = false;
+    });
+    grid.appendChild(card);
+  }
+}
+function openProfileModal(){
+  // no cancel button; force a pick once (but keep hidden Close for safety after pick)
+  document.getElementById('cancelProfileBtn').style.display = 'none';
+  _pickedProfile = null;
+  document.getElementById('confirmProfileBtn').disabled = true;
+  buildAvatarGrid();
+  openOverlay('profileOverlay');
+}
+document.getElementById('confirmProfileBtn').addEventListener('click', ()=>{
+  if(!_pickedProfile) return;
+  state.profileId = _pickedProfile;
+  saveStateLocal(state);
+  setUserPill(state.name);
+  closeOverlay('profileOverlay');
+});
 
 /* ===== Grid helpers ===== */
 function buildGrid(container, cols, rows){
@@ -726,7 +755,7 @@ function createSnakeGame(){
     return {x:fx,y:fy};
   }
   return { cols, rows, grid, dir:{x:1,y:0}, nextDir:{x:1,y:0}, snake, obstacles,
-           food:randomFood(), score:0, sessionEarned:0, tick:140, paused:false, justAte:null };
+           food:randomFood(), score:0, sessionEarned:0, tick:140, paused:false, justAte:null, firstEat:true };
 }
 function drawSnake(G){
   for(let y=0;y<G.rows;y++) for(let x=0;x<G.cols;x++) G.grid.clear(x,y);
@@ -737,11 +766,19 @@ function drawSnake(G){
   document.getElementById('snakeScore').textContent = G.score;
   document.getElementById('snakeEarned').textContent = G.sessionEarned;
 }
-function floatChads(xpx, ypx, txt){
-  const f = document.createElement('div'); f.className='gain-floating'; f.textContent = txt;
-  f.style.left = xpx+'px'; f.style.top = ypx+'px';
-  document.querySelector('#snakeModal .game-9x16').appendChild(f);
-  setTimeout(()=> f.remove(), 1000);
+function flyReward(px,py,amount){
+  const visual = document.getElementById('visual');
+  const rect = snakeGridEl.getBoundingClientRect();
+  const vrect = visual.getBoundingClientRect();
+  const cx = vrect.left + (rect.left - vrect.left) + px;
+  const cy = vrect.top + (rect.top  - vrect.top ) + py;
+  const tag = document.createElement('div');
+  tag.className='fly';
+  tag.style.left = `${cx}px`;
+  tag.style.top  = `${cy}px`;
+  tag.textContent = `+${amount}`;
+  document.body.appendChild(tag);
+  setTimeout(()=> tag.remove(), 920);
 }
 function stepSnake(G){
   if ((G.nextDir.x !== -G.dir.x || G.nextDir.y !== -G.dir.y) && (G.nextDir.x !== G.dir.x || G.nextDir.y !== G.dir.y)){ G.dir = {...G.nextDir}; }
@@ -752,18 +789,14 @@ function stepSnake(G){
   G.snake.unshift(head);
   if (head.x===G.food.x && head.y===G.food.y){
     G.score++;
-    const earned = G.score===1 ? 40 : 10;
-    G.sessionEarned += earned;
+    const reward = G.firstEat ? 40 : 10;
+    G.firstEat = false;
+    G.sessionEarned += reward;
     G.justAte={x:head.x,y:head.y};
-
-    // float +chads near where it was eaten
-    const gridBox = snakeGridEl.getBoundingClientRect();
-    const cellW = gridBox.width / G.cols;
-    const cellH = gridBox.height / G.rows;
-    const cx = gridBox.left + (head.x + .5)*cellW - document.querySelector('#snakeModal .panel').getBoundingClientRect().left;
-    const cy = gridBox.top + (head.y + .5)*cellH - document.querySelector('#snakeModal .panel').getBoundingClientRect().top;
-    floatChads(cx, cy, `+${earned}`);
-
+    // flying label from cell center
+    const cellW = snakeGridEl.clientWidth / G.cols;
+    const cellH = snakeGridEl.clientHeight/ G.rows;
+    flyReward((head.x+0.5)*cellW, (head.y+0.5)*cellH, reward);
     // new food
     let fx,fy,t=0; do{ fx=Math.floor(Math.random()*G.cols); fy=Math.floor(Math.random()*G.rows); t++; }
     while(t<4000 && (G.snake.some(s=>s.x===fx&&s.y===fy) || G.obstacles.some(o=>o.x===fx&&o.y===fy)));
@@ -803,24 +836,21 @@ document.getElementById('snakeStart').addEventListener('click', ()=>{
   sLoop = setInterval(()=>{
     if (!S || S.paused) return;
     const r = stepSnake(S);
-    if (r==='dead'){ clearInterval(sLoop); sLoop=null; showDialog({title:'Snake', message:`Snake died — score ${S.score}. Press Quit to collect.`, type:'info'}); }
+    if (r==='dead'){ clearInterval(sLoop); sLoop=null; alert(`Snake died — score ${S.score}. Press Quit to collect.`); }
     drawSnake(S);
   }, S.tick);
   S.cleanup = cleanup;
 });
 document.getElementById('snakePause').addEventListener('click', ()=>{ if(!S) return; S.paused=!S.paused; document.getElementById('snakePause').textContent = S.paused?'Resume':'Pause'; });
-async function onQuitSnake(){
-  if (S?.sessionEarned>0){
-    state.chads += BigInt(S.sessionEarned); refreshUI(); saveStateLocal(state);
-    await showDialog({title:'ChadiliZe', message:`Added ${S.sessionEarned} chads to balance.`, type:'success'});
-  }
+function onQuitSnake(){
+  if (S?.sessionEarned>0){ state.chads += BigInt(S.sessionEarned); refreshUI(); saveStateLocal(state); alert(`Added ${S.sessionEarned} chads to balance.`); }
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup();
   S=null; closeOverlay('snakeModal');
 }
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris ===== */
+/* ===== Tetris (unchanged logic) ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -893,7 +923,7 @@ function lockPiece(G){
   renderMiniShape(nextUI, SHAPES[G.next], COLORS[G.next]);
   if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){
     if (tLoop) clearInterval(tLoop); tLoop=null;
-    showDialog({title:'Tetris', message:`Game over — score ${G.score}. Quit to collect.`, type:'info'});
+    alert(`Game over — score ${G.score}. Quit to collect.`);
   }
 }
 function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
@@ -940,25 +970,26 @@ function startTetris(){
   bind('.hold', ()=> tHold());
 }
 function openTetris(){ closeOverlay('playOverlay'); openOverlay('tetrisModal'); setTimeout(()=> startTetris(), 40); }
-async function onQuitTetris(){
-  if (T?.sessionEarned>0){
-    state.chads += BigInt(T.sessionEarned); refreshUI(); saveStateLocal(state);
-    await showDialog({title:'ChadiliZe', message:`Added ${T.sessionEarned} chads to your balance.`, type:'success'});
-  }
+function onQuitTetris(){
+  if (T?.sessionEarned>0){ state.chads += BigInt(T.sessionEarned); refreshUI(); saveStateLocal(state); alert(`Added ${T.sessionEarned} chads to your balance.`); }
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
 /* ===== Bootstrap ===== */
 async function bootstrap(){
   if (tg){
-    try{
-      const s = await apiGetProfile();
-      state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{}, name:s.name||null };
+    try{ const s = await apiGetProfile();
+      state = { chads: BigInt(s.points||0), gen: BigInt(s.gen_per_hour||0), acc:0n, last:Math.floor(Date.now()/1000), level: s.level||1, purchases:s.purchases||{}, name:s.name||null, profileId:s.profile_id||null };
     }catch{ state = loadStateLocal(); }
   }else{ state = loadStateLocal(); }
   refreshUI();
-  if (!state.name){ openNameModal(); }
 
+  // Ask for username first time
+  if (!state.name){ openNameModal(); }
+  // If name exists but profile not chosen (new feature), prompt profile once
+  if (state.name && !state.profileId){ openProfileModal(); }
+
+  // Passive accrual
   setInterval(()=>{
     state.acc += state.gen;
     if (state.acc >= 3600n){
