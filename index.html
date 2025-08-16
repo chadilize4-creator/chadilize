@@ -26,7 +26,7 @@ body{
   font-family:Inter,system-ui,Roboto,Arial;
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
-  overflow:auto;
+  overflow:hidden; /* lock page scroll so chrome stays put */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -50,30 +50,29 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* ===== Top bar ===== */
-.topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; }
+/* ===== Top bar (sticky) ===== */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px;
+  position:sticky; top:8px; z-index:90; /* stays in place */
+}
 .userpill{
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:14px;   /* (↑) a touch more gap avatar↔name */
   padding:8px 12px; border-radius:12px;
   background:
     radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
     linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass);
   box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
-  overflow:visible;               /* let avatar overflow without changing layout */
 }
 .avatar{
-  width:28px; height:28px; border-radius:50%; overflow:hidden;
+  width:56px; height:56px; border-radius:50%; overflow:hidden; /* big avatar only; rest unchanged */
   display:grid; place-items:center; font-weight:900; font-size:12px;
-  color:#061018;
-  background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
+  color:#061018; background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
-  transform:scale(2);             /* VISUALLY 2× BIGGER */
-  transform-origin:left center;   /* grow outwards; doesn’t affect layout box */
-  z-index:1;
 }
-.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-left:18px } /* keep text clear of scaled avatar */
+.userpill .avatar{ margin-right:2px; } /* subtle extra breathing room */
 .avatar img{width:100%; height:100%; object-fit:cover; display:block}
+.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .stat{
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -120,8 +119,11 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* bottom */
-.bottom{ position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left:12px; right:12px; z-index:70; margin-top:16px; }
+/* ===== Bottom controls (sticky) ===== */
+.bottom{
+  position:sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  left:12px; right:12px; z-index:90; margin-top:16px;
+}
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
@@ -492,7 +494,7 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* Loader: show >= 4s */
+/* Loader: show ≥ 4s */
 const loader = document.getElementById('loader');
 const loaderShownAt = Date.now();
 function hideLoaderSoon(){
@@ -550,11 +552,11 @@ function refreshUI(){
 }
 
 /* ===== API placeholders ===== */
-async function apiGetProfile(){ throw new Error('skip server'); }
+async function apiGetProfile(){ throw new Error('skip server in this build'); }
 async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
 async function apiCheckName(){ return {ok:true} }
 
-/* ===== orb + particles ===== */
+/* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
@@ -629,7 +631,7 @@ function populateCards(){
   });
 }
 
-/* ===== Name & avatar ===== */
+/* ===== Name UX ===== */
 function setUserPill(name, avatarIdx){
   const pill = document.getElementById('userPill');
   const avatarBox = document.getElementById('userAvatar');
@@ -675,7 +677,7 @@ document.getElementById('nameInput').addEventListener('input', livePreviewInitia
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* Avatar picker */
+/* ===== Avatar modal logic ===== */
 const AVATAR_COUNT = 37;
 function avatarPath(i){ return `img/profile${i}.png`; }
 
@@ -712,7 +714,7 @@ document.getElementById('confirmYesBtn').addEventListener('click', ()=>{
   showToast('Profile locked. Welcome, <span class="accent">'+(state.name||'Player')+'</span>!');
 });
 
-/* Toasts / alerts */
+/* ===== Toasts / fancy alert ===== */
 function showToast(html){
   const wrap = document.getElementById('toastWrap');
   const t = document.createElement('div'); t.className='toast'; t.innerHTML = html;
@@ -856,7 +858,6 @@ function onQuitSnake(){
   S=null; closeOverlay('snakeModal');
 }
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
-document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
 /* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
