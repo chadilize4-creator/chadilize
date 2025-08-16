@@ -14,35 +14,20 @@
   --green1:#9ef0c4; --green2:#2fc78c; --green3:#0f6b42;
   --blue1:#7ac2ff; --blue2:#4aa3ff; --blue3:#1e55aa;
   --danger1:#ff8d8d; --danger2:#ff5858; --danger3:#8a1e1e;
-  --app-h: 100svh;
+  --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
 
-/* reset */
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
-html,body{height:100%}
 
-/* ===== page scaffolding (header/footer locked) ===== */
+html,body{height:100%}
 body{
   margin:0; color:var(--ink);
   font-family:Inter,system-ui,Roboto,Arial;
   background:radial-gradient(1400px 900px at 50% -10%, #151822 0%, var(--bg1) 55%) no-repeat #0b0c10;
   -webkit-font-smoothing:antialiased;
-  height:var(--app-h);
-  overflow:hidden; /* <— page itself does NOT scroll */
+  overflow:auto;
   padding-bottom: env(safe-area-inset-bottom);
-}
-.stage{
-  height:var(--app-h); display:flex; align-items:center; justify-content:center; padding:18px;
-}
-.phone{
-  width:100%; max-width:520px; height:var(--app-h);
-  border-radius:20px; padding:14px; position:relative; overflow:hidden;
-  background:
-    radial-gradient(800px 400px at 10% 10%, rgba(255,107,107,0.03), transparent 5%),
-    linear-gradient(180deg,#070708,#0b0b0c);
-  box-shadow:0 28px 90px rgba(0,0,0,0.7);
-  display:flex; flex-direction:column; /* header (topbar), main (scrolls), footer (bottom) */
 }
 
 /* ===== Loader ===== */
@@ -54,42 +39,54 @@ body{
 .loader img{ width:100%; height:100%; object-fit:cover; filter:brightness(1.12); }
 .loader.fade{ opacity:0; transition:opacity .35s ease; pointer-events:none }
 
-/* ===== Top bar (fixed size, tiny extra gap) ===== */
-.topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; flex:0 0 auto; }
+.stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
+.phone{
+  width:100%; max-width:520px; min-height:var(--app-h); height:auto;
+  border-radius:20px; padding:14px; position:relative; overflow:hidden;
+  background:
+    radial-gradient(800px 400px at 10% 10%, rgba(255,107,107,0.03), transparent 5%),
+    linear-gradient(180deg,#070708,#0b0b0c);
+  box-shadow:0 28px 90px rgba(0,0,0,0.7);
+  display:flex; flex-direction:column;
+}
+
+/* ===== Top bar (locked; compact boxes) ===== */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:90;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  min-height:52px; padding-top:6px; padding-bottom:6px;
+}
 .userpill{
-  display:flex; align-items:center; gap:12px; /* small extra space between avatar & name */
-  padding:8px 12px; border-radius:12px;
+  display:flex; align-items:center; gap:12px;           /* tiny extra gap */
+  padding:6px 10px; border-radius:12px;                 /* slightly tighter */
   background:
     radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
     linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass);
   box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
 }
-.avatar{
-  width:56px; height:56px; border-radius:50%; overflow:hidden; /* 2× bigger icon */
+.avatar{                                          /* big avatar stays */
+  width:56px; height:56px; border-radius:50%; overflow:hidden;
   display:grid; place-items:center; font-weight:900; font-size:12px;
-  color:#061018;
+  color:#061018; flex:0 0 auto;
   background: conic-gradient(from 220deg, #8bd3ff, #6ec8ff, #a8e0ff);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
 }
 .avatar img{width:100%; height:100%; object-fit:cover; display:block}
-.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-left:2px }
 
-.stat{
+.stat{                                              /* compact stat box */
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  padding:10px 14px;border-radius:10px;border:1px solid var(--glass);
-  min-width:170px;text-align:right;box-shadow:0 12px 30px rgba(0,0,0,0.6)
+  padding:8px 12px; border-radius:10px; border:1px solid var(--glass);
+  min-width:140px; text-align:right; box-shadow:0 12px 30px rgba(0,0,0,0.6)
 }
 .label{font-size:12px;color:#9aa3ab}
 .value{font-size:18px;font-weight:800;color:#fff}
 .small{font-size:12px;color:#98a3aa;margin-top:6px}
 
-/* ===== Middle area (only this scrolls) ===== */
+/* ===== Main ===== */
 .main{
-  flex:1 1 auto;               /* takes remaining height */
-  overflow:auto;               /* <— scrolls here */
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain; /* prevent page bounce */
+  min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h));
   display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px;
 }
 .visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
@@ -123,11 +120,11 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* ===== Bottom buttons (locked, never scroll) ===== */
+/* ===== Bottom (locked; raised slightly) ===== */
 .bottom{
-  flex:0 0 auto;               /* fixed at the bottom of the phone */
-  margin-top:16px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  position:sticky;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);   /* a little higher */
+  left:12px; right:12px; z-index:90; margin-top:16px;
 }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{
@@ -139,7 +136,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays, modals, games, etc. — unchanged from your last good version */
+/* overlays (generic) */
 .overlay{
   position:fixed; inset:0;
   background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
@@ -156,7 +153,7 @@ body{
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
 .note{font-size:13px;color:#9aa3ab}
 
-/* Name modal */
+/* ===== Name modal ===== */
 #nameOverlay .panel{ width:min(560px,100%); padding:0; border-radius:18px; overflow:hidden; background:transparent; border:none; box-shadow:none }
 .name-wrap{
   width:100%; box-sizing:border-box;
@@ -172,23 +169,45 @@ body{
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
 @media (max-width:380px){ .name-row{ grid-template-columns:1fr } .name-row .btn{ width:100% } }
 
-/* Avatar picker (unchanged layout from your working version) */
+/* ===== Avatar picker ===== */
 #avatarOverlay .panel{ max-width:980px }
 .avatarHead{ display:flex; align-items:end; justify-content:space-between; gap:12px; margin-bottom:10px }
 .avatarHead h2{ margin:0; font-size:28px }
 .avatarSub{ color:#9aa3ab; font-size:14px }
-.avatarGrid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; padding:8px 2px 82px; }
+.avatarGrid{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;
+  padding:8px 2px 82px;
+}
 @media(min-width:520px){ .avatarGrid{ grid-template-columns:repeat(5, 1fr) } }
 @media(min-width:760px){ .avatarGrid{ grid-template-columns:repeat(6, 1fr) } }
-.avTile{ aspect-ratio:1/1; border-radius:18px; overflow:hidden; position:relative; background:linear-gradient(180deg,#11161c,#0b0f13); border:1px solid rgba(255,255,255,.05); box-shadow:0 14px 36px rgba(0,0,0,.45); cursor:pointer; }
+
+.avTile{
+  aspect-ratio:1/1;
+  border-radius:18px; overflow:hidden; position:relative;
+  background:linear-gradient(180deg,#11161c,#0b0f13);
+  border:1px solid rgba(255,255,255,.05);
+  box-shadow:0 14px 36px rgba(0,0,0,.45);
+  cursor:pointer;
+}
 .avTile img{ width:100%; height:100%; object-fit:cover; display:block }
 .avTile::after{ content:""; position:absolute; inset:0; border-radius:18px; box-shadow:inset 0 0 0 0 rgba(122,194,255,.9); transition:box-shadow .18s ease }
 .avTile.selected::after{ box-shadow:inset 0 0 0 3px rgba(122,194,255,.95), 0 0 26px rgba(122,194,255,.35) }
-.selectBar{ position:sticky; bottom:0; display:flex; justify-content:flex-end; padding-top:12px; background:linear-gradient(180deg, transparent, rgba(0,0,0,.25) 35%); }
-.selectBtn{ border-radius:14px; padding:14px 18px; font-weight:900; letter-spacing:.3px; cursor:pointer; border:1px solid rgba(255,255,255,.06); background: radial-gradient(600px 200px at -10% -40%, rgba(255,255,255,.35), transparent 25%), linear-gradient(180deg, #ffe29c, #f6c456 60%, #8a5e06); color:#241702; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+
+.selectBar{
+  position:sticky; bottom:0; display:flex; justify-content:flex-end; padding-top:12px;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.25) 35%);
+}
+.selectBtn{
+  border-radius:14px; padding:14px 18px; font-weight:900; letter-spacing:.3px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.06);
+  background:
+    radial-gradient(600px 200px at -10% -40%, rgba(255,255,255,.35), transparent 25%),
+    linear-gradient(180deg, #ffe29c, #f6c456 60%, #8a5e06);
+  color:#241702; box-shadow:0 20px 60px rgba(0,0,0,.55);
+}
 .selectBtn[disabled]{ opacity:.6; filter:grayscale(.2); cursor:not-allowed }
 
-/* Confirm modal */
+/* ===== Confirm modal ===== */
 #confirmOverlay .panel{ width:min(520px, 100%) }
 .confirmBox{
   background:
@@ -203,10 +222,29 @@ body{
 .cTitle{ font-size:18px; font-weight:900 }
 .cText{ font-size:14px; color:#aeb6bd }
 .cButtons{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px }
-.btnDanger{ border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06); background:linear-gradient(180deg, var(--green1), var(--green2) 60%, var(--green3)); color:#062b18; box-shadow:0 22px 60px rgba(0,0,0,.6) } /* green = YES */
-.btnGhost{  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg,#3d1010,#220a0a); color:#ffd3d3 } /* red-ish = NO */
+.btnDanger{
+  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3)); color:#2a0000;
+  box-shadow:0 22px 60px rgba(0,0,0,.6)
+}
+.btnGhost{
+  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(180deg,#12161b,#0c0f12); color:#e7edf5
+}
 
-/* Games */
+/* ===== Toasts ===== */
+.toastWrap{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:200; display:grid; gap:8px; pointer-events:none }
+.toast{
+  pointer-events:auto;
+  background:
+    radial-gradient(600px 300px at -10% -30%, rgba(120,180,255,.10), transparent 35%),
+    linear-gradient(180deg,#0a1117,#0a0d11);
+  border:1px solid rgba(255,255,255,.08); color:#eaf1f8; padding:12px 14px; border-radius:14px;
+  box-shadow:0 28px 80px rgba(0,0,0,.6); display:flex; align-items:center; gap:10px;
+}
+.toast .accent{ font-weight:900; color:#ffd86b }
+
+/* ===== Game shells ===== */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018);
   border-radius:10px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:8px}
 .grid{ position:absolute; inset:0; display:grid; gap:2px; padding:8px;
@@ -220,6 +258,7 @@ body{
 .obstacle{ background:rgba(150,30,40,0.92) }
 .growth{ animation:growGlow 260ms ease-out } @keyframes growGlow { 0%{box-shadow:0 0 0 rgba(120,255,150,0)} 50%{box-shadow:0 0 16px rgba(120,255,150,.95)} 100%{box-shadow:0 0 0 rgba(120,255,150,0)} }
 
+/* Tetris colors + ghost */
 .cell.block-I{ background:#4dd0e1; } .cell.block-O{ background:#ffd54f; }
 .cell.block-T{ background:#b39ddb; } .cell.block-S{ background:#81c784; }
 .cell.block-Z{ background:#e57373; } .cell.block-J{ background:#64b5f6; }
@@ -227,10 +266,17 @@ body{
 .cell.ghost{ outline:1px dashed rgba(255,255,255,0.2); outline-offset:-1px }
 
 /* D-pads */
-.dpad,.tpad{ position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:85; pointer-events:auto; }
+.dpad,.tpad{
+  position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
+  transform:translateX(-50%); z-index:85; pointer-events:auto;
+}
 .dpad{ display:grid; grid-template-areas: ". up ." "left . right" ". down ."; gap:8px }
-.dpad button,.tpad button{ width:56px; height:56px; border-radius:14px; border:1px solid var(--glass); background:linear-gradient(180deg,#181b20,#0f1114); color:#dce3ea; font-weight:900; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px; cursor:pointer }
+.dpad button,.tpad button{
+  width:56px; height:56px; border-radius:14px; border:1px solid var(--glass);
+  background:linear-gradient(180deg,#181b20,#0f1114); color:#dce3ea; font-weight:900; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px; cursor:pointer
+}
 .dpad .up{grid-area:up} .dpad .left{grid-area:left} .dpad .right{grid-area:right} .dpad .down{grid-area:down}
+
 .tpad{ display:grid; gap:8px; grid-template-columns: repeat(4, 56px); grid-template-areas:"ccw cw drop hold" ". left down right" }
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold } .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
@@ -245,7 +291,7 @@ body{
 <div class="stage">
   <div class="phone" id="phone">
 
-    <!-- TOP BAR (locked) -->
+    <!-- TOP BAR -->
     <div class="topbar" id="topbar">
       <div id="userPill" class="userpill" style="visibility:hidden">
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
@@ -258,7 +304,7 @@ body{
       </div>
     </div>
 
-    <!-- MIDDLE (scrolls) -->
+    <!-- MAIN -->
     <div class="main" id="main">
       <div class="visual" id="visual">
         <div class="smoke" aria-hidden="true"></div>
@@ -270,7 +316,7 @@ body{
       </div>
     </div>
 
-    <!-- BOTTOM (locked) -->
+    <!-- BOTTOM -->
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
@@ -279,7 +325,6 @@ body{
       </div>
     </div>
 
-    <!-- Overlays/Modals (unchanged content from your working build) -->
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
       <div class="panel">
@@ -339,7 +384,9 @@ body{
           </div>
           <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('avatarOverlay')">Close</button>
         </div>
+
         <div id="avatarGrid" class="avatarGrid"></div>
+
         <div class="selectBar">
           <button id="avatarSelectBtn" class="selectBtn" disabled>Select</button>
         </div>
@@ -358,8 +405,8 @@ body{
             </div>
           </div>
           <div class="cButtons">
-            <button class="btnGhost" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
-            <button class="btnDanger" id="confirmYesBtn">Yes, choose this</button>
+            <button class="btnDanger" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
+            <button class="btnGhost" id="confirmYesBtn" style="background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18;">Yes, choose this</button>
           </div>
         </div>
       </div>
@@ -427,20 +474,29 @@ body{
       </div>
     </div>
 
+    <!-- Toast area -->
     <div class="toastWrap" id="toastWrap"></div>
+
   </div>
 </div>
 
 <script>
-/* Telegram + viewport sizing */
+/* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
 function applyAppHeight(){ const h = tg?.viewportHeight || window.innerHeight; document.documentElement.style.setProperty('--app-h', h + 'px'); }
+function applyChromeHeights(){
+  const top = document.getElementById('topbar'); const bottom = document.getElementById('bottom');
+  const safe = parseInt(getComputedStyle(document.body).paddingBottom) || 0;
+  const topH = top?.offsetHeight || 0; const bottomH = (bottom?.offsetHeight || 0) + 8 + safe;
+  document.documentElement.style.setProperty('--topbar-h', topH + 'px');
+  document.documentElement.style.setProperty('--bottom-h', bottomH + 'px');
+}
 try{ tg?.ready(); tg?.expand(); }catch{}
-applyAppHeight();
-tg?.onEvent?.('viewportChanged', applyAppHeight);
-window.addEventListener('resize', applyAppHeight);
+applyAppHeight(); applyChromeHeights();
+tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
+window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* Loader: >= 4s */
+/* Loader: show >= 4s */
 const loader = document.getElementById('loader');
 const loaderShownAt = Date.now();
 function hideLoaderSoon(){
@@ -449,7 +505,7 @@ function hideLoaderSoon(){
   setTimeout(()=> loader.style.display='none', left + 350);
 }
 
-/* tiny audio tick */
+/* ===== tiny audio tick ===== */
 let _audioCtx=null;
 function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
 function playTap(){ const ctx = audio(), now = ctx.currentTime;
@@ -460,9 +516,9 @@ function playTap(){ const ctx = audio(), now = ctx.currentTime;
 }
 window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-/* state */
+/* ===== local state ===== */
 const params = new URLSearchParams(location.search);
-const tokenHint = params.get('token') || null;
+const tokenHint = params.get('token') || null;   // dev fallback if testing outside Telegram
 const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
 const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
@@ -490,12 +546,6 @@ function saveStateLocal(s){
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
 
-/* API placeholders */
-async function apiGetProfile(){ throw new Error('skip server in this build'); }
-async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
-async function apiCheckName(){ return {ok:true} }
-
-/* UI refresh */
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
@@ -503,7 +553,12 @@ function refreshUI(){
   setUserPill(state.name, state.avatarIdx);
 }
 
-/* particles + orb */
+/* ===== API placeholders ===== */
+async function apiGetProfile(){ throw new Error('skip server'); }
+async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
+async function apiCheckName(){ return {ok:true} }
+
+/* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticles(clientX, clientY){
   const rect = document.getElementById('visual').getBoundingClientRect();
@@ -542,12 +597,12 @@ async function handleOrbTap(e){
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
 document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {passive:true});
 
-/* overlays & shop */
+/* ===== overlays & shop ===== */
 function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
 function closeOverlay(id){ document.getElementById(id)?.classList.remove('show'); }
-document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'));
-document.getElementById('buyBtn').addEventListener('click', ()=> { populateCards(); openOverlay('buyOverlay'); });
-document.getElementById('levelBtn').addEventListener('click', ()=> showToast('Leveling soon ✨'));
+document.getElementById('playBtn').addEventListener('click', ()=> openOverlay('playOverlay'), {passive:true});
+document.getElementById('buyBtn').addEventListener('click', ()=> { populateCards(); openOverlay('buyOverlay'); }, {passive:true});
+document.getElementById('levelBtn').addEventListener('click', ()=> showToast('Leveling soon ✨'), {passive:true});
 
 const CARD_TYPES = [
   { id:'c1', title:'Starter', cost:50n,  add:1n,  desc:'+1 chad/hr' },
@@ -578,7 +633,7 @@ function populateCards(){
   });
 }
 
-/* Name & avatar */
+/* ===== Name UX ===== */
 function setUserPill(name, avatarIdx){
   const pill = document.getElementById('userPill');
   const avatarBox = document.getElementById('userAvatar');
@@ -587,7 +642,9 @@ function setUserPill(name, avatarIdx){
   document.getElementById('userName').textContent = name;
   if (typeof avatarIdx==='number'){
     initialsEl.style.display='none';
-    if (!avatarBox.querySelector('img')){ const img = document.createElement('img'); avatarBox.appendChild(img); }
+    if (!avatarBox.querySelector('img')){
+      const img = document.createElement('img'); avatarBox.appendChild(img);
+    }
     avatarBox.querySelector('img').src = avatarPath(avatarIdx);
   }else{
     const initials = name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '?';
@@ -622,7 +679,7 @@ document.getElementById('nameInput').addEventListener('input', livePreviewInitia
 document.getElementById('nameSave').addEventListener('click', saveName);
 document.getElementById('nameInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') saveName(); });
 
-/* Avatar picker */
+/* ===== Avatar modal logic ===== */
 const AVATAR_COUNT = 37;
 function avatarPath(i){ return `img/profile${i}.png`; }
 
@@ -643,7 +700,10 @@ function openAvatarModal(){
   updateSelectBtn();
   openOverlay('avatarOverlay');
 }
-function updateSelectBtn(){ document.getElementById('avatarSelectBtn').disabled = !(typeof selectedAvatar==='number'); }
+function updateSelectBtn(){
+  const btn = document.getElementById('avatarSelectBtn');
+  btn.disabled = !(typeof selectedAvatar==='number');
+}
 document.getElementById('avatarSelectBtn').addEventListener('click', ()=>{
   if (!(typeof selectedAvatar==='number')) return;
   document.getElementById('confirmPreview').src = avatarPath(selectedAvatar);
@@ -656,7 +716,7 @@ document.getElementById('confirmYesBtn').addEventListener('click', ()=>{
   showToast('Profile locked. Welcome, <span class="accent">'+(state.name||'Player')+'</span>!');
 });
 
-/* Toasts */
+/* ===== Toasts / fancy alert ===== */
 function showToast(html){
   const wrap = document.getElementById('toastWrap');
   const t = document.createElement('div'); t.className='toast'; t.innerHTML = html;
@@ -666,7 +726,7 @@ function showToast(html){
 }
 function fancyAlert(text){ showToast(text); }
 
-/* Grid helpers (used by games) */
+/* ===== Grid helpers ===== */
 function buildGrid(container, cols, rows){
   container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
@@ -685,7 +745,7 @@ function renderMiniShape(grid, shape, cls){
   for(let y=0;y<h;y++) for(let x=0;x<w;x++) if (shape[y][x]) grid.add(offX+x, offY+y, cls);
 }
 
-/* ===== Snake (with coin gain popups already added earlier) ===== */
+/* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
   const cols = 18, rows = 32;
@@ -800,8 +860,9 @@ function onQuitSnake(){
   S=null; closeOverlay('snakeModal');
 }
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
+document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris ===== (unchanged) */
+/* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -877,7 +938,7 @@ function lockPiece(G){
     fancyAlert(`Game over — score ${G.score}. Quit to collect.`);
   }
 }
-function drop(G){ G.piece.y++; if (collides(G.grid,G.piece.shape,G.piece.x,G.piece.y)){ G.piece.y--; lockPiece(G); } }
+function drop(G){ G.piece.y++; if (collides(G.grid, G.piece.shape, G.piece.x, G.piece.y)){ G.piece.y--; lockPiece(G); } }
 function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
 function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
 function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
@@ -926,7 +987,7 @@ function onQuitTetris(){
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
-/* bootstrap */
+/* ===== Bootstrap ===== */
 async function bootstrap(){
   state = loadStateLocal();
   refreshUI();
@@ -947,6 +1008,7 @@ async function bootstrap(){
 }
 window.addEventListener('load', bootstrap);
 
+/* expose */
 window.closeOverlay = closeOverlay;
 window.onQuitTetris = onQuitTetris;
 </script>
