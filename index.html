@@ -15,6 +15,8 @@
   --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
 
+/* global box sizing prevents tiny overflows/clipping */
+*, *::before, *::after { box-sizing: border-box; }
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
 
@@ -27,27 +29,6 @@ body{
   overflow:auto;
   padding-bottom: env(safe-area-inset-bottom);
 }
-
-/* ====== LOADER (full image, no spinner; a touch brighter) ====== */
-#loader{
-  position: fixed; inset: 0; z-index: 9999;
-  background: #000;
-  display:flex; align-items:center; justify-content:center;
-  opacity:1; transition: opacity .35s ease;
-}
-#loader.hide{ opacity:0; pointer-events:none; }
-#loader img{
-  width: 100vw;
-  height: 100svh;
-  height: var(--app-h);
-  object-fit: contain;
-  object-position: center;
-  display:block; max-width:100%; max-height:100%;
-  /* pop a bit without overdoing it */
-  filter: brightness(1.1) contrast(1.05) saturate(1.08);
-}
-
-/* ===== App shell ===== */
 .stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
 .phone{
   width:100%; max-width:520px; min-height:var(--app-h); height:auto;
@@ -57,6 +38,18 @@ body{
     linear-gradient(180deg,#070708,#0b0b0c);
   box-shadow:0 28px 90px rgba(0,0,0,0.7);
   display:flex; flex-direction:column;
+}
+
+/* ===== Loading (splash) ===== */
+#loader {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+#loader img{
+  width: 100%; height: 100%;
+  object-fit: contain;              /* keep full poster visible */
+  filter: brightness(1.18);         /* <— slight pop */
 }
 
 /* ===== Top bar ===== */
@@ -106,7 +99,7 @@ body{
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (1cm up, no wobble) — a little bigger */
+/* ORB — bigger, fixed position (no wobble) */
 .orb{
   pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
@@ -125,22 +118,21 @@ body{
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* ===== Bottom controls (stabilized; no sideways wiggle) ===== */
+/* ===== Bottom bar — fixed, centered; no shifting or clipping ===== */
 .bottom{
-  position: sticky;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-  left:12px; right:12px; z-index:70; margin-top:16px;
-  contain: layout paint;           /* isolate from layout shifts above */
-  transform: translateZ(0);        /* own layer for subpixel stability */
+  width: calc(100% - 28px);               /* account for phone padding (14px x2) */
+  max-width: calc(520px - 28px);
+  z-index: 70;
 }
 .controls{
-  width:100%;
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));  /* fixed, equal columns */
-  gap:12px; align-items:stretch;
+  width:100%; display:grid; grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch;
 }
 .tile{
-  width:100%;
+  min-width:0;                             /* prevent grid overflow on narrow screens */
   border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer;
   border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none
 }
@@ -149,7 +141,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays (padding responsive so panel never overflows) */
+/* overlays */
 .overlay{
   position:fixed; inset:0;
   background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
@@ -248,8 +240,9 @@ body{
 }
 .name-title{ font-size:22px; font-weight:900 }
 .name-sub{ font-size:13px; color:#9aa3ab }
-
-.name-row{ display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px; }
+.name-row{
+  display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px;
+}
 .name-input{
   min-width:0;
   padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14;
@@ -267,14 +260,14 @@ body{
   .name-row{ grid-template-columns: 1fr; }
   .name-row .btn{ width:100%; }
 }
-@media (max-width:420px){ .controls{grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 </style>
 </head>
 <body>
 
-  <!-- ===== FULLSCREEN LOADER IMAGE ===== -->
-  <div id="loader" aria-label="Loading">
-    <img id="loaderImg" src="./img/loader.jpg" alt="Loading…">
+  <!-- Splash loader -->
+  <div id="loader" aria-hidden="true">
+    <img src="/img/loader.jpg" alt="Loading…">
   </div>
 
   <div class="stage">
@@ -305,7 +298,7 @@ body{
         </div>
       </div>
 
-      <!-- BOTTOM -->
+      <!-- BOTTOM (fixed) -->
       <div class="bottom" id="bottom">
         <div class="controls">
           <div class="tile play" id="playBtn">Play<br>Games</div>
@@ -444,13 +437,15 @@ applyAppHeight(); applyChromeHeights();
 tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
 window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
-/* ===== Loader hide: after image loads + 4s (fallback at 7s) ===== */
-const loader = document.getElementById('loader');
-const loaderImg = document.getElementById('loaderImg');
-function hideLoader(){ loader?.classList.add('hide'); setTimeout(()=> loader?.remove(), 400); }
-if (loaderImg?.complete) { setTimeout(hideLoader, 4000); }
-else { loaderImg?.addEventListener('load', ()=> setTimeout(hideLoader, 4000)); }
-setTimeout(hideLoader, 7000); // network fallback
+/* ===== Splash timing (4s minimum) ===== */
+const MIN_SPLASH_MS = 4000;
+const splashStart = Date.now();
+function hideSplashWhenReady(){
+  const left = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashStart));
+  setTimeout(()=>{ const el = document.getElementById('loader'); if (el) el.style.display = 'none'; }, left);
+}
+// ensure image is loaded, then hide after min time
+(()=>{ const im = new Image(); im.onload = hideSplashWhenReady; im.onerror = hideSplashWhenReady; im.src = '/img/loader.jpg'; })();
 
 /* ===== tap sound ===== */
 let _audioCtx=null;
@@ -465,7 +460,7 @@ window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} 
 
 /* ===== state & API (per-user local cache key) ===== */
 const params = new URLSearchParams(location.search);
-const tokenHint = params.get('token') || null;   // dev fallback if testing outside Telegram
+const tokenHint = params.get('token') || null;
 const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
 const STORAGE_KEY = `chad_state_${UID_HINT}`;
 
