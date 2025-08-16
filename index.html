@@ -30,7 +30,7 @@ body{
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ===== Loader (kept as you had it) ===== */
+/* ===== Loader ===== */
 .loader{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
@@ -214,17 +214,22 @@ body{
 .cTitle{ font-size:18px; font-weight:900 }
 .cText{ font-size:14px; color:#aeb6bd }
 .cButtons{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px }
-.btnDanger{
-  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3)); color:#2a0000;
-  box-shadow:0 22px 60px rgba(0,0,0,.6)
+
+/* NEW: red cancel & green confirm */
+.btnRed{
+  border-radius:12px; padding:12px 14px; font-weight:900;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, var(--danger1), var(--danger2) 60%, var(--danger3));
+  color:#2a0000; box-shadow:0 22px 60px rgba(0,0,0,.6);
 }
-.btnGhost{
-  border-radius:12px; padding:12px 14px; font-weight:900; border:1px solid rgba(255,255,255,.10);
-  background:linear-gradient(180deg,#12161b,#0c0f12); color:#e7edf5
+.btnGreen{
+  border-radius:12px; padding:12px 14px; font-weight:900;
+  border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, var(--green1), var(--green2) 60%, var(--green3));
+  color:#062b18; box-shadow:0 22px 60px rgba(0,0,0,.6);
 }
 
-/* ===== Toasts (used elsewhere) ===== */
+/* ===== Toasts ===== */
 .toastWrap{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:200; display:grid; gap:8px; pointer-events:none }
 .toast{
   pointer-events:auto;
@@ -236,7 +241,7 @@ body{
 }
 .toast .accent{ font-weight:900; color:#ffd86b }
 
-/* ===== Games (unchanged layout) ===== */
+/* ===== Games ===== */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018);
   border-radius:10px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:8px}
 .grid{ position:absolute; inset:0; display:grid; gap:2px; padding:8px;
@@ -397,8 +402,8 @@ body{
             </div>
           </div>
           <div class="cButtons">
-            <button class="btnGhost" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
-            <button class="btnDanger" id="confirmYesBtn">Yes, choose this</button>
+            <button class="btnRed" onclick="closeOverlay('confirmOverlay')">No, pick another</button>
+            <button class="btnGreen" id="confirmYesBtn">Yes, choose this</button>
           </div>
         </div>
       </div>
@@ -665,7 +670,6 @@ async function saveName(){
   if (!isValidNameWords(n)){ err.textContent = 'Use 1–8 words. Each word: letters/numbers/_/-. Max 16 chars per word.'; return; }
   try{ await apiCheckName(n); }catch{ /* fallback ok */ }
   state.name = n; saveStateLocal(state); setUserPill(n, state.avatarIdx); closeOverlay('nameOverlay');
-  // Immediately open avatar chooser if not locked
   if (!state.avatarLocked) openAvatarModal();
 }
 document.getElementById('nameInput').addEventListener('input', livePreviewInitials);
@@ -703,7 +707,6 @@ document.getElementById('avatarSelectBtn').addEventListener('click', ()=>{
   openOverlay('confirmOverlay');
 });
 document.getElementById('confirmYesBtn').addEventListener('click', ()=>{
-  // Lock avatar forever (client-side; server can enforce too)
   state.avatarIdx = selectedAvatar; state.avatarLocked = true; saveStateLocal(state);
   setUserPill(state.name || 'Player', state.avatarIdx);
   closeOverlay('confirmOverlay'); closeOverlay('avatarOverlay');
@@ -774,7 +777,6 @@ function drawSnake(G){
 function floatingGain(x, y, text){
   const host = snakeGridEl;
   const rect = host.getBoundingClientRect();
-  // cell size approx:
   const cw = rect.width / 18, ch = rect.height / 32;
   const fx = x*cw + cw/2, fy = y*ch + ch/2;
   const el = document.createElement('div');
@@ -798,7 +800,6 @@ function stepSnake(G){
   G.snake.unshift(head);
   if (head.x===G.food.x && head.y===G.food.y){
     G.score++;
-    // chads: first coin +40, others +10
     const gain = (G.coinCount===0) ? 40 : 10;
     G.coinCount++; G.sessionEarned += gain;
     G.justAte={x:head.x,y:head.y};
@@ -858,7 +859,7 @@ function onQuitSnake(){
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
 document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
-/* ===== Tetris (unchanged mechanics) ===== */
+/* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
 const nextGridEl = document.getElementById('nextGrid');
 const holdGridEl = document.getElementById('holdGrid');
@@ -988,12 +989,9 @@ async function bootstrap(){
   state = loadStateLocal();
   refreshUI();
 
-  // Ask name on first run
   if (!state.name){ openNameModal(); }
-  // If name exists but avatar not locked, show avatar picker once
   else if (!state.avatarLocked){ openAvatarModal(); }
 
-  // passive income tick
   setInterval(()=>{
     state.acc += state.gen;
     if (state.acc >= 3600n){
