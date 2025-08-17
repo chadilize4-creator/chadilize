@@ -199,13 +199,16 @@ body{
 
 .handStack{ cursor:grab; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.06); background:linear-gradient(180deg,#0f1116,#0a0d11); box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.5); display:grid; place-items:center; min-width:72px; position:relative; }
 
-/* === CHANGED: make drags reliable on touch (disable native gestures on drag area) === */
+/* Keep touch drags reliable */
 .handStack, #hexGrid, #hexHand, .hexCell { touch-action: none; }
 
-/* === CHANGED: ensure ghost never intercepts hit-testing and uses viewport coords === */
-.dragGhost{ position:fixed; z-index:999; pointer-events:none; transform:translate(-50%,-50%); }
-
-/* misc */
+/* DRAG GHOST — only chips, no card */
+.dragGhost{
+  position:fixed; z-index:999; pointer-events:none; transform:translate(-50%,-50%);
+  background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; min-width:auto !important; border-radius:0 !important;
+  will-change: transform;
+}
+.dragGhost .stack{ height:88px; width:64px; position:relative; } /* same size as hand cards */
 .handStack:active{ cursor:grabbing }
 .handStack.selected{ outline:2px solid rgba(122,194,255,.9); box-shadow:0 0 24px rgba(122,194,255,.35) }
 .mergeFlash{ animation:mergeBlink 240ms ease-in-out } @keyframes mergeBlink{ 0%{filter:brightness(1)} 50%{filter:brightness(1.5)} 100%{filter:brightness(1)} }
@@ -605,7 +608,6 @@ function buildGrid(container, cols, rows){
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
-/* ... Snake code unchanged ... (omitted for brevity — identical to your original) ... */
 function createSnakeGame(){
   const cols = 18, rows = 32; const grid = buildGrid(snakeGridEl, cols, rows);
   const midx = Math.floor(cols/2), midy = Math.floor(rows/2);
@@ -658,7 +660,7 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup(); S=null; closeOverlay('snakeModal'); });
 
 /* ===== Tetris ===== */
-/* ... Tetris code unchanged from your original ... */
+/* (unchanged from your previous version) */
 
 /* ===== HEXAGON ===== */
 const H_COLS=7, H_ROWS=9, HEX_COLORS=[0,1,2,3,4], CLEAR_THRESHOLD=7;
@@ -794,23 +796,23 @@ function onQuitHex(){
 }
 
 /* ===== DRAG from hand to board (Pointer Events) ===== */
-/* === CHANGED: robust pointer-based DnD with viewport coords, pointer capture and elementFromPoint === */
 function enableHexDrag(){
   const hand = document.getElementById('hexHand');
   hand.querySelectorAll('.handStack').forEach(h=>{
     h.onpointerdown = (ev)=>{
       const idx = +h.dataset.idx; const pile = H.hand[idx]; if(!pile.length) return;
       ev.preventDefault();
-      // capture this pointer for consistent move/up delivery
       try{ h.setPointerCapture?.(ev.pointerId); }catch{}
 
-      // make ghost
-      const ghost = h.cloneNode(true);
-      ghost.classList.add('dragGhost');
+      /* GHOST: only clone the inner chips stack — no card background */
+      const stackClone = h.querySelector('.stack').cloneNode(true);
+      const ghost = document.createElement('div');
+      ghost.className = 'dragGhost';
+      ghost.appendChild(stackClone);
       document.body.appendChild(ghost);
 
       let hover = null;
-      function setGhost(x, y){ ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; }
+      const setGhost = (x,y)=>{ ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; };
 
       function highlightAt(x, y){
         const el = document.elementFromPoint(x, y);
@@ -831,7 +833,7 @@ function enableHexDrag(){
 
       const onMove = (e)=>{
         e.preventDefault();
-        setGhost(e.clientX, e.clientY);  // === CHANGED: clientX/Y, not pageX/Y
+        setGhost(e.clientX, e.clientY);
         highlightAt(e.clientX, e.clientY);
       };
 
