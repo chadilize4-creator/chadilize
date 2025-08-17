@@ -14,6 +14,8 @@
   --danger1:#ff8d8d; --danger2:#ff5858; --danger3:#8a1e1e;
   --app-h: 100svh; --topbar-h: 64px; --bottom-h: 120px;
 }
+
+/* reset-ish */
 *{ -webkit-tap-highlight-color: transparent; }
 .orb, .tile, button { touch-action: manipulation; -webkit-touch-callout: none; }
 html,body{height:100%}
@@ -54,30 +56,36 @@ body{
 /* ===== Main ===== */
 .main{ min-height: calc(var(--app-h) - var(--topbar-h) - var(--bottom-h)); display:flex; align-items:center; justify-content:center; position:relative; margin-top:8px; }
 .visual{width:88%; display:flex; align-items:center; justify-content:center; position:relative;}
+
+/* ambience */
 .smoke{ position:absolute; inset:6% 6% 18%; z-index:1; pointer-events:none; filter:blur(22px) contrast(105%);
   background: radial-gradient(120px 90px at 40% 60%, rgba(180,180,180,0.06), transparent 60%), radial-gradient(180px 120px at 60% 40%, rgba(200,200,200,0.05), transparent 60%), radial-gradient(220px 160px at 50% 55%, rgba(170,170,170,0.045), transparent 65%);
   animation:smokeShift 12s ease-in-out infinite alternate;
 }
 @keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ===== ORB (smaller image inside glowing ring) ===== */
+/* ===== ORB (fixed: image sits inside ring, smaller & centered) ===== */
 .orb{
   width:94%; aspect-ratio:1/1; border-radius:50%; position:relative; z-index:40; cursor:pointer; transform: translateY(-1cm);
   display:flex; align-items:center; justify-content:center; box-shadow:inset 0 -22px 70px rgba(0,0,0,0.52), 0 30px 100px rgba(0,0,0,0.64);
-  background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%); overflow:visible;
+  background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
 }
-.orb::after{ content:""; position:absolute; inset:8px; border-radius:50%; box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22); pointer-events:none; }
+.orb::after{ /* white glowing ring */
+  content:""; position:absolute; inset:8px; border-radius:50%;
+  box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22); pointer-events:none;
+}
+.orb-inner{ /* exact clip region for the image + particles */
+  position:absolute; inset:8px; border-radius:50%; overflow:hidden; display:grid; place-items:center; z-index:45;
+}
 #orbImg{
-  position:absolute; inset: calc(8px + 6%) calc(8px + 6%); /* shrink 6% inside the white ring */
-  width:auto; height:auto; border-radius:50%; object-fit:cover; display:block; filter:brightness(1);
+  width:86%; height:86%; /* <— slightly smaller than ring */
+  border-radius:50%; object-fit:cover; display:block; filter:brightness(1);
 }
-.orb .title{ position:absolute; color:#fff; font-weight:900; font-size:18px; letter-spacing:.6px; text-shadow:0 1px 2px rgba(0,0,0,.45); opacity:.9; pointer-events:none; z-index:46; }
-
-/* orb tap pulse */
+.p-layer{ position:absolute; inset:0; border-radius:50%; overflow:hidden; z-index:47; pointer-events:none; }
+.orb .title{ position:absolute; color:#fff; font-weight:900; font-size:18px; letter-spacing:.6px; text-shadow:0 1px 2px rgba(0,0,0,.45); opacity:.9; pointer-events:none; z-index:48; }
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-/* tap particles (white), rendered ABOVE the image, and clipped to the circle */
-.p-layer{ position:absolute; inset: calc(8px + 6%) calc(8px + 6%); border-radius:50%; overflow:hidden; z-index:47; pointer-events:none; }
+/* tap particles (white), clipped to the circle */
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:#fff; filter:blur(.4px) drop-shadow(0 0 6px rgba(255,255,255,.45)); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.55 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
@@ -139,6 +147,8 @@ body{
 
 /* ===== Game shell ===== */
 .game-9x16{width:100%; aspect-ratio:9/16; background:linear-gradient(180deg,#06131a,#041018); border-radius:10px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; padding:8px}
+
+/* ===== Snake / Tetris grid helpers ===== */
 .grid{ position:absolute; inset:0; display:grid; gap:2px; padding:8px; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 100%), repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 100%) }
 .cell{ background:#0f151a; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.03); transition:transform .12s ease, filter .12s ease }
 .snake-cell{ background:linear-gradient(180deg, rgba(180,255,200,0.9), rgba(60,140,70,1)); box-shadow:0 0 12px rgba(120,255,150,0.6) }
@@ -159,35 +169,38 @@ body{
 .tpad{ display:grid; gap:8px; grid-template-columns: repeat(4, 56px); grid-template-areas:"ccw cw drop hold" ". left down right" }
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold } .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
-/* ===== HEXAGON game styles ===== */
+/* ===== HEXAGON (flat-top grid; polished visuals) ===== */
 .hex-wrap{ position:relative; width:100%; height:100%; display:flex; flex-direction:column; }
 #hexGrid{ position:relative; flex:1 1 auto; }
-#hexHand{ flex:0 0 auto; display:flex; gap:10px; justify-content:center; align-items:flex-end; padding:8px 6px 2px; }
-.handStack{ cursor:pointer; padding:6px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.06);
+#hexHand{ flex:0 0 auto; display:flex; gap:12px; justify-content:center; align-items:flex-end; padding:10px 6px 2px;
+  border-radius:12px; }
+.handStack{ cursor:pointer; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.06);
   background:linear-gradient(180deg,#0e1318,#0a0d11); box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.5);
-  display:grid; place-items:center; min-width:56px;
+  display:grid; place-items:center; min-width:64px;
 }
 .handStack.selected{ outline:2px solid rgba(122,194,255,.9); box-shadow:0 0 24px rgba(122,194,255,.35) }
 .hexCell{
   position:absolute; transform:translate(-50%,-50%); display:flex; align-items:flex-end; justify-content:center; pointer-events:auto;
   filter:drop-shadow(0 8px 18px rgba(0,0,0,.45));
 }
-.hexShape{
-  position:absolute; inset:0; clip-path:polygon(25% 2.5%, 75% 2.5%, 97% 50%, 75% 97.5%, 25% 97.5%, 3% 50%);
-  background: radial-gradient(800px 400px at 110% -50%, rgba(255,255,255,.07), transparent 40%), linear-gradient(180deg,#0b141b,#0b1014);
+.hexShape{ /* flat-top hex outline */
+  position:absolute; inset:0;
+  clip-path:polygon(7% 25%, 50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%);
+  background:linear-gradient(180deg,#0b141b,#0b1014);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 0 0 2px rgba(255,255,255,.02);
-  border-radius:12px;
+  border-radius:10px;
 }
 .stack{ position:relative; width:70%; display:flex; flex-direction:column; align-items:center; gap:2px; margin-bottom:6%; z-index:2 }
-/* tile chip (hex) */
+
+/* tile chip (flat-top mini hex) */
 .chip{
-  width:100%; aspect-ratio:1/0.866; /* hex height ~ 1/0.866 of width for pointy-top chip */
-  clip-path:polygon(25% 2.5%, 75% 2.5%, 97% 50%, 75% 97.5%, 25% 97.5%, 3% 50%);
+  width:100%; aspect-ratio:1.1547/1; /* width:height ~ sqrt(3):1 for flat-top */
+  clip-path:polygon(7% 25%, 50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.15), 0 6px 12px rgba(0,0,0,.45);
 }
-.chip.fade{ animation:chipFade .24s ease-out both }
+.chip.fade{ animation:chipFade .22s ease-out both }
 @keyframes chipFade{ from{transform:translateY(6px); opacity:.2} to{transform:translateY(0); opacity:1} }
-.mergeFlash{ animation:mergeBlink 280ms ease-in-out }
+.mergeFlash{ animation:mergeBlink 260ms ease-in-out }
 @keyframes mergeBlink{ 0%{filter:brightness(1)} 50%{filter:brightness(1.6)} 100%{filter:brightness(1)} }
 
 /* colorways */
@@ -226,11 +239,14 @@ body{
     <div class="main" id="main">
       <div class="visual" id="visual">
         <div class="smoke" aria-hidden="true"></div>
-        <!-- particles above image, clipped to orb -->
-        <div class="p-layer" id="pLayer"></div>
-        <!-- orb -->
+
+        <!-- ORB -->
         <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
-          <img id="orbImg" src="img/circle1.png" alt="chad orb">
+          <div class="orb-inner">
+            <img id="orbImg" src="img/circle1.png" alt="chad orb">
+            <!-- particles above image, clipped to circle -->
+            <div class="p-layer" id="pLayer"></div>
+          </div>
           <div class="title">CHΔD</div>
           <div id="pulse"></div>
         </div>
@@ -261,7 +277,7 @@ body{
             <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • 9:16 shell • on-screen controls</div></div>
           </div>
           <div class="tile level" style="flex:1; min-height:68px" onclick="openHexagon()">
-            <div><div style="font-weight:800">Hexagon</div><div class="note">Hex-tile stacker • earn chads</div></div>
+            <div><div style="font-weight:800">Hexagon</div><div class="note">Hex grid • merge & clear • earn chads</div></div>
           </div>
         </div>
       </div>
@@ -409,7 +425,7 @@ body{
         <div class="row" style="gap:12px">
           <div class="note">Score: <b id="hScore">0</b></div>
           <div class="note">Session chads: <b id="hEarned">0</b></div>
-          <div class="note">Stacks to place: <b id="hMoves">0</b></div>
+          <div class="note">Stacks to place: <b id="hMoves">3</b></div>
         </div>
 
         <div class="game-9x16">
@@ -418,7 +434,7 @@ body{
             <div id="hexHand"></div>
           </div>
         </div>
-        <p class="note">Tap a hand stack, then tap an empty hex. Adjacent stacks with the same <b>top color</b> auto-merge. When a stack is all one color and reaches the threshold, it clears and pays chads. Game ends when the board is full — Quit to collect.</p>
+        <p class="note">Tap a hand stack, then tap an empty hex. Adjacent stacks with the same <b>top color</b> auto-merge. Single-color stacks that reach the threshold clear and pay chads. Game ends when the board is full — Quit to collect.</p>
       </div>
     </div>
 
@@ -445,11 +461,7 @@ window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); 
 /* Loader: show >= 4s */
 const loader = document.getElementById('loader');
 const loaderShownAt = Date.now();
-function hideLoaderSoon(){
-  const left = Math.max(0, 4000 - (Date.now() - loaderShownAt));
-  setTimeout(()=> loader.classList.add('fade'), left);
-  setTimeout(()=> loader.style.display='none', left + 350);
-}
+function hideLoaderSoon(){ const left = Math.max(0, 4000 - (Date.now() - loaderShownAt)); setTimeout(()=> loader.classList.add('fade'), left); setTimeout(()=> loader.style.display='none', left + 350); }
 
 /* ===== tiny audio tick ===== */
 let _audioCtx=null;
@@ -524,24 +536,21 @@ function refreshUI(){
 }
 
 /* ===== API placeholders ===== */
-async function apiGetProfile(){ throw new Error('skip server'); }
 async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
 async function apiCheckName(){ return {ok:true} }
 
-/* ===== particles + orb (taps spawn inside the circle, white) ===== */
+/* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
 function spawnParticlesOnOrb(clientX, clientY){
-  const rect = document.getElementById('orb').getBoundingClientRect();
+  const rect = document.querySelector('.orb-inner').getBoundingClientRect();
   const x = clientX - rect.left, y = clientY - rect.top;
-  // bounds clamp to orb area
-  const cx = rect.width/2, cy = rect.height/2, dx = x - cx, dy = y - cy, r = Math.sqrt(dx*dx+dy*dy), maxR = (rect.width/2) * 0.86;
+  // clamp to inner circle
+  const cx = rect.width/2, cy = rect.height/2, dx = x - cx, dy = y - cy, r = Math.sqrt(dx*dx+dy*dy), maxR = rect.width/2 - 4;
   const px = (r>maxR) ? cx + dx * (maxR/r) : x;
   const py = (r>maxR) ? cy + dy * (maxR/r) : y;
-
   const count = 8 + Math.floor(Math.random()*6);
   for(let i=0;i<count;i++){
-    const s = document.createElement('span');
-    s.className = 'p';
+    const s = document.createElement('span'); s.className = 'p';
     const a = Math.random()*Math.PI*2, d = 22 + Math.random()*36;
     s.style.left = `${px}px`; s.style.top = `${py}px`;
     s.style.setProperty('--dx', `${Math.cos(a)*d}px`);
@@ -565,8 +574,7 @@ async function handleOrbTap(e){
   const now = Date.now(); if (now - lastTap < COOLDOWN_MS) return; lastTap = now;
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
-  spawnParticlesOnOrb(cx, cy);
-  pulse(); playTap();
+  spawnParticlesOnOrb(cx, cy); pulse(); playTap();
   try{ const data = await apiClickLogo(); state.chads = BigInt(data.total_points); } catch{ state.chads += 1n; }
   saveStateLocal(state); refreshUI();
 }
@@ -850,8 +858,8 @@ function onQuitTetris(){
   if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal');
 }
 
-/* ===== HEXAGON (Hamster-style Hexa stacker) ===== */
-const H_COLS=7, H_ROWS=9, COLORS_HEX = [0,1,2,3,4], CLEAR_THRESHOLD = 7; // tweak threshold as desired
+/* ===== HEXAGON (flat-top, 9:16, merge-by-top-color, clear mono stacks) ===== */
+const H_COLS=7, H_ROWS=9, COLORS_HEX = [0,1,2,3,4], CLEAR_THRESHOLD = 7; // tune threshold
 let H=null;
 
 function openHexagon(){ closeOverlay('playOverlay'); openOverlay('hexModal'); if (!H) newHexGame(); }
@@ -862,35 +870,33 @@ function newHexGame(){
   const gridEl = document.getElementById('hexGrid'); const handEl = document.getElementById('hexHand'); gridEl.innerHTML=''; handEl.innerHTML='';
   H = {
     cells: Array.from({length:H_ROWS},()=> Array.from({length:H_COLS}, ()=> [])), // each stack bottom->top
-    score:0, chads:0, moves:0, hand:[randomStack(), randomStack(), randomStack()], selected:null,
-    layout:{ size:0, ox:0, oy:0 }
+    score:0, chads:0, hand:[randomStack(), randomStack(), randomStack()], selected:null, layout:null
   };
-  buildHexUI(); renderHex();
+  buildHexUI(); renderHex(); renderHand();
   document.getElementById('hScore').textContent = 0; document.getElementById('hEarned').textContent = 0; document.getElementById('hMoves').textContent = 3;
 }
 
 function randomStack(){
-  const len = Math.random()<0.6 ? (1 + Math.floor(Math.random()*2)) : (2 + Math.floor(Math.random()*3)); // 1-4
-  const mono = Math.random()<0.6;
-  let arr = [];
+  const len = Math.random()<0.6 ? (1 + Math.floor(Math.random()*2)) : (2 + Math.floor(Math.random()*3)); // 1-4 tiles
+  const mono = Math.random()<0.6; let arr = [];
   if (mono){ const c = pick(COLORS_HEX); for(let i=0;i<len;i++) arr.push(c); }
-  else {
-    const c1 = pick(COLORS_HEX), c2 = pick(COLORS_HEX.filter(x=>x!==c1));
-    for(let i=0;i<len;i++) arr.push(i < Math.ceil(len/2) ? c1 : c2);
-  }
+  else { const c1 = pick(COLORS_HEX), c2 = pick(COLORS_HEX.filter(x=>x!==c1)); for(let i=0;i<len;i++) arr.push(i < Math.ceil(len/2) ? c1 : c2); }
   return arr; // bottom->top
 }
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 
 function buildHexUI(){
-  const gridEl = document.getElementById('hexGrid'); const handEl = document.getElementById('hexHand');
-  // layout compute size that fits (pointy-top odd-q)
-  const W = gridEl.clientWidth, Hh = gridEl.clientHeight;
-  const sizeW = (W-8) / (2 + 1.5*(H_COLS-1));
-  const sizeH = (Hh-8) / (Math.sqrt(3) * (H_ROWS + 0.5));
-  const size = Math.max(12, Math.min(sizeW, sizeH));
-  H.layout = { size, ox: size+4, oy: size+4 }; // small padding
+  const gridEl = document.getElementById('hexGrid');
+  // compute size to fit 9:16 viewport, flat-top even-r
+  const W = gridEl.clientWidth || gridEl.getBoundingClientRect().width;
+  const Hh = gridEl.clientHeight || gridEl.getBoundingClientRect().height;
+  const sizeW = (W-8) / (Math.sqrt(3) * (H_COLS + 0.5));  // width fit
+  const sizeH = (Hh-8) / (1.5 * (H_ROWS - 1) + 2);         // height fit
+  const s = Math.max(12, Math.min(sizeW, sizeH));          // hex radius
+  H.layout = { s, ox: s*1.2, oy: s*1.2 };
+
   // create cells
+  gridEl.innerHTML='';
   for(let r=0;r<H_ROWS;r++){
     for(let q=0;q<H_COLS;q++){
       const cell = document.createElement('div'); cell.className='hexCell';
@@ -898,49 +904,34 @@ function buildHexUI(){
       const stack = document.createElement('div'); stack.className='stack'; cell.appendChild(stack);
       const {x,y,w,h} = hexPixel(q,r);
       cell.style.left = `${x}px`; cell.style.top = `${y}px`; cell.style.width = `${w}px`; cell.style.height = `${h}px`;
-      cell.dataset.q=q; cell.dataset.r=r;
-      cell.addEventListener('click', ()=> onPlace(q,r));
+      cell.dataset.q=q; cell.dataset.r=r; cell.addEventListener('click', ()=> onPlace(q,r));
       gridEl.appendChild(cell);
     }
   }
-  // hand
-  for(let i=0;i<3;i++){
-    const h = document.createElement('div'); h.className='handStack'; h.dataset.idx=i; h.addEventListener('click', ()=>{
-      H.selected = (H.selected===i)? null : i; renderHand();
-    });
-    handEl.appendChild(h);
-  }
-  renderHand();
-  window.addEventListener('resize', ()=>{ if (!document.getElementById('hexModal').classList.contains('show')) return; // only when visible
-    buildHexUI(); renderHex();
-  });
+
+  // rebuild on resize while visible
+  const ro = new ResizeObserver(()=>{ if (!document.getElementById('hexModal').classList.contains('show')) return; buildHexUI(); renderHex(); });
+  ro.observe(gridEl);
 }
 
 function hexPixel(q,r){
-  const s = H.layout.size, w = 2*s, h = Math.sqrt(3)*s;
-  const x = H.layout.ox + s + 1.5*s*q;
-  const y = H.layout.oy + h/2 + (Math.sqrt(3)*s)*(r + (q%2?0.5:0));
+  // flat-top even-r layout
+  const s = H.layout.s, w = Math.sqrt(3)*s, h = 2*s;
+  const x = H.layout.ox + w * (q + 0.5*(r&1));
+  const y = H.layout.oy + (3/2)*s * r;
   return {x,y,w,h};
-}
-function neighbors(q,r){
-  // odd-q vertical layout (pointy top)
-  const odd = q%2===1;
-  const dirs = odd
-    ? [[+1,0],[+1,-1],[0,-1],[-1,0],[0,+1],[+1,+1]]
-    : [[+1,0],[0,-1],[-1,-1],[-1,0],[-1,+1],[0,+1]];
-  const out = [];
-  for(const [dq,dr] of dirs){ const nq=q+dq, nr=r+dr; if (nq>=0&&nq<H_COLS&&nr>=0&&nr<H_ROWS) out.push([nq,nr]); }
-  return out;
 }
 
 function renderHand(){
-  const handEl = document.getElementById('hexHand'); const stacks = handEl.querySelectorAll('.handStack');
-  stacks.forEach((el,i)=>{ el.innerHTML=''; if (H.selected===i) el.classList.add('selected'); else el.classList.remove('selected');
+  const handEl = document.getElementById('hexHand'); handEl.innerHTML='';
+  for(let i=0;i<3;i++){
+    const h = document.createElement('div'); h.className='handStack'; if (H.selected===i) h.classList.add('selected');
+    h.dataset.idx=i; h.addEventListener('click', ()=>{ H.selected = (H.selected===i)? null : i; renderHand(); });
     const pile = H.hand[i]; const wrap = document.createElement('div'); wrap.className='stack';
     for(let k=0;k<pile.length;k++){ const chip = document.createElement('div'); chip.className=`chip c${pile[k]} fade`; wrap.appendChild(chip); }
-    el.appendChild(wrap);
-  });
-  document.getElementById('hMoves').textContent = H.hand.length;
+    h.appendChild(wrap); handEl.appendChild(h);
+  }
+  document.getElementById('hMoves').textContent = 3;
 }
 
 function renderHex(){
@@ -956,15 +947,14 @@ function renderHex(){
 function onPlace(q,r){
   if (H.selected==null) { fancyAlert('Select a stack first'); return; }
   const st = H.cells[r][q]; if (st.length>0){ fancyAlert('That hex is occupied'); return; }
-  // place selected pile (clone to avoid alias)
   const pile = [...H.hand[H.selected]];
-  H.cells[r][q] = pile;
-  H.hand[H.selected] = randomStack(); H.selected = null;
-  document.getElementById('hMoves').textContent = 3;
-  resolveMerges(q,r); // absorb matching top colors around
-  const cleared = sweepClears(); // clear any tall mono stacks anywhere (chain reactions)
-  H.score += cleared*30; // 30 per tile cleared
-  H.chads = Math.floor(H.score / 50); // convert score → chads (tunable)
+  H.cells[r][q] = pile;            // place
+  H.hand[H.selected] = randomStack();
+  H.selected = null;
+  resolveMerges(q,r);              // auto-merge by top color
+  const cleared = sweepClears();   // clear tall mono stacks (chain ok)
+  H.score += cleared*30;           // score → chads mapping
+  H.chads = Math.floor(H.score / 50);
   document.getElementById('hScore').textContent = H.score;
   document.getElementById('hEarned').textContent = H.chads;
   renderHand(); renderHex();
@@ -972,53 +962,53 @@ function onPlace(q,r){
 }
 
 function topColor(q,r){ const s = H.cells[r][q]; return s.length? s[s.length-1] : null; }
-function isMono(stack){ if (stack.length===0) return false; return stack.every(c=>c===stack[0]); }
+function isMono(stack){ if (!stack.length) return false; return stack.every(c=>c===stack[0]); }
 
 function resolveMerges(q,r){
   // repeatedly absorb matching top-color from neighbors into (q,r)
-  let changed = true, guard=0;
+  let changed=true, guard=0;
   while(changed && guard<256){
     guard++; changed=false;
     const tc = topColor(q,r); if (tc==null) break;
     for(const [nq,nr] of neighbors(q,r)){
-      const ntop = topColor(nq,nr);
-      if (ntop===tc && H.cells[nr][nq].length){
-        // move one top tile from neighbor onto current
-        const moved = H.cells[nr][nq].pop();
-        H.cells[r][q].push(moved);
-        changed=true;
-        // little flash on both
-        flashCell(q,r); flashCell(nq,nr);
+      const ns = H.cells[nr][nq]; if (!ns.length) continue;
+      const ntop = ns[ns.length-1];
+      if (ntop===tc){
+        H.cells[nr][nq].pop(); H.cells[r][q].push(ntop); changed=true; flashCell(q,r); flashCell(nq,nr);
       }
     }
   }
+}
+function neighbors(q,r){
+  // even-r horizontal (flat-top)
+  const even = (r%2===0);
+  const dirs = even
+    ? [[+1,0],[0,-1],[-1,-1],[-1,0],[-1,+1],[0,+1]]
+    : [[+1,0],[+1,-1],[0,-1],[-1,0],[0,+1],[+1,+1]];
+  const out=[]; for(const [dq,dr] of dirs){ const nq=q+dq, nr=r+dr; if (nq>=0&&nq<H_COLS&&nr>=0&&nr<H_ROWS) out.push([nq,nr]); }
+  return out;
 }
 function flashCell(q,r){
   const gridEl = document.getElementById('hexGrid');
   const cell = gridEl.querySelector(`.hexCell[data-q="${q}"][data-r="${r}"] .hexShape`);
   if (cell){ cell.classList.remove('mergeFlash'); void cell.offsetWidth; cell.classList.add('mergeFlash'); }
 }
-
 function sweepClears(){
   let removed = 0;
   for(let r=0;r<H_ROWS;r++){
     for(let q=0;q<H_COLS;q++){
       const st = H.cells[r][q];
       if (st.length>=CLEAR_THRESHOLD && isMono(st)){
-        // animate & remove
         const gridEl = document.getElementById('hexGrid');
         const stackEl = gridEl.querySelector(`.hexCell[data-q="${q}"][data-r="${r}"] .stack`);
-        stackEl.querySelectorAll('.chip').forEach(ch=>{ ch.classList.add('clearPop'); });
+        stackEl.querySelectorAll('.chip').forEach(ch=> ch.classList.add('clearPop'));
         removed += st.length; H.cells[r][q] = [];
       }
     }
   }
   return removed;
 }
-function boardFull(){
-  for(let r=0;r<H_ROWS;r++) for(let q=0;q<H_COLS;q++) if (H.cells[r][q].length===0) return false;
-  return true;
-}
+function boardFull(){ for(let r=0;r<H_ROWS;r++) for(let q=0;q<H_COLS;q++) if (!H.cells[r][q].length) return false; return true; }
 function onQuitHex(){
   if (H?.chads>0){
     state.chads += BigInt(H.chads); refreshUI(); saveStateLocal(state);
