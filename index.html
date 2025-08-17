@@ -39,6 +39,7 @@ body{
 .loader img{ width:100%; height:100%; object-fit:cover; filter:brightness(1.12); }
 .loader.fade{ opacity:0; transition:opacity .35s ease; pointer-events:none }
 
+/* ===== Shell ===== */
 .stage{ min-height:var(--app-h); height:auto; display:flex; align-items:center; justify-content:center; padding:18px }
 .phone{
   width:100%; max-width:520px; min-height:var(--app-h); height:auto;
@@ -50,14 +51,14 @@ body{
   display:flex; flex-direction:column;
 }
 
-/* ===== Top bar (locked; compact boxes) ===== */
+/* ===== Top bar (sticky; compact boxes) ===== */
 .topbar{
   position:sticky; top:env(safe-area-inset-top,0px); z-index:90;
   display:flex; align-items:center; justify-content:space-between; gap:10px;
   min-height:52px; padding-top:6px; padding-bottom:6px;
 }
 .userpill{
-  display:flex; align-items:center; gap:12px;
+  display:flex; align-items:center; gap:12px; /* tiny gap between avatar and name */
   padding:6px 10px; border-radius:12px;
   background:
     radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%),
@@ -73,7 +74,9 @@ body{
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.4);
 }
 .avatar img{width:100%; height:100%; object-fit:cover; display:block}
-.userpill .name{ font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-left:2px }
+.userpill .name{
+  font-weight:800; letter-spacing:.2px; max-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 
 .stat{
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -91,7 +94,7 @@ body{
 }
 .visual{width:88%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;pointer-events:none}
 
-/* smoke */
+/* ambience */
 .smoke{
   position:absolute; inset:6% 6% 18%; z-index:1; pointer-events:none; filter:blur(22px) contrast(105%);
   background:
@@ -100,33 +103,37 @@ body{
     radial-gradient(220px 160px at 50% 55%, rgba(170,170,170,0.045), transparent 65%);
   animation:smokeShift 12s ease-in-out infinite alternate;
 }
-@keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}
+@keyframes smokeShift{0%{transform:translateY(6px) scale(1)}100%{transform:translateY(-6px) scale(1.03)}}
 
-/* ORB (with dynamic image) */
+/* ===== ORB with IMAGE ===== */
 .orb{
-  pointer-events:auto;width:94%;aspect-ratio:1/1;border-radius:50%;
+  pointer-events:auto; width:94%; aspect-ratio:1/1; border-radius:50%;
+  position:relative; z-index:40; cursor:pointer; transform: translateY(-1cm);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 -22px 70px rgba(0,0,0,0.52), 0 30px 100px rgba(0,0,0,0.64);
   background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
-  box-shadow:inset 0 -22px 70px rgba(0,0,0,0.72), 0 30px 100px rgba(0,0,0,0.64);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:40;cursor:pointer;position:relative;
-  transform: translateY(-1cm);
+  overflow:hidden; /* critical: clips the image perfectly */
 }
-.orb:focus{outline:none}
-.orb::after{content:""; position:absolute; inset:8px; border-radius:50%;
-  box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22)}
-/* dynamic circle image */
-.orb-img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; border-radius:50%;
-  filter: drop-shadow(0 18px 60px rgba(0,0,0,.55));
+#orbImg{
+  width:100%; height:100%; object-fit:cover; display:block; border-radius:50%;
+  filter:brightness(1); /* do not dim */
 }
-.orb .title{font-weight:900;color:#fff;font-size:18px;letter-spacing:.6px; position:relative; z-index:2}
+.orb::after{
+  content:""; position:absolute; inset:8px; border-radius:50%;
+  box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22);
+  pointer-events:none;
+}
+.orb .title{
+  position:absolute; inset:auto; color:#fff; font-weight:900; font-size:18px; letter-spacing:.6px;
+  text-shadow:0 1px 2px rgba(0,0,0,.45); opacity:.9; pointer-events:none;
+}
 #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
 /* particles */
 .p{ position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.45); filter:blur(.4px); opacity:0; animation:pop600ms 600ms ease-out forwards }
 @keyframes pop600ms{ 0%{ transform:translate(0,0) scale(.8); opacity:.35 } 80%{ opacity:.1 } 100%{ transform:translate(var(--dx), var(--dy)) scale(.6); opacity:0 } }
 
-/* ===== Bottom (locked; raised slightly) ===== */
+/* ===== Bottom (sticky; nudged up a bit) ===== */
 .bottom{
   position:sticky;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
@@ -142,7 +149,7 @@ body{
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
 
-/* overlays (generic) */
+/* ===== Overlays ===== */
 .overlay{
   position:fixed; inset:0;
   background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96));
@@ -159,7 +166,7 @@ body{
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
 .note{font-size:13px;color:#9aa3ab}
 
-/* ===== Name modal ===== */
+/* ===== Name / Avatar / Confirm (unchanged styling from your last good build) ===== */
 #nameOverlay .panel{ width:min(560px,100%); padding:0; border-radius:18px; overflow:hidden; background:transparent; border:none; box-shadow:none }
 .name-wrap{
   width:100%; box-sizing:border-box;
@@ -175,7 +182,6 @@ body{
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
 @media (max-width:380px){ .name-row{ grid-template-columns:1fr } .name-row .btn{ width:100% } }
 
-/* ===== Avatar picker ===== */
 #avatarOverlay .panel{ max-width:980px }
 .avatarHead{ display:flex; align-items:end; justify-content:space-between; gap:12px; margin-bottom:10px }
 .avatarHead h2{ margin:0; font-size:28px }
@@ -186,19 +192,14 @@ body{
 }
 @media(min-width:520px){ .avatarGrid{ grid-template-columns:repeat(5, 1fr) } }
 @media(min-width:760px){ .avatarGrid{ grid-template-columns:repeat(6, 1fr) } }
-
 .avTile{
-  aspect-ratio:1/1;
-  border-radius:18px; overflow:hidden; position:relative;
+  aspect-ratio:1/1; border-radius:18px; overflow:hidden; position:relative;
   background:linear-gradient(180deg,#11161c,#0b0f13);
-  border:1px solid rgba(255,255,255,.05);
-  box-shadow:0 14px 36px rgba(0,0,0,.45);
-  cursor:pointer;
+  border:1px solid rgba(255,255,255,.05); box-shadow:0 14px 36px rgba(0,0,0,.45); cursor:pointer;
 }
 .avTile img{ width:100%; height:100%; object-fit:cover; display:block }
 .avTile::after{ content:""; position:absolute; inset:0; border-radius:18px; box-shadow:inset 0 0 0 0 rgba(122,194,255,.9); transition:box-shadow .18s ease }
 .avTile.selected::after{ box-shadow:inset 0 0 0 3px rgba(122,194,255,.95), 0 0 26px rgba(122,194,255,.35) }
-
 .selectBar{
   position:sticky; bottom:0; display:flex; justify-content:flex-end; padding-top:12px;
   background:linear-gradient(180deg, transparent, rgba(0,0,0,.25) 35%);
@@ -213,15 +214,13 @@ body{
 }
 .selectBtn[disabled]{ opacity:.6; filter:grayscale(.2); cursor:not-allowed }
 
-/* ===== Confirm modal ===== */
 #confirmOverlay .panel{ width:min(520px, 100%) }
 .confirmBox{
   background:
     radial-gradient(800px 400px at 110% -30%, rgba(255,120,120,.08), transparent 35%),
     radial-gradient(800px 400px at -10% -30%, rgba(120,180,255,.10), transparent 35%),
     linear-gradient(180deg,#0a1016,#0a0e12);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:16px; padding:16px;
+  border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px;
 }
 .cTop{ display:flex; gap:12px; align-items:center }
 .cTop img{ width:52px; height:52px; border-radius:12px; object-fit:cover; box-shadow:0 14px 36px rgba(0,0,0,.45) }
@@ -264,25 +263,19 @@ body{
 .obstacle{ background:rgba(150,30,40,0.92) }
 .growth{ animation:growGlow 260ms ease-out } @keyframes growGlow { 0%{box-shadow:0 0 0 rgba(120,255,150,0)} 50%{box-shadow:0 0 16px rgba(120,255,150,.95)} 100%{box-shadow:0 0 0 rgba(120,255,150,0)} }
 
-/* Tetris colors + ghost */
 .cell.block-I{ background:#4dd0e1; } .cell.block-O{ background:#ffd54f; }
 .cell.block-T{ background:#b39ddb; } .cell.block-S{ background:#81c784; }
 .cell.block-Z{ background:#e57373; } .cell.block-J{ background:#64b5f6; }
 .cell.block-L{ background:#ffb74d; }
 .cell.ghost{ outline:1px dashed rgba(255,255,255,0.2); outline-offset:-1px }
 
-/* D-pads */
-.dpad,.tpad{
-  position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
-  transform:translateX(-50%); z-index:85; pointer-events:auto;
-}
+.dpad,.tpad{ position:absolute; left:50%; bottom:calc(8px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:85; pointer-events:auto; }
 .dpad{ display:grid; grid-template-areas: ". up ." "left . right" ". down ."; gap:8px }
 .dpad button,.tpad button{
   width:56px; height:56px; border-radius:14px; border:1px solid var(--glass);
   background:linear-gradient(180deg,#181b20,#0f1114); color:#dce3ea; font-weight:900; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:18px; cursor:pointer
 }
 .dpad .up{grid-area:up} .dpad .left{grid-area:left} .dpad .right{grid-area:right} .dpad .down{grid-area:down}
-
 .tpad{ display:grid; gap:8px; grid-template-columns: repeat(4, 56px); grid-template-areas:"ccw cw drop hold" ". left down right" }
 .tpad .ccw{ grid-area:ccw } .tpad .cw{ grid-area:cw } .tpad .drop{ grid-area:drop } .tpad .hold{ grid-area:hold } .tpad .left{ grid-area:left } .tpad .down{ grid-area:down } .tpad .right{ grid-area:right }
 
@@ -315,12 +308,14 @@ body{
       <div class="visual" id="visual">
         <div class="smoke" aria-hidden="true"></div>
         <div class="p-layer" id="pLayer"></div>
+
+        <!-- ORB with dynamic image -->
         <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
-          <!-- dynamic circle image -->
-          <img id="orbImg" class="orb-img" src="img/circle1.png" alt="orb">
+          <img id="orbImg" src="img/circle1.png" alt="chad orb">
           <div class="title">CHΔD</div>
           <div id="pulse"></div>
         </div>
+
       </div>
     </div>
 
@@ -554,40 +549,41 @@ function saveStateLocal(s){
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
 
-/* ===== ORB image mapping ===== */
-const orbImg = document.getElementById('orbImg');
-function getCircleIndex(chads){
-  const n = BigInt(chads);
-  if (n < 100000n) return 1;        // 0 – 100,000
-  if (n < 500000n) return 2;        // 100,000 – 500,000
-  if (n < 1000000n) return 3;       // 500,000 – 1,000,000
-  if (n < 5000000n) return 4;       // 1,000,000 – 5,000,000
-  if (n < 10000000n) return 5;      // 5,000,000 – 10,000,000
-  if (n < 15000000n) return 6;      // 10,000,000 – 15,000,000
-  if (n < 20000000n) return 7;      // 15,000,000 – 20,000,000
-  if (n < 25000000n) return 8;      // 20,000,000 – 25,000,000
-  if (n < 30000000n) return 9;      // 25,000,000 – 30,000,000
-  if (n < 35000000n) return 10;     // 30,000,000 – 35,000,000
-  if (n < 40000000n) return 11;     // 35,000,000 – 40,000,000
-  if (n < 45000000n) return 12;     // 40,000,000 – 45,000,000
-  if (n < 50000000n) return 13;     // 45,000,000 – 50,000,000
-  if (n < 55000000n) return 14;     // 50,000,000 – 55,000,000
-  if (n < 60000000n) return 15;     // 55,000,000 – 60,000,000
-  return 16;                        // 60,000,000+
+/* ===== ORB image logic ===== */
+function circleSrcFromChads(chadsBig){
+  const n = BigInt(chadsBig);
+  // ranges inclusive of lower bound, exclusive of upper bound
+  if (n < 100000n) return "img/circle1.png";
+  if (n < 500000n) return "img/circle2.png";
+  if (n < 1000000n) return "img/circle3.png";
+  if (n < 5000000n) return "img/circle4.png";
+  if (n < 10000000n) return "img/circle5.png";
+  if (n < 15000000n) return "img/circle6.png";
+  if (n < 20000000n) return "img/circle7.png";
+  if (n < 25000000n) return "img/circle8.png";
+  if (n < 30000000n) return "img/circle9.png";
+  if (n < 35000000n) return "img/circle10.png";
+  if (n < 40000000n) return "img/circle11.png";
+  if (n < 45000000n) return "img/circle12.png";
+  if (n < 50000000n) return "img/circle13.png";
+  if (n < 55000000n) return "img/circle14.png";
+  if (n < 60000000n) return "img/circle15.png";
+  return "img/circle16.png"; // 60,000,000 .. 100,000,000+ (cap)
 }
-function updateOrbArt(){
-  const idx = getCircleIndex(state?.chads ?? 0n);
-  const desired = `img/circle${idx}.png`;
-  if (orbImg.getAttribute('src') !== desired) orbImg.setAttribute('src', desired);
+function refreshOrbImage(){
+  const img = document.getElementById('orbImg');
+  const want = circleSrcFromChads(state?.chads ?? 0n);
+  if (img && img.getAttribute('src') !== want){
+    img.src = want;
+  }
 }
 
-/* ===== UI ===== */
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
   document.getElementById('levelText').textContent = state.level;
   setUserPill(state.name, state.avatarIdx);
-  updateOrbArt(); // << updates the middle circle image
+  refreshOrbImage();
 }
 
 /* ===== API placeholders ===== */
@@ -753,7 +749,7 @@ document.getElementById('confirmYesBtn').addEventListener('click', ()=>{
   showToast('Profile locked. Welcome, <span class="accent">'+(state.name||'Player')+'</span>!');
 });
 
-/* ===== Toasts / fancy alert ===== */
+/* ===== Toasts ===== */
 function showToast(html){
   const wrap = document.getElementById('toastWrap');
   const t = document.createElement('div'); t.className='toast'; t.innerHTML = html;
@@ -897,6 +893,7 @@ function onQuitSnake(){
   S=null; closeOverlay('snakeModal');
 }
 function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
+document.getElementById('snakeQuit').addEventListener('click', onQuitSnake);
 
 /* ===== Tetris ===== */
 const tetrisGridEl = document.getElementById('tetrisGrid');
