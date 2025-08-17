@@ -80,29 +80,34 @@
       width:calc(100% - 16px); height:calc(100% - 16px);
       transform:translate(-50%,-50%);
       object-fit:cover; display:block; border-radius:50%; filter:brightness(1);
+      z-index:1;
+    }
+    /* FX layer that sits ON TOP of the circle image */
+    #orbFX{
+      position:absolute; inset:8px; border-radius:50%; overflow:hidden; pointer-events:none; z-index:3;
     }
     .orb::after{
       content:""; position:absolute; inset:8px; border-radius:50%;
       box-shadow:0 0 0 1.6px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.22);
       pointer-events:none;
     }
-    .orb .title{position:absolute;inset:auto;color:#fff;font-weight:900;font-size:18px;letter-spacing:.6px;text-shadow:0 1px 2px rgba(0,0,0,.45);opacity:.9;pointer-events:none}
-    #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
+    .orb .title{position:absolute;inset:auto;color:#fff;font-weight:900;font-size:18px;letter-spacing:.6px;text-shadow:0 1px 2px rgba(0,0,0,.45);opacity:.9;pointer-events:none;z-index:4}
+    #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0);z-index:2}
 
-    /* NEW particle sparks */
+    /* WHITE sparks */
     .spark{
       position:absolute; left:0; top:0;
       width:6px; height:6px; border-radius:50%;
-      transform:translate(-50%,-50%) scale(.8);
-      background: radial-gradient(circle, var(--c,#ffffff) 0 45%, rgba(255,255,255,0) 70%);
-      filter:drop-shadow(0 0 6px var(--c,#ffffff));
+      transform:translate(-50%,-50%) scale(.9);
+      background: radial-gradient(circle, rgba(255,255,255,1) 0 55%, rgba(255,255,255,0) 70%);
+      filter: drop-shadow(0 0 8px rgba(255,255,255,.95));
       opacity:0;
-      animation: sparkFly 750ms ease-out forwards;
+      animation: sparkFly 650ms ease-out forwards;
     }
     @keyframes sparkFly{
       0%   { opacity:.95; transform:translate(-50%,-50%) scale(1); }
       70%  { opacity:.6;  transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.95); }
-      100% { opacity:0;   transform:translate(calc(-50% + calc(var(--dx)*1.2)), calc(-50% + calc(var(--dy)*1.2))) scale(.6); }
+      100% { opacity:0;   transform:translate(calc(-50% + calc(var(--dx)*1.1)), calc(-50% + calc(var(--dy)*1.1))) scale(.6); }
     }
 
     /* Bottom */
@@ -121,7 +126,7 @@
     .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
     .note{font-size:13px;color:#9aa3ab}
 
-    /* Name / Avatar / Confirm (unchanged) */
+    /* Name / Avatar / Confirm */
     #nameOverlay .panel{width:min(560px,100%);padding:0;border-radius:18px;overflow:hidden;background:transparent;border:none;box-shadow:none}
     .name-wrap{width:100%;box-sizing:border-box;background:radial-gradient(900px 400px at 10% 0%,rgba(75,150,255,.10),transparent 40%),linear-gradient(180deg,#08131b,#0a0f13);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px 18px 22px;box-shadow:0 30px 100px rgba(0,0,0,.65)}
     .name-hero{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -208,10 +213,11 @@
       <div class="main" id="main">
         <div class="visual" id="visual">
           <div class="smoke" aria-hidden="true"></div>
-          <div class="p-layer" id="pLayer"></div>
 
           <div class="orb" id="orb" role="button" aria-label="Tap to earn +1 chad">
             <img id="orbImg" src="img/circle1.png" alt="chad orb">
+            <!-- FX layer above the image -->
+            <div id="orbFX" aria-hidden="true"></div>
             <div class="title">CHΔD</div>
             <div id="pulse"></div>
           </div>
@@ -368,6 +374,7 @@
   </div>
 
   <script>
+    /* ===== Telegram + layout ===== */
     const tg = window.Telegram?.WebApp ?? null;
     function applyAppHeight(){ const h=tg?.viewportHeight||window.innerHeight; document.documentElement.style.setProperty('--app-h', h + 'px'); }
     function applyChromeHeights(){
@@ -382,15 +389,16 @@
     tg?.onEvent?.('viewportChanged', ()=>{ applyAppHeight(); applyChromeHeights(); });
     window.addEventListener('resize', ()=>{ applyAppHeight(); applyChromeHeights(); });
 
+    /* Loader timing */
     const loader=document.getElementById('loader'); const loaderShownAt=Date.now();
     function hideLoaderSoon(){ const left=Math.max(0,4000-(Date.now()-loaderShownAt)); setTimeout(()=>loader.classList.add('fade'),left); setTimeout(()=>loader.style.display='none',left+350); }
 
-    /* audio */
+    /* audio tick */
     let _audioCtx=null; function audio(){ if(!_audioCtx){ _audioCtx=new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
     function playTap(){ const ctx=audio(), now=ctx.currentTime; const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(240,now); g.gain.setValueAtTime(0.15,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.07); o.connect(g).connect(ctx.destination); o.start(now); o.stop(now+0.08); }
     window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
-    /* state */
+    /* ===== Local state ===== */
     const params=new URLSearchParams(location.search); const tokenHint=params.get('token')||null;
     const UID_HINT=tg?.initDataUnsafe?.user?.id||tokenHint||'guest';
     const STORAGE_KEY=`chad_state_${UID_HINT}`;
@@ -406,6 +414,7 @@
     function fmt(n){ return typeof n==='bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
     let state=null;
 
+    /* ===== Orb image logic ===== */
     function circleSrcFromChads(ch){
       const n=BigInt(ch);
       if(n<100000n) return "img/circle1.png";
@@ -434,43 +443,27 @@
       refreshOrbImage();
     }
 
-    /* NEW: spark burst from orb center */
-    const pLayer=document.getElementById('pLayer');
-    function burstSparksFromOrb(){
-      const orb=document.getElementById('orb');
-      const visual=document.getElementById('visual');
-      if(!orb || !visual) return;
-      const vrect=visual.getBoundingClientRect();
-      const orect=orb.getBoundingClientRect();
-      const x = orect.left + orect.width/2 - vrect.left;
-      const y = orect.top  + orect.height/2 - vrect.top;
-
-      const count = 26 + Math.floor(Math.random()*12);
-      const palette = ['#ffd86b', '#9ef0c4', '#7ac2ff', '#ffffff'];
-
+    /* ===== White particle burst at EXACT tap point (on top of image) ===== */
+    function burstSparksAt(x, y){
+      const fx = document.getElementById('orbFX');
+      const count = 18 + Math.floor(Math.random()*10);
       for(let i=0;i<count;i++){
-        const a = Math.random()*Math.PI*2;
-        const dist = 60 + Math.random()*120;
-        const dx = Math.cos(a)*dist;
-        const dy = Math.sin(a)*dist;
-        const size = 4 + Math.random()*6;
-        const c = palette[(Math.random()*palette.length)|0];
-
-        const s = document.createElement('span');
-        s.className = 'spark';
-        s.style.left = `${x}px`;
-        s.style.top = `${y}px`;
-        s.style.width = `${size}px`;
-        s.style.height = `${size}px`;
-        s.style.setProperty('--dx', `${dx}px`);
-        s.style.setProperty('--dy', `${dy}px`);
-        s.style.setProperty('--c', c);
-        pLayer.appendChild(s);
-        setTimeout(()=> s.remove(), 800);
+        const a  = Math.random()*Math.PI*2;
+        const d  = 30 + Math.random()*90; // px travel
+        const dx = Math.cos(a)*d;
+        const dy = Math.sin(a)*d;
+        const s  = document.createElement('span');
+        s.className='spark';
+        s.style.left = x + 'px';
+        s.style.top  = y + 'px';
+        s.style.width = s.style.height = (3 + Math.random()*5) + 'px';
+        s.style.setProperty('--dx', dx + 'px');
+        s.style.setProperty('--dy', dy + 'px');
+        fx.appendChild(s);
+        setTimeout(()=> s.remove(), 720);
       }
     }
 
-    /* pulse ring */
     function pulse(){
       const el=document.getElementById('pulse');
       el.style.transition='none';
@@ -483,13 +476,23 @@
       },20);
     }
 
-    /* tap handling */
     let lastTap=0; const COOLDOWN_MS=500;
-    async function handleOrbTap(){
+    function handleOrbTap(e){
       const now=Date.now(); if(now-lastTap<COOLDOWN_MS) return; lastTap=now;
-      burstSparksFromOrb();   // <<< NEW fancy particle burst
-      pulse();                // ring pulse
-      playTap();              // tiny audio tick
+
+      // compute tap position inside #orbFX
+      const fx = document.getElementById('orbFX');
+      const rect = fx.getBoundingClientRect();
+      const cx = (e.touches?.[0]?.clientX ?? e.clientX);
+      const cy = (e.touches?.[0]?.clientY ?? e.clientY);
+      const x = cx - rect.left;
+      const y = cy - rect.top;
+
+      burstSparksAt(x,y);  // white burst exactly where tapped
+      pulse();
+      playTap();
+
+      // update chads
       try{ const data={ total_points:Number(state.chads + 1n) }; state.chads=BigInt(data.total_points); }
       catch{ state.chads+=1n; }
       saveStateLocal(state); refreshUI();
@@ -497,7 +500,7 @@
     document.getElementById('orb').addEventListener('click',handleOrbTap,{passive:true});
     document.getElementById('orb').addEventListener('touchstart',handleOrbTap,{passive:true});
 
-    /* overlays & shop */
+    /* ===== overlays & shop ===== */
     function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
     function closeOverlay(id){ document.getElementById(id)?.classList.remove('show'); }
     document.getElementById('playBtn').addEventListener('click',()=>openOverlay('playOverlay'),{passive:true});
@@ -527,7 +530,7 @@
       });
     }
 
-    /* Name UX */
+    /* ===== Name UX ===== */
     function setUserPill(name,avatarIdx){
       const pill=document.getElementById('userPill'); const avatarBox=document.getElementById('userAvatar'); const initialsEl=document.getElementById('avatarInitials');
       if(!name){ pill.style.visibility='hidden'; return; }
@@ -556,7 +559,7 @@
     document.getElementById('nameSave').addEventListener('click',saveName);
     document.getElementById('nameInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter') saveName(); });
 
-    /* Avatar modal */
+    /* ===== Avatar modal ===== */
     const AVATAR_COUNT=37; function avatarPath(i){ return `img/profile${i}.png`; }
     let selectedAvatar=null;
     function openAvatarModal(){
@@ -578,7 +581,7 @@
       closeOverlay('confirmOverlay'); closeOverlay('avatarOverlay'); showToast('Profile locked. Welcome, <span class="accent">'+(state.name||'Player')+'</span>!');
     });
 
-    /* Toasts */
+    /* ===== Toasts ===== */
     function showToast(html){
       const wrap=document.getElementById('toastWrap'); const t=document.createElement('div'); t.className='toast'; t.innerHTML=html; wrap.appendChild(t);
       setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s ease'; },2200);
@@ -586,7 +589,7 @@
     }
     function fancyAlert(text){ showToast(text); }
 
-    /* Grid helpers */
+    /* ===== Grid helpers ===== */
     function buildGrid(container,cols,rows){
       container.style.gridTemplateColumns=`repeat(${cols}, 1fr)`; container.style.gridTemplateRows=`repeat(${rows}, 1fr)`; container.innerHTML='';
       const cells=new Array(cols*rows);
@@ -601,7 +604,7 @@
       for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(shape[y][x]) grid.add(offX+x,offY+y,cls);
     }
 
-    /* Snake */
+    /* ===== Snake ===== */
     const snakeGridEl=document.getElementById('snakeGrid'); let S=null, sLoop=null;
     function createSnakeGame(){
       const cols=18, rows=32; const grid=buildGrid(snakeGridEl,cols,rows);
@@ -663,14 +666,14 @@
     function openSnake(){ closeOverlay('playOverlay'); openOverlay('snakeModal'); }
     document.getElementById('snakeQuit').addEventListener('click',onQuitSnake);
 
-    /* Tetris */
+    /* ===== Tetris ===== */
     const tetrisGridEl=document.getElementById('tetrisGrid'); const nextGridEl=document.getElementById('nextGrid'); const holdGridEl=document.getElementById('holdGrid');
     const T_COLS=10, T_ROWS=20;
     const SHAPES={ I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]], S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]], J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]] };
     const COLORS={ I:'block-I', O:'block-O', T:'block-T', S:'block-S', Z:'block-Z', J:'block-J', L:'block-L' };
     function rotate(m){ const h=m.length,w=m[0].length; const o=Array.from({length:w},()=>Array(h).fill(0)); for(let y=0;y<h;y++) for(let x=0;x<w;x++) o[x][h-1-y]=m[y][x]; return o; }
     function randBag(){ const a=Object.keys(SHAPES); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-    function collides(grid,shape,x,y){ for(let sy=0; sy<shape.length; sy++) for(let sx=0; sx<shape[sy].length; sx++) if(shape[sy][sx]){ const gx=x+sx, gy=y+sy; if(gx<0||gx>=T_COLS||gy>=T_ROWS) return true; if(gy>=0 && grid[gy][gx]) return true; } return false; }
+    function collides(grid,shape,x,y){ for(let sy=0; sy<shape.length; sy++) for(let sx=0; sx<shape[sy].length; sx++) if(shape[sy][sx]){ const gx=x+sx, gy=y+sy; if(gx<0||gx>=T_COLS||gy>=TROWS) return true; if(gy>=0 && grid[gy][gx]) return true; } return false; }
     let tGridUI=null,nextUI=null,holdUI=null;
     function buildTetrisUI(){ tGridUI=buildGrid(tetrisGridEl,T_COLS,T_ROWS); nextUI=buildMiniGrid(nextGridEl); holdUI=buildMiniGrid(holdGridEl); }
     let T=null, tLoop=null;
@@ -735,7 +738,7 @@
     function onQuitTetris(){ if(T?.sessionEarned>0){ state.chads+=BigInt(T.sessionEarned); refreshUI(); saveStateLocal(state); showToast(`<span class="accent">+${T.sessionEarned}</span> chads added to your balance.`); }
       if(tLoop) clearInterval(tLoop); tLoop=null; if(T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal'); }
 
-    /* Bootstrap */
+    /* ===== Bootstrap ===== */
     async function bootstrap(){
       state=loadStateLocal(); refreshUI();
       if(!state.name){ openNameModal(); } else if(!state.avatarLocked){ openAvatarModal(); }
