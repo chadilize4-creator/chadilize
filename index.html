@@ -74,13 +74,12 @@
       box-shadow:inset 0 -22px 70px rgba(0,0,0,.52), 0 30px 100px rgba(0,0,0,.64);
       background:radial-gradient(160% 140% at 50% 30%, #232325 0%, #0a0a0a 60%);
     }
-    /* Make image smaller to sit inside the ring (ring inset is 8px) */
+    /* Image smaller so it sits inside the 8px glowing ring */
     #orbImg{
       position:absolute; top:50%; left:50%;
       width:calc(100% - 16px); height:calc(100% - 16px);
       transform:translate(-50%,-50%);
-      object-fit:cover; display:block; border-radius:50%;
-      filter:brightness(1);
+      object-fit:cover; display:block; border-radius:50%; filter:brightness(1);
     }
     .orb::after{
       content:""; position:absolute; inset:8px; border-radius:50%;
@@ -90,9 +89,21 @@
     .orb .title{position:absolute;inset:auto;color:#fff;font-weight:900;font-size:18px;letter-spacing:.6px;text-shadow:0 1px 2px rgba(0,0,0,.45);opacity:.9;pointer-events:none}
     #pulse{position:absolute;inset:0;border-radius:50%;pointer-events:none;mix-blend-mode:screen;opacity:0;transform:scale(0)}
 
-    /* particles */
-    .p{position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);filter:blur(.4px);opacity:0;animation:pop600ms 600ms ease-out forwards}
-    @keyframes pop600ms{0%{transform:translate(0,0) scale(.8);opacity:.35}80%{opacity:.1}100%{transform:translate(var(--dx),var(--dy)) scale(.6);opacity:0}}
+    /* NEW particle sparks */
+    .spark{
+      position:absolute; left:0; top:0;
+      width:6px; height:6px; border-radius:50%;
+      transform:translate(-50%,-50%) scale(.8);
+      background: radial-gradient(circle, var(--c,#ffffff) 0 45%, rgba(255,255,255,0) 70%);
+      filter:drop-shadow(0 0 6px var(--c,#ffffff));
+      opacity:0;
+      animation: sparkFly 750ms ease-out forwards;
+    }
+    @keyframes sparkFly{
+      0%   { opacity:.95; transform:translate(-50%,-50%) scale(1); }
+      70%  { opacity:.6;  transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.95); }
+      100% { opacity:0;   transform:translate(calc(-50% + calc(var(--dx)*1.2)), calc(-50% + calc(var(--dy)*1.2))) scale(.6); }
+    }
 
     /* Bottom */
     .bottom{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);left:12px;right:12px;z-index:90;margin-top:16px}
@@ -110,7 +121,7 @@
     .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
     .note{font-size:13px;color:#9aa3ab}
 
-    /* Name/Avatar/Confirm (unchanged except for overall app) */
+    /* Name / Avatar / Confirm (unchanged) */
     #nameOverlay .panel{width:min(560px,100%);padding:0;border-radius:18px;overflow:hidden;background:transparent;border:none;box-shadow:none}
     .name-wrap{width:100%;box-sizing:border-box;background:radial-gradient(900px 400px at 10% 0%,rgba(75,150,255,.10),transparent 40%),linear-gradient(180deg,#08131b,#0a0f13);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:18px 18px 22px;box-shadow:0 30px 100px rgba(0,0,0,.65)}
     .name-hero{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -423,37 +434,64 @@
       refreshOrbImage();
     }
 
-    async function apiClickLogo(){ return { total_points:Number(state.chads + 1n) }; }
-
-    /* particles + orb */
+    /* NEW: spark burst from orb center */
     const pLayer=document.getElementById('pLayer');
-    function spawnParticles(clientX,clientY){
-      const rect=document.getElementById('visual').getBoundingClientRect();
-      const x=clientX-rect.left, y=clientY-rect.top;
-      const count=7+Math.floor(Math.random()*5);
+    function burstSparksFromOrb(){
+      const orb=document.getElementById('orb');
+      const visual=document.getElementById('visual');
+      if(!orb || !visual) return;
+      const vrect=visual.getBoundingClientRect();
+      const orect=orb.getBoundingClientRect();
+      const x = orect.left + orect.width/2 - vrect.left;
+      const y = orect.top  + orect.height/2 - vrect.top;
+
+      const count = 26 + Math.floor(Math.random()*12);
+      const palette = ['#ffd86b', '#9ef0c4', '#7ac2ff', '#ffffff'];
+
       for(let i=0;i<count;i++){
-        const s=document.createElement('span'); s.className='p';
-        const a=Math.random()*Math.PI*2, d=18+Math.random()*34;
-        s.style.left=`${x}px`; s.style.top=`${y}px`;
-        s.style.setProperty('--dx', `${Math.cos(a)*d}px`);
-        s.style.setProperty('--dy', `${Math.sin(a)*d}px`);
+        const a = Math.random()*Math.PI*2;
+        const dist = 60 + Math.random()*120;
+        const dx = Math.cos(a)*dist;
+        const dy = Math.sin(a)*dist;
+        const size = 4 + Math.random()*6;
+        const c = palette[(Math.random()*palette.length)|0];
+
+        const s = document.createElement('span');
+        s.className = 'spark';
+        s.style.left = `${x}px`;
+        s.style.top = `${y}px`;
+        s.style.width = `${size}px`;
+        s.style.height = `${size}px`;
+        s.style.setProperty('--dx', `${dx}px`);
+        s.style.setProperty('--dy', `${dy}px`);
+        s.style.setProperty('--c', c);
         pLayer.appendChild(s);
-        setTimeout(()=>s.remove(),620);
+        setTimeout(()=> s.remove(), 800);
       }
     }
+
+    /* pulse ring */
     function pulse(){
       const el=document.getElementById('pulse');
-      el.style.transition='none'; el.style.background='radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,200,140,0.04))';
+      el.style.transition='none';
+      el.style.background='radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,200,140,0.04))';
       el.style.opacity='1'; el.style.transform='scale(0.02)';
-      setTimeout(()=>{ el.style.transition='transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease'; el.style.transform='scale(1)'; el.style.opacity='0.6'; setTimeout(()=>{ el.style.opacity='0'; el.style.transform='scale(1.4)'; },420); },20);
+      setTimeout(()=>{
+        el.style.transition='transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease';
+        el.style.transform='scale(1)'; el.style.opacity='0.6';
+        setTimeout(()=>{ el.style.opacity='0'; el.style.transform='scale(1.4)'; },420);
+      },20);
     }
+
+    /* tap handling */
     let lastTap=0; const COOLDOWN_MS=500;
-    async function handleOrbTap(e){
+    async function handleOrbTap(){
       const now=Date.now(); if(now-lastTap<COOLDOWN_MS) return; lastTap=now;
-      const cx=(e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
-      const cy=(e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
-      spawnParticles(cx,cy); pulse(); playTap();
-      try{ const data=await apiClickLogo(); state.chads=BigInt(data.total_points); }catch{ state.chads+=1n; }
+      burstSparksFromOrb();   // <<< NEW fancy particle burst
+      pulse();                // ring pulse
+      playTap();              // tiny audio tick
+      try{ const data={ total_points:Number(state.chads + 1n) }; state.chads=BigInt(data.total_points); }
+      catch{ state.chads+=1n; }
       saveStateLocal(state); refreshUI();
     }
     document.getElementById('orb').addEventListener('click',handleOrbTap,{passive:true});
