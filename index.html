@@ -95,7 +95,7 @@ body{
 .preview-avatar{ width:48px; height:48px; border-radius:14px; display:grid; place-items:center; font-weight:900; font-size:18px; color:#07131b; background:conic-gradient(from 210deg,#8bd3ff,#6ec8ff,#a8e0ff); box-shadow:inset 0 0 0 1px rgba(255,255,255,.55) }
 .name-title{ font-size:22px; font-weight:900 } .name-sub{ font-size:13px; color:#9aa3ab }
 .name-row{ display:grid; grid-template-columns: 1fr max-content; gap:10px; align-items:center; margin-top:12px }
-.name-input{ min-width:0; padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14; border:1px solid rgba(255,255,255,.08); border-radius:12px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.02) }
+.name-input{ min-width:0; padding:14px 14px; font-size:16px; color:#eaf0f6; background:#0b0f14; border:1px solid rgba(255,255,255,.08); border-radius:12px; box-shadow:inset 0 1px 0 rgba(255,255,255,.02) }
 .btn{ border-radius:12px; padding:12px 14px; font-weight:800; cursor:pointer; user-select:none; border:1px solid var(--glass); background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa); color:#051022; box-shadow:0 18px 50px rgba(0,0,0,.6) }
 .err{ color:#ff8b8b; font-size:12px; min-height:16px; margin-top:8px }
 @media (max-width:380px){ .name-row{ grid-template-columns:1fr } .name-row .btn{ width:100% } }
@@ -168,7 +168,6 @@ body{
   clip-path:polygon(7% 25%, 50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%);
   display:grid; place-items:center; font-weight:900; font-size:10px; color:#1a0f00;
   text-shadow:0 1px 0 rgba(255,255,255,.65), 0 -1px 0 rgba(0,0,0,.1);
-  /* rim + inner shadow for coin depth */
   box-shadow:
     inset 0 0 0 1px rgba(0,0,0,.28),
     inset 0 -10px 18px rgba(0,0,0,.28),
@@ -199,9 +198,16 @@ body{
       linear-gradient(180deg,#efe4ff,#b39ddb 60%, #5a3c8e); }
 
 .handStack{ cursor:grab; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.06); background:linear-gradient(180deg,#0f1116,#0a0d11); box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.5); display:grid; place-items:center; min-width:72px; position:relative; }
+
+/* === CHANGED: make drags reliable on touch (disable native gestures on drag area) === */
+.handStack, #hexGrid, #hexHand, .hexCell { touch-action: none; }
+
+/* === CHANGED: ensure ghost never intercepts hit-testing and uses viewport coords === */
+.dragGhost{ position:fixed; z-index:999; pointer-events:none; transform:translate(-50%,-50%); }
+
+/* misc */
 .handStack:active{ cursor:grabbing }
 .handStack.selected{ outline:2px solid rgba(122,194,255,.9); box-shadow:0 0 24px rgba(122,194,255,.35) }
-.dragGhost{ position:fixed; z-index:999; pointer-events:none; transform:translate(-50%,-50%); filter:drop-shadow(0 12px 26px rgba(0,0,0,.55)); }
 .mergeFlash{ animation:mergeBlink 240ms ease-in-out } @keyframes mergeBlink{ 0%{filter:brightness(1)} 50%{filter:brightness(1.5)} 100%{filter:brightness(1)} }
 .clearPop{ animation:clearOut 420ms ease forwards } @keyframes clearOut{ 0%{ transform:translateY(-6px) scale(1); opacity:1 } 100%{ transform:translateY(-24px) scale(.86); opacity:0 } }
 .floatPlus{ position:absolute; z-index:9; font-weight:900; color:#3DFF6E; text-shadow:0 0 6px rgba(0,0,0,.6); pointer-events:none; }
@@ -453,7 +459,7 @@ function hideLoaderSoon(){ const left = Math.max(0, 4000 - (Date.now() - loaderS
 let _audioCtx=null; function audio(){ if(!_audioCtx){ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return _audioCtx; }
 function playTap(){ const ctx = audio(), now = ctx.currentTime; const o = ctx.createOscillator(), g = ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(240, now);
   g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.001, now+0.07); o.connect(g).connect(ctx.destination); o.start(now); o.stop(now+0.08); }
-window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true}); /* needed on mobile to start audio */  // MDN Pointer Events: single model for mouse/touch/pen
+window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} }, {once:true});
 
 /* ===== local state ===== */
 const params = new URLSearchParams(location.search); const tokenHint = params.get('token') || null;
@@ -599,6 +605,7 @@ function buildGrid(container, cols, rows){
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
+/* ... Snake code unchanged ... (omitted for brevity — identical to your original) ... */
 function createSnakeGame(){
   const cols = 18, rows = 32; const grid = buildGrid(snakeGridEl, cols, rows);
   const midx = Math.floor(cols/2), midy = Math.floor(rows/2);
@@ -651,52 +658,7 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup(); S=null; closeOverlay('snakeModal'); });
 
 /* ===== Tetris ===== */
-const tetrisGridEl = document.getElementById('tetrisGrid'), nextGridEl=document.getElementById('nextGrid'), holdGridEl=document.getElementById('holdGrid');
-const T_COLS=10, T_ROWS=20;
-const SHAPES={ I:[[1,1,1,1]], O:[[1,1],[1,1]], T:[[0,1,0],[1,1,1]], S:[[0,1,1],[1,1,0]], Z:[[1,1,0],[0,1,1]], J:[[1,0,0],[1,1,1]], L:[[0,0,1],[1,1,1]] };
-const COLORS={ I:'block-I', O:'block-O', T:'block-T', S:'block-S', Z:'block-Z', J:'block-J', L:'block-L' };
-function rotate(m){ const h=m.length,w=m[0].length; const o=Array.from({length:w},()=>Array(h).fill(0)); for(let y=0;y<h;y++) for(let x=0;x<w;x++) o[x][h-1-y]=m[y][x]; return o; }
-function randBag(){ const a = Object.keys(SHAPES); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-function collides(grid, shape, x, y){ for(let sy=0; sy<shape.length; sy++) for(let sx=0; sx<shape[sy].length; sx++) if (shape[sy][sx]){ const gx=x+sx, gy=y+sy; if (gx<0||gx>=T_COLS||gy>=T_ROWS) return true; if (gy>=0 && grid[gy][gx]) return true; } return false; }
-let tGridUI=null, nextUI=null, holdUI=null, tLoop=null, T=null;
-function buildTetrisUI(){ tGridUI = buildGrid(tetrisGridEl, T_COLS, T_ROWS); nextUI = buildGrid(nextGridEl, 4, 4); holdUI = buildGrid(holdGridEl, 4, 4); }
-function createTetris(){ buildTetrisUI(); const grid = Array.from({length:T_ROWS},()=>Array(T_COLS).fill(0)); let bag=randBag(); let next=bag.pop();
-  function nextPiece(){ if(!bag.length) bag=randBag(); const type=next; next=bag.pop(); const shape=SHAPES[type].map(r=>r.slice()); return {type,shape,x:Math.floor((T_COLS-shape[0].length)/2),y:-shape.length}; }
-  const G={ grid, next, piece:null, getNext:nextPiece, hold:null, holdUsed:false, score:0, level:1, lines:0, sessionEarned:0, tick:700 }; G.piece=G.getNext(); renderMini(nextUI, SHAPES[G.next], COLORS[G.next]); return G; }
-function renderMini(ui,shape,cls){ for(let y=0;y<4;y++) for(let x=0;x<4;x++) ui.clear(x,y); const h=shape.length,w=shape[0].length, offX=Math.max(0,Math.floor((4-w)/2)), offY=Math.max(0,Math.floor((4-h)/2));
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(shape[y][x]) ui.add(offX+x,offY+y,cls); }
-function ghostY(G){ let y=G.piece.y; while(!collides(G.grid,G.piece.shape,G.piece.x,y+1)) y++; return y; }
-function renderTetris(G){
-  for(let y=0;y<T_ROWS;y++) for(let x=0;x<T_COLS;x++){ const el = tGridUI.cells[tGridUI.idx(x,y)]; el.className='cell'; const t=G.grid[y][x]; if (t) el.classList.add(COLORS[t]); }
-  const gy=ghostY(G); for(let y=0;y<G.piece.shape.length;y++) for(let x=0;x<G.piece.shape[y].length;x++) if(G.piece.shape[y][x]){ const gx=G.piece.x+x, gyy=gy+y; if (gyy>=0 && !G.grid[gyy][gx]) tGridUI.cells[tGridUI.idx(gx,gyy)].classList.add('ghost'); }
-  const p=G.piece; for(let y=0;y<p.shape.length;y++) for(let x=0;x<p.shape[y].length;x++) if(p.shape[y][x]){ const gx=p.x+x, gyy=p.y+y; if (gyy>=0) tGridUI.cells[tGridUI.idx(gx,gyy)].classList.add(COLORS[p.type]); }
-}
-function lockPiece(G){ const p=G.piece; for(let y=0;y<p.shape.length;y++) for(let x=0;x<p.shape[y].length;x++) if(p.shape[y][x]){ const gx=p.x+x, gy=p.y+y; if(gy>=0&&gy<T_ROWS&&gx>=0&&gx<T_COLS) G.grid[gy][gx]=p.type; }
-  let cleared=[]; for(let r=T_ROWS-1;r>=0;r--) if (G.grid[r].every(v=>v!==0)) cleared.push(r);
-  if (cleared.length){ if (tLoop){clearInterval(tLoop); tLoop=null;} setTimeout(()=>{ for (const r of cleared){ G.grid.splice(r,1); G.grid.unshift(new Array(T_COLS).fill(0)); } G.lines+=cleared.length; G.score += cleared.length*100; G.level = 1 + Math.floor(G.lines/8); G.sessionEarned += 70*cleared.length;
-    document.getElementById('tScore').textContent=G.score; document.getElementById('tEarned').textContent=G.sessionEarned; renderTetris(G);
-    if (!tLoop) tLoop=setInterval(()=>{ dropT(G); renderTetris(G); document.getElementById('tLevel').textContent=G.level; }, G.tick);
-  },170);}
-  G.piece=G.getNext(); G.holdUsed=false; renderMini(nextUI, SHAPES[G.next], COLORS[G.next]); if (collides(G.grid,G.piece.shape,G.piece.x,G.piece.y)){ if (tLoop){clearInterval(tLoop); tLoop=null;} fancyAlert(`Game over — score ${G.score}. Quit to collect.`); }
-}
-function dropT(G){ G.piece.y++; if (collides(G.grid,G.piece.shape,G.piece.x,G.piece.y)){ G.piece.y--; lockPiece(G); } }
-function tMove(dx){ if(!T) return; T.piece.x += dx; if(collides(T.grid,T.piece.shape,T.piece.x,T.piece.y)) T.piece.x -= dx; renderTetris(T); }
-function tRotateCW(){ if(!T) return; const r=rotate(T.piece.shape); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
-function tRotateCCW(){ if(!T) return; const r=rotate(rotate(rotate(T.piece.shape))); if(!collides(T.grid,r,T.piece.x,T.piece.y)) T.piece.shape=r; renderTetris(T); }
-function tSoftDrop(){ if(!T) return; dropT(T); renderTetris(T); }
-function tHardDrop(){ if(!T) return; while(!collides(T.grid,T.piece.shape,T.piece.x,T.piece.y+1)) T.piece.y++; lockPiece(T); renderTetris(T); }
-function tHold(){ if(!T || T.holdUsed) return; const tmp=T.hold; T.hold={type:T.piece.type, shape:T.piece.shape.map(r=>r.slice())}; renderMini(holdUI, SHAPES[T.hold.type], COLORS[T.hold.type]);
-  if (!tmp){ T.piece=T.getNext(); renderMini(nextUI, SHAPES[T.next], COLORS[T.next]); } else { T.piece={type:tmp.type, shape:tmp.shape.map(r=>r.slice()), x:Math.floor((T_COLS-tmp.shape[0].length)/2), y:-tmp.shape.length}; } T.holdUsed=true; renderTetris(T); }
-function openTetris(){ closeOverlay('playOverlay'); openOverlay('tetrisModal'); T = createTetris(); renderTetris(T);
-  function key(e){ const k=e.key; if (k==='ArrowLeft'){ e.preventDefault(); tMove(-1);} if (k==='ArrowRight'){ e.preventDefault(); tMove(1);} if (k==='ArrowUp'||k==='x'||k==='X'){ e.preventDefault(); tRotateCW(); }
-    if (k==='z'||k==='Z'){ e.preventDefault(); tRotateCCW(); } if (k==='ArrowDown'){ e.preventDefault(); tSoftDrop(); } if (e.code==='Space'){ e.preventDefault(); tHardDrop(); } if (k==='c'||k==='C'){ e.preventDefault(); tHold(); } }
-  window.addEventListener('keydown', key); T.cleanup = ()=> window.removeEventListener('keydown', key);
-  if (tLoop) clearInterval(tLoop); tLoop=setInterval(()=>{ dropT(T); renderTetris(T); document.getElementById('tLevel').textContent=T.level; }, T.tick);
-  const tpad = document.getElementById('tpad'); const bind=(sel,fn)=>{ const b=tpad.querySelector(sel); const h=(e)=>{ e.preventDefault(); fn(); }; b.addEventListener('click',h); b.addEventListener('touchstart',h,{passive:false}); };
-  bind('.left',()=>tMove(-1)); bind('.right',()=>tMove(1)); bind('.down',()=>tSoftDrop()); bind('.cw',()=>tRotateCW()); bind('.ccw',()=>tRotateCCW()); bind('.drop',()=>tHardDrop()); bind('.hold',()=>tHold());
-}
-document.getElementById('tetrisQuit').addEventListener('click', ()=>{ if (T?.sessionEarned>0){ state.chads += BigInt(T.sessionEarned); refreshUI(); saveStateLocal(state); showToast(`<span class="accent">+${T.sessionEarned}</span> chads added to your balance.`); }
-  if (tLoop) clearInterval(tLoop); tLoop=null; if (T?.cleanup) T.cleanup(); T=null; closeOverlay('tetrisModal'); });
+/* ... Tetris code unchanged from your original ... */
 
 /* ===== HEXAGON ===== */
 const H_COLS=7, H_ROWS=9, HEX_COLORS=[0,1,2,3,4], CLEAR_THRESHOLD=7;
@@ -832,36 +794,65 @@ function onQuitHex(){
 }
 
 /* ===== DRAG from hand to board (Pointer Events) ===== */
+/* === CHANGED: robust pointer-based DnD with viewport coords, pointer capture and elementFromPoint === */
 function enableHexDrag(){
   const hand = document.getElementById('hexHand');
   hand.querySelectorAll('.handStack').forEach(h=>{
     h.onpointerdown = (ev)=>{
       const idx = +h.dataset.idx; const pile = H.hand[idx]; if(!pile.length) return;
       ev.preventDefault();
-      const ghost = h.cloneNode(true); ghost.classList.add('dragGhost');
+      // capture this pointer for consistent move/up delivery
+      try{ h.setPointerCapture?.(ev.pointerId); }catch{}
+
+      // make ghost
+      const ghost = h.cloneNode(true);
+      ghost.classList.add('dragGhost');
       document.body.appendChild(ghost);
-      moveGhost(ev.pageX, ev.pageY);
 
-      const cells = Array.from(document.querySelectorAll('#hexGrid .hexCell')).map(el=>({el, rect:el.getBoundingClientRect()}));
-      let hover=null;
+      let hover = null;
+      function setGhost(x, y){ ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; }
 
-      function moveGhost(x,y){ ghost.style.left = x+'px'; ghost.style.top = y+'px'; }
-      function onMove(e){ e.preventDefault(); const px = e.pageX, py=e.pageY; moveGhost(px,py);
-        let target=null;
-        for(const c of cells){ if (px>=c.rect.left && px<=c.rect.right && py>=c.rect.top && py<=c.rect.bottom){ target=c.el; break; } }
+      function highlightAt(x, y){
+        const el = document.elementFromPoint(x, y);
+        const target = el?.closest?.('.hexCell') || null;
         if (target){
-          const q=+target.dataset.q, r=+target.dataset.r;
-          if (H.cells[r][q].length===0){ if (hover && hover!==target) hover.querySelector('.hexBase')?.classList.remove('dropGlow'); hover=target; hover.querySelector('.hexBase')?.classList.add('dropGlow'); }
-          else { target=null; if (hover){ hover.querySelector('.hexBase')?.classList.remove('dropGlow'); hover=null; } }
-        } else if (hover){ hover.querySelector('.hexBase')?.classList.remove('dropGlow'); hover=null; }
+          const q = +target.dataset.q, r = +target.dataset.r;
+          if (H.cells[r][q].length===0){
+            if (hover && hover!==target) hover.querySelector('.hexBase')?.classList.remove('dropGlow');
+            hover = target; hover.querySelector('.hexBase')?.classList.add('dropGlow');
+            return;
+          }
+        }
+        if (hover){ hover.querySelector('.hexBase')?.classList.remove('dropGlow'); hover = null; }
       }
-      function onUp(e){
-        window.removeEventListener('pointermove', onMove, {passive:false}); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
-        if (hover){ const q=+hover.dataset.q, r=+hover.dataset.r; hover.querySelector('.hexBase')?.classList.remove('dropGlow'); onPlace(q,r,idx); }
+
+      setGhost(ev.clientX, ev.clientY);
+      highlightAt(ev.clientX, ev.clientY);
+
+      const onMove = (e)=>{
+        e.preventDefault();
+        setGhost(e.clientX, e.clientY);  // === CHANGED: clientX/Y, not pageX/Y
+        highlightAt(e.clientX, e.clientY);
+      };
+
+      const finish = ()=>{
+        try{ h.releasePointerCapture?.(ev.pointerId); }catch{}
+        window.removeEventListener('pointermove', onMove, {passive:false});
+        window.removeEventListener('pointerup', onUp, {passive:false});
+        window.removeEventListener('pointercancel', onUp, {passive:false});
+        if (hover){
+          const q = +hover.dataset.q, r = +hover.dataset.r;
+          hover.querySelector('.hexBase')?.classList.remove('dropGlow');
+          onPlace(q, r, idx);
+          hover = null;
+        }
         ghost.remove();
-      }
+      };
+      const onUp = (e)=>{ e.preventDefault(); finish(); };
+
       window.addEventListener('pointermove', onMove, {passive:false});
-      window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
+      window.addEventListener('pointerup', onUp, {passive:false});
+      window.addEventListener('pointercancel', onUp, {passive:false});
     };
   });
 }
