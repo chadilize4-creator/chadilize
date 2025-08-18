@@ -828,6 +828,34 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   let W=0,H=0, unit=1, running=false, paused=false, loop=null, t=0, score=0, earned=0;
   const player={ang:0,rad:0.28,spd:2.9};
   let arcs=[];
+  // --- ANGLE HELPERS + COLLISION ---
+const TAU = Math.PI * 2;
+function norm(a){ return (a % TAU + TAU) % TAU; }
+function angDelta(a,b){
+  let d = a - b;
+  d = (d + Math.PI) % TAU;
+  if (d < 0) d += TAU;
+  return d - Math.PI;
+}
+
+// Your arcs use: {rad, thick, len, dir, w, off}
+// Convert that to center+span on the fly for robust checks.
+const EPS = 1.5;       // small cushion against false hits
+const PLAYER_PAD = 2.0;
+
+function arcHitsPlayerCurrentArc(a, playerRadius, playerAngle){
+  const center = a.off + a.len * 0.5;          // arc center angle
+  const span   = a.len;                         // arc angular width
+
+  // radial band check (around ring center radius)
+  const ringCenter = a.rad + a.thick * 0.5;
+  const radialOk = Math.abs(playerRadius - ringCenter) <= (a.thick * 0.5 + EPS + PLAYER_PAD);
+  if (!radialOk) return false;
+
+  // angular check using shortest signed angle
+  const d = Math.abs(angDelta(norm(playerAngle), norm(center)));
+  return d <= (span * 0.5);
+}
 
   function size(){ const r=cvs.getBoundingClientRect(); cvs.width=r.width; cvs.height=r.height; W=cvs.width; H=cvs.height; unit=H/800; }
   function reset(){ size(); t=0; score=0; earned=0; arcs=[]; document.getElementById('vortexScore').textContent=score; document.getElementById('vortexEarned').textContent=earned; }
@@ -837,14 +865,8 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
     t+=dt; if(arcs.length<7) addArc();
     // move arcs & collision
     for(const a of arcs){ a.off += a.dir*a.w*dt; const r = a.rad, R=r+ a.thick; const pa = player.ang%(Math.PI*2);
-      // normalize angle to [0,2π)
-      let rel = (pa - a.off)%(Math.PI*2); if(rel<0) rel+=Math.PI*2;
-      const hitAngle = rel < a.len*0.6 || rel > (Math.PI*2 - a.len*0.6); // gap in middle
-      // player radius check
-      if(hitAngle){ /* in gap, fine */ } else {
-        const pr = player.rad; const min = r, max = R;
-        if (pr > min && pr < max){ gameOver(); return; }
-      }
+      if (arcHitsPlayerCurrentArc(a, player.rad, pa)) { gameOver(); return; }
+
     }
     score += dt*60*0.5|0; document.getElementById('vortexScore').textContent=score;
   }
