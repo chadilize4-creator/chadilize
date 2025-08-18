@@ -692,41 +692,243 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
 })();
 
 /* ===== FLAPPY BIRD ===== */
-let FB=null;
-function openFlappy(){ closeOverlay('playOverlay'); openOverlay('flappyModal'); if(!FB) startFlappy(); }
+/* ===== FLAPPY BIRD (9:16) ===== */
+let FB = null;
+
+function openFlappy(){
+  closeOverlay('playOverlay');
+  openOverlay('flappyModal');
+  if (!FB) startFlappy();
+}
+
 function startFlappy(){
-  const canvas = document.getElementById('flappyCanvas'), ctx=canvas.getContext('2d');
-  function size(){ const p=canvas.parentElement.getBoundingClientRect(); canvas.width=p.width; canvas.height=p.height; } size(); new ResizeObserver(size).observe(canvas.parentElement);
-  FB = {ctx, w:canvas.width, h:canvas.height, x:canvas.width*0.25, y:canvas.height*0.5, vy:0, g:1300, flap:-380, pipes:[], t:0, score:0, chads:0, running:false, raf:0, paused:false};
-  function reset(){ FB.x=canvas.width*0.25; FB.y=canvas.height*0.5; FB.vy=0; FB.pipes=[]; FB.t=0; FB.score=0; FB.chads=0; }
-  function addPipe(){ const gap = Math.max(120, canvas.height*0.26); const top = 50 + Math.random()*(canvas.height - 100 - gap); FB.pipes.push({x:canvas.width+40, w:60, top, bot:top+gap, passed:false}); }
-  function tap(){ if(!FB.running){ reset(); FB.running=true; loop(performance.now()); } FB.vy = FB.flap; }
-  canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); tap(); }, {passive:false});
-  document.getElementById('fbStart').onclick=()=>{ reset(); FB.running=true; loop(performance.now()); };
-  document.getElementById('fbPause').onclick=()=>{ if(!FB) return; FB.paused=!FB.paused; document.getElementById('fbPause').textContent=FB.paused?'Resume':'Pause'; if(!FB.paused && FB.running) loop(performance.now()); };
-  document.getElementById('fbQuit').onclick=()=>{ if(FB?.chads>0){ state.chads+=BigInt(FB.chads); refreshUI(); saveStateLocal(state); showToast(`<span class="accent">+${FB.chads}</span> chads added to balance.`); } cancelAnimationFrame(FB.raf); FB=null; closeOverlay('flappyModal'); };
+  // Kill any previous loop before starting fresh
+  if (FB?.loopId) cancelAnimationFrame(FB.loopId);
+
+  const canvas = document.getElementById('fbCanvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = canvas.parentElement;
+
+  // Always size the DRAWING SURFACE, not just CSS
+  function size(){
+    const r = wrap.getBoundingClientRect();
+    canvas.width = Math.max(240, Math.floor(r.width));
+    canvas.height = Math.max(320, Math.floor(r.height));
+  }
+  size();
+
+  // Only resize while modal is visible (prevents wonky sizes)
+  const ro = new ResizeObserver(()=>{
+    if (document.getElementById('flappyModal').classList.contains('show')) size();
+  });
+  ro.observe(wrap);
+
+  // Game state
+  const unit = canvas.height / 800;
+  const GRAV = 1800*unit, FLAP = -620*unit, SPEED = 220*unit;
+  const GAP = 180*unit, PIPE_W = Math.max(46, 74*unit);
+
+  FB = {
+    canvas, ctx, wrap, ro,
+    loopId: null, lastTs: performance.now(),
+    paused: false, dead: false, t: 0,
+    bird: { x: canvas.width*0.28, y: canvas.height*0.4, vx:0, vy:0, r: Math.max(10, 16*unit) },
+    pipes: [],
+    coins: [],
+    score: 0,
+    sessionChads: 0
+  };
+
+  function addPipe(){
+    // randomized gap center
+    const margin = 70*unit;
+    const center = margin + Math.random()*(canvas.height - 2*margin);
+    FB.pipes.push({ x: canvas.width + PIPE_W, top: center - GAP/2, bottom: center + GAP/2, passed:false });
+  }
+  function addCoin(x){
+    const cy = (FB.pipes.at(-1)?.top ?? canvas.height*0.5) + GAP/2 - (GAP*0.25) + (Math.random()*GAP*0.5);
+    FB.coins.push({ x, y: cy, r: Math.max(8, 12*unit), hit:false });
+  }
+
+  // Pipe spawn cadence
+  let pipeTimer = 0, pipeEvery = 1.6;
+
+  function resetRun(){
+    FB.t = 0; FB.dead = false; FB.paused = false;
+    FB.bird.x = canvas.width*0.28;
+    FB.bird.y = canvas.height*0.4;
+    FB.bird.vx = 0; FB.bird.vy = 0;
+    FB.pipes = [];
+    FB.coins = [];
+    FB.score = 0;
+    FB.sessionChads = 0;
+    pipeTimer = 0;
+    updateHeader();
+    FB.lastTs = performance.now();
+    if (FB.loopId) cancelAnimationFrame(FB.loopId);
+    FB.loopId = requestAnimationFrame(frame);
+  }
+
+  function circleHit(x1,y1,r1,x2,y2,r2){
+    const dx=x1-x2, dy=y1-y2; return (dx*dx+dy*dy) <= (r1+r2)*(r1+r2);
+  }
 
   function update(dt){
-    FB.t+=dt; FB.vy += FB.g*dt; FB.y += FB.vy*dt; if(FB.t>1.2){ FB.t=0; addPipe(); }
-    for(const p of FB.pipes){ p.x -= (180 + Math.min(240, FB.score*4))*dt; if(!p.passed && p.x+ p.w < FB.x){ p.passed=true; FB.score++; FB.chads += 3; }}
-    FB.pipes = FB.pipes.filter(p=> p.x + p.w > -10);
-    // collide
-    const birdR=14; if(FB.y<birdR || FB.y>canvas.height-birdR){ gameOver(); return; }
-    for(const p of FB.pipes){ if(FB.x+birdR>p.x && FB.x-birdR<p.x+p.w && (FB.y-birdR<p.top || FB.y+birdR>p.bot)){ gameOver(); return; } }
+    FB.t += dt;
+
+    // physics
+    FB.bird.vy += GRAV*dt;
+    FB.bird.y  += FB.bird.vy*dt;
+
+    const sp = SPEED*dt;
+    // pipes + coins move
+    for (const p of FB.pipes) p.x -= sp;
+    for (const c of FB.coins) c.x -= sp;
+
+    // spawn pipes/coins
+    pipeTimer += dt;
+    if (pipeTimer >= pipeEvery){
+      pipeTimer = 0;
+      addPipe();
+      addCoin(canvas.width + PIPE_W*0.5);
+    }
+
+    // collisions with pipes or ground/ceiling
+    const b = FB.bird, r = b.r;
+    if (b.y + r > canvas.height || b.y - r < 0){
+      FB.dead = true; return;
+    }
+    for (const p of FB.pipes){
+      if (b.x + r > p.x && b.x - r < p.x + PIPE_W){
+        if (b.y - r < p.top || b.y + r > p.bottom){
+          FB.dead = true; return;
+        }
+      }
+      // score when fully passed
+      if (!p.passed && p.x + PIPE_W < b.x - r){
+        p.passed = true; FB.score += 1; FB.sessionChads += 4; updateHeader();
+      }
+    }
+
+    // coin collect
+    for (const c of FB.coins){
+      if (!c.hit && circleHit(b.x, b.y, r*0.9, c.x, c.y, c.r)){
+        c.hit = true; FB.sessionChads += 10; updateHeader();
+      }
+    }
+    // cleanup off-screen
+    FB.pipes = FB.pipes.filter(p => p.x + PIPE_W > -8);
+    FB.coins = FB.coins.filter(c => c.x + c.r > -8 && !c.hit);
   }
+
   function draw(){
-    const {w,h}=canvas; ctx.clearRect(0,0,w,h);
-    const sky=ctx.createLinearGradient(0,0,0,h); sky.addColorStop(0,'#0b1223'); sky.addColorStop(1,'#06090f'); ctx.fillStyle=sky; ctx.fillRect(0,0,w,h);
+    const {ctx} = FB;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // bg
+    const bg = ctx.createLinearGradient(0,0,0,canvas.height);
+    bg.addColorStop(0,'#0a1430'); bg.addColorStop(1,'#07101a');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+
     // pipes
-    ctx.fillStyle='#2fc78c'; for(const p of FB.pipes){ ctx.fillRect(p.x,0,p.w,p.top); ctx.fillRect(p.x,p.bot,p.w,h-p.bot); }
+    for(const p of FB.pipes){
+      ctx.fillStyle = '#2f5aa0';
+      ctx.fillRect(p.x, 0, PIPE_W, Math.max(0, p.top));
+      ctx.fillRect(p.x, p.bottom, PIPE_W, canvas.height - p.bottom);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(p.x, p.top-2, PIPE_W, 2); ctx.fillRect(p.x, p.bottom, PIPE_W, 2);
+    }
+
+    // coins
+    for(const c of FB.coins){
+      if (c.hit) continue;
+      ctx.save();
+      ctx.globalCompositeOperation='lighter';
+      const glow = ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r*2.8);
+      glow.addColorStop(0,'rgba(255,216,107,0.6)'); glow.addColorStop(1,'rgba(255,216,107,0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(c.x,c.y,c.r*2.8,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+      ctx.beginPath(); ctx.arc(c.x,c.y,c.r,0,Math.PI*2);
+      const coin = ctx.createRadialGradient(c.x-c.r*0.3,c.y-c.r*0.3,1,c.x,c.y,c.r);
+      coin.addColorStop(0,'#fff5c7'); coin.addColorStop(0.6,'#ffd86b'); coin.addColorStop(1,'#e0a800');
+      ctx.fillStyle = coin; ctx.fill();
+    }
+
     // bird
-    ctx.fillStyle='#ffd86b'; ctx.beginPath(); ctx.arc(FB.x, FB.y, 14, 0, Math.PI*2); ctx.fill();
-    // hud
-    document.getElementById('fbScore').textContent=FB.score; document.getElementById('fbEarned').textContent=FB.chads;
+    const b = FB.bird, tilt = Math.max(-0.5, Math.min(0.5, FB.bird.vy / (900* (canvas.height/800))));
+    ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(tilt);
+    const body = ctx.createRadialGradient(-b.r*0.3, -b.r*0.3, 2, 0,0, b.r);
+    body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#8fb6ff');
+    ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0b0f14'; ctx.beginPath(); ctx.arc(b.r*0.35,-b.r*0.2,b.r*0.15,0,Math.PI*2); ctx.fill();
+    ctx.restore();
   }
-  function loop(ts){ if(!FB||!FB.running) return; const prev = FB.prev||ts; const dt = Math.min(0.03,(ts-prev)/1000); FB.prev=ts; if(!FB.paused){ update(dt); draw(); } FB.raf = requestAnimationFrame(loop); }
-  function gameOver(){ FB.running=false; fancyAlert(`Crashed — score ${FB.score}. Press Start to play again.`); }
+
+  function frame(ts){
+    if (!FB) return;
+    const dt = Math.min(0.035, (ts - FB.lastTs)/1000);
+    FB.lastTs = ts;
+    if (!FB.paused && !FB.dead){ update(dt); draw(); }
+    if (FB.dead){
+      draw();
+      fancyAlert(`You crashed! Score ${FB.score}. Press Start to try again.`);
+      return; // stop loop; will be restarted by Start
+    }
+    FB.loopId = requestAnimationFrame(frame);
+  }
+
+  function flap(){
+    if (!FB || FB.paused || FB.dead) return;
+    FB.bird.vy = FLAP;
+  }
+
+  // --- Controls ---
+  const startBtn = document.getElementById('fbStart');
+  const pauseBtn = document.getElementById('fbPause');
+  const quitBtn  = document.getElementById('fbQuit');
+
+  startBtn.onclick = resetRun;
+  pauseBtn.onclick = ()=>{
+    if (!FB) return;
+    FB.paused = !FB.paused;
+    pauseBtn.textContent = FB.paused ? 'Resume' : 'Pause';
+    if (!FB.paused){
+      FB.lastTs = performance.now();
+      FB.loopId = requestAnimationFrame(frame);
+    }
+  };
+  quitBtn.onclick = ()=>{
+    if (FB?.ro) { try{ FB.ro.disconnect(); }catch{} }
+    if (FB?.loopId) cancelAnimationFrame(FB.loopId);
+    if (FB?.sessionChads>0){
+      state.chads += BigInt(FB.sessionChads); refreshUI(); saveStateLocal(state);
+      showToast(`<span class="accent">+${FB.sessionChads}</span> chads added to balance.`);
+    }
+    FB = null;
+    closeOverlay('flappyModal');
+  };
+
+  // pointer/keyboard (set once for this run)
+  function keydown(e){
+    if ([' ','ArrowUp','w','W'].includes(e.key)){ e.preventDefault(); flap(); }
+  }
+  function pointer(e){
+    e.preventDefault(); flap();
+  }
+  canvas.addEventListener('pointerdown', pointer, {passive:false});
+  window.addEventListener('keydown', keydown, {passive:false});
+
+  // Restart cleans listeners by remaking the whole section on Quit, so no stacking
+
+  function updateHeader(){
+    const s=document.getElementById('fbScore'); if(s) s.textContent = FB.score;
+    const e=document.getElementById('fbEarned'); if(e) e.textContent = FB.sessionChads;
+  }
+
+  // Auto-start once the modal opens
+  resetRun();
 }
+
+window.openFlappy = ()=> requireProfileThen(openFlappy);
 
 /* ===== HEXAGON (survival) ===== */
 let HX=null;
