@@ -823,9 +823,9 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 })();
 
 /* ===== Vortex Hex (working collider) ===== */
-/* ===== Vortex Hex (9:16, crisp scaling, robust collider) ===== */
+/* ===== Vortex Hex — inward waves, crisp scaling, solid Quit ===== */
 (function(){
-  // ---- Grab elements (bail out if modal not present) ----
+  // Elements
   const cvs = document.getElementById('vortexCanvas');
   const startBtn = document.getElementById('vortexStart');
   const pauseBtn = document.getElementById('vortexPause');
@@ -836,235 +836,261 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 
   const ctx = cvs.getContext('2d');
 
-  // ---- HiDPI scaling helpers (draw in CSS pixels) ----
-  function fitCanvasToBox(){
-    const rect = cvs.getBoundingClientRect();
-    const dpr  = Math.max(1, window.devicePixelRatio || 1);
-    cvs.width  = Math.round(rect.width  * dpr);
-    cvs.height = Math.round(rect.height * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0); // draw using CSS pixel units
+  // HiDPI: draw in CSS pixels, back buffer in device pixels
+  function fitCanvas(){
+    const r = cvs.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    cvs.width  = Math.round(r.width  * dpr);
+    cvs.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw using CSS pixels
   }
 
-  // ---- Game state ----
+  // World
   const TAU = Math.PI*2;
-  let running=false, paused=false, loopId=null, lastTs=0;
-  let W=0, H=0, unit=1, cx=0, cy=0, baseR=0;
+  let W=0,H=0,cx=0,cy=0,unit=1;
+  let running=false, paused=false, raf=null, lastTs=0;
 
-  const player = { // orbiter
-    theta: 0,            // radians
-    r: 0,                // radius (px)
-    vtheta: 0,           // angular velocity
-    speed: 2.8,          // angular speed (rad/s)
-    rad: 8               // drawing radius (px)
+  const player = {
+    r: 0,            // orbit radius
+    theta: 0,        // angle
+    speed: 3.4,      // rad/s (increase for faster turns)
+    vtheta: 0,
+    tip: 10,         // triangle size
   };
 
-  // each arc: { r, thick, a, span, w, dir }
-  let arcs = [];
-  let score=0, earned=0, t=0;
+  // incoming wedges (walls)
+  // { r, thick, a, span, w, dir, vr }
+  let walls = [];
+  let spawnCd = 0;
 
-  // ---- Angle helpers (robust across 0/360) ----
+  let score=0, chads=0, t=0;
+
+  // Angle helpers (robust across 0/360)
   function norm(a){ return (a%TAU + TAU) % TAU; }
-  function angDelta(a,b){ let d=a-b; d=(d+Math.PI)%TAU; if(d<0) d+=TAU; return d-Math.PI; }
+  function angDelta(a,b){ let d=a-b; d=(d+Math.PI)%TAU; if(d<0)d+=TAU; return d-Math.PI; }
 
-  // ---- Collision: player vs arc (center+span model) ----
-  const EPS=1.5, PLAYER_PAD=2;
-  function arcHitsPlayer(arc, pRadius, pTheta){
-    const radialOk = Math.abs(pRadius - arc.r) <= (arc.thick*0.5 + EPS + PLAYER_PAD);
-    if(!radialOk) return false;
-    const d = Math.abs(angDelta(norm(pTheta), norm(arc.a)));
-    return d <= (arc.span*0.5);
+  // Collision check using smallest signed angle difference
+  const PAD=2; // extra forgiveness
+  function hitWall(w){
+    const radial = Math.abs(player.r - w.r) <= (w.thick*0.5 + PAD);
+    if(!radial) return false;
+    const d = Math.abs(angDelta(norm(player.theta), norm(w.a)));
+    return d <= (w.span*0.5);
   }
 
-  // ---- Spawning ----
-  function makeArc(r){
-    return {
-      r,
-      thick: 16*unit,
-      a: Math.random()*TAU,
-      span: (Math.PI/3) * (0.65 + Math.random()*0.4), // ~60..84 deg
-      w: (0.6 + Math.random()*0.8), // rad/s
-      dir: Math.random() < 0.5 ? -1 : 1
-    };
+  // Spawn one ring of wedges at outer radius
+  function spawnWave(){
+    const baseR = Math.min(W,H)*0.55; // start off-screen
+    const laneR = Math.min(W,H)*0.34; // player lane (target radius)
+    const num   = 5 + Math.floor(Math.random()*2); // 5 or 6 wedges
+    const open  = (Math.PI/5) * (0.9 + Math.random()*0.5); // one missing gap
+    const gapAt = Math.random()*TAU;
+
+    const thick = 22*unit;
+    for(let i=0;i<num;i++){
+      // make a ring but leave a gap "open"
+      const a = (i * (TAU/num));
+      const span = (TAU/num) * (0.72 + Math.random()*0.1);
+      if (Math.abs(angDelta(a, gapAt)) < open*0.5) continue;
+
+      walls.push({
+        r: baseR + Math.random()*30*unit,
+        thick,
+        a: a + Math.random()*0.2,
+        span,
+        w: 0.6 + Math.random()*0.9,           // angular speed
+        dir: Math.random()<0.5 ? -1 : 1,
+        vr: - (140*unit + Math.random()*120*unit) // inward radial speed
+      });
+    }
+
+    // bonus tiny arc that rotates fast (spice)
+    if (Math.random()<0.45){
+      walls.push({
+        r: baseR + 10*unit,
+        thick: 14*unit,
+        a: Math.random()*TAU,
+        span: Math.PI/8,
+        w: 2.0,
+        dir: Math.random()<0.5?-1:1,
+        vr: - (200*unit + Math.random()*160*unit)
+      });
+    }
   }
 
+  // Reset world to a known state
   function reset(){
-    fitCanvasToBox();
-    W = cvs.width  / (window.devicePixelRatio||1);
-    H = cvs.height / (window.devicePixelRatio||1);
-    cx = W/2; cy = H/2;
-    unit = H/800;                      // world scaler for 9:16 shell
-    baseR = Math.min(W,H)*0.32;        // comfortable ring radius
+    fitCanvas();
+    W = cvs.width/(window.devicePixelRatio||1);
+    H = cvs.height/(window.devicePixelRatio||1);
+    cx=W/2; cy=H/2; unit = H/800;
 
-    player.theta = 0;
-    player.vtheta = 0;
-    player.r = baseR;
-    player.rad = Math.max(7, 10*unit);
+    player.r = Math.min(W,H)*0.34;
+    player.theta = 0; player.vtheta=0; player.tip = Math.max(8, 10*unit);
 
-    arcs.length = 0;
-    // three rings, different radii & speeds
-    arcs.push(makeArc(baseR - 70*unit));
-    arcs.push(makeArc(baseR));
-    arcs.push(makeArc(baseR + 70*unit));
+    walls = [];
+    spawnCd = 0;
+    score = 0; chads = 0; t=0;
 
-    score = 0; earned = 0; t = 0;
-    updateHeader();
-    draw(); // initial frame
+    updateHUD(); draw();
   }
 
-  function updateHeader(){
+  function updateHUD(){
     scoreEl.textContent = Math.floor(score);
-    earnEl.textContent  = Math.floor(earned);
+    earnEl.textContent  = Math.floor(chads);
   }
 
-  // ---- Input (keyboard + pointer halves) ----
-  const input = { left:false, right:false, pointer:false };
-
-  function onKey(e, down){
+  // Input: keyboard + pointer halves (touch/mouse)
+  const input = {left:false,right:false,ptr:false};
+  function onKey(e,down){
     if(['ArrowLeft','a','A','ArrowRight','d','D'].includes(e.key)){
       e.preventDefault();
-      if(e.key==='ArrowLeft' || e.key==='a' || e.key==='A') input.left  = down;
-      if(e.key==='ArrowRight'|| e.key==='d' || e.key==='D') input.right = down;
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') input.left=down;
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') input.right=down;
     }
   }
   window.addEventListener('keydown', e=>onKey(e,true),  {passive:false});
   window.addEventListener('keyup',   e=>onKey(e,false), {passive:false});
 
-  function setPointer(dir){
-    input.pointer = dir !== 0;
-    input.left  = dir < 0;
-    input.right = dir > 0;
-  }
-
+  function setPtr(dir){ input.ptr = dir!==0; input.left = dir<0; input.right = dir>0; }
   cvs.addEventListener('pointerdown', e=>{
     try{ cvs.setPointerCapture(e.pointerId); }catch{}
     const mid = cvs.getBoundingClientRect().left + cvs.getBoundingClientRect().width/2;
-    setPointer(e.clientX < mid ? -1 : 1);
+    setPtr(e.clientX < mid ? -1 : 1);
   }, {passive:true});
-
   cvs.addEventListener('pointermove', e=>{
-    if(!input.pointer) return;
+    if(!input.ptr) return;
     const mid = cvs.getBoundingClientRect().left + cvs.getBoundingClientRect().width/2;
-    setPointer(e.clientX < mid ? -1 : 1);
+    setPtr(e.clientX < mid ? -1 : 1);
   }, {passive:true});
+  function endPtr(e){ input.ptr=false; input.left=false; input.right=false; try{ cvs.releasePointerCapture(e.pointerId); }catch{} }
+  cvs.addEventListener('pointerup', endPtr, {passive:true});
+  cvs.addEventListener('pointercancel', endPtr, {passive:true});
 
-  function endPointer(e){
-    input.pointer=false; input.left=false; input.right=false;
-    try{ cvs.releasePointerCapture(e.pointerId); }catch{}
-  }
-  cvs.addEventListener('pointerup', endPointer, {passive:true});
-  cvs.addEventListener('pointercancel', endPointer, {passive:true});
-
-  // ---- Update & Draw ----
+  // Update simulation
   function step(dt){
-    t += dt;
-    // player angular velocity from input
-    const want = (input.left?-1:0) + (input.right?1:0);
-    player.vtheta = want * player.speed;
-    player.theta = norm(player.theta + player.vtheta * dt);
+    t+=dt;
 
-    // move arcs and check collision
-    for(const a of arcs){
-      a.a = norm(a.a + a.dir * a.w * dt);
-      if(arcHitsPlayer(a, player.r, player.theta)){
-        gameOver();
-        return;
-      }
+    // spawn new waves periodically
+    spawnCd -= dt;
+    if (spawnCd <= 0){
+      spawnWave();
+      spawnCd = 1.15 + Math.random()*0.6; // seconds between waves
     }
 
-    // scoring (time-based)
-    score += dt * 60 * 0.6;             // ~36 pts / second
-    earned = Math.floor(score / 30) * 2; // +2 chads per 30 score (tweakable)
-    updateHeader();
+    // player rotation
+    const want = (input.left?-1:0) + (input.right?1:0);
+    player.vtheta = want * player.speed;
+    player.theta = norm(player.theta + player.vtheta*dt);
+
+    // move walls & check collision
+    for(let i=walls.length-1;i>=0;i--){
+      const w = walls[i];
+      w.a = norm(w.a + w.dir * w.w * dt);
+      w.r += w.vr * dt;
+
+      // collision at player lane
+      if (hitWall(w)){
+        gameOver();
+        return; // leave the frame; draw() will run inside gameOver
+      }
+
+      // remove once passed center
+      if (w.r < player.r - 80*unit) walls.splice(i,1);
+    }
+
+    // scoring
+    score += dt * 60 * 0.7;               // ~42 pts/sec
+    chads  = Math.floor(score / 28) * 2;  // +2 chads per 28 score (tweak)
+    updateHUD();
   }
 
+  // Render
   function draw(){
-    // bg
+    // background
     ctx.clearRect(0,0,W,H);
-    const g = ctx.createRadialGradient(cx,cy, Math.min(W,H)*0.05, cx,cy, Math.min(W,H)*0.6);
-    g.addColorStop(0,'#0b1223');
-    g.addColorStop(1,'#06090f');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,W,H);
+    const bg = ctx.createRadialGradient(cx,cy, Math.min(W,H)*0.05, cx,cy, Math.min(W,H)*0.7);
+    bg.addColorStop(0,'#0b1223');
+    bg.addColorStop(1,'#06090f');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
 
-    ctx.save();
-    ctx.translate(cx, cy);
+    ctx.save(); ctx.translate(cx,cy);
 
-    // arcs
+    // walls
     ctx.strokeStyle = '#4aa3ff';
-    ctx.lineCap = 'round';
-    arcs.forEach(a=>{
-      ctx.lineWidth = a.thick;
+    ctx.lineCap='round';
+    for(const w of walls){
+      ctx.lineWidth = w.thick;
       ctx.beginPath();
-      ctx.arc(0,0, a.r, a.a - a.span*0.5, a.a + a.span*0.5, false);
+      ctx.arc(0,0, w.r, w.a - w.span*0.5, w.a + w.span*0.5, false);
       ctx.stroke();
-    });
+    }
 
-    // player (small triangle)
+    // player triangle
     const pr = player.r, ang = player.theta;
     const px = Math.cos(ang)*pr, py = Math.sin(ang)*pr;
     ctx.fillStyle = '#ffc64b';
     ctx.beginPath();
     ctx.moveTo(px, py);
-    // two back points
-    const backAng = ang + Math.PI*0.85;
-    const b1x = px + Math.cos(backAng - 0.25)*player.rad*1.2;
-    const b1y = py + Math.sin(backAng - 0.25)*player.rad*1.2;
-    const b2x = px + Math.cos(backAng + 0.25)*player.rad*1.2;
-    const b2y = py + Math.sin(backAng + 0.25)*player.rad*1.2;
+    const backAng = ang + Math.PI*0.82;
+    const b1x = px + Math.cos(backAng - 0.25)*player.tip;
+    const b1y = py + Math.sin(backAng - 0.25)*player.tip;
+    const b2x = px + Math.cos(backAng + 0.25)*player.tip;
+    const b2y = py + Math.sin(backAng + 0.25)*player.tip;
     ctx.lineTo(b1x,b1y); ctx.lineTo(b2x,b2y); ctx.closePath(); ctx.fill();
 
     ctx.restore();
   }
 
-  // ---- Loop ----
+  // Loop
   function frame(ts){
-    if(!running){ loopId=null; return; }
-    const prev = lastTs || ts;
-    lastTs = ts;
-    const dt = Math.min(0.033, Math.max(0, (ts - prev)/1000)); // clamp ~30 FPS min
+    if(!running){ raf=null; return; }
+    const prev = lastTs || ts; lastTs = ts;
+    const dt = Math.min(0.033, Math.max(0, (ts - prev)/1000));
     if(!paused){ step(dt); draw(); }
-    loopId = requestAnimationFrame(frame);
+    raf = requestAnimationFrame(frame);
   }
 
-  // ---- Controls ----
+  // Control handlers
   function start(){
     reset();
-    running = true;
-    paused = false;
+    running=true; paused=false;
     lastTs = performance.now();
-    pauseBtn.textContent = 'Pause';
-    if(!loopId) loopId = requestAnimationFrame(frame);
+    pauseBtn.textContent='Pause';
+    if(!raf) raf = requestAnimationFrame(frame);
   }
   function togglePause(){
     if(!running) return;
     paused = !paused;
-    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    pauseBtn.textContent = paused ? 'Resume':'Pause';
   }
   function quit(){
     if(!running) return;
-    running = false;
-    if(loopId){ cancelAnimationFrame(loopId); loopId=null; }
-    // pay out
-    const pay = Math.max(0, Math.floor(earned));
-    if (pay>0){
+    running=false;
+    if(raf){ cancelAnimationFrame(raf); raf=null; }
+    // award and close
+    const pay = Math.max(0, Math.floor(chads));
+    if (pay>0 && typeof state!=='undefined'){
       state.chads = (state.chads ?? 0n) + BigInt(pay);
-      refreshUI?.(); saveStateLocal?.(state);
+      saveStateLocal?.(state); refreshUI?.();
       showToast?.(`<span class="accent">+${pay}</span> chads added to balance.`);
     }
-    // leave canvas in last frame
+    // leave the last frame on screen, then close the modal
+    if (typeof closeOverlay==='function') closeOverlay('vortexModal');
   }
 
   startBtn.onclick = start;
   pauseBtn.onclick = togglePause;
   quitBtn.onclick  = quit;
 
-  // ---- Resize handling ----
-  const ro = new ResizeObserver(()=>{ if(!running) reset(); else { fitCanvasToBox(); W=cvs.width/(window.devicePixelRatio||1); H=cvs.height/(window.devicePixelRatio||1); cx=W/2; cy=H/2; }});
+  // Resize: keep crisp when device rotates / sheet resizes
+  const ro = new ResizeObserver(()=>{ if(!running) reset(); else { fitCanvas(); W=cvs.width/(window.devicePixelRatio||1); H=cvs.height/(window.devicePixelRatio||1); cx=W/2; cy=H/2; }});
   ro.observe(cvs);
 
-  // initial fit (so it isn't tiny)
-  reset();
+  // optional: helper for your Play menu tile
+  window.openVortex = ()=>{ closeOverlay?.('playOverlay'); openOverlay?.('vortexModal'); /* wait for user to press Start */ };
 })();
+
 
 /* ===== Vertical Jumper (fixed & working) ===== */
 let VJ=null;
