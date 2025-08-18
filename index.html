@@ -342,28 +342,28 @@ canvas.full{position:absolute; inset:0; width:100%; height:100%; display:block}
     </div>
 
         <!-- VORTEX HEX Modal -->
-<div class="overlay" id="vortexModal">
-  <div class="panel">
-    <div class="row">
-      <h2>Vortex Hex (9:16)</h2>
-      <div class="row" style="gap:8px">
-        <button class="tile level" style="padding:8px 12px" id="vortexStart">Start</button>
-        <button class="tile level" style="padding:8px 12px" id="vortexPause">Pause</button>
-        <button class="tile level" style="padding:8px 12px" id="vortexQuit">Quit</button>
+    <div class="overlay" id="vortexModal">
+      <div class="panel">
+        <div class="row">
+          <h2>Vortex Hex (9:16)</h2>
+          <div class="row" style="gap:8px">
+            <button class="tile level" style="padding:8px 12px" id="vortexStart">Start</button>
+            <button class="tile level" style="padding:8px 12px" id="vortexPause">Pause</button>
+            <button class="tile level" style="padding:8px 12px" id="vortexQuit">Quit</button>
+          </div>
+        </div>
+        <div class="row" style="gap:12px">
+          <div class="note">Score: <b id="vortexScore">0</b></div>
+          <div class="note">Session chads: <b id="vortexEarned">0</b></div>
+        </div>
+
+        <div class="game-9x16">
+          <canvas id="vortexCanvas" style="width:100%;height:100%;display:block"></canvas>
+        </div>
+
+        <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
       </div>
     </div>
-    <div class="row" style="gap:12px">
-      <div class="note">Score: <b id="vortexScore">0</b></div>
-      <div class="note">Session chads: <b id="vortexEarned">0</b></div>
-    </div>
-
-    <div class="game-9x16">
-      <canvas id="vortexCanvas" style="width:100%;height:100%;display:block"></canvas>
-    </div>
-
-    <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
-  </div>
-</div>
 
 
 
