@@ -364,8 +364,26 @@ canvas.full{position:absolute; inset:0; width:100%; height:100%; display:block}
         <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
       </div>
     </div>
+<script>
+/* Vortex Hex — UI bootstrap (binds after elements exist) */
+document.addEventListener('DOMContentLoaded', () => {
+  const $ = (id) => document.getElementById(id);
+  const modal   = $('vortexModal');
+  const canvas  = $('vortexCanvas');
+  if (!modal || !canvas) return;
 
+  // expose opener for the Play tile
+  window.openVortex = () => {
+    closeOverlay('playOverlay');
+    openOverlay('vortexModal');
+    vortexReset();  // prepare a fresh round
+  };
 
+  $('vortexStart').onclick = () => vortexStart();
+  $('vortexPause').onclick = () => vortexPauseToggle();
+  $('vortexQuit').onclick  = () => vortexQuit();
+});
+</script>
 
     <!-- VERTICAL JUMPER Modal -->
     <div class="overlay" id="vjModal">
@@ -829,248 +847,224 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 })();
 
 /* ===== Vortex Hex (working collider) ===== */
-/* ===== Vortex Hex — MEDIUM difficulty (restartable, HiDPI, touch-friendly) ===== */
-(function(){
-  const TAU = Math.PI*2;
+<script>
+/* ===== Vortex Hex (medium) ===== */
+(() => {
+  const $ = (id) => document.getElementById(id);
 
-  // Defer everything until DOM is ready (prevents null lookups). 
-  document.addEventListener('DOMContentLoaded', () => {
-    const modalId = 'vortexModal';
-    const cvs = document.getElementById('vortexCanvas');
-    if (!cvs) return;                   // safety
-    const ctx = cvs.getContext('2d');
+  // elements
+  let cvs, ctx, W=0, H=0, DPR=1, unit=1;
+  let running=false, paused=false, raf=null, t=0, score=0, earned=0;
 
-    const btnStart = document.getElementById('vortexStart');
-    const btnPause = document.getElementById('vortexPause');
-    const btnQuit  = document.getElementById('vortexQuit');
-    const hudScore = document.getElementById('vortexScore');
-    const hudEarn  = document.getElementById('vortexEarned');
+  // player & arcs
+  let player=null;    // {ang, rad, spd}
+  let arcs=[];        // [{rad, len, thick, aoff, dir, w}]
 
-    // ---- canvas sizing (HiDPI) ----
-    let W=0, H=0, cx=0, cy=0, R=0, dpr=1, unit=1;
-    function fitCanvas(){
-      const r = cvs.getBoundingClientRect();
-      dpr = window.devicePixelRatio || 1;
-      cvs.width  = Math.max(1, Math.floor(r.width  * dpr));
-      cvs.height = Math.max(1, Math.floor(r.height * dpr));
-      cvs.style.width  = r.width+'px';
-      cvs.style.height = r.height+'px';
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.scale(dpr, dpr);
+  // difficulty (MEDIUM defaults)
+  const DIFF = {
+    arcCount: 3,          // how many arcs are alive
+    minLen: 0.85,         // arc length (fraction of circle) * base
+    maxLen: 1.25,
+    baseThick: 0.018,     // arc thickness in canvas units
+    baseSpeed: 0.70,      // angular speed
+    playerSpeed: 2.1,     // player angular speed (rad/s)
+    spawnJitter: 0.42
+  };
 
-      W = r.width; H = r.height;
-      cx = W/2; cy = H/2;
-      R = Math.min(W,H) * 0.42;
-      unit = H/800;
+  // --- sizing -------------------------------------------------
+  function size() {
+    const wrap = cvs.parentElement.getBoundingClientRect();
+    W = Math.floor(wrap.width);
+    H = Math.floor(wrap.height);
+    DPR = window.devicePixelRatio || 1;
+    cvs.width  = Math.max(1, Math.floor(W * DPR));
+    cvs.height = Math.max(1, Math.floor(H * DPR));
+    cvs.style.width  = W + 'px';
+    cvs.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);  // draw in CSS pixels
+    unit = H / 800; // gameplay scaling off height
+  }
+  // High-DPI sizing keeps lines sharp and avoids blurriness. :contentReference[oaicite:1]{index=1}
+
+  // --- game reset --------------------------------------------
+  function vortexReset() {
+    if (!cvs) {
+      cvs = $('vortexCanvas');
+      ctx = cvs?.getContext('2d');
+      if (!cvs || !ctx) return;
+      new ResizeObserver(() => { if (running) size(); else size(); draw(); }).observe(cvs.parentElement);
     }
+    size();
+    t = 0; score = 0; earned = 0;
+    player = { ang: 0, rad: 0.28, spd: DIFF.playerSpeed };
+    arcs = [];
+    // seed some arcs at different radii
+    const ringR = [0.38, 0.52, 0.68, 0.82];
+    for (let i=0; i<DIFF.arcCount; i++) addArc(ringR[i] ?? (0.38 + i*0.14));
+    updateHeader();
+    draw();
+  }
 
-    // ---- state ----
-    let running=false, paused=false, raf=null, lastTs=0;
-    let score=0, earned=0;
+  function addArc(rad) {
+    const len  = (0.95 + Math.random()*(DIFF.maxLen - DIFF.minLen)) * Math.PI/3;
+    const thick= DIFF.baseThick + Math.random()*0.018; // a bit thicker than easy
+    const dir  = Math.random()<0.5 ? -1 : 1;
+    const w    = (0.6 + Math.random()*DIFF.spawnJitter); // controls gap size
+    const aoff = Math.random()*Math.PI*2;
+    arcs.push({ rad, len, thick, aoff, dir, w });
+  }
 
-    // Medium difficulty knobs
-    const DIFF = {
-      spawnEvery: 1.25,
-      spinMin: 0.55,  spinMax: 1.00,    // rad/s
-      inMin: 120,     inMax: 240,       // px/s inward
-      rMin: 0.55,     rMax: 0.88,       // R fraction
-      thMin: 0.013,   thMax: 0.027,     // thickness (R fraction)
-      spanMin: Math.PI/6,               // 30°
-      spanMax: Math.PI/2                // 90°
-    };
-
-    let spawnT=0, arcs=[];
-    const player = {
-      orbitFrac: 0.68,
-      sizeFrac:  0.18,                  // marker ~3× bigger
-      ang: 0,
-      rotSpeed: 2.9
-    };
-
-    // ---- utils ----
-    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-    const wrap=(a)=>{ a%=TAU; if(a<0) a+=TAU; return a; };
-    function angDist(a,b){ let d=a-b; d=(d+Math.PI)%TAU-Math.PI; return Math.abs(d); }
-    function updateHUD(){ if(hudScore) hudScore.textContent = Math.floor(score); if(hudEarn) hudEarn.textContent = Math.floor(earned); }
-
-    // ---- arcs ----
-    function spawnArc(){
-      const r     = (DIFF.rMin + Math.random()*(DIFF.rMax - DIFF.rMin)) * R;
-      const thick = (DIFF.thMin + Math.random()*(DIFF.thMax - DIFF.thMin)) * R;
-      const span  = DIFF.spanMin + Math.random()*(DIFF.spanMax - DIFF.spanMin);
-      const a0    = Math.random()*TAU;
-      const angVel= (Math.random()<0.5?-1:1) * (DIFF.spinMin + Math.random()*(DIFF.spinMax - DIFF.spinMin));
-      // ✅ fix: use (inMax - inMin) instead of (inMax - inMax)
-      const vr    = -(DIFF.inMin + Math.random()*(DIFF.inMax - DIFF.inMin)) * unit; // px/s inward
-      arcs.push({ r, thick, span, a0, angVel, vr });
-    }
-
-    function reset(){
-      cancelLoop();
-      running=false; paused=false;
-      score=0; earned=0; spawnT=0; player.ang=0; arcs.length=0;
-      updateHUD(); fitCanvas(); draw(); // idle frame
-    }
-
-    // ---- loop ----
-    function cancelLoop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
-    function start(){
-      reset();
-      running=true; paused=false; lastTs=performance.now();
-      if(btnPause) btnPause.textContent='Pause';
+  // --- game loop ---------------------------------------------
+  function startLoop() {
+    if (running) return;
+    running = true; paused = false;
+    function frame(ts) {
+      if (!running) return;
+      if (!frame.prev) frame.prev = ts;
+      const dt = Math.min(0.035, (ts - frame.prev) / 1000);
+      frame.prev = ts;
+      if (!paused) { update(dt); draw(); }
       raf = requestAnimationFrame(frame);
     }
-    function stop(){ running=false; cancelLoop(); }
+    raf = requestAnimationFrame(frame);  // requestAnimationFrame is the right API for smooth animation. :contentReference[oaicite:2]{index=2}
+    $('vortexPause').textContent = 'Pause';
+  }
 
-    function frame(ts){
-      const dt = Math.min(0.033, (ts - lastTs)/1000);
-      lastTs = ts;
-      if(!paused && running){
-        update(dt);
-        draw();
-      }
-      if(running) raf = requestAnimationFrame(frame);
+  function stopLoop() {
+    if (raf) cancelAnimationFrame(raf);  // and this cancels it cleanly. :contentReference[oaicite:3]{index=3}
+    raf = null; running = false; paused = false;
+  }
+
+  // --- API (called from UI bootstrap) ------------------------
+  window.vortexReset = vortexReset;
+  window.vortexStart = () => { vortexReset(); startLoop(); };
+  window.vortexPauseToggle = () => {
+    if (!running) return;
+    paused = !paused;
+    $('vortexPause').textContent = paused ? 'Resume' : 'Pause';
+  };
+  window.vortexQuit = () => {
+    if (earned > 0) {
+      state.chads += BigInt(earned);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
+    }
+    stopLoop();
+    closeOverlay('vortexModal');
+  };
+
+  // --- update / draw -----------------------------------------
+  function update(dt) {
+    t += dt;
+    // move arcs & collision
+    const cx = W*0.5, cy = H*0.5, R = Math.min(W,H)*0.40;
+    let hit = false;
+
+    for (const a of arcs) {
+      // spin arc
+      a.aoff += a.dir * DIFF.baseSpeed * dt;
+
+      // angle normalization
+      const pa = player.ang % (Math.PI*2);
+      let rel = (pa - a.aoff) % (Math.PI*2);
+      if (rel < 0) rel += Math.PI*2;
+
+      const gap = a.len * 0.55; // gap in middle of arc
+      const hitAngle = !(rel < gap || rel > (Math.PI*2 - gap)); // inside arc
+      const pr = player.rad;
+      const min = a.rad - a.thick*0.55;
+      const max = a.rad + a.thick*0.55;
+      if (hitAngle && pr > min && pr < max) { hit = true; break; }
     }
 
-    // ---- update / collision ----
-    function update(dt){
-      // player rotation
-      const turn = (keys.left?-1:0) + (keys.right?+1:0);
-      if (turn) player.ang = wrap(player.ang + turn * player.rotSpeed * dt);
-
-      // spawns
-      spawnT += dt;
-      while(spawnT >= DIFF.spawnEvery){ spawnT -= DIFF.spawnEvery; spawnArc(); }
-
-      // move arcs, test collisions
-      const pr = player.orbitFrac * R;
-      const pHalf = (player.sizeFrac * R) * 0.65; // radial tolerance
-      for(let i=arcs.length-1;i>=0;i--){
-        const a = arcs[i];
-        a.a0 += a.angVel*dt;
-        a.r  += a.vr*dt;
-        if (a.r + a.thick*0.5 < 24*unit){ arcs.splice(i,1); continue; }
-
-        // radial overlap
-        const rMin = a.r - a.thick*0.5, rMax = a.r + a.thick*0.5;
-        const radialHit = !(pr+pHalf < rMin || pr-pHalf > rMax);
-
-        if (radialHit){
-          const mid = wrap(a.a0 + a.span*0.5);
-          if (angDist(player.ang, mid) <= a.span*0.5){
-            gameOver(); return;
-          }
-        }
-      }
-
-      // scoring + earnings
-      score += dt*60;
-      const earnNow = Math.floor(score/15); // ~1 chad per 15 score
-      if (earnNow > earned) earned = earnNow;
-      updateHUD();
+    if (hit) {
+      stopLoop();
+      showToast('You hit an arc — press Start to try again.');
+      return;
     }
 
-    // ---- draw ----
-    function draw(){
-      // background
-      const g = ctx.createRadialGradient(cx, cy, R*0.05, cx, cy, R*1.4);
-      g.addColorStop(0,'#0c1220'); g.addColorStop(1,'#070a0f');
-      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // score
+    score += dt * 60 * 0.6;
+    updateHeader();
+  }
 
-      // arcs (blue, 2× narrower look)
-      ctx.strokeStyle='#5c8df7';
-      ctx.lineCap='round';
-      for(const a of arcs){
-        const midR = (a.r - a.thick*0.5) + a.thick*0.5;
-        ctx.lineWidth = Math.max(2, a.thick*0.5);
-        ctx.beginPath();
-        ctx.arc(cx, cy, midR, a.a0, a.a0 + a.span, false);
-        ctx.stroke();
-      }
+  function updateHeader() {
+    $('vortexScore').textContent  = Math.floor(score);
+    $('vortexEarned').textContent = earned;
+  }
 
-      // player triangle (3× bigger)
-      const r  = player.orbitFrac * R;
-      const sz = player.sizeFrac * R;
-      const px = cx + Math.cos(player.ang)*r;
-      const py = cy + Math.sin(player.ang)*r;
-      const a  = player.ang;
+  function draw() {
+    const cx = W*0.5, cy = H*0.5, R = Math.min(W,H)*0.40;
 
-      ctx.fillStyle='#ffd86b';
+    // bg
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R*2);
+    g.addColorStop(0, '#0b1223'); g.addColorStop(1, '#06090f');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(R, R);
+
+    // arcs (blue, thinner)
+    ctx.strokeStyle = '#4aa3ff';
+    ctx.lineCap = 'round';
+    for (const a of arcs) {
+      ctx.lineWidth = Math.max(1, (a.thick * 0.5) * R); // 0.5x thinner
       ctx.beginPath();
-      ctx.moveTo(px + Math.cos(a)*sz,          py + Math.sin(a)*sz);
-      ctx.lineTo(px + Math.cos(a+2.6)*sz*0.65, py + Math.sin(a+2.6)*sz*0.65);
-      ctx.lineTo(px + Math.cos(a-2.6)*sz*0.65, py + Math.sin(a-2.6)*sz*0.65);
-      ctx.closePath();
-      ctx.fill();
+      ctx.arc(0, 0, a.rad, a.aoff, a.aoff + a.len, false);
+      ctx.stroke();
     }
 
-    function gameOver(){
-      stop(); // leave modal open so Start can restart cleanly
-      fancyAlert('You hit a wall — press Start to try again.');
-    }
+    // player (triangle 3x bigger than your first small version)
+    const pr = player.rad, ang = player.ang, tip = 0.045;
+    ctx.fillStyle = '#f6e08a';
+    ctx.beginPath();
+    const px = Math.cos(ang)*pr, py = Math.sin(ang)*pr;
+    ctx.moveTo(px, py);
+    ctx.lineTo(px - Math.cos(ang-1.2)*tip, py - Math.sin(ang-1.2)*tip);
+    ctx.lineTo(px - Math.cos(ang+1.2)*tip, py - Math.sin(ang+1.2)*tip);
+    ctx.closePath(); ctx.fill();
 
-    function quit(){
-      stop();
-      const gain = Math.max(0, Math.floor(earned));
-      if (gain>0){
-        try{
-          state.chads += BigInt(gain);
-          saveStateLocal(state);
-          refreshUI();
-        }catch{}
-        showToast(`<span class="accent">+${gain}</span> chads added to balance.`);
-      }
-      closeOverlay(modalId);
-    }
+    ctx.restore();
+  }
 
-    // ---- input (keyboard + pointer capture) ----
-    const keys = { left:false, right:false };
-    function kdown(e){
-      if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key)) e.preventDefault();
-      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=true;
-      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=true;
+  // input (left/right & touch halves)
+  (function attachInput(){
+    function setDir(dx) {
+      player.ang += dx * player.spd * (1/60); // nudged per key event
     }
-    function kup(e){
-      if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key)) e.preventDefault();
-      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=false;
-      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=false;
-    }
-    window.addEventListener('keydown', kdown, {passive:false});
-    window.addEventListener('keyup',   kup,   {passive:false});
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key==='a' || e.key==='A') { setDir(-1); }
+      if (e.key === 'ArrowRight'|| e.key==='d' || e.key==='D') { setDir(+1); }
+    }, {passive:true});
 
-    let ptrId=null, ptrActive=false;
-    function updateDir(x){
-      const rect=cvs.getBoundingClientRect(), mid=rect.left+rect.width/2;
-      keys.left  = (x < mid - rect.width*0.02);
-      keys.right = (x > mid + rect.width*0.02);
-    }
-    cvs.addEventListener('pointerdown', (e)=>{ e.preventDefault(); ptrActive=true; ptrId=e.pointerId; try{ cvs.setPointerCapture(ptrId); }catch{} updateDir(e.clientX); }, {passive:false});
-    cvs.addEventListener('pointermove', (e)=>{ if(!ptrActive) return; e.preventDefault(); updateDir(e.clientX); }, {passive:false});
-    function endPtr(e){ if(e.pointerId!==ptrId) return; e.preventDefault(); ptrActive=false; ptrId=null; keys.left=keys.right=false; try{ cvs.releasePointerCapture(e.pointerId); }catch{} }
-    cvs.addEventListener('pointerup', endPtr, {passive:false});
-    cvs.addEventListener('pointercancel', endPtr, {passive:false});
-    cvs.addEventListener('lostpointercapture', endPtr, {passive:false});
-
-    // ---- buttons ----
-    btnStart && (btnStart.onclick = start);
-    btnPause && (btnPause.onclick = ()=>{ if(!running) return; paused=!paused; btnPause.textContent = paused?'Resume':'Pause'; });
-    btnQuit  && (btnQuit.onclick  = quit);
-
-    // ---- open function for Play menu ----
-    window.openVortex = ()=>{
-      closeOverlay('playOverlay');
-      openOverlay(modalId);
-      reset(); // idle frame visible immediately; press Start to play
+    // Pointer halves
+    const wrap = $('vortexCanvas');
+    const onDown = (e) => {
+      const rect = wrap.getBoundingClientRect();
+      const mid = rect.left + rect.width/2;
+      const left = e.clientX < mid;
+      setDir(left ? -1 : +1);
+      wrap.setPointerCapture?.(e.pointerId);
     };
+    const onMove = (e) => {
+      if (e.buttons !== 1) return;
+      const rect = wrap.getBoundingClientRect();
+      const dx = ((e.clientX - (rect.left + rect.width/2)) / rect.width) * 2;
+      player.ang += Math.sign(dx) * player.spd * 0.02;
+    };
+    const onUp = () => { /* no continuous spin on release */ };
 
-    // Resize while Vortex modal is visible
-    const ro = new ResizeObserver(()=>{ if(document.getElementById(modalId)?.classList.contains('show')){ fitCanvas(); draw(); }});
-    ro.observe(cvs);
+    wrap.addEventListener('pointerdown', onDown);
+    wrap.addEventListener('pointermove', onMove);
+    wrap.addEventListener('pointerup', onUp);
+    wrap.addEventListener('lostpointercapture', onUp);
+    // setPointerCapture/lostpointercapture makes dragging reliable on touch. :contentReference[oaicite:4]{index=4}
+  })();
 
-    // First idle draw (in case modal is already visible)
-    fitCanvas(); draw();
-  });
 })();
+</script>
+
 
 
 /* ===== Vertical Jumper (fixed & working) ===== */
