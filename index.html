@@ -364,7 +364,7 @@ canvas.full{position:absolute; inset:0; width:100%; height:100%; display:block}
         <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
       </div>
     </div>
-<script>
+
 /* Vortex Hex — UI bootstrap (binds after elements exist) */
 document.addEventListener('DOMContentLoaded', () => {
   const $ = (id) => document.getElementById(id);
@@ -383,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
   $('vortexPause').onclick = () => vortexPauseToggle();
   $('vortexQuit').onclick  = () => vortexQuit();
 });
-</script>
 
     <!-- VERTICAL JUMPER Modal -->
     <div class="overlay" id="vjModal">
@@ -847,7 +846,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 })();
 
 /* ===== Vortex Hex (working collider) ===== */
-<script>
 /* ===== Vortex Hex (medium) ===== */
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -1063,7 +1061,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   })();
 
 })();
-</script>
 
 
 
