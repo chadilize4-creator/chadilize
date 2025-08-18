@@ -199,12 +199,26 @@ body{
           <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('playOverlay')">Close</button>
         </div>
         <div class="row" style="gap:10px">
-          <div class="tile level" style="flex:1; min-height:68px" onclick="requireProfileThen(openSnake)">Snake</div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="requireProfileThen(openFlappy)">Flappy&nbsp;Bird</div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="requireProfileThen(openTetris)">Tetris</div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="requireProfileThen(openHex)">Vortex&nbsp;Hex</div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="requireProfileThen(openVertical)">Vertical&nbsp;Jumper</div>
-        </div>
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openSnake()">
+    <div><div style="font-weight:800">Snake</div><div class="note">9:16 • on-screen arrows</div></div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
+    <div><div style="font-weight:800">Tetris</div><div class="note">10×20 pit • on-screen controls</div></div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
+    <div><div style="font-weight:800">Vertical Jumper</div><div class="note">Doodle-style • coins → chads</div></div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
+    <div><div style="font-weight:800">Flappy Bird</div><div class="note">Tap / click to flap • earn coins</div></div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openHex()">
+    <div><div style="font-weight:800">Vortex Hex</div><div class="note">Dodge the rings • chads on pass</div></div>
+  </div>
+</div>
       </div>
     </div>
 
