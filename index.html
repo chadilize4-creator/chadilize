@@ -1118,8 +1118,13 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 /* expose helpers for play tiles */
 window.closeOverlay = closeOverlay;
 window.openVertical = openVertical;
-window.openFlappy = ()=>{}; // replaced in flappy IIFE; placeholder for linter
-window.openVortex = ()=>{}; // replaced in vortex IIFE; placeholder
+if (typeof window.openFlappy !== 'function') {
+  window.openFlappy = () => { closeOverlay('playOverlay'); openOverlay('flappyModal'); };
+}
+if (typeof window.openVortex !== 'function') {
+  window.openVortex = () => { closeOverlay('playOverlay'); openOverlay('vortexModal'); };
+}
+
 </script>
 </body>
 </html>
