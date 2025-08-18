@@ -342,24 +342,29 @@ canvas.full{position:absolute; inset:0; width:100%; height:100%; display:block}
     </div>
 
     <!-- VORTEX HEX Modal -->
-    <div class="overlay" id="vortexModal">
-      <div class="panel">
-        <div class="row">
-          <h2>Vortex Hex (9:16)</h2>
-          <div class="row" style="gap:8px">
-            <button class="tile level" style="padding:8px 12px" id="vortexStart">Start</button>
-            <button class="tile level" style="padding:8px 12px" id="vortexPause">Pause</button>
-            <button class="tile level" style="padding:8px 12px" id="vortexQuit">Quit</button>
-          </div>
-        </div>
-        <div class="row" style="gap:12px">
-          <div class="note">Score: <b id="vortexScore">0</b></div>
-          <div class="note">Session chads: <b id="vortexEarned">0</b></div>
-        </div>
-        <div class="game-9x16"><canvas id="vortexCanvas" class="full"></canvas></div>
-        <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
+<div class="overlay" id="vortexModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Vortex Hex (9:16)</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="vortexStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="vortexPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="vortexQuit">Quit</button>
       </div>
     </div>
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="vortexScore">0</b></div>
+      <div class="note">Session chads: <b id="vortexEarned">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <canvas id="vortexCanvas" style="width:100%;height:100%;display:block"></canvas>
+    </div>
+
+    <p class="note">Rotate to dodge the spinning arcs. Quit to collect.</p>
+  </div>
+</div>
+
 
     <!-- VERTICAL JUMPER Modal -->
     <div class="overlay" id="vjModal">
@@ -823,274 +828,251 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 })();
 
 /* ===== Vortex Hex (working collider) ===== */
-/* ===== Vortex Hex (9:16) — MEDIUM difficulty =====
-   Controls: A/D or ←/→ to rotate. Touch/drag: left half = CCW, right half = CW.
-   Quits safely, restarts cleanly after loss, awards session chads on Quit.
-   Uses rAF game loop + dt; scales canvas for HiDPI.  */
-
-/* UI hooks (these IDs must exist in your modal) */
-const VX_IDS = {
-  canvas: 'vortexCanvas',
-  btnStart: 'vortexStart',
-  btnPause: 'vortexPause',
-  btnQuit: 'vortexQuit',
-  score: 'vortexScore',
-  earned: 'vortexEarned',
-  modal: 'vortexModal'
-};
-
+/* ===== Vortex Hex — MEDIUM difficulty (restartable, crisp, touch-friendly) ===== */
 (function(){
-  const cvs = document.getElementById(VX_IDS.canvas);
-  if(!cvs) return;
+  const TAU = Math.PI*2;
+
+  // ---- element refs ----
+  const modalId = 'vortexModal';
+  const cvs = document.getElementById('vortexCanvas');
+  if (!cvs) return;
   const ctx = cvs.getContext('2d');
 
-  /* ------- sizing & HiDPI scaling (per devicePixelRatio) ------- */
-  let W=0, H=0, unit=1, cx=0, cy=0, R=0, dpr=1;
+  const btnStart = document.getElementById('vortexStart');
+  const btnPause = document.getElementById('vortexPause');
+  const btnQuit  = document.getElementById('vortexQuit');
+  const hudScore = document.getElementById('vortexScore');
+  const hudEarn  = document.getElementById('vortexEarned');
+
+  // ---- canvas sizing (HiDPI) ----
+  let W=0, H=0, cx=0, cy=0, R=0, dpr=1, unit=1;
   function fitCanvas(){
     const r = cvs.getBoundingClientRect();
-    dpr = window.devicePixelRatio || 1;              // HiDPI scale
+    dpr = window.devicePixelRatio || 1;                      // HiDPI scale. :contentReference[oaicite:3]{index=3}
     cvs.width  = Math.max(1, Math.floor(r.width  * dpr));
     cvs.height = Math.max(1, Math.floor(r.height * dpr));
     cvs.style.width  = r.width+'px';
     cvs.style.height = r.height+'px';
     ctx.setTransform(1,0,0,1,0,0);
     ctx.scale(dpr, dpr);
+
     W = r.width; H = r.height;
-    unit = H/800;                                    // difficulty/size base
     cx = W/2; cy = H/2;
-    R = Math.min(W,H)*0.42;                          // play radius
+    R = Math.min(W,H) * 0.42;                                // play radius
+    unit = H/800;                                            // scale helper
   }
 
-  /* ------- game state ------- */
-  let running=false, paused=false, loop=null, lastTs=0;
-  let arcs=[], spawnT=0, spawnEvery=1.25;            // MEDIUM: faster spawns
-  let score=0, sessionChads=0;
-  const player = { ang: 0, rad: Math.max(14, 18*unit)*3, speed: 2.9 }; // 3× bigger marker
+  // ---- state ----
+  let running=false, paused=false, raf=null, lastTs=0;
+  let score=0, earned=0;
+
+  // medium difficulty knobs
+  const DIFF = {
+    spawnEvery: 1.25,              // seconds between arcs
+    spinMin: 0.55,  spinMax: 1.00, // rad/s
+    inMin: 120,    inMax: 240,     // inward px/s
+    rMin: 0.55,    rMax: 0.88,     // as fraction of R
+    thMin: 0.013,  thMax: 0.027,   // thickness as fraction of R
+    spanMin: Math.PI/6,  // 30°
+    spanMax: Math.PI/2   // 90°
+  };
+
+  let spawnT=0, arcs=[];
+  const player = {
+    orbitFrac: 0.68,                     // orbit radius as fraction of R
+    sizeFrac:  0.18,                     // triangle size (~3× big)
+    ang: 0,
+    rotSpeed: 2.9                        // rad/s
+  };
+
+  // ---- utils ----
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function wrap(a){ a%=TAU; if(a<0) a+=TAU; return a; }       // angle wrap to [0..2π] :contentReference[oaicite:4]{index=4}
+  function angDist(a,b){ let d=a-b; d=(d+Math.PI)%TAU-Math.PI; return Math.abs(d); } // shortest signed diff :contentReference[oaicite:5]{index=5}
+  function updateHUD(){ if(hudScore) hudScore.textContent = Math.floor(score); if(hudEarn) hudEarn.textContent = Math.floor(earned); }
+
+  // ---- arcs ----
+  function spawnArc(){
+    const r     = (DIFF.rMin + Math.random()*(DIFF.rMax-DIFF.rMin)) * R;
+    const thick = (DIFF.thMin + Math.random()*(DIFF.thMax-DIFF.thMin)) * R;
+    const span  = DIFF.spanMin + Math.random()*(DIFF.spanMax-DIFF.spanMin);
+    const a0    = Math.random()*TAU;
+    const angVel= (Math.random()<0.5?-1:1) * (DIFF.spinMin + Math.random()*(DIFF.spinMax-DIFF.spinMin));
+    const vr    = -(DIFF.inMin + Math.random()*(DIFF.inMax-DIFF.inMax)) * unit; // inward px/s
+
+    arcs.push({ r, thick, span, a0, angVel, vr });
+  }
 
   function reset(){
-    running=false; paused=false; cancelLoop();
-    arcs.length=0;
-    spawnT=0; score=0; sessionChads=0;
-    player.ang=0;
+    cancelLoop();
+    running=false; paused=false;
+    score=0; earned=0; spawnT=0; player.ang=0; arcs.length=0;
+    updateHUD(); fitCanvas(); draw(); // idle frame
+  }
+
+  // ---- loop ----
+  function cancelLoop(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+  function start(){
+    reset();
+    running=true; paused=false; lastTs=performance.now();
+    if(btnPause) btnPause.textContent='Pause';
+    raf = requestAnimationFrame(frame);
+  }
+  function stop(){ running=false; cancelLoop(); }
+
+  function frame(ts){
+    const dt = Math.min(0.033, (ts - lastTs)/1000);          // cap dt for stability. :contentReference[oaicite:6]{index=6}
+    lastTs = ts;
+    if(!paused && running){
+      update(dt);
+      draw();
+    }
+    if(running) raf = requestAnimationFrame(frame);          // rAF loop. :contentReference[oaicite:7]{index=7}
+  }
+
+  // ---- update / collision ----
+  function update(dt){
+    // player rotation
+    const turn = (keys.left?-1:0) + (keys.right?+1:0);
+    if (turn) player.ang = wrap(player.ang + turn * player.rotSpeed * dt);
+
+    // spawns
+    spawnT += dt;
+    while(spawnT >= DIFF.spawnEvery){ spawnT -= DIFF.spawnEvery; spawnArc(); }
+
+    // move arcs, test collisions
+    const pr = player.orbitFrac * R;
+    const pHalf = (player.sizeFrac * R) * 0.65;              // radial tolerance vs line
+    for(let i=arcs.length-1;i>=0;i--){
+      const a = arcs[i];
+      a.a0 += a.angVel*dt;
+      a.r  += a.vr*dt;
+      if (a.r + a.thick*0.5 < 24*unit){ arcs.splice(i,1); continue; } // arc left the screen
+
+      // radial check
+      const rMin = a.r - a.thick*0.5, rMax = a.r + a.thick*0.5;
+      const radialHit = !(pr+pHalf < rMin || pr-pHalf > rMax);
+
+      if (radialHit){
+        const mid = wrap(a.a0 + a.span*0.5);
+        if (angDist(player.ang, mid) <= a.span*0.5){
+          gameOver();
+          return;
+        }
+      }
+    }
+
+    // scoring + earnings
+    score += dt*60;
+    const earnNow = Math.floor(score/15); // 1 chad per ~15 score
+    if (earnNow > earned){ earned = earnNow; }
+
     updateHUD();
-    drawIdle();
   }
 
-  /* ------- difficulty: medium parameters in one place ------- */
-  function spawnArc(){
-    // MEDIUM: closer, a bit thicker/longer, faster spin & inward drift
-    const radN   = 0.55 + Math.random()*0.33;               // normalized radius [0..1] of outer edge
-    const thickN = 0.013 + Math.random()*0.014;             // normalized thickness
-    const len    = 0.45 + Math.random()*0.45;               // fraction of circle
-    const a0     = Math.random()*Math.PI*2;                 // start angle
-    const angVel = (Math.random()<0.5?-1:1) * (0.55 + Math.random()*0.45); // rad/s
-    const inward = (120 + Math.random()*120);               // px/s inward
-    arcs.push({
-      radN, thickN, len, a0,
-      angVel,
-      vr: -inward*unit/R                                   // normalized inward velocity (radial fraction per sec)
-    });
+  // ---- draw ----
+  function draw(){
+    // background
+    const g = ctx.createRadialGradient(cx, cy, R*0.05, cx, cy, R*1.4);
+    g.addColorStop(0,'#0c1220'); g.addColorStop(1,'#070a0f');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    // arcs (blue, thinner look)
+    ctx.strokeStyle='#5c8df7';
+    ctx.lineCap='round';
+    for(const a of arcs){
+      const m = (a.r - a.thick*0.5) + a.thick*0.5;
+      ctx.lineWidth = Math.max(2, a.thick*0.5); // ~2× narrower lines
+      ctx.beginPath();
+      ctx.arc(cx, cy, m, a.a0, a.a0 + a.span, false);
+      ctx.stroke();
+    }
+
+    // player triangle (3× bigger)
+    const r  = player.orbitFrac * R;
+    const sz = player.sizeFrac * R;
+    const px = cx + Math.cos(player.ang)*r;
+    const py = cy + Math.sin(player.ang)*r;
+    const a  = player.ang;
+
+    ctx.fillStyle='#ffd86b';
+    ctx.beginPath();
+    ctx.moveTo(px + Math.cos(a)*sz,           py + Math.sin(a)*sz);
+    ctx.lineTo(px + Math.cos(a+2.6)*sz*0.65,  py + Math.sin(a+2.6)*sz*0.65);
+    ctx.lineTo(px + Math.cos(a-2.6)*sz*0.65,  py + Math.sin(a-2.6)*sz*0.65);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  /* ------- input ------- */
+  function gameOver(){
+    // stop loop but leave modal open so Start works again (clean restart). :contentReference[oaicite:8]{index=8}
+    stop();
+    fancyAlert('You hit a wall — press Start to try again.');
+  }
+
+  function quit(){
+    stop();
+    const gain = Math.max(0, Math.floor(earned));
+    if (gain>0){
+      try{
+        state.chads += BigInt(gain);
+        saveStateLocal(state);
+        refreshUI();
+      }catch{}
+      showToast(`<span class="accent">+${gain}</span> chads added to balance.`);
+    }
+    closeOverlay(modalId);
+  }
+
+  // ---- input (keyboard + pointer capture) ----
   const keys = { left:false, right:false };
-  function keyDown(e){
+  function kdown(e){
     if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key)) e.preventDefault();
     if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=true;
     if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=true;
   }
-  function keyUp(e){
+  function kup(e){
     if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key)) e.preventDefault();
     if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') keys.left=false;
     if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right=false;
   }
-  window.addEventListener('keydown', keyDown, {passive:false});
-  window.addEventListener('keyup', keyUp, {passive:false});
+  window.addEventListener('keydown', kdown, {passive:false});
+  window.addEventListener('keyup',   kup,   {passive:false});
 
-  // Touch / pointer: left half = left, right half = right (with pointer capture)
-  let ptrActive=false, ptrId=null;
-  function updatePtrDir(x){
-    const rect=cvs.getBoundingClientRect(); const mid=rect.left+rect.width/2;
-    keys.left = x < mid - rect.width*0.02;
-    keys.right= x > mid + rect.width*0.02;
+  // Pointer capture keeps control even if finger leaves the canvas. :contentReference[oaicite:9]{index=9}
+  let ptrId=null, ptrActive=false;
+  function updateDir(x){
+    const rect=cvs.getBoundingClientRect(), mid=rect.left+rect.width/2;
+    keys.left  = (x < mid - rect.width*0.02);
+    keys.right = (x > mid + rect.width*0.02);
   }
-  cvs.addEventListener('pointerdown', (e)=>{ e.preventDefault(); ptrActive=true; ptrId=e.pointerId; try{ cvs.setPointerCapture(e.pointerId); }catch{} updatePtrDir(e.clientX); }, {passive:false});
-  cvs.addEventListener('pointermove', (e)=>{ if(!ptrActive) return; e.preventDefault(); updatePtrDir(e.clientX); }, {passive:false});
+  cvs.addEventListener('pointerdown', (e)=>{ e.preventDefault(); ptrActive=true; ptrId=e.pointerId; try{ cvs.setPointerCapture(ptrId); }catch{} updateDir(e.clientX); }, {passive:false});
+  cvs.addEventListener('pointermove', (e)=>{ if(!ptrActive) return; e.preventDefault(); updateDir(e.clientX); }, {passive:false});
   function endPtr(e){ if(e.pointerId!==ptrId) return; e.preventDefault(); ptrActive=false; ptrId=null; keys.left=keys.right=false; try{ cvs.releasePointerCapture(e.pointerId); }catch{} }
   cvs.addEventListener('pointerup', endPtr, {passive:false});
   cvs.addEventListener('pointercancel', endPtr, {passive:false});
   cvs.addEventListener('lostpointercapture', endPtr, {passive:false});
 
-  /* ------- helpers ------- */
-  const TAU = Math.PI*2;
-  const clamp=(v,a,b)=> Math.max(a, Math.min(b,v));
-  const norm=(a)=>{ a%=TAU; if(a<0) a+=TAU; return a; };
-  function angleInRange(a, start, end){
-    a=norm(a); start=norm(start); end=norm(end);
-    if(start<=end) return a>=start && a<=end;
-    return a>=start || a<=end; // wrapped
-  }
-  function updateHUD(){
-    const sEl=document.getElementById(VX_IDS.score);
-    const eEl=document.getElementById(VX_IDS.earned);
-    if(sEl) sEl.textContent = Math.floor(score);
-    if(eEl) eEl.textContent = Math.floor(sessionChads);
-  }
+  // ---- buttons ----
+  btnStart && (btnStart.onclick = start);
+  btnPause && (btnPause.onclick = ()=>{ if(!running) return; paused=!paused; btnPause.textContent = paused?'Resume':'Pause'; });
+  btnQuit  && (btnQuit.onclick  = quit);
 
-  /* ------- loop ------- */
-  function start(){
-    if(running){ return; }
-    running=true; paused=false;
-    document.getElementById(VX_IDS.btnPause).textContent='Pause';
-    lastTs=performance.now();
-    loop=requestAnimationFrame(frame);
-  }
-  function stop(){ running=false; cancelLoop(); }
-  function cancelLoop(){ if(loop){ cancelAnimationFrame(loop); loop=null; } }
-
-  function frame(ts){
-    const dt = Math.min(0.033, (ts - lastTs)/1000);  // cap 33ms
-    lastTs=ts;
-    if(!paused && running){
-      update(dt);
-      draw();
-    }
-    if(running) loop=requestAnimationFrame(frame);
-  }
-
-  /* ------- update & collision ------- */
-  function update(dt){
-    // player angular velocity
-    const turn = (keys.left?-1:0) + (keys.right?+1:0);
-    if(turn!==0){ player.ang += turn * player.speed * dt; }
-    player.ang = norm(player.ang);
-
-    // spawn arcs
-    spawnT += dt;
-    while(spawnT >= spawnEvery){ spawnT -= spawnEvery; spawnArc(); }
-
-    // move arcs + check collision
-    const pR = 0.68*R;                           // player orbit radius
-    const pMin = pR - player.rad;
-    const pMax = pR + player.rad;
-    for(let i=arcs.length-1;i>=0;i--){
-      const a = arcs[i];
-      a.a0 += a.angVel*dt;
-      a.radN += a.vr*dt;                         // inward drift
-      const rOuter = a.radN * R;
-      const rInner = (a.radN - a.thickN) * R;
-      // remove if passed center / off-screen
-      if(rOuter < 24*unit){ arcs.splice(i,1); continue; }
-
-      // angle window occupied by arc
-      const aStart = a.a0;
-      const aEnd   = a.a0 + a.len*TAU;
-
-      // radial overlap with player's circle
-      const radialHit = !(pMax < rInner || pMin > rOuter);
-      if(radialHit && angleInRange(player.ang, aStart, aEnd)){
-        gameOver();
-        return;
-      }
-    }
-
-    // scoring
-    score += dt*60;
-    // Small passive earnings: 1 chad / 15 score (tweak as needed)
-    sessionChads = Math.floor(score/15);
-    updateHUD();
-  }
-
-  /* ------- draw ------- */
-  function drawBackground(){
-    const g = ctx.createRadialGradient(cx,cy, R*0.05, cx,cy, R*1.4);
-    g.addColorStop(0,'#0c1220'); g.addColorStop(1,'#070a0f');
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  }
-  function drawArcs(){
-    ctx.strokeStyle='#5c8df7';
-    ctx.lineCap='round';
-    arcs.forEach(a=>{
-      const rOuter = a.radN*R, rInner = (a.radN - a.thickN)*R;
-      const thickPx = Math.max(2, (rOuter-rInner) * 0.5); // 2× narrower look
-      ctx.lineWidth = thickPx;
-      ctx.beginPath();
-      ctx.arc(cx,cy, (rInner+rOuter)/2, a.a0, a.a0 + a.len*TAU, false);
-      ctx.stroke();
-    });
-  }
-  function drawPlayer(){
-    const r = 0.68*R;
-    const px = cx + Math.cos(player.ang)*r;
-    const py = cy + Math.sin(player.ang)*r;
-    const dir = player.ang;
-
-    // triangle (3× bigger vs earlier)
-    const sz = player.rad;
-    ctx.fillStyle='#ffd86b';
-    ctx.beginPath();
-    ctx.moveTo(px + Math.cos(dir)*sz,     py + Math.sin(dir)*sz);
-    ctx.lineTo(px + Math.cos(dir+2.6)*sz*0.65, py + Math.sin(dir+2.6)*sz*0.65);
-    ctx.lineTo(px + Math.cos(dir-2.6)*sz*0.65, py + Math.sin(dir-2.6)*sz*0.65);
-    ctx.closePath();
-    ctx.fill();
-  }
-  function draw(){
-    drawBackground();
-    drawArcs();
-    drawPlayer();
-  }
-  function drawIdle(){ fitCanvas(); draw(); }
-
-  /* ------- game over & quit ------- */
-  function gameOver(){
-    stop();
-    fancyAlert('You hit a wall — press Start to try again.');
-  }
-  function quit(){
-    stop();
-    const earned = Math.max(0, Math.floor(sessionChads));
-    if(earned>0){
-      try{
-        state.chads += BigInt(earned);
-        saveStateLocal(state);
-        refreshUI();
-      }catch{}
-      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
-    }
-    closeOverlay(VX_IDS.modal);
-  }
-
-  /* ------- wire controls ------- */
-  document.getElementById(VX_IDS.btnStart)?.addEventListener('click', ()=>{
-    reset(); // clean restart each time Start is pressed
-    fitCanvas(); lastTs = performance.now(); running=true; paused=false;
-    document.getElementById(VX_IDS.btnPause).textContent='Pause';
-    loop=requestAnimationFrame(frame);
-  });
-  document.getElementById(VX_IDS.btnPause)?.addEventListener('click', ()=>{
-    if(!running){ return; }
-    paused = !paused;
-    document.getElementById(VX_IDS.btnPause).textContent = paused?'Resume':'Pause';
-  });
-  document.getElementById(VX_IDS.btnQuit)?.addEventListener('click', quit);
-
-  // Resize observer: keep aspect sharp while modal is open
-  const ro = new ResizeObserver(()=>{ if(document.getElementById(VX_IDS.modal)?.classList.contains('show')){ fitCanvas(); draw(); }});
-  ro.observe(cvs);
-
-  // public opener
+  // ---- open function for Play menu ----
   window.openVortex = ()=>{
     closeOverlay('playOverlay');
-    openOverlay(VX_IDS.modal);
-    reset();
-    fitCanvas();
-    draw();
+    openOverlay(modalId);
+    reset(); // idle frame visible immediately
   };
 
-  // idle init
-  document.addEventListener('DOMContentLoaded', ()=>{ fitCanvas(); drawIdle(); });
+  // resize while modal visible
+  const ro = new ResizeObserver(()=>{ if(document.getElementById(modalId)?.classList.contains('show')){ fitCanvas(); draw(); }});
+  ro.observe(cvs);
+
+  // first idle draw
+  document.addEventListener('DOMContentLoaded', ()=>{ fitCanvas(); draw(); });
 })();
+
 
 /* ===== Vertical Jumper (fixed & working) ===== */
 let VJ=null;
