@@ -347,9 +347,8 @@ canvas{ display:block }
           <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
             <div><div style="font-weight:800">Flappy Bird</div></div>
           </div>
-<div class="tile level" style="flex:1; min-height:68px" onclick="openHopper()">
-  <div><div style="font-weight:800">Lane Hopper</div></div>
-</div>
+<div class="tile level" style="flex:1; min-height:68px" onclick="openLane()">Lane Hopper</div>
+
 
 <div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
   <div><div style="font-weight:800">Brick Breaker</div></div>
@@ -2412,9 +2411,16 @@ function openBreaker(){
 
 /* ===== Lane Hopper (visual edition) ===== */
 (function(){
-  const cvs = document.getElementById('laneCanvas');
-  const ctx = cvs?.getContext('2d');
-  if(!cvs || !ctx) return;
+  let cvs, ctx;
+document.addEventListener('DOMContentLoaded', boot);
+
+function boot(){
+  cvs = document.getElementById('laneCanvas');
+  if(!cvs) return;                 // canvas must exist now
+  ctx = cvs.getContext('2d');
+  // ... keep the rest of the Lane Hopper code exactly as is ...
+}
+
 
   // ---------- sizing ----------
   let W=0, H=0, unit=1, rows=18, cols=9, cell=0, left=0, top=0;
