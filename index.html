@@ -978,32 +978,29 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
 
-/* ===== VERTICAL JUMPER (Doodle-style, fixed) ===== */
+/* ===== VERTICAL JUMPER (Doodle-style, fixed + longer airtime) ===== */
 let VJ = null;
 
 function openVertical(){
   closeOverlay('playOverlay');
   openOverlay('vjModal');
-  if(!VJ) newVJGame();           // build the game once the modal is visible
+  if(!VJ) newVJGame(); // build once modal is showing
 }
 
-document.getElementById('vjStart') .addEventListener('click', ()=>{ if(!VJ) newVJGame(); VJ.start(); });
-document.getElementById('vjPause') .addEventListener('click', ()=>{ if(!VJ) return; VJ.togglePause(); });
-document.getElementById('vjQuit')  .addEventListener('click', quitVJ);
+document.getElementById('vjStart').addEventListener('click', ()=>{ if(!VJ) newVJGame(); VJ.start(); });
+document.getElementById('vjPause').addEventListener('click', ()=>{ if(!VJ) return; VJ.togglePause(); });
+document.getElementById('vjQuit').addEventListener('click', quitVJ);
 
-/** Build / reset game */
 function newVJGame(){
-  // clean any previous instance
+  // clean previous instance
   if (VJ?.cleanup) VJ.cleanup();
 
   const canvas = document.getElementById('vjCanvas');
   const wrap   = document.getElementById('vjWrap');
   const ctx    = canvas.getContext('2d', { alpha:false });
 
-  // --- HiDPI & proper sizing (prevents "black screen") ---
+  // --- HiDPI sizing so canvas never ends up 0x0 or blurry ---
   function resizeCanvas(){
-    // only size while modal is open (has class "show")
-    const isShowing = document.getElementById('vjModal')?.classList.contains('show');
     const rect = wrap.getBoundingClientRect();
     const dpr  = Math.max(1, window.devicePixelRatio || 1);
     const cssW = Math.max(10, Math.floor(rect.width));
@@ -1019,10 +1016,22 @@ function newVJGame(){
   ro.observe(wrap);
   window.addEventListener('resize', resizeCanvas);
 
-  // --- world units ---
-  function U(v){ return v * (canvas.height / (window.devicePixelRatio||1)) / 800; } // scale by viewport height
-  const GRAV = U(2300), JUMP = -U(980), MOVE = U(620);
-  const AIR = 0.92, FRICTION = 0.86;
+  // unit helper (scale by viewport height)
+  function U(v){ return v * (canvas.height / (window.devicePixelRatio||1)) / 800; }
+
+  // --- Jump airtime tuner (longer time-in-air, same peak height) ---
+  // Use the same base numbers you used before, these are typical defaults:
+  const BASE_GRAV = U(2300);     // was GRAV
+  const BASE_JUMP = -U(980);     // was JUMP (negative = upward impulse)
+
+  // Make airtime longer without changing jump height:
+  // AIRTIME = 1.0 (default) → 1.2 = +20% longer airtime, 1.3 = +30%, etc.
+  const AIRTIME = 1.20;
+  const A = 1 / (AIRTIME * AIRTIME);
+  const GRAV = BASE_GRAV * A;             // g' = g / T^2
+  const JUMP = BASE_JUMP * Math.sqrt(A);  // v0' = v0 / T
+
+  const MOVE = U(620), AIR = 0.92, FRICTION = 0.86;
 
   const state = {
     ctx, canvas, wrap,
@@ -1039,7 +1048,7 @@ function newVJGame(){
   state.camY     = state.player.y - (canvas.height / (window.devicePixelRatio||1)) * 0.5;
   state.highestY = state.player.y;
 
-  // helpers
+  // world build
   function addPlatform(y){
     const w  = U(120) * (0.8 + Math.random()*0.7);
     const x  = Math.random()*((canvas.width/(window.devicePixelRatio||1)) - w);
@@ -1047,23 +1056,16 @@ function newVJGame(){
     const sp = mv ? (U(60) + Math.random()*U(120)) : 0;
     const dir= Math.random() < 0.5 ? -1 : 1;
     state.platforms.push({x, y, w, h: Math.max(U(12), U(14)), mv, sp, dir});
-    // maybe coin above
-    if (Math.random() < 0.55){
-      state.coins.push({x:x+w/2, y:y-U(22), r:Math.max(U(8), U(12)), hit:false});
-    }
-    // maybe an enemy patrolling near this platform
+    if (Math.random() < 0.55) state.coins.push({x:x+w/2, y:y-U(22), r:Math.max(U(8), U(12)), hit:false});
     if (Math.random() < 0.18){
       const r = U(12);
       state.enemies.push({
-        x: x + w*0.5,
-        y: y - U(10),
-        r,
+        x: x + w*0.5, y: y - U(10), r,
         ang: Math.random()*Math.PI*2,
-        angSpd: (0.6 + Math.random()*0.8) * (Math.random()<0.5?-1:1) // spin for visual
+        angSpd: (0.6 + Math.random()*0.8) * (Math.random()<0.5?-1:1)
       });
     }
   }
-
   for(let i=-6;i<=10;i++){ addPlatform(state.player.y + i*U(60)); }
 
   function ensureContent(){
@@ -1076,7 +1078,6 @@ function newVJGame(){
       minY -= U(95 + Math.random()*75);
       addPlatform(minY);
     }
-    // cull far-below
     const killY = state.camY + H + U(80);
     state.platforms = state.platforms.filter(p=> p.y < killY);
     state.coins     = state.coins.filter(c=> c.y < killY && !c.hit);
@@ -1091,10 +1092,10 @@ function newVJGame(){
   }
   function circleHit(a,b, ra,rb){ const dx=a.x-b.x, dy=a.y-b.y; return (dx*dx+dy*dy) <= (ra+rb)*(ra+rb); }
 
-  // particles
-  function addSpark(x,y,c){ state.sparks.push({x,y, vx:Math.cos(Math.random()*6.283)*U(200), vy:-U(120)-Math.random()*U(160), life:0.4+Math.random()*0.25, c}); }
+  // tiny particles
+  function addSpark(x,y){ state.sparks.push({x,y, vx:Math.cos(Math.random()*6.283)*U(200), vy:-U(120)-Math.random()*U(160), life:0.4+Math.random()*0.25}); }
 
-  // input
+  // input (Pointer Events + keyboard)
   const input = { left:false, right:false };
   function key(e,down){
     if(['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); input.left = down; }
@@ -1104,7 +1105,6 @@ function newVJGame(){
   window.addEventListener('keydown', kd, {passive:false});
   window.addEventListener('keyup', ku, {passive:false});
 
-  // touch anywhere: left half / right half
   function updateDirFromX(cx){
     const r = wrap.getBoundingClientRect();
     const mid = r.left + r.width/2;
@@ -1119,8 +1119,8 @@ function newVJGame(){
   wrap.addEventListener('pointerup',   pUp,   {passive:false});
   wrap.addEventListener('pointercancel', pUp, {passive:false});
 
-  // drawing
-  function drawBackground(){
+  // draw
+  function drawBG(){
     const W = canvas.width / (window.devicePixelRatio||1), H = canvas.height / (window.devicePixelRatio||1);
     const g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
@@ -1135,39 +1135,26 @@ function newVJGame(){
   }
   function drawCoin(c){
     const y = c.y - state.camY;
-    // glow
-    ctx.save();
-    ctx.globalCompositeOperation='lighter';
+    ctx.save(); ctx.globalCompositeOperation='lighter';
     const glow = ctx.createRadialGradient(c.x, y, 0, c.x, y, U(36));
     glow.addColorStop(0,'rgba(255,216,107,0.5)'); glow.addColorStop(1,'rgba(255,216,107,0)');
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(c.x, y, U(36), 0, Math.PI*2); ctx.fill(); ctx.restore();
-    // coin
     ctx.fillStyle='#ffd86b'; ctx.beginPath(); ctx.arc(c.x, y, c.r, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle='#8a5e06'; ctx.font = `${Math.max(10, c.r*0.9)}px Inter, system-ui, sans-serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('CHAD', c.x, y);
   }
   function drawEnemy(e){
-    const y = e.y - state.camY;
-    ctx.save();
-    ctx.translate(e.x, y);
-    ctx.rotate(e.ang);
+    const y = e.y - state.camY, r = e.r;
+    ctx.save(); ctx.translate(e.x, y); ctx.rotate(e.ang);
     ctx.fillStyle = '#ff5858';
-    const r = e.r;
-    ctx.beginPath();
-    ctx.moveTo(0,-r);
-    ctx.lineTo(r, r);
-    ctx.lineTo(-r, r);
-    ctx.closePath();
-    ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r, r); ctx.lineTo(-r, r); ctx.closePath(); ctx.fill();
     ctx.restore();
   }
   function drawPlayer(){
     const y = state.player.y - state.camY;
     const r = state.player.r;
     const tilt = Math.max(-0.5, Math.min(0.5, state.player.vx / U(600)));
-    ctx.save();
-    ctx.translate(state.player.x, y);
-    ctx.rotate(tilt);
+    ctx.save(); ctx.translate(state.player.x, y); ctx.rotate(tilt);
     const body = ctx.createRadialGradient(-r*0.3, -r*0.3, 2, 0,0, r);
     body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#8fb6ff');
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
@@ -1189,39 +1176,32 @@ function newVJGame(){
     }
   }
 
-  // logic
+  // update
   function update(dt){
-    // platforms motion
     const W = canvas.width / (window.devicePixelRatio||1);
     for(const p of state.platforms){
       if(p.mv){ p.x += p.dir * p.sp * dt; if (p.x<0){ p.x=0; p.dir=1; } if (p.x+p.w > W){ p.x=W-p.w; p.dir=-1; } }
     }
-
-    // input accel
     const want = (input.left? -1:0) + (input.right? +1:0);
     if (want) state.player.vx += want * MOVE * dt;
     state.player.vx *= want ? AIR : FRICTION;
 
-    // gravity / integrate
     state.player.vy += GRAV * dt;
     state.player.x  += state.player.vx * dt;
     state.player.y  += state.player.vy * dt;
 
-    // wrap horizontally
     const r = state.player.r;
     if (state.player.x < -r) state.player.x = W + r;
     if (state.player.x >  W + r) state.player.x = -r;
 
-    // bounce on platforms
     for(const p of state.platforms){
       if (hitPlatform(p)){
         state.player.y  = p.y - r;
-        state.player.vy = JUMP;
-        addSpark(state.player.x, p.y, '#9ef0c4');
+        state.player.vy = JUMP; // uses airtime-tuned impulse
+        addSpark(state.player.x, p.y);
       }
     }
 
-    // coin pickup
     for(const c of state.coins){
       if(!c.hit && circleHit({x:state.player.x,y:state.player.y},{x:c.x,y:c.y}, r*0.85, c.r)){
         c.hit = true;
@@ -1229,32 +1209,26 @@ function newVJGame(){
         const award = 30 + (state.coinCount*5);
         state.coinCount++;
         state.earned += award;
-        addSpark(c.x, c.y, '#ffd86b');
+        addSpark(c.x, c.y);
       }
     }
 
-    // enemies
     for(const e of state.enemies){
-      // simple spin for visuals, slight bob
       e.ang += e.angSpd * dt;
-      e.y += Math.sin(e.ang*0.7) * U(6) * dt * 60;
+      e.y   += Math.sin(e.ang*0.7) * U(6) * dt * 60;
       if (circleHit({x:state.player.x,y:state.player.y},{x:e.x,y:e.y}, r*0.85, e.r*0.9)){
-        // hit -> game over
         stop();
         fancyAlert(`You were zapped! Coins ${state.score}. Press Quit to collect.`);
       }
     }
 
-    // camera follow
     if (state.player.y < state.highestY) state.highestY = state.player.y;
     const H = canvas.height / (window.devicePixelRatio||1);
     const targetCam = state.highestY - H*0.45;
     state.camY += (targetCam - state.camY) * Math.min(1, dt*4);
 
-    // ensure content
     ensureContent();
 
-    // fell below
     if (state.player.y - state.camY > H + U(40)){
       stop();
       fancyAlert(`You fell! Coins ${state.score}. Press Quit to collect.`);
@@ -1262,7 +1236,7 @@ function newVJGame(){
   }
 
   function draw(dt){
-    drawBackground();
+    drawBG();
     for(const c of state.coins) if(!c.hit) drawCoin(c);
     for(const p of state.platforms) drawPlatform(p);
     for(const e of state.enemies) drawEnemy(e);
@@ -1275,10 +1249,7 @@ function newVJGame(){
     const prev = state.lastTs || ts;
     state.lastTs = ts;
     const dt = Math.min(0.035, (ts - prev)/1000);
-    if (!state.paused){
-      update(dt);
-      draw(dt);
-    }
+    if (!state.paused){ update(dt); draw(dt); }
     state.loopId = requestAnimationFrame(frame);
   }
 
@@ -1286,7 +1257,7 @@ function newVJGame(){
     if(state.running) return;
     state.running = true; state.paused = false; state.lastTs = performance.now();
     document.getElementById('vjPause').textContent = 'Pause';
-    updateVJUI();
+    updateUI();
     frame(state.lastTs);
   }
   function togglePause(){
@@ -1298,7 +1269,7 @@ function newVJGame(){
     state.running = false;
     if(state.loopId){ cancelAnimationFrame(state.loopId); state.loopId = null; }
   }
-  function updateVJUI(){
+  function updateUI(){
     const sc = document.getElementById('vjScore');
     const se = document.getElementById('vjEarned');
     const top= document.getElementById('vjTopChads');
@@ -1306,9 +1277,8 @@ function newVJGame(){
     if(se) se.textContent = state.earned;
     if(top) top.textContent = state.earned.toLocaleString();
   }
-  updateVJUI();
+  updateUI();
 
-  // expose + cleanup
   VJ = {
     start, togglePause,
     get sessionChads(){ return state.earned; },
@@ -1325,7 +1295,7 @@ function newVJGame(){
     }
   };
 
-  // auto-start when modal opens
+  // auto-start when opened
   start();
 }
 
