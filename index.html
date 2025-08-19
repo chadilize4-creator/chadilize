@@ -6,6 +6,28 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Play overlay: game cards with thumbnails */
+.tile.level .game-card{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+.tile.level .game-thumb{
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:10px;
+  object-fit:cover;
+  display:block;
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.tile.level .game-title{
+  font-weight:800;
+  text-align:center;
+}
+
 /* Zen Stack visuals */
 .zs-wrap{ position:relative; width:100%; height:100%; overflow:hidden; border-radius:10px; }
 #zsCanvas{ width:100%; height:100%; display:block; }
@@ -473,40 +495,72 @@ canvas{ display:block }
           <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('playOverlay')">Close</button>
         </div>
         <div class="row" style="gap:10px">
-          <div class="tile level" style="flex:1; min-height:68px" onclick="openSnake()">
-            <div><div style="font-weight:800">Snake</div></div>
-          </div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
-            <div><div style="font-weight:800">Tetris</div></div>
-          </div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
-            <div><div style="font-weight:800">Flappy Bird</div></div>
-          </div>
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openSnake()">
+    <div class="game-card">
+      <img src="img/snake.png" alt="Snake" class="game-thumb" loading="lazy">
+      <div class="game-title">Snake</div>
+    </div>
+  </div>
 
-<!-- inside the Play overlay's tile grid -->
-<div class="tile level" style="flex:1; min-height:68px" onclick="open2048Swipe()">
-  <div><div style="font-weight:800">2048 Swipe</div></div>
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openTetris()">
+    <div class="game-card">
+      <img src="img/tetris.png" alt="Tetris" class="game-thumb" loading="lazy">
+      <div class="game-title">Tetris</div>
+    </div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
+    <div class="game-card">
+      <img src="img/flappybird.png" alt="Flappy Bird" class="game-thumb" loading="lazy">
+      <div class="game-title">Flappy Bird</div>
+    </div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="open2048Swipe()">
+    <div class="game-card">
+      <img src="img/2048.png" alt="2048 Swipe" class="game-thumb" loading="lazy">
+      <div class="game-title">2048 Swipe</div>
+    </div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openLaneHopper()">
+    <div class="game-card">
+      <img src="img/lanehopper.png" alt="Lane Hopper" class="game-thumb" loading="lazy">
+      <div class="game-title">Lane Hopper</div>
+    </div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
+    <div class="game-card">
+      <img src="img/brickbreaker.png" alt="Brick Breaker" class="game-thumb" loading="lazy">
+      <div class="game-title">Brick Breaker</div>
+    </div>
+  </div>
+
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
+    <div class="game-card">
+      <img src="img/tilerush.png" alt="Tile Rush" class="game-thumb" loading="lazy">
+      <div class="game-title">Tile Rush</div>
+    </div>
+  </div>
 </div>
 
-<div class="tile level" style="flex:1; min-height:68px" onclick="openLaneHopper()">Lane Hopper</div>
+<div class="row" style="gap:10px; margin-top:10px">
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
+    <div class="game-card">
+      <img src="img/verticaljump.png" alt="Vertical Jumper" class="game-thumb" loading="lazy">
+      <div class="game-title">Vertical Jumper</div>
+    </div>
+  </div>
 
+  <div class="tile level" style="flex:1; min-height:68px" onclick="openHexagon()">
+    <div class="game-card">
+      <img src="img/hexagon.png" alt="Hexagon" class="game-thumb" loading="lazy">
+      <div class="game-title">Hexagon</div>
+    </div>
+  </div>
+</div>
 
-<div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
-  <div><div style="font-weight:800">Brick Breaker</div></div>
-</div>
-<div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
-  <div><div style="font-weight:800">Tile Rush</div></div>
-</div>
-
-        </div>
-        <div class="row" style="gap:10px; margin-top:10px">
-          <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
-            <div><div style="font-weight:800">Vertical Jumper</div></div>
-          </div>
-          <!-- Add inside the row of game tiles -->
-<div class="tile level" style="flex:1; min-height:68px" onclick="openHexagon()">
-  <div><div style="font-weight:800">Hexagon</div></div>
-</div>
 
          
         </div>
