@@ -6,14 +6,16 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Lane Hopper visuals + touch fixes */
+ /* Lane Hopper (easier) */
   #laneCanvas{
-    width:100%; height:100%; display:block; border-radius:10px;
-    background: radial-gradient(140% 100% at 50% 30%, #0f1822 0%, #0a0f14 60%) no-repeat;
-    /* IMPORTANT: let pointer events reach JS instead of scrolling/zooming the page */
-    touch-action: none;            /* prevents pan/zoom gestures stealing input */
-    user-select: none;
-    -webkit-user-select: none;
+    width:100%;
+    height:100%;
+    display:block;
+    background:
+      radial-gradient(140% 100% at 50% 30%, #0f1822 0%, #0a0f14 60%) no-repeat;
+    border-radius:10px;
+    /* Critical for reliable touch input: let the canvas own the gesture */
+    touch-action: none;
   }
 
 /* ===== Tile Rush (Rhythm) ===== */
@@ -2425,105 +2427,144 @@ function openBreaker(){
   resetGame();
 })();
 
-/* ===== Lane Hopper (Frogger/Crossy-style) — robust input ===== */
+/* ===== Lane Hopper — Easier edition =====
+   Changes vs previous:
+   - Easier: slower cars, fewer spawns, extra safe rows (every 4th row), slower ramp
+   - More forgiving collisions (smaller hit radius than the sprite)
+   - 120ms grace after each move to avoid instant hits
+   - Robust input: keyboard + swipe/tap + drag with pointer capture
+   - Exposes both openLane() and openLaneHopper() for compatibility
+*/
 (function(){
-  const cvs = document.getElementById('laneCanvas');
-  const ctx = cvs?.getContext('2d');
-  if(!cvs || !ctx) return;
+  const modal = document.getElementById('laneModal');
+  const cvs   = document.getElementById('laneCanvas');
+  const ctx   = cvs?.getContext('2d', { alpha:false });
+  if(!modal || !cvs || !ctx) return;
 
-  // Ensure this opener exists (your Play tile calls openLane / openLaneHopper)
-  window.openLaneHopper = () => {
-    closeOverlay('playOverlay');
-    openOverlay('laneModal');
-    setTimeout(resizeCanvas, 30);
-  };
-  window.openLane = window.openLaneHopper; // back-compat
-
-  /* ---------- HiDPI sizing ---------- */
-  let DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  /* HiDPI sizing — draw in CSS px, render at device px */
+  let DPR = Math.max(1, Math.floor(window.devicePixelRatio||1));
   function resizeCanvas(){
     const r = cvs.getBoundingClientRect();
-    DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+    DPR = Math.max(1, Math.floor(window.devicePixelRatio||1));
     cvs.width  = Math.max(2, Math.floor(r.width  * DPR));
     cvs.height = Math.max(2, Math.floor(r.height * DPR));
-    ctx.setTransform(DPR,0,0,DPR,0,0);  // draw in CSS px
-    W = Math.floor(r.width);
-    H = Math.floor(r.height);
-    cellW = W / COLS;
-    cellH = H / ROWS;
-    player.r = Math.max(8, Math.min(cellW, cellH)*0.33);
+    ctx.setTransform(DPR,0,0,DPR,0,0); // draw in CSS pixels
   }
 
-  /* ---------- Game model ---------- */
-  let running=false, paused=false, loop=null, lastTs=0;
+  /* ===== Game Model ===== */
+  let running=false, paused=false, loop=0, lastTs=0;
   let score=0, earned=0;
 
+  // Grid
   const COLS = 7;
-  const ROWS = 16;
-  const SAFE_ROWS = [0, ROWS-1];
+  const ROWS = 16;               // overall board rows
+  const SAFE_ROWS = new Set();   // auto-filled below
+  for (let r=0; r<ROWS; r++){
+    // Top & bottom are safe; also every 4th row is a walkway
+    if (r===0 || r===ROWS-1 || r%4===0) SAFE_ROWS.add(r);
+  }
+
   let W=0, H=0, cellW=0, cellH=0;
 
-  const lanes=[];       // meta per row
-  const cars=[];        // active obstacles
-  const coins=[];
+  // Lanes/cars/coins
+  const cars = [];      // {row,x,y,w,h,dir,speed,hue}
+  const coins = [];     // {row,col,t}
 
-  const player = { col: Math.floor(COLS/2), row: ROWS-1, r: 10, alive:true };
+  const player = {
+    col: Math.floor(COLS/2),
+    row: ROWS-1,
+    r:   12,           // set on resize
+    alive: true,
+    graceUntil: 0      // ms timestamp for post-move invulnerability
+  };
 
-  // Difficulty
-  let baseSpeed = 90;        // px/s
-  let spawnEvery = 1100;     // ms
-  const laneDir = {};        // row -> dir (-1 / +1)
-  const laneTimer = {};      // row -> ms
-  let coinTimer = 0;
+  // Difficulty knobs (easier defaults)
+  let baseSpeed   = 65;          // px/s (was ~90+)
+  let spawnEvery  = 1500;        // ms between potential spawns (was ~1100)
+  const minGapPxF = 1.4;         // min spacing (in cell widths) between cars on same row
+  const graceMs   = 120;         // invulnerability after step
+  const coinEvery = 1.2;         // seconds (slightly more frequent)
+  let coinTimer   = 0;
+
+  // Per-row meta
+  const laneDir   = {};          // row -> -1 or +1
+  const laneClock = {};          // row -> ms since last spawn
 
   function reset(){
     resizeCanvas();
+    const rect = cvs.getBoundingClientRect();
+    W = Math.floor(rect.width);
+    H = Math.floor(rect.height);
+    cellW = W / COLS;
+    cellH = H / ROWS;
+
     player.col = Math.floor(COLS/2);
     player.row = ROWS-1;
     player.alive = true;
+    player.r = Math.max(8, Math.min(cellW, cellH) * 0.32);
 
-    score = 0; earned = 0;
-    cars.length = 0; coins.length = 0; lanes.length = 0;
+    score = 0;
+    earned = 0;
+    cars.length = 0;
+    coins.length = 0;
 
-    for(let r=0; r<ROWS; r++){
-      const type = SAFE_ROWS.includes(r) ? 'safe' : 'road';
-      lanes[r] = { type };
-      if(type==='road'){
-        laneDir[r] = (r%2===0) ? -1 : +1;
-        laneTimer[r] = 0;
-      }
+    for (let r=0; r<ROWS; r++){
+      laneClock[r] = 0;
+      laneDir[r] = (r%2===0) ? -1 : +1;
     }
+
     updateHUD();
   }
 
   function updateHUD(){
-    const sEl = document.getElementById('laneScore');
-    const eEl = document.getElementById('laneEarned');
-    if(sEl) sEl.textContent = Math.floor(score);
-    if(eEl) eEl.textContent = earned;
+    const s = document.getElementById('laneScore');
+    const e = document.getElementById('laneEarned');
+    if (s) s.textContent = Math.floor(score);
+    if (e) e.textContent = earned;
   }
 
   function spawnCar(row){
-    const y = row*cellH + cellH*0.1;
-    const h = cellH*0.8;
-    const w = cellW*0.9;
+    if (SAFE_ROWS.has(row)) return; // no cars on safe rows
+    // Keep lanes from spawning cars too close together
+    const minGapPx = cellW * minGapPxF;
     const dir = laneDir[row];
-    const startX = (dir>0) ? -w-10 : W+10;
-    const speed = baseSpeed * (1 + (Math.random()*0.65));
-    cars.push({row, x:startX, y, w, h, dir, speed, hue: 200 + (row*13)%80});
+
+    // Check last car in this row
+    const last = [...cars].reverse().find(c => c.row===row);
+    if (last){
+      const edge = dir>0 ? last.x + last.w : last.x; // leading edge in movement direction
+      // approximate: if the last car is still near its spawn edge, skip spawn to keep spacing wide
+      if ((dir>0 && edge < minGapPx) || (dir<0 && (W - edge) < minGapPx)) return;
+    }
+
+    const y = row*cellH + cellH*0.12;
+    const h = cellH*0.76;
+    const w = cellW*0.75; // narrower -> easier to slip through
+    const startX = (dir>0) ? -w-12 : W+12;
+    const speed = baseSpeed * (0.85 + Math.random()*0.45); // modest variance
+
+    cars.push({
+      row, x:startX, y, w, h, dir, speed,
+      hue: 190 + (row*13)%100
+    });
   }
 
-  function maybeSpawnCars(dt){
-    for(let r=1; r<ROWS-1; r++){
-      if(lanes[r].type!=='road') continue;
-      laneTimer[r] += dt*1000;
-      const gap = spawnEvery * (0.85 + Math.random()*0.5);
-      if(laneTimer[r] >= gap){ laneTimer[r] = 0; spawnCar(r); }
+  function trySpawn(dt){
+    for (let r=0; r<ROWS; r++){
+      if (SAFE_ROWS.has(r)) continue;
+      laneClock[r] += dt*1000;
+      const gap = spawnEvery * (0.9 + Math.random()*0.55);
+      if (laneClock[r] >= gap){
+        laneClock[r] = 0;
+        spawnCar(r);
+      }
     }
   }
 
   function spawnCoin(){
-    const rr = 1 + Math.floor(Math.random()*(ROWS-2));
+    // place on a random SAFE cell so coins are approachable
+    const safeRows = [...SAFE_ROWS].filter(r => r!==ROWS-1); // not the starting row only
+    const rr = safeRows[Math.floor(Math.random()*safeRows.length)] ?? 0;
     const cc = Math.floor(Math.random()*COLS);
     if (rr===player.row && cc===player.col) return;
     coins.push({ row: rr, col: cc, t: 0 });
@@ -2533,240 +2574,279 @@ function openBreaker(){
     if(!player.alive) return;
 
     // Move cars
-    for(let i=cars.length-1;i>=0;i--){
+    for (let i=cars.length-1; i>=0; i--){
       const c = cars[i];
       c.x += c.dir * c.speed * dt;
-      if ((c.dir>0 && c.x > W+40) || (c.dir<0 && c.x < -c.w-40)) cars.splice(i,1);
+      if ((c.dir>0 && c.x > W+50) || (c.dir<0 && c.x < -c.w-50)){
+        cars.splice(i,1);
+      }
     }
 
-    maybeSpawnCars(dt);
+    // Spawn flow
+    trySpawn(dt);
 
     // Coins
     coinTimer += dt;
-    if (coinTimer > 1.5){ coinTimer = 0; if (coins.length < 3) spawnCoin(); }
-    for(const k of coins) k.t += dt;
+    if (coinTimer > coinEvery){
+      coinTimer = 0;
+      if (coins.length < 3) spawnCoin();
+    }
+    for (const k of coins) k.t += dt;
 
-    // Collisions
+    // Collisions (forgiving radius + grace window)
+    const now = performance.now();
     const px = player.col*cellW + cellW*0.5;
     const py = player.row*cellH + cellH*0.5;
-    const pr = player.r*0.85;
+    const pr = player.r * 0.70; // easier: smaller hitbox than the sprite
 
-    // car hit
-    for(const c of cars){
-      const nx = Math.max(c.x, Math.min(px, c.x+c.w));
-      const ny = Math.max(c.y, Math.min(py, c.y+c.h));
-      const dx = px-nx, dy=py-ny;
-      if (dx*dx+dy*dy <= pr*pr){
-        player.alive=false;
-        showToast?.('You were hit! Press Start to try again.');
-        break;
+    if (now > player.graceUntil){
+      for (const c of cars){
+        // quick circle-rect test
+        const nx = Math.max(c.x, Math.min(px, c.x+c.w));
+        const ny = Math.max(c.y, Math.min(py, c.y+c.h));
+        const dx = px-nx, dy = py-ny;
+        if (dx*dx + dy*dy <= pr*pr){
+          player.alive = false;
+          toast('You were hit! Press Start to try again.');
+          break;
+        }
       }
     }
 
-    // coin collect
-    for(let i=coins.length-1;i>=0;i--){
+    // Coin pickup
+    for (let i=coins.length-1; i>=0; i--){
       const c = coins[i];
       const cx = c.col*cellW + cellW*0.5;
       const cy = c.row*cellH + cellH*0.5;
-      const dx = px-cx, dy=py-cy;
-      if (dx*dx+dy*dy <= (pr+10)*(pr+10)){
+      const dx = px-cx, dy = py-cy;
+      if (dx*dx + dy*dy <= (pr+10)*(pr+10)){
         coins.splice(i,1);
-        earned += 50;
+        earned += 50; // keep reward, just make it easier to obtain
+        updateHUD();
       }
     }
 
-    // Scoring
-    score += dt*60;
+    // Score trickle
+    score += dt*50;
 
-    // Reached top => reset & ramp a bit
-    if(player.row===0){
+    // Reached the top? Reset to bottom & gently ramp difficulty
+    if (player.row === 0){
       player.row = ROWS-1;
-      baseSpeed *= 1.06;
-      spawnEvery = Math.max(700, spawnEvery*0.97);
+      baseSpeed *= 1.04;                         // slower ramp
+      spawnEvery = Math.max(950, spawnEvery*0.99);
     }
   }
 
+  /* ===== Drawing ===== */
   function drawBG(){
-    for(let r=0;r<ROWS;r++){
+    for (let r=0; r<ROWS; r++){
       const y = r*cellH;
-      ctx.fillStyle = (r===0 || r===ROWS-1) ? '#0f171e' : ((r%2)?'#0b1319':'#0a1116');
+      if (SAFE_ROWS.has(r)){
+        ctx.fillStyle = '#0f171e';
+      } else {
+        ctx.fillStyle = (r%2) ? '#0b1319' : '#0a1116';
+      }
       ctx.fillRect(0,y,W,cellH);
-      if(lanes[r]?.type==='road'){
+
+      if (!SAFE_ROWS.has(r)){
+        // faint dashed centerline
         ctx.strokeStyle='rgba(255,255,255,0.06)';
         ctx.setLineDash([10,10]);
         ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(0,y+cellH*0.5); ctx.lineTo(W,y+cellH*0.5); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, y+cellH*0.5);
+        ctx.lineTo(W, y+cellH*0.5);
+        ctx.stroke();
         ctx.setLineDash([]);
       }
     }
   }
+
   function drawPlayer(){
     const x = player.col*cellW + cellW*0.5;
     const y = player.row*cellH + cellH*0.5;
     const r = player.r;
+
+    // glow
     const g = ctx.createRadialGradient(x,y,0,x,y,r*2.3);
     g.addColorStop(0,'rgba(120,200,255,0.18)');
     g.addColorStop(1,'rgba(120,200,255,0)');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r*2.3,0,Math.PI*2); ctx.fill();
 
+    // body
     const body = ctx.createRadialGradient(x-r*0.3,y-r*0.35,1,x,y,r);
-    body.addColorStop(0,'#e8f3ff'); body.addColorStop(1,'#78adff');
+    body.addColorStop(0,'#e8f3ff');
+    body.addColorStop(1,'#78adff');
     ctx.fillStyle=body; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
 
+    // eyes
     ctx.fillStyle='#0a0e12';
     ctx.beginPath(); ctx.arc(x-r*0.28,y-r*0.15,r*0.12,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(x+r*0.28,y-r*0.15,r*0.12,0,Math.PI*2); ctx.fill();
   }
+
   function drawCars(){
-    for(const c of cars){
+    for (const c of cars){
       ctx.fillStyle = `hsl(${c.hue},70%,55%)`;
       ctx.fillRect(c.x, c.y, c.w, c.h);
+      // windows
       ctx.fillStyle='rgba(255,255,255,0.25)';
       ctx.fillRect(c.x+c.w*0.1, c.y+c.h*0.22, c.w*0.25, c.h*0.26);
       ctx.fillRect(c.x+c.w*0.65, c.y+c.h*0.22, c.w*0.25, c.h*0.26);
     }
   }
+
   function drawCoins(){
-    for(const c of coins){
+    for (const c of coins){
       const cx = c.col*cellW + cellW*0.5;
       const cy = c.row*cellH + cellH*0.5;
       const pulse = 1 + Math.sin(c.t*6)*0.08;
-      ctx.save(); ctx.globalCompositeOperation='lighter';
+
+      // glow
+      ctx.save();
+      ctx.globalCompositeOperation='lighter';
       const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 26);
       glow.addColorStop(0,'rgba(255,216,107,0.45)');
       glow.addColorStop(1,'rgba(255,216,107,0)');
       ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(cx,cy,26,0,Math.PI*2); ctx.fill();
       ctx.restore();
-      ctx.save(); ctx.translate(cx,cy); ctx.scale(pulse,1);
-      ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2);
+
+      // coin
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.scale(pulse,1);
+      ctx.beginPath();
+      ctx.arc(0,0,12,0,Math.PI*2);
       const gr = ctx.createRadialGradient(-4,-4,1,0,0,12);
       gr.addColorStop(0,'#fff5c8'); gr.addColorStop(0.6,'#ffd86b'); gr.addColorStop(1,'#d79a00');
-      ctx.fillStyle=gr; ctx.fill(); ctx.restore();
+      ctx.fillStyle=gr; ctx.fill();
+      ctx.restore();
     }
   }
+
   function draw(){
     ctx.clearRect(0,0,W,H);
-    drawBG(); drawCoins(); drawCars(); drawPlayer();
+    drawBG();
+    drawCoins();
+    drawCars();
+    drawPlayer();
   }
 
   function frame(ts){
-    if(!running){ loop=null; return; }
+    if(!running){ loop=0; return; }
     if(!lastTs) lastTs = ts;
     const dt = Math.min(0.035, (ts-lastTs)/1000);
     lastTs = ts;
     if(!paused && player.alive){
-      update(dt); updateHUD();
+      update(dt);
+      updateHUD();
     }
     draw();
     loop = requestAnimationFrame(frame);
   }
 
-  /* ---------- Movement helpers ---------- */
+  /* ===== Movement & Input ===== */
+  function moved(){
+    // give a short invulnerability after each step
+    player.graceUntil = performance.now() + graceMs;
+  }
   function move(dx, dy){
     if(!player.alive) return;
-    player.col = Math.max(0, Math.min(COLS-1, player.col + dx));
-    player.row = Math.max(0, Math.min(ROWS-1, player.row + dy));
+    const nc = Math.max(0, Math.min(COLS-1, player.col + dx));
+    const nr = Math.max(0, Math.min(ROWS-1, player.row + dy));
+    if (nc!==player.col || nr!==player.row){
+      player.col = nc; player.row = nr; moved();
+    }
   }
 
-  /* ---------- Input: swipe + tap zones + D-pad + keyboard ---------- */
-  const swipe = { active:false, id:null, x:0, y:0 };
+  // Keyboard
+  function onKey(e){
+    const k = e.key;
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','A','d','D','w','W','s','S',' '].includes(k)) e.preventDefault();
+    if (k==='ArrowLeft'||k==='a'||k==='A') move(-1,0);
+    if (k==='ArrowRight'||k==='d'||k==='D') move(+1,0);
+    if (k==='ArrowUp'||k==='w'||k==='W'||k===' ') move(0,-1);
+    if (k==='ArrowDown'||k==='s'||k==='S') move(0,+1);
+  }
+  window.addEventListener('keydown', onKey, {passive:false});
 
-  function pressStart(e){
-    e.preventDefault();
-    swipe.active = true; swipe.id = e.pointerId; swipe.x = e.clientX; swipe.y = e.clientY;
-    // capture all subsequent pointer events for this pointer (robust on mobile webviews)
+  // Touch/Pointer: swipe OR tap-to-step-forward. Use pointer capture for reliability.
+  const swipe = { active:false, id:null, x:0, y:0 };
+  function onPointerDown(e){
+    e.preventDefault(); // allowed because listener is non-passive
+    swipe.active = true; swipe.id = e.pointerId;
+    swipe.x = e.clientX; swipe.y = e.clientY;
     try{ cvs.setPointerCapture(e.pointerId); }catch{}
   }
-  function pressMove(e){
-    if(!swipe.active || e.pointerId!==swipe.id) return;
-    // (optional: could live-preview a direction here)
-  }
-  function pressEnd(e){
-    if(!swipe.active || e.pointerId!==swipe.id) return;
+  function onPointerUp(e){
+    if(!swipe.active) return;
+    if(e.pointerId !== swipe.id) return;
     e.preventDefault();
     const dx = e.clientX - swipe.x;
     const dy = e.clientY - swipe.y;
     swipe.active=false; swipe.id=null;
-    try{ cvs.releasePointerCapture(e.pointerId); }catch{}
-
-    const ax=Math.abs(dx), ay=Math.abs(dy), TH=14;
-
-    if(ax<TH && ay<TH){
-      // Tiny tap — split canvas into 3 vertical zones for easy left/forward/right
-      const rect = cvs.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const third = rect.width/3;
-      if(x < third) move(-1,0);
-      else if(x > 2*third) move(+1,0);
-      else move(0,-1); // center = forward
-      return;
+    const ax = Math.abs(dx), ay = Math.abs(dy), TH=14;
+    if (ax<TH && ay<TH){
+      move(0,-1);                // tiny tap = forward hop
+    } else if (ax>ay){
+      move(dx>0?+1:-1,0);        // horizontal swipe
+    } else {
+      move(0, dy>0?+1:-1);       // vertical swipe
     }
-
-    if(ax>ay) move(dx>0?+1:-1, 0); else move(0, dy>0?+1:-1);
   }
+  function onPointerCancel(){ swipe.active=false; swipe.id=null; }
+  cvs.addEventListener('pointerdown', onPointerDown, {passive:false});
+  cvs.addEventListener('pointerup',   onPointerUp,   {passive:false});
+  cvs.addEventListener('pointercancel', onPointerCancel, {passive:true});
 
-  // Pointer events (single unified model for touch/mouse/pen)
-  cvs.addEventListener('pointerdown', pressStart, {passive:false});
-  cvs.addEventListener('pointermove', pressMove,   {passive:false});
-  cvs.addEventListener('pointerup',   pressEnd,    {passive:false});
-  cvs.addEventListener('pointercancel', ()=>{ swipe.active=false; swipe.id=null; }, {passive:true});
-
-  // Keyboard (desktop)
-  function onKey(e){
-    if(e.key==='ArrowLeft' || e.key==='a' || e.key==='A'){ e.preventDefault(); move(-1,0); }
-    if(e.key==='ArrowRight'|| e.key==='d' || e.key==='D'){ e.preventDefault(); move(+1,0); }
-    if(e.key==='ArrowUp'   || e.key==='w' || e.key==='W' || e.key===' '){ e.preventDefault(); move(0,-1); }
-    if(e.key==='ArrowDown' || e.key==='s' || e.key==='S'){ e.preventDefault(); move(0,+1); }
-  }
-  window.addEventListener('keydown', onKey, {passive:false});
-
-  // D-pad (mobile-friendly)
-  const dpad = document.getElementById('laneDpad');
-  if(dpad){
-    const bind = (sel, fn)=>{
-      const b = dpad.querySelector(sel);
-      if(!b) return;
-      const go = (e)=>{ e.preventDefault(); fn(); };
-      b.addEventListener('pointerdown', go, {passive:false});
-      b.addEventListener('click', go, {passive:false});
-    };
-    bind('.left',  ()=> move(-1,0));
-    bind('.right', ()=> move(+1,0));
-    bind('.up',    ()=> move(0,-1));
-    bind('.down',  ()=> move(0,+1));
-  }
-
-  /* ---------- Controls ---------- */
+  /* ===== UI wiring ===== */
   function start(){
-    reset(); running=true; paused=false; lastTs=0;
-    cancelAnimationFrame(loop); loop=null;
+    reset();
+    running=true; paused=false; lastTs=0;
+    cancelAnimationFrame(loop); loop=0;
     loop = requestAnimationFrame(frame);
-    document.getElementById('lanePause').textContent='Pause';
+    const p = document.getElementById('lanePause');
+    if (p) p.textContent = 'Pause';
   }
   function pause(){
     if(!running) return;
-    paused=!paused;
-    document.getElementById('lanePause').textContent = paused?'Resume':'Pause';
+    paused = !paused;
+    const p = document.getElementById('lanePause');
+    if (p) p.textContent = paused? 'Resume' : 'Pause';
   }
   function quit(){
-    if(earned>0){
-      try{
-        state.chads = (state?.chads ?? 0n) + BigInt(earned);
-        saveStateLocal?.(state);
-        refreshUI?.();
-        showToast?.(`<span class="accent">+${earned}</span> chads added to balance.`);
-      }catch{}
+    if (earned>0 && typeof state!=='undefined'){
+      state.chads = (state.chads??0n) + BigInt(earned);
+      if (typeof saveStateLocal==='function') saveStateLocal(state);
+      if (typeof refreshUI==='function') refreshUI();
+      toast(`<span class="accent">+${earned}</span> chads added to balance.`);
     }
-    running=false; cancelAnimationFrame(loop); loop=null;
+    running=false; cancelAnimationFrame(loop); loop=0;
     closeOverlay('laneModal');
   }
 
-  document.getElementById('laneStart').onclick = start;
-  document.getElementById('lanePause').onclick = pause;
-  document.getElementById('laneQuit').onclick  = quit;
+  // Buttons present in your HTML
+  document.getElementById('laneStart')?.addEventListener('click', start);
+  document.getElementById('lanePause')?.addEventListener('click', pause);
+  document.getElementById('laneQuit') ?.addEventListener('click', quit);
 
-  // Keep canvas crisp on resize/orientation
-  new ResizeObserver(resizeCanvas).observe(cvs);
+  // Keep canvas crisp on layout changes (modal open/rotate)
+  const ro = new ResizeObserver(()=> resizeCanvas());
+  ro.observe(cvs);
+
+  // Toast helper uses your app's toast if present
+  function toast(html){
+    if (typeof showToast==='function') showToast(html);
+  }
+
+  // Openers — keep both names so your existing "onclick='openLane()'" works
+  function opener(){
+    closeOverlay('playOverlay');
+    openOverlay('laneModal');
+    setTimeout(()=> resizeCanvas(), 30);
+  }
+  window.openLaneHopper = opener;
+  window.openLane = opener;
 })();
   /* ===== Hamster-style HEXAGON (drag, merge stacks, clear at threshold) ===== */
 (function(){
