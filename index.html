@@ -716,6 +716,336 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
   });
   window.openTetris = ()=>{ closeOverlay('playOverlay'); openOverlay('tetrisModal'); start(); };
 })();
+// ===== HEXAGON (Hamster-style) =====
+(function(){
+  const cvs = document.getElementById('hexCanvas'); const ctx = cvs?.getContext('2d');
+  if(!cvs || !ctx) return;
+
+  // Assets from your /img folder (exact filenames you said)
+  const SPRITES = {
+    yellow: 'img/hexagonyellow.png',
+    red:    'img/hexagonred.png',
+    green:  'img/hexagongreen.png',
+    purple: 'img/hexagonpurple.png',
+    orange: 'img/hexagonorange.png',
+    blue:   'img/hexagonblue.png'
+  };
+  const COLORS = Object.keys(SPRITES);
+  const images = {};
+  for (const c of COLORS){ images[c] = new Image(); images[c].src = SPRITES[c]; }
+
+  // Board: axial hex grid with hex-shaped bounds (radius = 3 looks like Hamster Kombat)
+  const RADIUS = 3; // cells from center to a corner
+  const CLEAR_AT = 3; // height needed to clear (merge threshold from public guides). :contentReference[oaicite:1]{index=1}
+  const REWARD_PER_CLEAR = 15; // chads per clear (adjust if you want)
+
+  let unit=1, W=0, H=0, paused=false, dragging=null, pointer={x:0,y:0}, running=false;
+  let board=null, tray=null, score=0, earned=0;
+
+  function makeKey(q,r){ return q+','+r; }
+  function fromKey(k){ const [q,r]=k.split(',').map(Number); return {q,r}; }
+  function inBounds(q,r){
+    const s = -q-r;
+    return Math.abs(q)<=RADIUS && Math.abs(r)<=RADIUS && Math.abs(s)<=RADIUS;
+  }
+  function eachCell(cb){
+    for(let q=-RADIUS;q<=RADIUS;q++){
+      for(let r=-RADIUS;r<=RADIUS;r++){
+        if(inBounds(q,r)) cb(q,r);
+      }
+    }
+  }
+  const NEI = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+  function resize(){
+    const wrap = cvs.parentElement.getBoundingClientRect();
+    W = cvs.width = Math.floor(wrap.width);
+    H = cvs.height = Math.floor(wrap.height);
+    // size so the hex map fits vertically with some bottom space for the tray
+    const gridH = H*0.74;
+    const rowCount = (2*RADIUS+1);
+    // hex metrics
+    const hexH = gridH / (rowCount + 0.5); // a bit of top/bottom margin
+    unit = hexH/2; // hex radius (apothem-ish)
+  }
+  resize();
+  new ResizeObserver(resize).observe(cvs.parentElement);
+
+  function hexToPixel(q,r){
+    // pointy-top axial -> pixel
+    const size = unit;
+    const x = size * (Math.sqrt(3)*q + Math.sqrt(3)/2*r);
+    const y = size * (3/2*r);
+    // center in middle of top 74%
+    const centerX = W/2, centerY = H*0.40;
+    return { x: centerX + x, y: centerY + y };
+  }
+  function pixelToHex(x,y){
+    // inverse of above (approx & snap to nearest)
+    const size = unit;
+    const cx = x - W/2;
+    const cy = y - H*0.40;
+    const qf = (Math.sqrt(3)/3 * cx - 1/3 * cy) / size;
+    const rf = (2/3 * cy) / size;
+    return hexRound(qf, rf);
+  }
+  function hexRound(qf, rf){
+    let sf = -qf-rf;
+    let q = Math.round(qf), r = Math.round(rf), s = Math.round(sf);
+    const qDiff = Math.abs(q - qf), rDiff = Math.abs(r - rf), sDiff = Math.abs(s - sf);
+    if (qDiff > rDiff && qDiff > sDiff) q = -r - s;
+    else if (rDiff > sDiff) r = -q - s;
+    return {q,r};
+  }
+
+  function newBoard(){
+    const b = {}; eachCell((q,r)=>{ b[makeKey(q,r)] = null; });
+    return b;
+  }
+  function newTray(){
+    // three pieces; heights 1–2; random colors
+    return new Array(3).fill(0).map(()=> ({
+      color: COLORS[(Math.random()*COLORS.length)|0],
+      h: Math.random()<0.25 ? 2 : 1 // mostly 1s, sometimes 2s
+    }));
+  }
+
+  function start(){
+    board = newBoard();
+    tray  = newTray();
+    score = 0; earned=0; paused=false; running=true;
+    document.getElementById('hexScore').textContent = '0';
+    document.getElementById('hexEarned').textContent = '0';
+    loop();
+  }
+  function stop(){ running=false; }
+
+  function canPlace(q,r){ return inBounds(q,r) && board[makeKey(q,r)]==null; }
+
+  function neighbors(q,r){
+    return NEI.map(([dq,dr])=>({q:q+dq, r:r+dr})).filter(p=> inBounds(p.q,p.r));
+  }
+
+  // Merge & clear logic: place piece, flood same color, sum heights, reduce by groups of 3 → clears, leftover height remains
+  function place(q,r,piece){
+    if (!canPlace(q,r)) return false;
+    const k = makeKey(q,r);
+    board[k] = { color: piece.color, h: piece.h };
+
+    // flood same color to combine heights
+    const targetColor = piece.color;
+    const visited = new Set([k]);
+    const stack = [ {q,r} ];
+    let totalH = 0;
+    while (stack.length){
+      const {q:rq, r:rr} = stack.pop();
+      const kk = makeKey(rq,rr);
+      const cell = board[kk];
+      if(!cell || cell.color!==targetColor) continue;
+      totalH += cell.h;
+      neighbors(rq,rr).forEach(p=>{
+        const pk=makeKey(p.q,p.r);
+        const c=board[pk];
+        if(c && c.color===targetColor && !visited.has(pk)){ visited.add(pk); stack.push(p); }
+      });
+    }
+    // clear all merged cells
+    visited.forEach(kv=> board[kv]=null);
+
+    // now totalH clears in groups of CLEAR_AT, leftover stays at (q,r)
+    let clears = Math.floor(totalH / CLEAR_AT);
+    let leftover = totalH % CLEAR_AT;
+    if (clears>0){
+      const gain = clears * REWARD_PER_CLEAR;
+      score += gain; earned += gain;
+      document.getElementById('hexScore').textContent = String(score);
+      document.getElementById('hexEarned').textContent = String(earned);
+    }
+    if (leftover>0){
+      board[k] = { color: targetColor, h: leftover };
+      // chain check: if leftover now touches same color again, quick recompute once more
+      // (simple extra pass for nice chains)
+      let touched = false;
+      for(const nb of neighbors(q,r)){
+        const c = board[makeKey(nb.q,nb.r)];
+        if(c && c.color===targetColor){ touched=true; break; }
+      }
+      if (touched){
+        // treat as re-place to merge again
+        const again = { color: targetColor, h: leftover };
+        board[k]=null;
+        return place(q,r,again);
+      }
+    }
+    return true;
+  }
+
+  // Tray picking & dragging (all on the canvas)
+  function traySlots(){
+    // 3 slots centered at bottom
+    const y = H*0.86;
+    const gap = unit*5.0;
+    const r  = unit*1.5;
+    const cx = W/2 - gap, bx = W/2, ax = W/2 + gap;
+    return [
+      {x:cx, y, r},
+      {x:bx, y, r},
+      {x:ax, y, r},
+    ];
+  }
+  function slotHit(px,py){
+    const slots = traySlots();
+    for(let i=0;i<slots.length;i++){
+      const s = slots[i];
+      const dx=px-s.x, dy=py-s.y;
+      if (dx*dx+dy*dy <= s.r*s.r) return i;
+    }
+    return -1;
+  }
+
+  cvs.addEventListener('pointerdown', (e)=>{
+    if(!running || paused) return;
+    const rect = cvs.getBoundingClientRect(); pointer.x = e.clientX-rect.left; pointer.y=e.clientY-rect.top;
+    const idx = slotHit(pointer.x, pointer.y);
+    if (idx>=0 && tray[idx]){
+      dragging = { idx, piece: tray[idx], x:pointer.x, y:pointer.y };
+      tray[idx]=null;
+      cvs.setPointerCapture(e.pointerId);
+    }
+  });
+  cvs.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const rect = cvs.getBoundingClientRect(); pointer.x = e.clientX-rect.left; pointer.y=e.clientY-rect.top;
+    dragging.x = pointer.x; dragging.y = pointer.y;
+  });
+  function cancelDragBack(){
+    // return dragged piece to an empty tray slot (or same place)
+    if(!dragging) return;
+    let placed=false;
+    const slots = traySlots();
+    for(let i=0;i<3;i++){
+      if (!tray[i]){ tray[i]=dragging.piece; placed=true; break; }
+    }
+    if(!placed){
+      // all filled somehow: just drop it in the first slot
+      tray[dragging.idx ?? 0] = dragging.piece;
+    }
+    dragging=null;
+  }
+  cvs.addEventListener('pointerup', (e)=>{
+    if(!dragging) return;
+    const rect = cvs.getBoundingClientRect(); const x = e.clientX-rect.left; const y=e.clientY-rect.top;
+
+    // Try to place on board
+    const {q,r} = pixelToHex(x,y);
+    if (inBounds(q,r) && canPlace(q,r)){
+      place(q,r, dragging.piece);
+      dragging=null;
+      // refill tray if empty slots
+      for(let i=0;i<3;i++){ if (!tray[i]) tray[i] = { color: COLORS[(Math.random()*COLORS.length)|0], h: Math.random()<0.25?2:1 }; }
+    } else {
+      cancelDragBack();
+    }
+    try{ cvs.releasePointerCapture(e.pointerId); }catch{}
+  });
+  cvs.addEventListener('pointercancel', ()=> cancelDragBack());
+
+  // Draw
+  function drawHex(x,y,r, fill, stroke){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = Math.PI/6 + i*Math.PI/3; // pointy top
+      const px = r*Math.cos(a), py=r*Math.sin(a);
+      (i===0)?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    if (fill){ ctx.fillStyle=fill; ctx.fill(); }
+    if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=Math.max(1, r*0.08); ctx.stroke(); }
+    ctx.restore();
+  }
+  function drawBoard(){
+    // empties
+    eachCell((q,r)=>{
+      const {x,y} = hexToPixel(q,r);
+      drawHex(x,y, unit*0.98, '#0f141b', 'rgba(255,255,255,0.06)');
+      const cell = board[makeKey(q,r)];
+      if(cell){
+        const img = images[cell.color];
+        if (img?.complete){
+          const s = unit*1.65; // image size
+          ctx.drawImage(img, x-s/2, y-s/2, s, s);
+        }else{
+          drawHex(x,y, unit*0.92, '#222d3a', '#3a4a66');
+        }
+        // height text
+        ctx.fillStyle='#eaf1f8';
+        ctx.font = `${Math.floor(unit*0.9)}px Inter, system-ui, Arial`;
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.fillText(String(cell.h), x, y);
+      }
+    });
+  }
+  function drawTray(){
+    const slots = traySlots();
+    slots.forEach((s,i)=>{
+      drawHex(s.x, s.y, s.r, '#0f141b', 'rgba(255,255,255,0.08)');
+      const p = tray[i];
+      if(p){
+        const img = images[p.color];
+        if (img?.complete){
+          const k = s.r*1.5;
+          ctx.drawImage(img, s.x-k/2, s.y-k/2, k, k);
+        }
+        ctx.fillStyle='#eaf1f8';
+        ctx.font = `${Math.floor(s.r*0.8)}px Inter, system-ui, Arial`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(String(p.h), s.x, s.y);
+      }
+    });
+    if (dragging){
+      const p = dragging.piece, img = images[p.color];
+      if (img?.complete){
+        const k = unit*2.8;
+        ctx.globalAlpha=0.92;
+        ctx.drawImage(img, dragging.x-k/2, dragging.y-k/2, k, k);
+        ctx.globalAlpha=1;
+      }
+      ctx.fillStyle='#fff';
+      ctx.font = `${Math.floor(unit*1.2)}px Inter, system-ui, Arial`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(p.h), dragging.x, dragging.y);
+    }
+  }
+  function loop(){
+    if (!running) return;
+    ctx.clearRect(0,0,W,H);
+    // background gradient
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0a0f14'); g.addColorStop(1,'#060a0f');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    drawBoard(); drawTray();
+    requestAnimationFrame(loop);
+  }
+
+  // Buttons + open/close
+  document.getElementById('hexStart').onclick = ()=>{ if(!running){} start(); };
+  document.getElementById('hexPause').onclick = ()=>{
+    paused = !paused; document.getElementById('hexPause').textContent = paused? 'Resume' : 'Pause';
+  };
+  document.getElementById('hexQuit').onclick = ()=>{
+    if (earned>0){
+      state.chads += BigInt(earned);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
+    }
+    stop(); closeOverlay('hexModal');
+  };
+
+  window.openHexagon = ()=>{ closeOverlay('playOverlay'); openOverlay('hexModal'); if(!running) start(); };
+})();
 
 /* ===== FLAPPY BIRD — fixed DPR, bounds, restart ===== */
 (function(){
