@@ -232,9 +232,11 @@ canvas{ display:block }
           <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
             <div><div style="font-weight:800">Vertical Jumper</div></div>
           </div>
-          <div class="tile level" style="flex:1; min-height:68px" onclick="openHexagon()">
-            <div><div style="font-weight:800">Hexagon</div></div>
-          </div>
+          <!-- Add inside the row of game tiles -->
+<div class="tile level" style="flex:1; min-height:68px" onclick="openHexagon()">
+  <div><div style="font-weight:800">Hexagon</div></div>
+</div>
+
           <div class="tile level" style="flex:1; min-height:68px" onclick="showToast('More soon ✨')">
             <div><div style="font-weight:800">More</div></div>
           </div>
@@ -410,19 +412,37 @@ canvas{ display:block }
     </div>
 
     <!-- HEXAGON Modal -->
-    <div class="overlay" id="hexModal">
-      <div class="panel">
-        <div class="row">
-          <h2>Hexagon (9:16)</h2>
-          <button class="tile level" style="padding:8px 12px" id="hexQuit">Quit</button>
-        </div>
-        <div class="game-9x16" style="flex-direction:column">
-          <canvas id="hexCanvas" style="width:100%;height:100%;"></canvas>
-        </div>
-        <div class="palette" id="hexPalette"></div>
-        <div class="hex-note">Drag a hex from the palette and drop on the board. 3+ connected clears for <b>+50</b> chads.</div>
+<div class="overlay" id="hexModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Hexagon (9:16)</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="hexStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="hexPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="hexQuit">Quit</button>
       </div>
     </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="hexScore">0</b></div>
+      <div class="note">Session chads: <b id="hexEarned">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div id="hexWrap" style="position:relative;width:100%;height:100%;touch-action:none;">
+        <canvas id="hexCanvas" class="full"></canvas>
+
+        <!-- Palette (3 draggable hexes) -->
+        <div id="hexPalette" style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:14px;z-index:5;">
+          <!-- items are injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <p class="note">Drag a hex onto the board. Drop on same color to stack. 3+ connected of one color clears for <b>+50</b> chads. Quit to collect.</p>
+  </div>
+</div>
+
 
     <!-- Toasts -->
     <div class="toastWrap" id="toastWrap"></div>
