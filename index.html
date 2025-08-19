@@ -834,6 +834,24 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
     ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(bird.r*0.3,-bird.r*0.2,bird.r*0.16,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
+function sizeCanvas() {
+  const rect = flappyWrap.getBoundingClientRect();      // flappyWrap is the 9:16 shell around the canvas
+  const dpr  = Math.max(1, window.devicePixelRatio || 1);
+
+  // 1) Set the REAL pixel size so the backbuffer matches the element on screen
+  flappyCanvas.width  = Math.round(rect.width  * dpr);
+  flappyCanvas.height = Math.round(rect.height * dpr);
+
+  // 2) Draw in CSS pixels (so your positions/physics are 1:1 with what you see)
+  const ctx = flappyCtx;
+  ctx.setTransform(1,0,0,1, 0,0);   // reset any scale
+  ctx.scale(dpr, dpr);              // convert future draw coords from CSS px -> device px
+
+  // 3) Use CSS px for all game math (W/H). VERY IMPORTANT:
+  FLAP.W = rect.width;
+  FLAP.H = rect.height;
+}
+
 
   function frame(ts){
     if(!running && !paused) return;
