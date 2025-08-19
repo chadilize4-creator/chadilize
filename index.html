@@ -1172,148 +1172,282 @@ function quitVJ(){
   if (VJ?.cleanup) VJ.cleanup(); VJ=null; closeOverlay('vjModal');
 }
 
-/* ===== HEXAGON (Hamster-like) ===== */
+/* ===== HEXAGON (Hamster-style) ===== */
 (function(){
-  const canvas = document.getElementById('hexCanvas'); const ctx = canvas.getContext('2d');
-  const paletteEl = document.getElementById('hexPalette');
-  let W=0,H=0; const RADIUS = 26;
-  const COLORS = ['yellow','red','green','purple','orange','blue'];
-  const IMG = {}; // color -> Image
-  let board = new Map(); // key "q,r" -> {color}
-  let palette = []; // colors
-  let dragging = null; // {color, x, y, fromIndex}
-  let loop=null, running=false;
+  const cvs = document.getElementById('hexCanvas');
+  if(!cvs) return;
+  const ctx = cvs.getContext('2d', { alpha:true });
 
-  function loadImages(){
-    for(const c of COLORS){ const im = new Image(); im.src = `img/hexagon${c}.png`; IMG[c]=im; }
-  }
-  function size(){ const host = canvas.parentElement.getBoundingClientRect(); W=canvas.width=Math.floor(host.width); H=canvas.height=Math.floor(host.height); }
-  function axialKey(q,r){ return `${q},${r}`; }
-  function axialParse(k){ const [q,r]=k.split(',').map(Number); return {q,r}; }
+  // --- assets: colored hex PNGs from your repo
+  const IMG = {
+    yellow: 'img/hexagonyellow.png',
+    red:    'img/hexagonred.png',
+    green:  'img/hexagongreen.png',
+    purple: 'img/hexagonpurple.png',
+    orange: 'img/hexagonorange.png',
+    blue:   'img/hexagonblue.png',
+  };
+  const COLORS = Object.keys(IMG);
+  const images = {};
+  for (const k of COLORS){ const im = new Image(); im.src = IMG[k]; images[k]=im; }
 
-  const HEX_W = Math.sqrt(3)*RADIUS, HEX_H = 2*RADIUS;
-  const ORIGIN = {x: 0, y: 0}; // set in draw
-  function axialToPixel(q,r){
-    const x = HEX_W * (q + r/2) + ORIGIN.x;
-    const y = (3/2)*RADIUS * r + ORIGIN.y;
-    return {x,y};
+  // --- board & palette state
+  let W=0,H=0, unit=1, R=4;              // R = board radius (rings). R=4 ≈ 61 cells
+  let size=22;                           // hex "radius" in px, scaled at layout time
+  let origin={x:0,y:0};                  // board center in pixels
+  const cells = new Map();               // key "q,r" -> { color }
+  let palette = [];                      // three upcoming tiles
+  let dragging = null;                   // { color, from, x,y }
+  let running=false, paused=false, loop=null;
+  let earned=0, score=0;
+
+  // --- helpers (axial coords, from Red Blob Games)
+  const SQRT3 = Math.sqrt(3);
+  function key(q,r){ return q+','+r; }
+  function axialToPixel(q,r){ return {
+    x: (SQRT3 * (q + r/2)) * size + origin.x,
+    y: (1.5 * r) * size + origin.y
+  }; }
+  // cube rounding
+  function pixelToAxialRound(x,y){
+    const qf = ( (x-origin.x) * SQRT3/3 - (y-origin.y)/3 ) / (size/1);
+    const rf = ( (y-origin.y) * 2/3 ) / (size/1);
+    let x_c = qf, z_c = rf, y_c = -x_c - z_c;
+    let rx = Math.round(x_c), ry = Math.round(y_c), rz = Math.round(z_c);
+    const dx=Math.abs(rx-x_c), dy=Math.abs(ry-y_c), dz=Math.abs(rz-z_c);
+    if(dx>dy && dx>dz) rx = -ry - rz;
+    else if(dy>dz)     ry = -rx - rz;
+    else               rz = -rx - ry;
+    return {q:rx, r:rz};
   }
-  function cubeRound(x,y,z){
-    let rx=Math.round(x), ry=Math.round(y), rz=Math.round(z);
-    const x_diff=Math.abs(rx-x), y_diff=Math.abs(ry-y), z_diff=Math.abs(rz-z);
-    if (x_diff>y_diff && x_diff>z_diff) rx = -ry-rz; else if (y_diff>z_diff) ry = -rx-rz; else rz = -rx-ry;
-    return {x:rx,y:ry,z:rz};
-  }
-  function pixelToAxial(px,py){
-    const q = (px-ORIGIN.x)/HEX_W - (py-ORIGIN.y)/(3*RADIUS);
-    const r = (py-ORIGIN.y)/(1.5*RADIUS);
-    const cube = cubeRound(q, -q-r, r);
-    return {q:cube.x, r:cube.z};
-  }
-  function drawHexImage(x,y,color){
-    const img = IMG[color];
-    if(!img || !img.complete){
-      ctx.save(); ctx.translate(x,y); ctx.fillStyle='#888'; ctx.beginPath();
-      for(let i=0;i<6;i++){ const a=Math.PI/6 + i*Math.PI/3; const vx=x+RADIUS*Math.cos(a)-x, vy=y+RADIUS*Math.sin(a)-y; if(i===0) ctx.moveTo(vx,vy); else ctx.lineTo(vx,vy); }
-      ctx.closePath(); ctx.fill(); ctx.restore(); return;
-    }
-    ctx.drawImage(img, x-24, y-24, 48, 48);
-  }
-  function honeycombShape(radius){
-    const cells=[];
-    for(let q=-radius;q<=radius;q++){
-      const r1 = Math.max(-radius, -q-radius);
-      const r2 = Math.min(radius, -q+radius);
-      for(let r=r1;r<=r2;r++){ cells.push({q,r}); }
-    }
-    return cells;
-  }
-  function seedBoard(){ board.clear(); }
-  function randomColor(){ return COLORS[Math.floor(Math.random()*COLORS.length)]; }
-  function refillPalette(){
-    palette = [randomColor(), randomColor(), randomColor()];
-    renderPalette();
-  }
-  function renderPalette(){
-    paletteEl.innerHTML='';
-    palette.forEach((color, idx)=>{
-      const div = document.createElement('div'); div.className='hex';
-      const img = document.createElement('img'); img.src = `img/hexagon${color}.png`; img.alt=color;
-      div.appendChild(img); paletteEl.appendChild(div);
-      div.addEventListener('pointerdown', (e)=>{
-        e.preventDefault();
-        dragging = {color, x: e.clientX, y:e.clientY, fromIndex: idx};
-        try{ div.setPointerCapture(e.pointerId); }catch{}
-      }, {passive:false});
-      div.addEventListener('pointermove', (e)=>{ if(!dragging) return; dragging.x=e.clientX; dragging.y=e.clientY; });
-      const up = (e)=>{ if(!dragging) return; placeDragged(e.clientX, e.clientY); dragging=null; try{ div.releasePointerCapture(e.pointerId); }catch{} };
-      div.addEventListener('pointerup', up, {passive:false});
-      div.addEventListener('pointercancel', up, {passive:false});
-      div.addEventListener('lostpointercapture', up, {passive:false});
-    });
-  }
-  function placeDragged(cx,cy){
-    const r = canvas.getBoundingClientRect();
-    if (cx<r.left || cx>r.right || cy<r.top || cy>r.bottom) return;
-    const {q,r:ar} = pixelToAxial(cx - r.left, cy - r.top);
-    const key = axialKey(q,ar);
-    if (board.has(key)) { showToast('Cell occupied'); return; }
-    const color = palette[dragging.fromIndex];
-    board.set(key, {color});
-    palette.splice(dragging.fromIndex,1, randomColor());
-    renderPalette();
-    const cleared = clearMatchesFrom(q,ar);
-    if(cleared>0){ state.chads += 50n; saveStateLocal(state); refreshUI(); showToast(`<span class="accent">+50</span> chads (hex match)`) }
-  }
-  function neighbors(q,r){
-    return [
-      {q:q+1,r:r},{q:q-1,r:r},
-      {q:q,r:r+1},{q:q,r:r-1},
-      {q:q+1,r:r-1},{q:q-1,r:r+1}
-    ];
-  }
-  function clearMatchesFrom(q0,r0){
-    const startKey = axialKey(q0,r0); const start = board.get(startKey); if(!start) return 0;
-    const color = start.color;
-    const seen=new Set([startKey]); const stack=[{q:q0,r:r0}]; const group=[startKey];
-    while(stack.length){
-      const {q,r}=stack.pop();
-      for(const n of neighbors(q,r)){
-        const k=axialKey(n.q,n.r); if(seen.has(k)) continue;
-        const t=board.get(k); if(t && t.color===color){ seen.add(k); stack.push(n); group.push(k); }
+  function inBoard(q,r){ return Math.abs(q) <= R && Math.abs(r) <= R && Math.abs(q+r) <= R; }
+  function neighbors(q,r){ return [
+    {q:q+1, r:r  }, {q:q+1, r:r-1}, {q:q, r:r-1},
+    {q:q-1, r:r  }, {q:q-1, r:r+1}, {q:q, r:r+1},
+  ]; }
+
+  // build honeycomb coords (empty)
+  function resetBoard(){
+    cells.clear();
+    for(let q=-R;q<=R;q++){
+      for(let r=-R;r<=R;r++){
+        if (inBoard(q,r)) cells.set(key(q,r), null);
       }
     }
-    if(group.length>=3){ for(const k of group) board.delete(k); return group.length; }
-    return 0;
+  }
+
+  // palette logic (3 random colors)
+  function randColor(){ return COLORS[(Math.random()*COLORS.length)|0]; }
+  function refillPalette(){
+    while(palette.length < 3) palette.push({color: randColor(), x:0,y:0});
+    layoutPalette();
+  }
+
+  // layout / resize
+  function sizeCanvas(){
+    const rect = cvs.parentElement.getBoundingClientRect();
+    cvs.width  = Math.floor(rect.width  * devicePixelRatio);
+    cvs.height = Math.floor(rect.height * devicePixelRatio);
+    cvs.style.width  = rect.width +'px';
+    cvs.style.height = rect.height+'px';
+    W=cvs.width; H=cvs.height;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    // fit board nicely in 9:16 shell
+    const shorter = Math.min(rect.width, rect.height);
+    size = Math.max(18, Math.floor(shorter / ( (R*2+4) * 1.15 )));
+    origin = { x: rect.width/2, y: rect.height*0.46 };
+    unit = size;
+    layoutPalette();
+  }
+
+  function layoutPalette(){
+    const rect = cvs.getBoundingClientRect();
+    const y = rect.height - size*1.2;
+    const gap = size*2.2;
+    const startX = rect.width/2 - gap;
+    for(let i=0;i<palette.length;i++){
+      palette[i].home = { x: startX + i*gap, y };
+    }
+  }
+
+  // cluster check (BFS)
+  function findCluster(q,r,color){
+    const out=[]; const seen=new Set(); const Q=[[q,r]];
+    while(Q.length){
+      const [cq,cr]=Q.shift(); const k=key(cq,cr);
+      if(seen.has(k)) continue; seen.add(k);
+      const tile = cells.get(k);
+      if(!tile || tile.color!==color) continue;
+      out.push([cq,cr]);
+      for(const nb of neighbors(cq,cr)) if(inBoard(nb.q,nb.r)) Q.push([nb.q,nb.r]);
+    }
+    return out;
+  }
+
+  function clearCluster(list){
+    for(const [q,r] of list) cells.set(key(q,r), null);
+    earned += 50;
+    document.getElementById('hexEarned').textContent = earned;
+    showToast(`<span class="accent">+50</span> chads`);
+  }
+
+  // place tile
+  function placeAt(q,r,color){
+    const k = key(q,r);
+    if(!inBoard(q,r) || cells.get(k)) return false;
+    cells.set(k, {color});
+    score += 1;
+    document.getElementById('hexScore').textContent = score;
+    // check cluster
+    const cluster = findCluster(q,r,color);
+    if(cluster.length >= 3) clearCluster(cluster);
+    return true;
+  }
+
+  // drawing
+  function drawHex(x,y, s, stroke='#213144'){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = Math.PI/6 + i * Math.PI/3;
+      const px = x + Math.cos(a)*s, py = y + Math.sin(a)*s;
+      (i===0) ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
   function drawBoard(){
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#08131b'; ctx.fillRect(0,0,W,H);
-    ORIGIN.x = W/2; ORIGIN.y = H/2;
-    ctx.globalAlpha=0.12; ctx.strokeStyle='#9aa3ab'; ctx.lineWidth=1;
-    const cells = honeycombShape(4);
-    for(const c of cells){
-      const p = axialToPixel(c.q,c.r);
-      ctx.beginPath();
-      for(let i=0;i<6;i++){ const a=Math.PI/6 + i*Math.PI/3; const x=p.x+RADIUS*Math.cos(a), y=p.y+RADIUS*Math.sin(a); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
-      ctx.closePath(); ctx.stroke();
+    // faint background
+    ctx.fillStyle = '#0a0f14';
+    ctx.fillRect(0,0,cvs.getBoundingClientRect().width, cvs.getBoundingClientRect().height);
+    // grid
+    ctx.save();
+    for(const k of cells.keys()){
+      const [q,r]=k.split(',').map(Number);
+      const p = axialToPixel(q,r);
+      drawHex(p.x,p.y,size*0.96, 'rgba(255,255,255,0.06)');
     }
-    ctx.globalAlpha=1;
-    for(const [k,v] of board){ const {q,r}=axialParse(k); const p=axialToPixel(q,r); drawHexImage(p.x,p.y,v.color); }
-    if(dragging){
-      const rect = canvas.getBoundingClientRect();
-      const px = dragging.x - rect.left, py = dragging.y - rect.top;
-      const {q,r} = pixelToAxial(px,py); const p = axialToPixel(q,r);
-      ctx.globalAlpha=0.9; drawHexImage(p.x,p.y, dragging.color); ctx.globalAlpha=1;
+    // tiles
+    for(const [k,v] of cells){
+      if(!v) continue;
+      const [q,r]=k.split(',').map(Number);
+      const p = axialToPixel(q,r);
+      const img = images[v.color];
+      const s = size*1.12;
+      if(img && img.complete) ctx.drawImage(img, p.x - s/2, p.y - s/2, s, s);
+    }
+    // palette
+    for(const t of palette){
+      const s = size*1.12;
+      const x = (dragging===t ? t.x : t.home.x);
+      const y = (dragging===t ? t.y : t.home.y);
+      const img = images[t.color];
+      if(img && img.complete) ctx.drawImage(img, x - s/2, y - s/2, s, s);
+    }
+    ctx.restore();
+  }
+
+  // hit test for palette chips
+  function chipAt(x,y){
+    for(const t of palette){
+      const sx = (dragging===t ? t.x : t.home.x);
+      const sy = (dragging===t ? t.y : t.home.y);
+      const d2 = (sx-x)*(sx-x)+(sy-y)*(sy-y);
+      if (d2 <= (size*0.9)*(size*0.9)) return t;
+    }
+    return null;
+  }
+
+  // pointer interactions
+  function toLocal(e){
+    const rect = cvs.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+  function onDown(e){
+    if(!running) return;
+    const p = toLocal(e); const hit = chipAt(p.x,p.y);
+    if(hit){
+      dragging = hit; dragging.x=p.x; dragging.y=p.y;
+      try{ cvs.setPointerCapture(e.pointerId); }catch{}
+      e.preventDefault();
     }
   }
-  function frame(){ if(!running) return; drawBoard(); loop = requestAnimationFrame(frame); }
-  function start(){ size(); loadImages(); seedBoard(); refillPalette(); running=true; loop = requestAnimationFrame(frame); }
-  function stop(){ running=false; if(loop) cancelAnimationFrame(loop); loop=null; }
+  function onMove(e){
+    if(!running || !dragging) return;
+    const p = toLocal(e); dragging.x=p.x; dragging.y=p.y; e.preventDefault();
+  }
+  function onUp(e){
+    if(!running || !dragging) return;
+    const p = toLocal(e);
+    // try to snap into board cell
+    const ax = pixelToAxialRound(p.x, p.y);
+    if(inBoard(ax.q, ax.r) && !cells.get(key(ax.q,ax.r))){
+      // place & remove chip from palette, then refill
+      const ok = placeAt(ax.q, ax.r, dragging.color);
+      if(ok){
+        palette.splice(palette.indexOf(dragging),1);
+        refillPalette();
+      }
+    }
+    dragging = null;
+    try{ cvs.releasePointerCapture(e.pointerId); }catch{}
+    e.preventDefault();
+  }
 
-  document.getElementById('hexQuit').addEventListener('click', ()=>{ stop(); closeOverlay('hexModal'); });
-  window.openHexagon = ()=>{ closeOverlay('playOverlay'); openOverlay('hexModal'); start(); };
+  // loop
+  function frame(){
+    if(!running) return;
+    if(!paused) drawBoard();
+    loop = requestAnimationFrame(frame);
+  }
+
+  // controls & lifecycle
+  function start(){
+    if(running) return;
+    running=true; paused=false; earned=0; score=0;
+    document.getElementById('hexScore').textContent = score;
+    document.getElementById('hexEarned').textContent = earned;
+    resetBoard(); refillPalette(); sizeCanvas(); drawBoard();
+    loop = requestAnimationFrame(frame);
+  }
+  function pause(){
+    if(!running) return;
+    paused = !paused;
+    document.getElementById('hexPause').textContent = paused?'Resume':'Pause';
+  }
+  function quit(){
+    if(running){
+      running=false; cancelAnimationFrame(loop); loop=null;
+      if(earned>0){ state.chads += BigInt(earned); saveStateLocal(state); refreshUI();
+        showToast(`<span class="accent">+${earned}</span> chads added to balance.`); }
+    }
+    closeOverlay('hexModal');
+  }
+
+  // wiring
+  const ro = new ResizeObserver(sizeCanvas);
+  ro.observe(cvs.parentElement);
+
+  cvs.addEventListener('pointerdown', onDown, {passive:false});
+  cvs.addEventListener('pointermove', onMove, {passive:false});
+  cvs.addEventListener('pointerup', onUp, {passive:false});
+  cvs.addEventListener('pointercancel', onUp, {passive:false});
+  cvs.addEventListener('lostpointercapture', onUp, {passive:false});
+
+  document.getElementById('hexStart').onclick = ()=>{ if(!running) start(); };
+  document.getElementById('hexPause').onclick = pause;
+  document.getElementById('hexQuit').onclick  = quit;
+
+  // public open
+  window.openHexagon = ()=>{
+    closeOverlay('playOverlay');
+    openOverlay('hexModal');
+    if(!running) start();
+  };
 })();
+
 
 /* ===== First run flow ===== */
 function ensureFirstRunFlow(){
