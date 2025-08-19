@@ -190,7 +190,27 @@ body{
 .bottom{ position:sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); left:12px; right:12px; z-index:90; margin-top:16px; }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
 .tile{ border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer; border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none }
-.tile.play{background:linear-gradient(180deg,var(--gold1),var(--gold2) 60%, var(--gold3)); color:#241702; position:relative; overflow:hidden}
+.tile.play{
+  /* 1) Texture + gradient layered together */
+  background-image:
+    url('img/goldtexture.jpg'),
+    linear-gradient(180deg,var(--gold1),var(--gold2) 60%, var(--gold3));
+  background-size: cover, 100% 100%;   /* texture fills, gradient stretches */
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+
+  /* 2) Blend the texture with the gold gradient so it still looks “gold” */
+  background-blend-mode: overlay; /* try 'multiply' if you prefer darker metal */
+
+  /* keep your existing look & behavior */
+  color:#241702;
+  position:relative;
+  overflow:hidden;
+  border-radius:14px;                /* matches your .tile rounding */
+  border:1px solid var(--glass);
+  box-shadow:0 18px 60px rgba(0,0,0,0.6);
+}
+
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 .tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
