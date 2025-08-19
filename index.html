@@ -6,6 +6,23 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Subtle app-wide background inside the phone frame */
+.phone {
+  position: relative; /* already true in your code; keep it */
+  overflow: hidden;   /* keeps the bg clipped to rounded corners */
+}
+
+.phone::before {
+  content: "";
+  position: absolute;
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  background: url("img/totalbackground.png") center / cover no-repeat; /* same folder as your loader */
+  opacity: 0.4;     /* 60% fade -> black stays visible */
+  pointer-events: none; /* don’t block taps/clicks */
+  border-radius: inherit; /* match the phone’s rounded corners */
+  z-index: 0; /* sits under all UI */
+}
+
 /* Play overlay: game cards with thumbnails */
 .tile.level .game-card{
   width:100%;
