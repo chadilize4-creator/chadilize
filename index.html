@@ -349,6 +349,9 @@ canvas{ display:block }
 <div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
   <div><div style="font-weight:800">Brick Breaker</div></div>
 </div>
+<div class="tile level" style="flex:1; min-height:68px" onclick="openDash()">
+  <div><div style="font-weight:800">Neon Runner</div></div>
+</div>
 <div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
   <div><div style="font-weight:800">Tile Rush</div></div>
 </div>
@@ -503,6 +506,33 @@ canvas{ display:block }
         <p class="note">Tap / Space / Click to flap. Coins give +15 chads. Quit to collect.</p>
       </div>
     </div>
+<!-- NEON RUNNER (Geometry-Dash-style) Modal -->
+<div class="overlay" id="dashModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Neon Runner</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="dashStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="dashPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="dashQuit">Quit</button>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="dashScore">0</b></div>
+      <div class="note">Session chads: <b id="dashEarned">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <canvas id="dashCanvas" class="full"></canvas>
+      <!-- reuse vj-touch styles so no extra CSS needed -->
+      <div class="vj-touch"><button class="btn" id="dashJump">JUMP</button></div>
+    </div>
+
+    <p class="note">Tap anywhere / press Space to jump. Grab coins (🪙) for <b>+50</b> chads. Quit to collect.</p>
+  </div>
+</div>
+
 <!-- BRICK BREAKER+ Modal -->
 <div class="overlay" id="breakerModal">
   <div class="panel">
@@ -2377,6 +2407,369 @@ function openBreaker(){
   resetGame();
 })();
 
+/* ===== NEON RUNNER (Geometry-Dash-style, original levels) ===== */
+(function(){
+  const modalId = 'dashModal';
+  const cvs = document.getElementById('dashCanvas');
+  const ctx = cvs?.getContext('2d');
+  if(!cvs || !ctx) return;
+
+  let W=0, H=0, unit=1;
+  let running=false, paused=false, loop=null, lastTs=0;
+  let speed=0, maxSpeed=0, t=0;
+  let score=0, earned=0;
+
+  const world = { x:0, groundY:0, obstacles:[], coins:[] };
+  const player = { x:0, y:0, r:0, vy:0, onGround:false, alive:true };
+
+  // physics (scaled by unit from height so it feels right on phones)
+  let GRAV=2600, JUMP_IMP=-980, JUMP_HOLD_MS=120, jumpHoldLeft=0;
+  function size(){
+    const r = cvs.getBoundingClientRect();
+    cvs.width = Math.floor(r.width);
+    cvs.height = Math.floor(r.height);
+    W = cvs.width; H = cvs.height; unit = H/800;
+    world.groundY = Math.floor(H*0.8);
+    player.r = Math.max(10, 16*unit);
+    player.x = Math.floor(W*0.25);
+  }
+  size(); new ResizeObserver(size).observe(cvs);
+
+  function reset(){
+    running=false; paused=false; cancelAnimationFrame(loop); loop=null;
+    t=0; world.x=0; speed=260*unit; maxSpeed=780*unit;
+    score=0; earned=0;
+    document.getElementById('dashScore').textContent = '0';
+    document.getElementById('dashEarned').textContent = '0';
+
+    world.obstacles = [];
+    world.coins = [];
+    player.y = world.groundY - player.r;
+    player.vy=0; player.onGround=true; player.alive=true;
+    jumpHoldLeft = 0;
+
+    // seed a few patterns
+    genUntil(W*3);
+    draw();
+  }
+
+  /* ---------- content generation (original patterns) ---------- */
+  function addSpikeStrip(x, count, gap, base=46*unit, h=58*unit){
+    for(let i=0;i<count;i++){
+      const w=base, y=world.groundY;
+      world.obstacles.push({type:'spike', x:x+i*(w+gap), y:y, w, h});
+      // sprinkle coins above some spikes
+      if(i%2===0){
+        world.coins.push({x:x+i*(w+gap)+w*0.5, y:y-h-28*unit, r:11*unit, hit:false});
+      }
+    }
+    return x + count*(base+gap);
+  }
+  function addBlock(x, w, h, yTop){
+    // rectangle hanging from ground up or from top down
+    const y = yTop ?? (world.groundY - h);
+    world.obstacles.push({type:'block', x, y, w, h});
+    return x+w;
+  }
+  function addPlatformRun(x, n, gap, w=90*unit, h=18*unit, step=-26*unit){
+    // series of small blocks stepping up/down
+    let y = world.groundY - 120*unit;
+    for(let i=0;i<n;i++){
+      world.obstacles.push({type:'block', x, y, w, h});
+      // coin above every second platform
+      if(i%2===1) world.coins.push({x:x+w*0.5, y:y-28*unit, r:11*unit, hit:false});
+      x += w + gap;
+      y += step; // negative = up, positive = down
+    }
+    return x;
+  }
+  function addGap(x, w){ // empty space (visual ground only)
+    // we just don't place obstacles—player still runs on ground
+    // add a jump coin in the middle
+    world.coins.push({x:x+w*0.5, y:world.groundY-90*unit, r:11*unit, hit:false});
+    return x+w;
+  }
+  function genUntil(targetX){
+    let cx = lastGenX;
+    while(cx < targetX){
+      const pick = Math.random();
+      if(pick < 0.35){
+        cx = addSpikeStrip(cx+80*unit, 3+Math.floor(Math.random()*3), 18*unit);
+      } else if(pick < 0.62){
+        cx = addPlatformRun(cx+60*unit, 4+Math.floor(Math.random()*3), 24*unit, 84*unit, 18*unit,
+                            (Math.random()<0.5?-1:1)*(20*unit));
+      } else if(pick < 0.82){
+        cx = addGap(cx+70*unit, 150*unit + Math.random()*100*unit);
+      } else {
+        // tall block then spikes
+        cx = addBlock(cx+70*unit, 80*unit, 90*unit);
+        cx = addSpikeStrip(cx+20*unit, 2+Math.floor(Math.random()*3), 16*unit);
+      }
+      // occasional bonus coin high
+      if(Math.random()<0.35){
+        world.coins.push({x:cx-40*unit, y:world.groundY-180*unit, r:11*unit, hit:false});
+      }
+    }
+    lastGenX = cx;
+  }
+  let lastGenX = 0;
+
+  /* ------------------ input (jump tap/hold) ------------------ */
+  let jumping=false;
+  function pressJump(){
+    if(!player.alive) return;
+    if(player.onGround){
+      player.vy = JUMP_IMP*unit;
+      player.onGround=false;
+      jumpHoldLeft = JUMP_HOLD_MS; // allow brief variable jump
+      try{ playTap(); }catch{}
+    }
+    jumping=true;
+  }
+  function releaseJump(){ jumping=false; }
+
+  // mouse/touch anywhere on game to jump
+  function bindInput(){
+    const down=(e)=>{e.preventDefault(); pressJump();};
+    const up=(e)=>{e.preventDefault(); releaseJump();};
+    cvs.addEventListener('pointerdown', down, {passive:false});
+    cvs.addEventListener('pointerup', up, {passive:false});
+    cvs.addEventListener('pointercancel', up, {passive:false});
+    document.getElementById('dashJump').addEventListener('pointerdown', down, {passive:false});
+    document.getElementById('dashJump').addEventListener('pointerup', up, {passive:false});
+    const key=(e)=>{
+      if(e.code==='Space' || e.code==='ArrowUp'){
+        if(e.type==='keydown'){ e.preventDefault(); pressJump(); }
+        else releaseJump();
+      }
+    };
+    window.addEventListener('keydown', key, {passive:false});
+    window.addEventListener('keyup', key, {passive:false});
+    return ()=>{ // cleanup
+      cvs.removeEventListener('pointerdown', down);
+      cvs.removeEventListener('pointerup', up);
+      cvs.removeEventListener('pointercancel', up);
+      document.getElementById('dashJump').removeEventListener('pointerdown', down);
+      document.getElementById('dashJump').removeEventListener('pointerup', up);
+      window.removeEventListener('keydown', key);
+      window.removeEventListener('keyup', key);
+    };
+  }
+  let unbindInput = ()=>{};
+
+  /* --------------------- collision helpers ------------------- */
+  function circleVsRect(cx, cy, cr, rx, ry, rw, rh){
+    const nx = Math.max(rx, Math.min(cx, rx+rw));
+    const ny = Math.max(ry, Math.min(cy, ry+rh));
+    const dx = cx-nx, dy=cy-ny;
+    return dx*dx + dy*dy <= cr*cr;
+  }
+  // is point inside isosceles triangle pointing up (base [x,x+w] at y, apex at (x+w/2, y-h))
+  function pointInUpTri(px, py, x, y, w, h){
+    if(py<y-h || py>y) return false;
+    const cx = x + w*0.5;
+    const k = (y - py)/h; // 0 at base, 1 at apex
+    const half = (w*0.5)*(1 - k);
+    return Math.abs(px - cx) <= half + 0.0001;
+  }
+  function circleVsUpTri(cx, cy, cr, x, y, w, h){
+    // quick reject with bbox
+    if(cx+cr < x || cx-cr > x+w || cy+cr < y-h || cy-cr > y) return false;
+    // sample center & a couple of rim points
+    if(pointInUpTri(cx, cy, x, y, w, h)) return true;
+    // sample left/right rim horizontally
+    if(pointInUpTri(cx-cr*0.707, cy, x, y, w, h)) return true;
+    if(pointInUpTri(cx+cr*0.707, cy, x, y, w, h)) return true;
+    // sample vertically
+    if(pointInUpTri(cx, cy-cr*0.707, x, y, w, h)) return true;
+    return false;
+  }
+
+  /* --------------------------- loop --------------------------- */
+  function update(dt){
+    t += dt;
+    // speed up slowly
+    speed = Math.min(maxSpeed, speed + 24*unit*dt);
+
+    // variable jump (holding reduces gravity briefly)
+    let gy = GRAV*unit;
+    if(jumping && jumpHoldLeft>0){
+      gy *= 0.45; // lighter while holding
+      jumpHoldLeft -= dt*1000;
+    }
+
+    // physics
+    player.vy += gy*dt;
+    player.y += player.vy*dt;
+
+    // ground
+    if(player.y > world.groundY - player.r){
+      player.y = world.groundY - player.r;
+      player.vy = 0;
+      player.onGround = true;
+    }
+
+    // scroll world
+    world.x += speed*dt;
+
+    // generate further segments
+    genUntil(world.x + W*2.2);
+
+    // collisions & coins
+    for(const o of world.obstacles){
+      const ox = o.x - world.x;
+      if(ox > W+160) break; // ahead; they are sorted by x
+      if(ox + (o.w||0) < -160) continue; // behind
+      if(o.type==='block'){
+        if(circleVsRect(player.x, player.y, player.r, ox, o.y, o.w, o.h)){
+          return gameOver();
+        }
+      } else if(o.type==='spike'){
+        if(circleVsUpTri(player.x, player.y, player.r, ox, o.y, o.w, o.h)){
+          return gameOver();
+        }
+      }
+    }
+    for(const c of world.coins){
+      if(c.hit) continue;
+      const cx = c.x - world.x;
+      if(cx < -40 || cx > W+40) continue;
+      const dx = player.x - cx, dy = player.y - c.y, r = player.r + c.r;
+      if(dx*dx + dy*dy <= r*r){
+        c.hit = true;
+        earned += 50;
+        document.getElementById('dashEarned').textContent = earned;
+        try{ playTap(); }catch{}
+      }
+    }
+
+    // score by distance
+    score += dt*60;
+    document.getElementById('dashScore').textContent = Math.floor(score);
+  }
+
+  function draw(){
+    // bg
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0c0f14'); g.addColorStop(1,'#080b10');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    // ground line
+    ctx.strokeStyle='rgba(120,160,255,0.25)';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(0, world.groundY+0.5);
+    ctx.lineTo(W, world.groundY+0.5);
+    ctx.stroke();
+
+    // draw obstacles
+    for(const o of world.obstacles){
+      const ox = o.x - world.x;
+      if(ox > W+160) break;
+      if(ox + (o.w||0) < -160) continue;
+      if(o.type==='block'){
+        ctx.fillStyle='#1f2b46';
+        ctx.fillRect(ox, o.y, o.w, o.h);
+        ctx.strokeStyle='rgba(255,255,255,0.08)';
+        ctx.strokeRect(ox+0.5, o.y+0.5, o.w-1, o.h-1);
+      } else if(o.type==='spike'){
+        ctx.fillStyle='#2e5aa3';
+        ctx.beginPath();
+        ctx.moveTo(ox, o.y);
+        ctx.lineTo(ox+o.w*0.5, o.y-o.h);
+        ctx.lineTo(ox+o.w, o.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // coins
+    for(const c of world.coins){
+      if(c.hit) continue;
+      const cx = c.x - world.x;
+      if(cx < -40 || cx > W+40) continue;
+      // glow
+      const glow = ctx.createRadialGradient(cx, c.y, 0, cx, c.y, c.r*2.8);
+      glow.addColorStop(0,'rgba(255,216,107,0.5)');
+      glow.addColorStop(1,'rgba(255,216,107,0)');
+      ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(cx, c.y, c.r*2.8, 0, Math.PI*2); ctx.fill();
+      // coin
+      const coin = ctx.createRadialGradient(cx-c.r*0.3, c.y-c.r*0.3, 1, cx, c.y, c.r);
+      coin.addColorStop(0,'#fff5c7'); coin.addColorStop(0.6,'#ffd86b'); coin.addColorStop(1,'#e0a800');
+      ctx.fillStyle=coin; ctx.beginPath(); ctx.arc(cx, c.y, c.r, 0, Math.PI*2); ctx.fill();
+    }
+
+    // player (neon cube-circle hybrid)
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    const body = ctx.createRadialGradient(-player.r*0.3, -player.r*0.3, 1, 0,0, player.r);
+    body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#7fa8ff');
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.arc(0,0,player.r,0,Math.PI*2); ctx.fill();
+    // face dot
+    ctx.fillStyle='#0b0f14';
+    ctx.beginPath(); ctx.arc(player.r*0.35,-player.r*0.15, player.r*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function gameOver(){
+    player.alive=false;
+    running=false;
+    showToast(`Game over — score <b>${Math.floor(score)}</b>. Press Quit to collect.`);
+  }
+
+  function frame(ts){
+    const dt = Math.min(0.035, (ts - lastTs)/1000 || 0);
+    lastTs = ts;
+    if(running && !paused && player.alive){
+      update(dt);
+      draw();
+    } else if(!running){
+      // idle draw
+      draw();
+    }
+    loop = requestAnimationFrame(frame);
+  }
+
+  function start(){
+    if(running){ // restart
+      reset();
+    } else {
+      reset();
+      running=true; paused=false; lastTs=performance.now();
+      loop = requestAnimationFrame(frame);
+      document.getElementById('dashPause').textContent = 'Pause';
+    }
+  }
+  function togglePause(){
+    paused = !paused;
+    document.getElementById('dashPause').textContent = paused?'Resume':'Pause';
+  }
+  function quit(){
+    if(earned>0){
+      state.chads += BigInt(earned);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
+    }
+    closeOverlay(modalId);
+    // cleanup listeners to avoid leaks
+    unbindInput();
+    running=false; cancelAnimationFrame(loop); loop=null;
+  }
+
+  // hook buttons
+  document.getElementById('dashStart').onclick = start;
+  document.getElementById('dashPause').onclick = togglePause;
+  document.getElementById('dashQuit').onclick = quit;
+
+  // expose launcher
+  window.openDash = ()=>{
+    closeOverlay('playOverlay');
+    openOverlay(modalId);
+    unbindInput = bindInput();
+    reset();
+  };
+})();
 
 
 
