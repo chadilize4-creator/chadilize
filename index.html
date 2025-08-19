@@ -340,6 +340,28 @@ body{
         <p class="note">Tap/click/Space to flap. +5 chads for each gate you pass. Quit to collect.</p>
       </div>
     </div>
+<!-- HEXAGON Modal (Hamster-style) -->
+<div class="overlay" id="hexModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Hexagon (9:16)</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="hexStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="hexPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="hexQuit">Quit</button>
+      </div>
+    </div>
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="hexScore">0</b></div>
+      <div class="note">Session chads: <b id="hexEarned">0</b></div>
+    </div>
+    <div class="game-9x16">
+      <canvas id="hexCanvas" class="full"></canvas>
+    </div>
+    <p class="note">Drag a colored stack onto the grid. Same colors merge; at height 3 they clear and pay chads. Quit to collect.</p>
+  </div>
+</div>
+
 
     <!-- VERTICAL JUMPER Modal (unchanged visuals/controls from previous working build) -->
     <div class="overlay" id="vjModal">
