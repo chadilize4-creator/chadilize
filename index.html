@@ -6,6 +6,24 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ===== Tile Rush (Rhythm Taps) ===== */
+.tr-wrap{ position:relative; width:100%; height:100%; touch-action:none; user-select:none; }
+#trCanvas{ width:100%; height:100%; display:block; background:linear-gradient(180deg,#0b0f14,#06090f); }
+
+.tr-lanes{ position:absolute; inset:0; display:grid; grid-template-columns:repeat(4,1fr); pointer-events:none; }
+.tr-lane{ border-left:1px solid rgba(255,255,255,0.05); border-right:1px solid rgba(0,0,0,0.25); }
+.tr-lane.flash{ animation:trFlash 140ms ease; }
+@keyframes trFlash{ from{ background:rgba(120,200,255,0.25)} to{ background:transparent } }
+
+.tr-hitline{
+  position:absolute; left:0; right:0; bottom:12%;
+  height:2px; background:linear-gradient(90deg,rgba(255,255,255,.15),rgba(120,200,255,.6),rgba(255,255,255,.15));
+  box-shadow:0 0 8px rgba(120,200,255,.6);
+}
+
+/* larger modal min height so lanes feel comfy */
+#tileModal .game-9x16{ min-height:420px; }
+
 /* Brick Breaker+ (hard mode, neon) */
 .bb-wrap{ position:relative; width:100%; height:100%; touch-action:none; }
 #bbCanvas{ width:100%; height:100%; display:block; }
@@ -284,6 +302,10 @@ canvas{ display:block }
 <div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
   <div><div style="font-weight:800">Brick Breaker</div></div>
 </div>
+<div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
+  <div><div style="font-weight:800">Tile Rush</div></div>
+</div>
+
         </div>
         <div class="row" style="gap:10px; margin-top:10px">
           <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
@@ -438,7 +460,7 @@ canvas{ display:block }
 <div class="overlay" id="breakerModal">
   <div class="panel">
     <div class="row">
-      <h2>Brick Breaker+ (9:16)</h2>
+      <h2>Brick Breaker</h2>
       <div class="row" style="gap:8px">
         <button class="tile level" style="padding:8px 12px" id="bbStart">Start</button>
         <button class="tile level" style="padding:8px 12px" id="bbPause">Pause</button>
@@ -461,6 +483,48 @@ canvas{ display:block }
     <p class="note">Hold & slide anywhere to move the paddle. Smaller neon bricks, faster ball, combo speed-ups. Quit to collect.</p>
   </div>
 </div>
+<!-- TILE RUSH (Rhythm Taps) Modal -->
+<div class="overlay" id="tileModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Tile Rush</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="trStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="trPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="trQuit">Quit</button>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="trScore">0</b></div>
+      <div class="note">Combo: <b id="trCombo">0</b></div>
+      <div class="note">Session chads: <b id="trEarned">0</b></div>
+      <div class="note">Speed: <b id="trSpeed">1.0x</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="tr-wrap" id="trWrap">
+        <canvas id="trCanvas"></canvas>
+
+        <!-- hit line -->
+        <div class="tr-hitline"></div>
+
+        <!-- lane press overlays (flash when pressed) -->
+        <div class="tr-lanes">
+          <div class="tr-lane" data-lane="0"></div>
+          <div class="tr-lane" data-lane="1"></div>
+          <div class="tr-lane" data-lane="2"></div>
+          <div class="tr-lane" data-lane="3"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">
+      Tap lanes (DFJK or touch) as notes cross the line. Perfect/Great/Good windows; streak builds score. Quit to collect session chads.
+    </p>
+  </div>
+</div>
+
 
 
 
@@ -1859,6 +1923,321 @@ function openBreaker(){
   });
 
   window.addEventListener('resize', resizeCanvas);
+})();
+
+
+/* ===== TILE RUSH (Rhythm Taps) ===== */
+let TR = null;
+function openTileRush(){ closeOverlay('playOverlay'); openOverlay('tileModal'); }
+
+(function(){
+  const wrap   = document.getElementById('trWrap');
+  const canvas = document.getElementById('trCanvas');
+  const ctx    = canvas.getContext('2d', {alpha:false});
+
+  const scoreEl  = document.getElementById('trScore');
+  const comboEl  = document.getElementById('trCombo');
+  const earnedEl = document.getElementById('trEarned');
+  const speedEl  = document.getElementById('trSpeed');
+
+  const btnStart = document.getElementById('trStart');
+  const btnPause = document.getElementById('trPause');
+  const btnQuit  = document.getElementById('trQuit');
+
+  // HiDPI crisp drawing in CSS pixels
+  function resize(){
+    const r = wrap.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    canvas.style.width  = Math.max(10, Math.floor(r.width)) + 'px';
+    canvas.style.height = Math.max(10, Math.floor(r.height)) + 'px';
+    canvas.width  = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // Lane helpers
+  function laneX(lane, W){ return lane * (W/4); }
+  const KEYS = new Map([['d',0],['f',1],['j',2],['k',3],['D',0],['F',1],['J',2],['K',3]]);
+
+  // judgement (ms windows)
+  const WIN = { perfect:46, great:92, good:135 }; // typical tight-ish windows. :contentReference[oaicite:1]{index=1}
+
+  // BPM & scroll speed: px/ms ~= (distance / approachMs). Speed scales with BPM * option. :contentReference[oaicite:2]{index=2}
+  function createGame(){
+    resize();
+    const W = canvas.width / (window.devicePixelRatio||1);
+    const H = canvas.height / (window.devicePixelRatio||1);
+
+    // visual constants
+    const hitY      = H * 0.88;
+    const noteH     = Math.max(12, H*0.02);
+    const noteW     = (W/4) * 0.78;
+    const spawnY    = -H*0.12;
+
+    // song settings (procedural)
+    const BPM       = 128;                      // feel-good default
+    const msPerBeat = 60000 / BPM;
+    const option    = 1.0;                      // speed option (can expose later)
+    const approach  = 1800 / option;            // ms from spawn to hit
+    const pxPerMs   = (hitY - spawnY) / approach;
+
+    // generate a 60s chart with simple patterns (quarters, some 8ths, occasional chords)
+    const DUR_MS = 60000;
+    const notes = []; // {lane:0..3, t:ms}
+    (function gen(){
+      let t = 0;
+      const lanes = [0,1,2,3];
+      while(t < DUR_MS){
+        // on every beat
+        const chord = Math.random() < 0.12;
+        const eighth = Math.random() < 0.28;
+
+        if(chord){
+          const a = lanes[Math.floor(Math.random()*4)];
+          let b = lanes[Math.floor(Math.random()*4)];
+          if (b===a) b=(b+1)%4;
+          notes.push({lane:a, t});
+          notes.push({lane:b, t});
+        }else{
+          const a = lanes[Math.floor(Math.random()*4)];
+          notes.push({lane:a, t});
+        }
+        if(eighth){
+          const a = lanes[Math.floor(Math.random()*4)];
+          notes.push({lane:a, t: t + msPerBeat/2});
+        }
+        t += msPerBeat; // next beat
+      }
+      notes.sort((A,B)=>A.t-B.t);
+    })();
+
+    // state
+    let score=0, combo=0, earned=0;
+    let idx=0; // next note index to judge/miss
+    let running=false, paused=false, raf=0, startAt=0, time=0, lastTs=0;
+
+    // touch input → lane mapping
+    const lanesEls = [...wrap.querySelectorAll('.tr-lane')];
+    function flashLane(l){ lanesEls[l]?.classList.add('flash'); setTimeout(()=>lanesEls[l]?.classList.remove('flash'), 120); }
+
+    // pointer capture so slide/hold works reliably. :contentReference[oaicite:3]{index=3}
+    function whichLane(clientX){
+      const r = wrap.getBoundingClientRect();
+      const x = Math.max(0, Math.min(r.width-1, clientX - r.left));
+      return Math.min(3, Math.max(0, Math.floor( x / (r.width/4) )));
+    }
+    function onPointerDown(e){
+      e.preventDefault();
+      try{ wrap.setPointerCapture(e.pointerId); }catch{}
+      tapLane(whichLane(e.clientX));
+    }
+    function onPointerMove(e){ /* optional: slide to different lane while holding */ }
+    function onPointerUp(e){
+      e.preventDefault();
+      try{ wrap.releasePointerCapture(e.pointerId); }catch{}
+    }
+    wrap.addEventListener('pointerdown', onPointerDown, {passive:false});
+    wrap.addEventListener('pointermove', onPointerMove, {passive:false});
+    wrap.addEventListener('pointerup',   onPointerUp,   {passive:false});
+    wrap.addEventListener('pointercancel', onPointerUp, {passive:false});
+
+    // keyboard
+    function onKey(e){
+      const lane = KEYS.get(e.key);
+      if (lane==null) return;
+      e.preventDefault();
+      tapLane(lane);
+    }
+    window.addEventListener('keydown', onKey, {passive:false});
+
+    function judge(delta){
+      const a = Math.abs(delta);
+      if (a <= WIN.perfect) return 'perfect';
+      if (a <= WIN.great)   return 'great';
+      if (a <= WIN.good)    return 'good';
+      return 'miss';
+    }
+    function award(j){
+      if(j==='perfect'){ score+=100; combo++; earned+=2; }
+      else if(j==='great'){ score+=70; combo++; earned+=1; }
+      else if(j==='good'){ score+=40; combo=0; }
+      else { combo=0; }
+    }
+
+    function tapLane(lane){
+      if(!running || paused) return;
+      // find the nearest hittable note in this lane (look ahead a few)
+      let bestI = -1, bestD = 1e9;
+      for(let i=idx;i<Math.min(idx+8, notes.length); i++){
+        const n = notes[i]; if(n.hit||n.miss||n.lane!==lane) continue;
+        const d = (n.t - time);
+        if (Math.abs(d) < bestD){ bestD = Math.abs(d); bestI=i; }
+      }
+      if (bestI<0) return; // nothing in lane
+
+      const n = notes[bestI];
+      const j = judge(n.t - time);
+      if (j==='miss') return; // tap too far away — ignore (no penalty)
+      n.hit = true;
+      if(bestI===idx){ // advance idx forward past any judged ones
+        while(idx<notes.length && (notes[idx].hit || notes[idx].miss)) idx++;
+      }
+      flashLane(lane);
+      award(j);
+      // tiny pulse
+      pulseNote(n);
+      updateUI();
+    }
+
+    function pulseNote(n){
+      ctx.save();
+      ctx.globalCompositeOperation='lighter';
+      const x = laneX(n.lane, W) + (W/4)/2;
+      const y = hitY;
+      ctx.fillStyle='rgba(120,200,255,0.25)';
+      ctx.beginPath(); ctx.arc(x,y, 26, 0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function missOld(){
+      // mark overdue notes as miss
+      while(idx<notes.length){
+        const n = notes[idx];
+        if(n.hit||n.miss){ idx++; continue; }
+        if (time - n.t > WIN.good){ n.miss=true; combo=0; idx++; }
+        else break;
+      }
+    }
+
+    function update(dt){
+      time += dt;
+      missOld();
+    }
+
+    function draw(){
+      const laneW = W/4;
+
+      // bg
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'#0a121a'); g.addColorStop(1,'#060a0f');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+      // soft grid lines
+      ctx.fillStyle='rgba(255,255,255,0.06)';
+      for(let i=1;i<4;i++) ctx.fillRect(i*laneW-0.5, 0, 1, H);
+
+      // beat lines
+      const ahead = 2200; // draw notes born within next ~2.2s
+      const behind= 250;  // keep a little tail above hit
+      const fromT=time - behind, toT=time + ahead;
+
+      // draw notes
+      for(let i=idx;i<notes.length;i++){
+        const n=notes[i];
+        if (n.hit||n.miss) continue;
+        if (n.t < fromT) continue;
+        if (n.t > toT) break;
+
+        const x = laneX(n.lane, W) + laneW/2;
+        const y = hitY - (n.t - time) * pxPerMs;
+
+        // neon chip
+        const w = noteW, h = noteH;
+        ctx.save();
+        ctx.translate(x - w/2, y - h/2);
+        // glow
+        ctx.fillStyle='rgba(120,200,255,0.18)';
+        ctx.fillRect(-3,-3, w+6, h+6);
+        // body
+        const grd = ctx.createLinearGradient(0,0,0,h);
+        grd.addColorStop(0,'#7ac2ff'); grd.addColorStop(1,'#1e55aa');
+        ctx.fillStyle=grd; ctx.fillRect(0,0,w,h);
+        // top highlight
+        ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(0,0,w,2);
+        ctx.restore();
+      }
+
+      // hit line
+      ctx.fillStyle='rgba(120,200,255,0.65)';
+      ctx.fillRect(0, hitY-1, W, 2);
+    }
+
+    function updateUI(){
+      if(scoreEl)  scoreEl.textContent  = score;
+      if(comboEl)  comboEl.textContent  = combo;
+      if(earnedEl) earnedEl.textContent = earned;
+      if(speedEl)  speedEl.textContent  = option.toFixed(1)+'x';
+    }
+
+    function frame(ts){
+      if(!running){ raf=0; return; }
+      if (paused){ raf = requestAnimationFrame(frame); return; }
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min(0.05, (ts - lastTs)/1000);
+      lastTs = ts;
+
+      update(dt*1000); // we track time in ms
+      draw();
+
+      if (idx>=notes.length){
+        // chart end
+        running=false; raf=0;
+        fancyAlert('Song finished — press Start to play again or Quit to collect.');
+        return;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    function start(){
+      // reset fresh
+      score=0; combo=0; earned=0; idx=0; time=0; lastTs=0;
+      updateUI();
+      running=true; paused=false;
+      btnPause.textContent='Pause';
+      startAt = performance.now();
+      frame(startAt);
+    }
+    function togglePause(){
+      if(!running){ start(); return; }
+      paused = !paused;
+      btnPause.textContent = paused ? 'Resume' : 'Pause';
+      if (!paused){ lastTs = performance.now(); frame(lastTs); }
+    }
+    function cleanup(){
+      running=false;
+      if(raf) cancelAnimationFrame(raf), raf=0;
+      window.removeEventListener('keydown', onKey, {passive:false});
+      wrap.removeEventListener('pointerdown', onPointerDown);
+      wrap.removeEventListener('pointermove', onPointerMove);
+      wrap.removeEventListener('pointerup', onPointerUp);
+      wrap.removeEventListener('pointercancel', onPointerUp);
+    }
+
+    return {
+      start, togglePause, cleanup,
+      get sessionChads(){ return earned; }
+    };
+  }
+
+  // Buttons: fresh game each Start
+  btnStart.addEventListener('click', ()=>{
+    if (TR?.cleanup) TR.cleanup();
+    TR = createGame();
+    TR.start();
+  });
+  btnPause.addEventListener('click', ()=>{ TR?.togglePause(); });
+  btnQuit.addEventListener('click', ()=>{
+    if (TR?.sessionChads > 0){
+      const got = TR.sessionChads;
+      state.chads += BigInt(got);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${got}</span> chads added to balance.`);
+    }
+    if (TR?.cleanup) TR.cleanup();
+    TR=null; closeOverlay('tileModal');
+  });
+
+  window.addEventListener('resize', resize);
 })();
 
 
