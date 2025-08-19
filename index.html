@@ -360,7 +360,7 @@ canvas{ display:block }
           <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
             <div><div style="font-weight:800">Flappy Bird</div></div>
           </div>
-<div class="tile level" style="flex:1; min-height:68px" onclick="openLane()">Lane Hopper</div>
+<div class="tile level" style="flex:1; min-height:68px" onclick="openLaneHopper()">Lane Hopper</div>
 
 
 <div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
@@ -2779,6 +2779,8 @@ function openBreaker(){
     // give layout a tick, then size
     setTimeout(()=>{ resizeCanvas(); }, 30);
   };
+// Back-compat: if anything calls openLane(), forward it here.
+window.openLane = window.openLaneHopper;
 })();
 
   /* ===== Hamster-style HEXAGON (drag, merge stacks, clear at threshold) ===== */
