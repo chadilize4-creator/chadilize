@@ -6,6 +6,25 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Brick Breaker+ (hard mode, neon) */
+.bb-wrap{ position:relative; width:100%; height:100%; touch-action:none; }
+#bbCanvas{ width:100%; height:100%; display:block; }
+#breakerModal .game-9x16{ min-height:380px; }
+
+/* tiny collision glow */
+.bb-pop{
+  position:absolute; width:10px; height:10px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, rgba(255,216,107,.9), rgba(255,216,107,0));
+  transform:translate(-50%,-50%); opacity:.95;
+}
+
+/* glowing bricks shimmer (painted in canvas, but this gives overall vibe on modal) */
+#breakerModal .panel{
+  background:
+    radial-gradient(800px 400px at 12% -10%, rgba(120,200,255,.10), transparent 40%),
+    linear-gradient(180deg,#071017,#0b0f12);
+}
+
 /* Brick Breaker+ */
 .bb-wrap{ position:relative; width:100%; height:100%; touch-action:none; }
 #bbCanvas{ width:100%; height:100%; display:block; }
@@ -419,7 +438,7 @@ canvas{ display:block }
 <div class="overlay" id="breakerModal">
   <div class="panel">
     <div class="row">
-      <h2>Brick Breaker</h2>
+      <h2>Brick Breaker+ (9:16)</h2>
       <div class="row" style="gap:8px">
         <button class="tile level" style="padding:8px 12px" id="bbStart">Start</button>
         <button class="tile level" style="padding:8px 12px" id="bbPause">Pause</button>
@@ -430,7 +449,7 @@ canvas{ display:block }
     <div class="row" style="gap:12px">
       <div class="note">Score: <b id="bbScore">0</b></div>
       <div class="note">Session chads: <b id="bbEarned">0</b></div>
-      <div class="note">Level: <b id="bbLevel">1</b></div>
+      <div class="note">Stage: <b id="bbLevel">1</b></div>
     </div>
 
     <div class="game-9x16">
@@ -439,9 +458,10 @@ canvas{ display:block }
       </div>
     </div>
 
-    <p class="note">Hold and slide anywhere on the game to move the paddle. Destroy “CHAD” blocks for big rewards. Quit to collect.</p>
+    <p class="note">Hold & slide anywhere to move the paddle. Smaller neon bricks, faster ball, combo speed-ups. Quit to collect.</p>
   </div>
 </div>
+
 
 
 
@@ -1401,7 +1421,7 @@ function quitVJ(){
   closeOverlay('vjModal');
 }
 
-/* ===== BRICK BREAKER+ (finger-follow paddle, CHAD layout, HiDPI) ===== */
+/* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
 
 function openBreaker(){
@@ -1421,436 +1441,406 @@ function openBreaker(){
   const btnPause = document.getElementById('bbPause');
   const btnQuit  = document.getElementById('bbQuit');
 
+  /* HiDPI crispness: CSS size vs backing store size + setTransform for 1:1 drawing in CSS pixels */
   function resizeCanvas(){
     const rect = wrap.getBoundingClientRect();
     const dpr  = Math.max(1, window.devicePixelRatio || 1);
     const cssW = Math.max(10, Math.floor(rect.width));
     const cssH = Math.max(10, Math.floor(rect.height));
-    canvas.style.width  = cssW+'px';
-    canvas.style.height = cssH+'px';
-    canvas.width  = Math.floor(cssW*dpr);
-    canvas.height = Math.floor(cssH*dpr);
-    // draw in CSS pixels (prevents blur on HiDPI) 
-    ctx.setTransform(dpr,0,0,dpr,0,0); /* MDN setTransform + HiDPI canvas */ // :contentReference[oaicite:2]{index=2}
+    canvas.style.width  = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width  = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels, render in device pixels
   }
 
-  // 3x5 pixel font for C H A D (each number = brick present)
-  const FONT = {
-    C: [
-      [1,1,1],
-      [1,0,0],
-      [1,0,0],
-      [1,0,0],
-      [1,1,1],
-    ],
-    H: [
-      [1,0,1],
-      [1,0,1],
-      [1,1,1],
-      [1,0,1],
-      [1,0,1],
-    ],
-    A: [
-      [1,1,1],
-      [1,0,1],
-      [1,1,1],
-      [1,0,1],
-      [1,0,1],
-    ],
-    D: [
-      [1,1,0],
-      [1,0,1],
-      [1,0,1],
-      [1,0,1],
-      [1,1,0],
-    ],
-  };
+  // Utility
+  function clamp(v,a,b){ return v<a?a : v>b?b : v; }
+  function rand(a,b){ return a + Math.random()*(b-a); }
 
-  // Build a 3x5 + 1col spacer pattern across: C _ H _ A _ D  => width 15 + 3 spacers = 18 cols, 5 rows
-  function buildCHADMask(){
-    const letters = ['C','H','A','D'];
-    const rows = 5, colsPer = 3, spacer = 1;
-    const totalCols = letters.length*colsPer + (letters.length-1)*spacer;
-    const mask = Array.from({length:rows}, ()=> Array(totalCols).fill(0));
-    let x = 0;
-    for (let idx=0; idx<letters.length; idx++){
-      const grid = FONT[letters[idx]];
-      for (let r=0;r<rows;r++){
-        for (let c=0;c<colsPer;c++){
-          mask[r][x+c] = grid[r][c];
-        }
-      }
-      x += colsPer;
-      if (idx < letters.length-1) x += spacer; // spacer col of zeros
-    }
-    return mask; // [rows][cols]
+  // Particles
+  function pop(x,y){
+    const el=document.createElement('div'); el.className='bb-pop';
+    const rect = wrap.getBoundingClientRect();
+    // place using canvas->CSS ratio
+    el.style.left = ( (x / (canvas.width / (window.devicePixelRatio||1))) * (rect.width  / (canvas.width / (window.devicePixelRatio||1))) * rect.width / rect.width )+'px';
+    el.style.left = ( (x / (canvas.width/(window.devicePixelRatio||1))) * rect.width / (canvas.width/(window.devicePixelRatio||1)) ) + 'px';
+    el.style.top  = ( (y / (canvas.height/(window.devicePixelRatio||1))) * rect.height / (canvas.height/(window.devicePixelRatio||1)) ) + 'px';
+    // simpler & robust: use percentages from current CSS rect
+    const W = rect.width, H = rect.height;
+    el.style.left = (x / (canvas.width/(window.devicePixelRatio||1)) * W / (canvas.width/(window.devicePixelRatio||1)) * (canvas.width/(window.devicePixelRatio||1))) + 'px';
+    // fallback: approximate by ratio of CSS sizes
+    el.style.left = (x / (canvas.width / (window.devicePixelRatio||1)) ) * (W / (canvas.width / (window.devicePixelRatio||1))) + 'px';
+    el.style.top  = (y / (canvas.height/ (window.devicePixelRatio||1)) ) * (H / (canvas.height/ (window.devicePixelRatio||1))) + 'px';
+    wrap.appendChild(el);
+    requestAnimationFrame(()=>{
+      el.style.transition='transform 360ms ease, opacity 400ms ease';
+      el.style.transform='translate(-50%,-50%) scale(5)';
+      el.style.opacity='0';
+    });
+    setTimeout(()=> el.remove(), 440);
   }
 
-  // Game factory
   function createGame(){
     resizeCanvas();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const W = canvas.width/dpr, H = canvas.height/dpr;
 
-    // a bit harder: slightly faster ball, a tad narrower paddle
-    const wall = Math.max(6, W*0.012);
-    const topOffset = Math.max(40, H*0.07);
+    // Difficulty knobs (hard): more columns/rows, smaller paddle, faster ball, faster increments
+    const WALL = Math.max(6, W*0.012);
+    const TOP  = Math.max(38, H*0.065);
 
     const paddle = {
-      w: Math.max(62, Math.min(120, W*0.2)), // narrower than before
-      h: Math.max(10, 12),
-      x: W/2, y: H - 24,
-      speed: Math.max(360, W*0.7)
+      w: Math.max(56, Math.min(110, W*0.18)),  // narrower → harder
+      h: 12,
+      x: W/2,
+      y: H - 24
     };
+
+    // Slightly faster base speed and stronger per-hit acceleration
     const ball = {
-      r: Math.max(6, Math.min(10, W*0.018)),
-      x: W/2, y: paddle.y - 16,
-      vx: (Math.random()<0.5? -1:1) * Math.max(230, W*0.40),
-      vy: -Math.max(300, H*0.40),
-      speedMax: Math.max(560, H*0.7)
+      r: Math.max(6, Math.min(9, W*0.016)),
+      x: W/2,
+      y: paddle.y - 16,
+      vx: (Math.random()<0.5?-1:1) * Math.max(240, W*0.42),
+      vy: -Math.max(340, H*0.45),
+      speedCap: Math.max(720, H*0.9)
     };
 
-    // CHAD layout → bricks grid
-    // We’ll scale a 18x5 mask to fit nicely under topOffset, centered horizontally.
-    const mask = buildCHADMask();             // 5 rows × 18 cols
-    const MROWS = mask.length;                // 5
-    const MCOLS = mask[0].length;             // 18
-    const gutter = Math.max(6, W*0.012);
-    const gridW  = W - wall*2;
-    const brickW = Math.floor((gridW - gutter*(MCOLS-1)) / MCOLS);
-    const brickH = Math.max(16, Math.min(28, brickW*0.48));
+    // Denser neon brick grid
+    // Columns adapt to width, target ~14–16 columns, ~10–12 rows
+    const COLS = Math.max(14, Math.min(18, Math.round(W/32)));
+    const ROWS = Math.max(10, Math.min(12, Math.round(H/48)));
+    const gutterX = Math.max(4, W*0.008);
+    const gutterY = Math.max(4, H*0.007);
+    const usableW = W - WALL*2;
+    const brickW  = Math.floor((usableW - gutterX*(COLS-1)) / COLS);
+    const brickH  = Math.max(14, Math.min(24, Math.floor(brickW*0.46)));
 
-    const gridTotalW = MCOLS*brickW + (MCOLS-1)*gutter;
-    const offsetX = wall + (gridW - gridTotalW)/2;
-    const offsetY = topOffset;
+    const gridW = COLS*brickW + (COLS-1)*gutterX;
+    const offsetX = WALL + (usableW - gridW)/2;
+    const offsetY = TOP;
 
-    // Brick types
-    // basic (hp1, +2 chads), strong (hp2, +4), gem (hp1, +6), bomb (hp1, +2 + AOE)
-    const colorsBasic = ['#7ac2ff','#9ef0c4','#ffd86b','#ff8d8d','#c39eff','#ffb574'];
-    function makeBrick(x,y,w,h,type='basic'){
-      let hp=1, reward=2, col=colorsBasic[(Math.random()*colorsBasic.length)|0];
-      if(type==='strong'){ hp=2; reward=4; col='#6ea0ff'; }
-      if(type==='gem'){    hp=1; reward=6; col='#ffe28a'; }
-      if(type==='bomb'){   hp=1; reward=2; col='#ff6565'; }
-      return {x,y,w,h,hp,type,alive:true,col};
-    }
-
-    const bricks = [];
-    // draw CHAD letters (mix of types)
-    for (let r=0;r<MROWS;r++){
-      for (let c=0;c<MCOLS;c++){
-        if (!mask[r][c]) continue;
-        const x = offsetX + c*(brickW+gutter);
-        const y = offsetY + r*(brickH+gutter);
-        const rand = Math.random();
-        const ty = rand < 0.12 ? 'gem' : rand < 0.24 ? 'strong' : (rand < 0.28 ? 'bomb' : 'basic');
-        bricks.push(makeBrick(x,y,brickW,brickH,ty));
-      }
-    }
-    // add a decorative arc row above (extra targets)
-    const extraY = offsetY - (brickH + gutter);
-    for (let i=0;i<MCOLS;i+=2){
-      const x = offsetX + i*(brickW+gutter);
-      bricks.push(makeBrick(x, extraY, brickW, brickH, Math.random()<0.2?'strong':'basic'));
+    // Brick types with HP and rewards (tuned for hard mode)
+    const bricks = []; // {x,y,w,h,hp,type,alive,dx?}
+    const palette = ['#76d0ff','#9ef0c4','#ffd86b','#ff8d8d','#c39eff','#ffb574'];
+    function mkBrick(x,y,type){
+      let hp=1, reward=2, col=palette[(Math.random()*palette.length)|0];
+      if(type==='tough2'){ hp=2; reward=4; col='#6ea0ff'; }
+      if(type==='tough3'){ hp=3; reward=6; col='#3c8cff'; }
+      if(type==='gem'){    hp=1; reward=8; col='#ffe28a'; }
+      if(type==='bomb'){   hp=1; reward=3; col='#ff6565'; }
+      return {x,y,w:brickW,h:brickH,hp,type,alive:true,col};
     }
 
-    // powerups (kept simple)
-    const powerups = []; // {x,y,vy,type,alive}
-    function spawnPowerup(x,y){
-      const roll = Math.random();
-      const type = roll < 0.5 ? 'expand' : 'slow';
-      powerups.push({ x, y, vy: 90, type, alive:true });
-    }
-
-    // scoring
-    let score=0, earned=0, level=1;
-
-    function gain(n){
-      score += n;
-    }
-    function addChads(n){
-      earned += n;
-    }
-
-    // finger-follow paddle (drag anywhere in wrap)
-    // use pointer capture so it follows while held down, even if pointer leaves the canvas slightly
-    const input = { dragging:false, pointerId:null };
-    function movePaddleTo(clientX){
-      const r = wrap.getBoundingClientRect();
-      const x = Math.max(wall+paddle.w/2, Math.min(W-wall-paddle.w/2, clientX - r.left));
-      paddle.x = x;
-    }
-    const pDown = (e)=>{
-      e.preventDefault();
-      input.dragging = true;
-      input.pointerId = e.pointerId;
-      try{ wrap.setPointerCapture(e.pointerId); }catch{}
-      movePaddleTo(e.clientX);
-    };
-    const pMove = (e)=>{
-      if(!input.dragging) return;
-      e.preventDefault();
-      movePaddleTo(e.clientX);
-    };
-    const pUp = (e)=>{
-      if(e.pointerId !== input.pointerId) return;
-      e.preventDefault();
-      input.dragging=false;
-      input.pointerId=null;
-      try{ wrap.releasePointerCapture(e.pointerId); }catch{}
-    };
-    wrap.addEventListener('pointerdown', pDown, {passive:false});
-    wrap.addEventListener('pointermove', pMove, {passive:false});
-    wrap.addEventListener('pointerup',   pUp,   {passive:false});
-    wrap.addEventListener('pointercancel', pUp, {passive:false});
-    // Pointer capture pattern per MDN/W3C pointer events. :contentReference[oaicite:3]{index=3}
-
-    // keyboard (optional)
-    function clamp(v,a,b){ return v<a? a : v>b? b : v; }
-    const kd=(e)=>{ if(['ArrowLeft','a','A','ArrowRight','d','D'].includes(e.key)) e.preventDefault(); };
-    const ku=(e)=>{ if(['ArrowLeft','a','A','ArrowRight','d','D'].includes(e.key)) e.preventDefault(); };
-
-    window.addEventListener('keydown', kd, {passive:false});
-    window.addEventListener('keyup',   ku, {passive:false});
-
-    // collisions
-    function hitRect(cx,cy,r, rx,ry,rw,rh){
-      const nx = Math.max(rx, Math.min(cx, rx+rw));
-      const ny = Math.max(ry, Math.min(cy, ry+rh));
-      const dx = cx - nx, dy = cy - ny;
-      return (dx*dx + dy*dy) <= r*r;
-    }
-    function pop(x,y){
-      const el=document.createElement('div'); el.className='bb-pop';
-      const rect = wrap.getBoundingClientRect();
-      el.style.left = ( (x/W)*rect.width )+'px';
-      el.style.top  = ( (y/H)*rect.height )+'px';
-      wrap.appendChild(el);
-      requestAnimationFrame(()=>{
-        el.style.transition='transform 380ms ease, opacity 420ms ease';
-        el.style.transform='translate(-50%,-50%) scale(5)';
-        el.style.opacity='0';
-      });
-      setTimeout(()=> el.remove(), 480);
-    }
-
-    // draw
-    function drawBG(){
-      const g = ctx.createLinearGradient(0,0,0,H);
-      g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
-      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-      // faint scanlines
-      ctx.fillStyle='rgba(255,255,255,0.02)';
-      for(let y=0;y<H;y+=10) ctx.fillRect(0,y,W,1);
-    }
-    function drawBricks(){
-      for(const b of bricks){
-        if(!b.alive) continue;
-        // soft shadow
-        ctx.fillStyle='rgba(0,0,0,0.25)';
-        ctx.fillRect(b.x+1.5, b.y+1.5, b.w, b.h);
-        // body
-        const grd = ctx.createLinearGradient(b.x, b.y, b.x, b.y+b.h);
-        grd.addColorStop(0, b.col);
-        grd.addColorStop(1, '#0a0f14');
-        ctx.fillStyle=grd;
-        ctx.fillRect(b.x, b.y, b.w, b.h);
-        // top highlight
-        ctx.fillStyle='rgba(255,255,255,0.18)';
-        ctx.fillRect(b.x, b.y, b.w, 2);
-        // hp notch
-        if(b.type==='strong' && b.hp===2){
-          ctx.fillStyle='rgba(255,255,255,0.15)';
-          ctx.fillRect(b.x+4, b.y+4, b.w-8, 4);
-        }
-        if(b.type==='gem'){
-          ctx.strokeStyle='rgba(255,255,255,0.45)';
-          ctx.lineWidth=1;
-          ctx.strokeRect(b.x+3, b.y+3, b.w-6, b.h-6);
-        }
-        if(b.type==='bomb'){
-          ctx.fillStyle='rgba(255,255,255,0.2)';
-          ctx.beginPath(); ctx.arc(b.x+b.w/2, b.y+b.h/2, Math.min(b.w,b.h)*0.18, 0, Math.PI*2); ctx.fill();
-        }
-      }
-    }
-    function drawPaddle(){
-      ctx.fillStyle='#e8edf4';
-      ctx.fillRect(paddle.x - paddle.w/2, paddle.y - paddle.h/2, paddle.w, paddle.h);
-    }
-    function drawBall(){
-      const rad = ctx.createRadialGradient(ball.x-2,ball.y-2,0, ball.x,ball.y, ball.r*1.3);
-      rad.addColorStop(0,'#fff5c7'); rad.addColorStop(1,'#ffd86b');
-      ctx.fillStyle=rad; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
-    }
-    function drawPowerups(){
-      for(const p of powerups){
-        if(!p.alive) continue;
-        ctx.fillStyle = p.type==='expand' ? '#9ef0c4' : '#7ac2ff';
-        ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle='#051022';
-        ctx.font='10px Inter, system-ui, sans-serif';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(p.type==='expand'?'+':'S', p.x, p.y+0.5);
+    // Fill rows with a pattern: each row mixes types; every 3rd row drifts horizontally (moving row)
+    for(let r=0;r<ROWS;r++){
+      const rowY = offsetY + r*(brickH+gutterY);
+      const moving = (r%3===1);   // every 3rd row moves
+      const baseDx = moving ? (Math.random()<0.5?-1:1)*rand(18,28) : 0; // px/s
+      for(let c=0;c<COLS;c++){
+        const x = offsetX + c*(brickW+gutterX);
+        const roll = Math.random();
+        let type = 'basic';
+        if(roll < 0.08) type='bomb';
+        else if(roll < 0.22) type='gem';
+        else if(roll < 0.42) type='tough2';
+        else if(roll < 0.52) type='tough3';
+        const b = mkBrick(x,rowY,type);
+        if (moving){ b.dx = baseDx * (Math.random()<0.5? 1 : 1.15); }
+        bricks.push(b);
       }
     }
 
-    // loop
-    let running=false, paused=false, raf=null, lastTs=0;
+    // Powerups & hazards (rare) to keep spice without making it easier overall
+    const drops = []; // {x,y,vy,type,alive}
+    function spawnDrop(x,y){
+      const r = Math.random();
+      const type = r < 0.5 ? 'slow' : (r < 0.8 ? 'expand' : 'shrink'); // shrink makes it harder
+      drops.push({x,y,vy:100, type, alive:true});
+    }
 
+    // Score / chads / stage
+    let score=0, earned=0, stage=1, combo=0;
+    function gain(n){ score+=n; }
+    function addChads(n){ earned+=n; }
     function updateUI(){
       if(scoreEl)  scoreEl.textContent  = score;
       if(earnedEl) earnedEl.textContent = earned;
-      if(levelEl)  levelEl.textContent  = level;
+      if(levelEl)  levelEl.textContent  = stage;
     }
+
+    // Finger-follow paddle with pointer capture (tracks while pressed)
+    const input = { dragging:false, id:null };
+    function movePaddle(clientX){
+      const r = wrap.getBoundingClientRect();
+      const x = clamp(clientX - r.left, WALL+paddle.w/2, W - WALL - paddle.w/2);
+      paddle.x = x;
+    }
+    const onDown = (e)=>{ e.preventDefault(); input.dragging=true; input.id=e.pointerId; try{ wrap.setPointerCapture(e.pointerId); }catch{} movePaddle(e.clientX); };
+    const onMove = (e)=>{ if(!input.dragging) return; e.preventDefault(); movePaddle(e.clientX); };
+    const onUp   = (e)=>{ if(e.pointerId!==input.id) return; e.preventDefault(); input.dragging=false; input.id=null; try{ wrap.releasePointerCapture(e.pointerId); }catch{} };
+    wrap.addEventListener('pointerdown', onDown, {passive:false});
+    wrap.addEventListener('pointermove', onMove, {passive:false});
+    wrap.addEventListener('pointerup',   onUp,   {passive:false});
+    wrap.addEventListener('pointercancel', onUp, {passive:false});
+
+    // Collision helpers
+    function hitRectCircle(cx,cy,cr, rx,ry,rw,rh){
+      const nx = clamp(cx, rx, rx+rw);
+      const ny = clamp(cy, ry, ry+rh);
+      const dx = cx - nx, dy = cy - ny;
+      return (dx*dx + dy*dy) <= cr*cr;
+    }
+
+    // Ball trail (neon)
+    const trail = [];
+    const TRAIL_MAX = 12;
+
+    // Screen shake
+    let shakeT=0, shakeMag=0;
+    function screenShake(power=5, time=0.15){ shakeMag=Math.max(shakeMag,power); shakeT=Math.max(shakeT,time); }
+
+    // Loop state
+    let running=false, paused=false, raf=0, last=0;
 
     function start(){
       if(running) return;
-      running=true; paused=false; lastTs=performance.now();
+      running=true; paused=false; last=performance.now();
       btnPause.textContent='Pause';
-      frame(lastTs);
+      frame(last);
     }
     function stop(){
       running=false;
-      if(raf) cancelAnimationFrame(raf), raf=null;
+      if(raf) cancelAnimationFrame(raf), raf=0;
     }
     function togglePause(){
       if(!running){ start(); return; }
-      paused = !paused;
-      btnPause.textContent = paused? 'Resume' : 'Pause';
-      if(!paused){ lastTs=performance.now(); frame(lastTs); }
+      paused=!paused;
+      btnPause.textContent = paused? 'Resume':'Pause';
+      if(!paused){ last=performance.now(); frame(last); }
     }
 
-    function explode(ax,ay){
-      const R = Math.max(brickW,brickH)*1.6;
+    function reflectFromPaddle(){
+      const px = paddle.x - paddle.w/2, py = paddle.y - paddle.h/2;
+      if (ball.vy>0 && hitRectCircle(ball.x,ball.y,ball.r, px,py,paddle.w,paddle.h)){
+        ball.y = py - ball.r;
+        const rel = (ball.x - paddle.x) / (paddle.w/2); // -1..1
+        const angle = (-Math.PI/4) + rel * (Math.PI/2.4);
+        const speed = Math.min(ball.speedCap, Math.hypot(ball.vx,ball.vy)*(1.05 + Math.min(0.25, combo*0.02)));
+        ball.vx = Math.cos(angle)*speed;
+        ball.vy = Math.sin(angle)*speed;
+        combo = Math.min(25, combo+1);
+        pop(ball.x, ball.y);
+      }
+    }
+
+    function hitBrick(b){
+      // reflect by axis of greater penetration
+      const cx = clamp(ball.x, b.x, b.x+b.w);
+      const cy = clamp(ball.y, b.y, b.y+b.h);
+      const dx = ball.x - cx, dy = ball.y - cy;
+      if (Math.abs(dx) > Math.abs(dy)) ball.vx = -ball.vx; else ball.vy = -ball.vy;
+
+      b.hp -= 1;
+      const base = (b.type==='gem'? 20 : b.type==='tough3'? 18 : b.type==='tough2'? 14 : b.type==='bomb' ? 12 : 10);
+      gain(base);
+      // tiny speed-up on every brick
+      const sp = Math.min(ball.speedCap, Math.hypot(ball.vx,ball.vy)*1.02);
+      const dir = Math.atan2(ball.vy, ball.vx);
+      ball.vx = Math.cos(dir)*sp; ball.vy = Math.sin(dir)*sp;
+
+      if (b.hp<=0){
+        b.alive=false;
+        if (b.type==='bomb'){
+          // AOE pop
+          for(const other of bricks){
+            if(!other.alive || other===b) continue;
+            const ox = other.x+other.w/2, oy = other.y+other.h/2;
+            const dx = (b.x+b.w/2)-ox, dy=(b.y+b.h/2)-oy;
+            if (dx*dx+dy*dy <= Math.max(b.w,b.h)*Math.max(b.w,b.h)*2.4){
+              other.hp = 0; other.alive=false; gain(8); addChads(2);
+            }
+          }
+          screenShake(5, 0.2);
+        }
+        if (Math.random() < 0.12) spawnDrop(b.x+b.w/2, b.y+b.h/2);
+        addChads(b.type==='gem'? 8 : b.type==='tough3'? 6 : b.type==='tough2'? 4 : 3);
+        pop(b.x+b.w/2, b.y+b.h/2);
+      } else {
+        // surviving brick tap
+        addChads(1);
+      }
+    }
+
+    function update(dt){
+      // moving rows
+      for(const b of bricks){
+        if(!b.alive || b.dx==null) continue;
+        b.x += b.dx*dt;
+        const left = offsetX - (brickW+gutterX)*0.75;
+        const right= offsetX + gridW + (brickW+gutterX)*0.75;
+        if (b.x < left){ b.x = left; b.dx = Math.abs(b.dx); }
+        if (b.x + b.w > right){ b.x = right - b.w; b.dx = -Math.abs(b.dx); }
+      }
+
+      // ball physics
+      ball.x += ball.vx*dt;
+      ball.y += ball.vy*dt;
+
+      // walls
+      if (ball.x - ball.r < WALL){ ball.x = WALL + ball.r; ball.vx = Math.abs(ball.vx); }
+      if (ball.x + ball.r > W - WALL){ ball.x = W - WALL - ball.r; ball.vx = -Math.abs(ball.vx); }
+      if (ball.y - ball.r < WALL){ ball.y = WALL + ball.r; ball.vy = Math.abs(ball.vy); }
+      if (ball.y - ball.r > H){
+        // lose life (single life hard mode)
+        stop();
+        combo=0;
+        fancyAlert('Ball lost — press Start to retry or Quit to collect.');
+      }
+
+      // paddle
+      reflectFromPaddle();
+
+      // bricks
       for(const b of bricks){
         if(!b.alive) continue;
-        const cx=b.x+b.w/2, cy=b.y+b.h/2;
-        const d2=(cx-ax)*(cx-ax)+(cy-ay)*(cy-ay);
-        if(d2 <= R*R){
-          b.alive=false; gain(10); addChads(2);
-          pop(cx,cy);
+        if (hitRectCircle(ball.x,ball.y,ball.r, b.x,b.y,b.w,b.h)){ hitBrick(b); }
+      }
+
+      // drops
+      const px = paddle.x - paddle.w/2, py = paddle.y - paddle.h/2;
+      for(const d of drops){
+        if(!d.alive) continue;
+        d.y += d.vy*dt;
+        if (d.y>py && d.y<py+paddle.h+24 && Math.abs(d.x - paddle.x) < paddle.w/2){
+          d.alive=false;
+          if (d.type==='expand'){ paddle.w = Math.min(paddle.w*1.25, W*0.55); }
+          else if (d.type==='slow'){ ball.vx*=0.85; ball.vy*=0.85; }
+          else { paddle.w = Math.max(paddle.w*0.82, W*0.12); } // shrink (harder)
+          pop(paddle.x, paddle.y);
+        }
+        if (d.y > H+20) d.alive=false;
+      }
+
+      // stage clear?
+      if (bricks.every(b=>!b.alive)){
+        stage++;
+        gain(120); addChads(35);
+        screenShake(6,0.22);
+        fancyAlert(`Stage cleared! (+35 chads)`);
+        stop(); // player can hit Start to generate a new board
+      }
+
+      updateUI();
+
+      // trail
+      trail.push({x:ball.x,y:ball.y});
+      if (trail.length>TRAIL_MAX) trail.shift();
+
+      // shake decay
+      if (shakeT>0){ shakeT -= dt; if (shakeT<0) shakeT=0; }
+    }
+
+    function draw(){
+      // motion blur background
+      ctx.globalCompositeOperation='source-over';
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'#061421'); g.addColorStop(1,'#05090f');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+      // faint scanlines
+      ctx.fillStyle='rgba(255,255,255,0.03)';
+      for(let y=0;y<H;y+=10) ctx.fillRect(0,y,W,1);
+
+      // shake
+      if (shakeT>0){
+        const s = shakeMag * (shakeT*shakeT);
+        ctx.save();
+        ctx.translate(rand(-s,s), rand(-s,s));
+      }
+
+      // bricks (neon)
+      for(const b of bricks){
+        if(!b.alive) continue;
+        // drop shadow
+        ctx.fillStyle='rgba(0,0,0,0.28)';
+        ctx.fillRect(b.x+1.5,b.y+1.5,b.w,b.h);
+        // body
+        const grd = ctx.createLinearGradient(b.x,b.y,b.x,b.y+b.h);
+        grd.addColorStop(0, b.col);
+        grd.addColorStop(1, '#0a0f14');
+        ctx.fillStyle=grd; ctx.fillRect(b.x,b.y,b.w,b.h);
+        // top highlight
+        ctx.fillStyle='rgba(255,255,255,0.16)'; ctx.fillRect(b.x,b.y,b.w,2);
+        // hp lines
+        if (b.hp>1){
+          ctx.fillStyle='rgba(255,255,255,0.15)';
+          for(let i=1;i<b.hp;i++) ctx.fillRect(b.x+4, b.y+4+i*5, b.w-8, 2);
         }
       }
+
+      // paddle
+      ctx.fillStyle='#ecf1f9';
+      ctx.fillRect(paddle.x-paddle.w/2, paddle.y-paddle.h/2, paddle.w, paddle.h);
+
+      // ball trail
+      ctx.globalCompositeOperation='lighter';
+      for(let i=0;i<trail.length;i++){
+        const t = i/(TRAIL_MAX-1);
+        ctx.fillStyle = `rgba(255,216,107,${0.06 + 0.12*t})`;
+        const p = trail[i];
+        ctx.beginPath(); ctx.arc(p.x,p.y, ball.r*(0.9 - 0.5*(1-t)), 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalCompositeOperation='source-over';
+
+      // ball
+      const rad = ctx.createRadialGradient(ball.x-2,ball.y-2,0, ball.x,ball.y, ball.r*1.3);
+      rad.addColorStop(0,'#fff5c7'); rad.addColorStop(1,'#ffd86b');
+      ctx.fillStyle=rad; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+
+      // drops
+      for(const d of drops){
+        if(!d.alive) continue;
+        ctx.globalCompositeOperation='lighter';
+        ctx.fillStyle = d.type==='expand' ? '#9ef0c4' : d.type==='slow' ? '#7ac2ff' : '#ff8d8d';
+        ctx.beginPath(); ctx.arc(d.x,d.y,8,0,Math.PI*2); ctx.fill();
+        ctx.globalCompositeOperation='source-over';
+        ctx.fillStyle='#051022'; ctx.font='10px Inter, system-ui, sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(d.type==='expand'?'+':(d.type==='slow'?'S':'-'), d.x, d.y+0.5);
+      }
+
+      if (shakeT>0){ ctx.restore(); }
     }
 
     function frame(ts){
-      if(!running){ raf=null; return; }
-      const dt = Math.min(0.035, (ts - lastTs)/1000);
-      lastTs = ts;
-
+      if(!running){ raf=0; return; }
+      const dt = Math.min(0.035, (ts - last)/1000);
+      last = ts;
       if(!paused){
-        // integrate
-        ball.x += ball.vx*dt;
-        ball.y += ball.vy*dt;
-
-        // walls
-        if (ball.x - ball.r < wall){ ball.x = wall + ball.r; ball.vx = Math.abs(ball.vx); }
-        if (ball.x + ball.r > W - wall){ ball.x = W - wall - ball.r; ball.vx = -Math.abs(ball.vx); }
-        if (ball.y - ball.r < wall){ ball.y = wall + ball.r; ball.vy = Math.abs(ball.vy); }
-        if (ball.y - ball.r > H){
-          stop();
-          fancyAlert('Ball lost — press Quit to collect your session chads or Start to try again.');
-        }
-
-        // paddle collision (reflect with aim based on contact)
-        const px = paddle.x - paddle.w/2, py = paddle.y - paddle.h/2;
-        if (ball.vy > 0 && hitRect(ball.x,ball.y,ball.r, px,py,paddle.w,paddle.h)){
-          ball.y = py - ball.r;
-          const rel = (ball.x - paddle.x) / (paddle.w/2); // -1..1
-          const speed = Math.min(ball.speedMax, Math.hypot(ball.vx, ball.vy)*1.03);
-          const angle = (-Math.PI/4) + (rel * Math.PI/2.6);
-          ball.vx = Math.cos(angle)*speed;
-          ball.vy = Math.sin(angle)*speed;
-          pop(ball.x, ball.y);
-        }
-
-        // bricks
-        for(const b of bricks){
-          if(!b.alive) continue;
-          if (hitRect(ball.x,ball.y,ball.r, b.x,b.y,b.w,b.h)){
-            // reflect by axis of greater penetration
-            const cx = clamp(ball.x, b.x, b.x+b.w);
-            const cy = clamp(ball.y, b.y, b.y+b.h);
-            const dx = ball.x - cx, dy = ball.y - cy;
-            if (Math.abs(dx) > Math.abs(dy)){ ball.vx = -ball.vx; } else { ball.vy = -ball.vy; }
-
-            // damage brick
-            b.hp -= 1;
-            if (b.hp <= 0){
-              b.alive=false;
-              // rewards by type
-              if(b.type==='basic'){ gain(10); addChads(2); }
-              if(b.type==='strong'){ gain(16); addChads(4); }
-              if(b.type==='gem'){   gain(22); addChads(6); }
-              if(b.type==='bomb'){  gain(14); addChads(2); explode(b.x+b.w/2, b.y+b.h/2); }
-              pop(b.x+b.w/2, b.y+b.h/2);
-              // powerup chance
-              if (Math.random() < 0.12) powerups.push({x:b.x+b.w/2, y:b.y+b.h/2, vy:90, type: (Math.random()<0.5?'expand':'slow'), alive:true});
-            } else {
-              gain(6);
-            }
-            // speed up a tiny bit each hit (harder)
-            const sp = Math.hypot(ball.vx, ball.vy) * 1.015;
-            const dir = Math.atan2(ball.vy, ball.vx);
-            const capped = Math.min(sp, ball.speedMax);
-            ball.vx = Math.cos(dir)*capped;
-            ball.vy = Math.sin(dir)*capped;
-          }
-        }
-
-        // powerups fall & apply
-        for(const p of powerups){
-          if(!p.alive) continue;
-          p.y += p.vy*dt;
-          if (p.y>py && p.y<py+paddle.h+24 && Math.abs(p.x - paddle.x) < paddle.w/2){
-            p.alive=false;
-            if(p.type==='expand'){ paddle.w = Math.min(paddle.w*1.25, W*0.52); }
-            else { ball.vx*=0.85; ball.vy*=0.85; }
-            pop(paddle.x, paddle.y);
-          }
-          if (p.y > H+20) p.alive=false;
-        }
-
-        // level clear?
-        if (bricks.every(b=>!b.alive)){
-          level++;
-          gain(100);
-          addChads(30);
-          fancyAlert(`Stage cleared! (+30 chads)`);
-          stop(); // let player press Start for next round
-        }
-
-        updateUI();
+        update(dt);
+        draw();
       }
-
-      // draw
-      drawBG();
-      drawBricks();
-      drawPaddle();
-      drawBall();
-      drawPowerups();
-
       raf = requestAnimationFrame(frame);
     }
 
     function cleanup(){
       stop();
-      wrap.removeEventListener('pointerdown', pDown);
-      wrap.removeEventListener('pointermove', pMove);
-      wrap.removeEventListener('pointerup',   pUp);
-      wrap.removeEventListener('pointercancel', pUp);
-      window.removeEventListener('keydown', kd, {passive:false});
-      window.removeEventListener('keyup',   ku, {passive:false});
+      wrap.removeEventListener('pointerdown', onDown);
+      wrap.removeEventListener('pointermove', onMove);
+      wrap.removeEventListener('pointerup',   onUp);
+      wrap.removeEventListener('pointercancel', onUp);
     }
 
+    // start a fresh stage board on each Start press
     return {
       start, stop, togglePause, cleanup,
       get sessionChads(){ return earned; }
     };
   }
 
-  // Buttons
+  // Buttons — restart fresh board on each Start
   btnStart.addEventListener('click', ()=>{
     if (BB?.cleanup) BB.cleanup();
     BB = createGame();
@@ -1868,9 +1858,9 @@ function openBreaker(){
     BB=null; closeOverlay('breakerModal');
   });
 
-  // keep canvas crisp on rotate/resize
   window.addEventListener('resize', resizeCanvas);
 })();
+
 
 
 
