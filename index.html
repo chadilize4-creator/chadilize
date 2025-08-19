@@ -3167,8 +3167,11 @@ function openBreaker(){
       spawnSpark(pos(b.row,b.col));
       drawTile(b, true);
       // chads payout (gentle): + value/8
-      const gain = Math.max(0, Math.floor(b.value/8));
-      if(gain){ earned += gain; updateHUD(); }
+      // fixed chads payout per successful merge
+const gain = 5;
+earned += gain;
+updateHUD();
+
       // special confetti on hitting 2048+
       if(b.value===2048) confetti(pos(b.row,b.col));
     }
