@@ -113,6 +113,35 @@ body{
   background: radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%), linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass); box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
 }
+/* Wood texture skin for the user pill */
+.userpill.wood-bg{
+  position: relative;            /* keep children positioned correctly */
+  overflow: hidden;              /* clip the texture to rounded corners */
+  /* Layered backgrounds: dark gradient on top of wood texture  */
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.55)),
+    url('img/woodtexture.jpg');
+  background-size: cover, cover; /* scale to fill nicely */
+  background-position: center;   /* keep the grain centered */
+  background-repeat: no-repeat, no-repeat;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* tiny readability bump for text on textured bg */
+.userpill.wood-bg .name{
+  color:#fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.55);
+}
+
+/* optional thin inner ring to keep your current “glass” vibe */
+.userpill.wood-bg::after{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
 /* avatar (no blue halo) */
 .avatar{
   width:56px; height:56px;
@@ -244,7 +273,7 @@ canvas{ display:block }
 
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
-      <div id="userPill" class="userpill" style="visibility:hidden">
+      <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
         <div class="name" id="userName">Player</div>
       </div>
