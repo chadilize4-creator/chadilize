@@ -6,6 +6,10 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+#vjModal .game-9x16 { min-height: 360px; }
+#vjWrap { width:100%; height:100%; position:relative; }
+#vjCanvas { width:100%; height:100%; display:block; }
+
 /* Hexagon game helpers */
 #hexCanvas, #hexDrag { width:100%; height:100%; display:block; }
 .hex-pulse { transition:transform .2s ease; }
@@ -974,445 +978,364 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
 
-/* ===== VERTICAL JUMPER (Doodle-style, with enemies) ===== */
+/* ===== VERTICAL JUMPER (Doodle-style, fixed) ===== */
 let VJ = null;
 
 function openVertical(){
   closeOverlay('playOverlay');
   openOverlay('vjModal');
-  if (!VJ) newVJGame();
+  if(!VJ) newVJGame();           // build the game once the modal is visible
 }
 
-document.getElementById('vjStart').addEventListener('click', newVJGame);
-document.getElementById('vjPause').addEventListener('click', ()=>{ if(!VJ) return; VJ.paused=!VJ.paused; document.getElementById('vjPause').textContent = VJ.paused?'Resume':'Pause'; });
-document.getElementById('vjQuit').addEventListener('click', quitVJ);
+document.getElementById('vjStart') .addEventListener('click', ()=>{ if(!VJ) newVJGame(); VJ.start(); });
+document.getElementById('vjPause') .addEventListener('click', ()=>{ if(!VJ) return; VJ.togglePause(); });
+document.getElementById('vjQuit')  .addEventListener('click', quitVJ);
 
+/** Build / reset game */
 function newVJGame(){
-  // clean up a previous run
-  if (VJ && VJ.cleanup) VJ.cleanup();
+  // clean any previous instance
+  if (VJ?.cleanup) VJ.cleanup();
 
-  const wrap = document.getElementById('vjWrap');
   const canvas = document.getElementById('vjCanvas');
-  const ctx = canvas.getContext('2d', { alpha:true });
+  const wrap   = document.getElementById('vjWrap');
+  const ctx    = canvas.getContext('2d', { alpha:false });
 
-  // Hi-DPI canvas sizing (prevents blurry rendering on mobile)
+  // --- HiDPI & proper sizing (prevents "black screen") ---
   function resizeCanvas(){
-    const r = wrap.getBoundingClientRect();
-    const dpr = Math.max(1, window.devicePixelRatio || 1);     // hi-dpi scale
-    canvas.style.width  = r.width + 'px';
-    canvas.style.height = r.height + 'px';
-    canvas.width  = Math.floor(r.width  * dpr);
-    canvas.height = Math.floor(r.height * dpr);
+    // only size while modal is open (has class "show")
+    const isShowing = document.getElementById('vjModal')?.classList.contains('show');
+    const rect = wrap.getBoundingClientRect();
+    const dpr  = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = Math.max(10, Math.floor(rect.width));
+    const cssH = Math.max(10, Math.floor(rect.height));
+    canvas.style.width  = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width  = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
   }
   resizeCanvas();
-  const ro = new ResizeObserver(()=>{ if (document.getElementById('vjModal').classList.contains('show')) resizeCanvas(); });
+  const ro = new ResizeObserver(resizeCanvas);
   ro.observe(wrap);
+  window.addEventListener('resize', resizeCanvas);
 
-  // world units scale to the screen height
-  function unit(){ return (wrap.getBoundingClientRect().height || 800) / 800; }
-  const U = unit();
+  // --- world units ---
+  function U(v){ return v * (canvas.height / (window.devicePixelRatio||1)) / 800; } // scale by viewport height
+  const GRAV = U(2300), JUMP = -U(980), MOVE = U(620);
+  const AIR = 0.92, FRICTION = 0.86;
 
-  // Tunables (feel)
-  const GRAV   = 2800*U;
-  const JUMP   = -1050*U;
-  const MOVE   = 640*U;
-  const AIR    = 0.90;
-  const FRICTION = 0.86;
-
-  const P_H = Math.max(12, 14*U);             // platform height
-  const P_W_BASE = Math.max(70, 130*U);
-
-  const COIN_R = Math.max(10, 13*U);
-  const PLAYER_R = 20*U;
-
-  // Enemy types
-  // walker: patrols along a platform
-  // flyer : horizontal mover not tied to a platform
-  // spike : vertical piston
-  const ENEMY = {
-    walker: 'walker',
-    flyer : 'flyer',
-    spike : 'spike'
+  const state = {
+    ctx, canvas, wrap,
+    running:false, paused:false, loopId:null, lastTs:0,
+    camY:0, highestY:0,
+    player:{ x:0, y:0, vx:0, vy:0, r:U(18) },
+    platforms:[], coins:[], enemies:[], sparks:[],
+    score:0, earned:0, coinCount:0
   };
 
-  VJ = {
-    canvas, ctx, ro, U,
-    w: wrap.getBoundingClientRect().width,
-    h: wrap.getBoundingClientRect().height,
-    camY: 0, highestY: 0,
-    paused:false, dead:false,
-    // state
-    player: { x:0, y:0, vx:0, vy:0, r:PLAYER_R },
-    platforms: [], coins: [], enemies: [], sparks: [],
-    score: 0, sessionChads: 0, coinCount: 0,
-    input: { left:false, right:false },
-    pointerActive:false, pointerId:null,
-    lastTs: performance.now(), loopId:null,
-  };
-  VJ.player.x = VJ.w/2;
-  VJ.player.y = VJ.h*0.62;
-  VJ.camY = VJ.player.y - VJ.h*0.5;
-  VJ.highestY = VJ.player.y;
+  // initial placement
+  state.player.x = canvas.width / (window.devicePixelRatio||1) / 2;
+  state.player.y = (canvas.height / (window.devicePixelRatio||1)) * 0.60;
+  state.camY     = state.player.y - (canvas.height / (window.devicePixelRatio||1)) * 0.5;
+  state.highestY = state.player.y;
 
-  // ——— helpers ———
+  // helpers
   function addPlatform(y){
-    const w = P_W_BASE * (0.8 + Math.random()*0.7);
-    const x = Math.random()*(VJ.w - w);
-    const moving = Math.random()<0.22;
-    const dir = Math.random()<0.5 ? -1 : 1;
-    const speed = moving ? (60 + Math.random()*120)*U : 0;
-    const p = { x, y, w, h:P_H, moving, dir, speed };
-    VJ.platforms.push(p);
-
-    // maybe a coin on top
+    const w  = U(120) * (0.8 + Math.random()*0.7);
+    const x  = Math.random()*((canvas.width/(window.devicePixelRatio||1)) - w);
+    const mv = Math.random() < 0.22;
+    const sp = mv ? (U(60) + Math.random()*U(120)) : 0;
+    const dir= Math.random() < 0.5 ? -1 : 1;
+    state.platforms.push({x, y, w, h: Math.max(U(12), U(14)), mv, sp, dir});
+    // maybe coin above
     if (Math.random() < 0.55){
-      VJ.coins.push({ x: x + w/2, y: y - 24*U, r: COIN_R, hit:false });
+      state.coins.push({x:x+w/2, y:y-U(22), r:Math.max(U(8), U(12)), hit:false});
     }
-
-    // maybe a walker enemy on this platform
+    // maybe an enemy patrolling near this platform
     if (Math.random() < 0.18){
-      VJ.enemies.push({
-        type: ENEMY.walker,
-        x: x + (10+Math.random()*(w-20)),
-        y: y - (P_H/2),
-        w: 26*U, h: 18*U,
-        vx: (Math.random()<0.5?-1:1) * (45+Math.random()*55)*U,
-        min:x+6, max:x+w-6
+      const r = U(12);
+      state.enemies.push({
+        x: x + w*0.5,
+        y: y - U(10),
+        r,
+        ang: Math.random()*Math.PI*2,
+        angSpd: (0.6 + Math.random()*0.8) * (Math.random()<0.5?-1:1) // spin for visual
       });
     }
   }
 
+  for(let i=-6;i<=10;i++){ addPlatform(state.player.y + i*U(60)); }
+
   function ensureContent(){
-    const targetTop = VJ.camY - 650*U;
-    let minY = Infinity; for(const p of VJ.platforms) if (p.y < minY) minY = p.y;
-    if (minY === Infinity) minY = VJ.player.y + 80;
-    while (minY > targetTop){
-      minY -= (95 + Math.random()*75)*U; // spacing
+    const H = canvas.height / (window.devicePixelRatio||1);
+    const topTarget = state.camY - U(600);
+    let minY = Infinity;
+    for(const p of state.platforms) if (p.y < minY) minY = p.y;
+    if (minY === Infinity) minY = state.player.y + U(80);
+    while(minY > topTarget){
+      minY -= U(95 + Math.random()*75);
       addPlatform(minY);
-      // sometimes a flyer enemy between two layers
-      if (Math.random() < 0.14){
-        VJ.enemies.push({
-          type: ENEMY.flyer,
-          x: Math.random()<0.5 ? -30*U : VJ.w+30*U,
-          y: minY - 60*U,
-          w: 26*U, h: 18*U,
-          vx: (Math.random()<0.5?1:-1) * (80 + Math.random()*90)*U
-        });
-      }
-      // sometimes a vertical spike
-      if (Math.random() < 0.12){
-        const sx = 20*U + Math.random()*(VJ.w-40*U);
-        VJ.enemies.push({
-          type: ENEMY.spike,
-          x: sx, y: minY - 40*U, w: 16*U, h: 28*U,
-          baseY: minY - 40*U, amp: 36*U, t: Math.random()*Math.PI*2, speed: 1+Math.random()*1.2
-        });
-      }
     }
+    // cull far-below
+    const killY = state.camY + H + U(80);
+    state.platforms = state.platforms.filter(p=> p.y < killY);
+    state.coins     = state.coins.filter(c=> c.y < killY && !c.hit);
+    state.enemies   = state.enemies.filter(e=> e.y < killY);
   }
 
-  function circleRectHit(cx,cy,r, rx,ry,rw,rh){
-    // rectangle given with top-left (rx,ry)
-    const testX = Math.max(rx, Math.min(cx, rx+rw));
-    const testY = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx - testX, dy = cy - testY;
-    return (dx*dx + dy*dy) <= r*r;
+  function hitPlatform(p){
+    const px = state.player.x, py = state.player.y, r = state.player.r;
+    const onTop   = (state.player.vy > 0) && (py + r <= p.y) && (py + r + state.player.vy*(1/60) >= p.y - 1);
+    const withinX = (px + r > p.x) && (px - r < p.x + p.w);
+    return onTop && withinX;
   }
+  function circleHit(a,b, ra,rb){ const dx=a.x-b.x, dy=a.y-b.y; return (dx*dx+dy*dy) <= (ra+rb)*(ra+rb); }
 
-  function updateUI(){
-    const sc = document.getElementById('vjScore'); if (sc) sc.textContent = VJ.score|0;
-    const se = document.getElementById('vjEarned'); if (se) se.textContent = VJ.sessionChads|0;
-    const tc = document.getElementById('vjTopChads'); if (tc) tc.textContent = (VJ.sessionChads|0).toLocaleString();
+  // particles
+  function addSpark(x,y,c){ state.sparks.push({x,y, vx:Math.cos(Math.random()*6.283)*U(200), vy:-U(120)-Math.random()*U(160), life:0.4+Math.random()*0.25, c}); }
+
+  // input
+  const input = { left:false, right:false };
+  function key(e,down){
+    if(['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); input.left = down; }
+    if(['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); input.right = down; }
   }
+  const kd=(e)=>key(e,true), ku=(e)=>key(e,false);
+  window.addEventListener('keydown', kd, {passive:false});
+  window.addEventListener('keyup', ku, {passive:false});
 
-  // ——— INPUT ———
-  const leftBtn  = document.getElementById('vjLeft');
-  const rightBtn = document.getElementById('vjRight');
-  function wireBtn(btn, prop){
-    const down = (e)=>{ e.preventDefault(); try{ btn.setPointerCapture(e.pointerId); }catch{} VJ.input[prop]=true; };
-    const up   = ()=>{ VJ.input[prop]=false; };
-    btn.addEventListener('pointerdown', down, {passive:false});
-    btn.addEventListener('pointerup',   up,   {passive:false});
-    btn.addEventListener('pointercancel', up, {passive:false});
-    btn.addEventListener('lostpointercapture', up, {passive:false});
-  }
-  wireBtn(leftBtn,'left'); wireBtn(rightBtn,'right');
-
-  // drag anywhere: left half = left, right half = right
-  function setFromX(x){
+  // touch anywhere: left half / right half
+  function updateDirFromX(cx){
     const r = wrap.getBoundingClientRect();
     const mid = r.left + r.width/2;
-    VJ.input.left  = x <  mid - r.width*0.02;
-    VJ.input.right = x >  mid + r.width*0.02;
+    input.left  = cx <  mid - r.width*0.02;
+    input.right = cx >  mid + r.width*0.02;
   }
-  const pDown = (e)=>{ e.preventDefault(); VJ.pointerActive = true; VJ.pointerId=e.pointerId; try{ wrap.setPointerCapture(e.pointerId); }catch{} setFromX(e.clientX); };
-  const pMove = (e)=>{ if(!VJ.pointerActive) return; e.preventDefault(); setFromX(e.clientX); };
-  const pUp   = (e)=>{ if(e.pointerId!==VJ.pointerId) return; e.preventDefault(); VJ.pointerActive=false; VJ.input.left=VJ.input.right=false; try{ wrap.releasePointerCapture(e.pointerId); }catch{}; };
+  const pDown = (e)=>{ e.preventDefault(); wrap.setPointerCapture?.(e.pointerId); updateDirFromX(e.clientX); };
+  const pMove = (e)=>{ if(e.buttons===0) return; e.preventDefault(); updateDirFromX(e.clientX); };
+  const pUp   = (e)=>{ e.preventDefault(); input.left=input.right=false; wrap.releasePointerCapture?.(e.pointerId); };
   wrap.addEventListener('pointerdown', pDown, {passive:false});
   wrap.addEventListener('pointermove', pMove, {passive:false});
   wrap.addEventListener('pointerup',   pUp,   {passive:false});
   wrap.addEventListener('pointercancel', pUp, {passive:false});
-  wrap.addEventListener('lostpointercapture', pUp, {passive:false});
 
-  // keyboard
-  const kd=(e)=>{ if (['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); VJ.input.left=true; } if (['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); VJ.input.right=true; } };
-  const ku=(e)=>{ if (['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); VJ.input.left=false; } if (['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); VJ.input.right=false; } };
-  window.addEventListener('keydown', kd, {passive:false});
-  window.addEventListener('keyup', ku, {passive:false});
-
-  // ——— particles (for stomps/coins) ———
-  function spark(x,y,count,col){
-    for(let i=0;i<count;i++){
-      const a = Math.random()*Math.PI*2;
-      const sp = 140*U + Math.random()*220*U;
-      VJ.sparks.push({x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.45+Math.random()*0.35, col});
-    }
-  }
-
-  // ——— draw helpers ———
-  function drawBG(){
-    const g = ctx.createLinearGradient(0,0,0,VJ.h);
+  // drawing
+  function drawBackground(){
+    const W = canvas.width / (window.devicePixelRatio||1), H = canvas.height / (window.devicePixelRatio||1);
+    const g = ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
-    ctx.fillStyle=g; ctx.fillRect(0,0,VJ.w,VJ.h);
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
   }
   function drawPlatform(p){
-    const y = p.y - VJ.camY;
-    const grd = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
-    grd.addColorStop(0,'#1a2a4a'); grd.addColorStop(1,'#2f5aa0');
-    ctx.fillStyle=grd; ctx.fillRect(p.x,y,p.w,P_H);
-    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(p.x,y,p.w,2);
+    const y = p.y - state.camY;
+    const grad = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
+    grad.addColorStop(0,'#1a2a4a'); grad.addColorStop(1,'#2f5aa0');
+    ctx.fillStyle = grad; ctx.fillRect(p.x, y, p.w, p.h);
+    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(p.x, y, p.w, 2);
   }
   function drawCoin(c){
-    const pulse=1+Math.sin(performance.now()/200)*0.08;
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    const glow = ctx.createRadialGradient(c.x, c.y - VJ.camY, 0, c.x, c.y - VJ.camY, COIN_R*3.2);
-    glow.addColorStop(0,'rgba(255,216,107,0.55)'); glow.addColorStop(1,'rgba(255,216,107,0)');
-    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(c.x, c.y - VJ.camY, COIN_R*3.2, 0, Math.PI*2); ctx.fill(); ctx.restore();
-
-    ctx.save(); ctx.translate(c.x, c.y - VJ.camY); ctx.scale(pulse,1);
-    ctx.beginPath(); ctx.arc(0,0,COIN_R,0,Math.PI*2);
-    const cgr = ctx.createRadialGradient(-COIN_R*0.3,-COIN_R*0.3,1,0,0,COIN_R);
-    cgr.addColorStop(0,'#fff5c7'); cgr.addColorStop(0.6,'#ffd86b'); cgr.addColorStop(1,'#e0a800');
-    ctx.fillStyle=cgr; ctx.fill(); ctx.restore();
+    const y = c.y - state.camY;
+    // glow
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    const glow = ctx.createRadialGradient(c.x, y, 0, c.x, y, U(36));
+    glow.addColorStop(0,'rgba(255,216,107,0.5)'); glow.addColorStop(1,'rgba(255,216,107,0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(c.x, y, U(36), 0, Math.PI*2); ctx.fill(); ctx.restore();
+    // coin
+    ctx.fillStyle='#ffd86b'; ctx.beginPath(); ctx.arc(c.x, y, c.r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#8a5e06'; ctx.font = `${Math.max(10, c.r*0.9)}px Inter, system-ui, sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('CHAD', c.x, y);
   }
   function drawEnemy(e){
-    const y = e.y - VJ.camY;
-    if (e.type===ENEMY.walker){
-      ctx.fillStyle='#e86d6d';
-      ctx.fillRect(e.x- e.w/2, y- e.h, e.w, e.h);
-      ctx.fillStyle='#fff'; ctx.fillRect(e.x-5, y-e.h-4, 10, 3); // simple "eye"
-    } else if (e.type===ENEMY.flyer){
-      ctx.fillStyle='#67a6ff';
-      ctx.beginPath(); ctx.ellipse(e.x, y - e.h/2, e.w*0.6, e.h*0.6, 0, 0, Math.PI*2); ctx.fill();
-    } else { // spike
-      ctx.fillStyle='#c9b07a';
-      ctx.beginPath();
-      ctx.moveTo(e.x, y-e.h);
-      ctx.lineTo(e.x - e.w/2, y);
-      ctx.lineTo(e.x + e.w/2, y);
-      ctx.closePath(); ctx.fill();
-    }
+    const y = e.y - state.camY;
+    ctx.save();
+    ctx.translate(e.x, y);
+    ctx.rotate(e.ang);
+    ctx.fillStyle = '#ff5858';
+    const r = e.r;
+    ctx.beginPath();
+    ctx.moveTo(0,-r);
+    ctx.lineTo(r, r);
+    ctx.lineTo(-r, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
   function drawPlayer(){
-    const tilt = Math.max(-0.5, Math.min(0.5, VJ.player.vx / 700));
-    ctx.save(); ctx.translate(VJ.player.x, VJ.player.y - VJ.camY); ctx.rotate(tilt);
-    const r = VJ.player.r;
+    const y = state.player.y - state.camY;
+    const r = state.player.r;
+    const tilt = Math.max(-0.5, Math.min(0.5, state.player.vx / U(600)));
+    ctx.save();
+    ctx.translate(state.player.x, y);
+    ctx.rotate(tilt);
     const body = ctx.createRadialGradient(-r*0.3, -r*0.3, 2, 0,0, r);
     body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#8fb6ff');
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#0b0f14'; ctx.beginPath(); ctx.arc(r*0.35,-r*0.2,r*0.15,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e8edf4'; ctx.beginPath(); ctx.arc(r*0.38,-r*0.23,r*0.06,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#6ea0ff'; ctx.fillRect(-r*0.5, r*0.7, r*0.4, 3); ctx.fillRect(+r*0.1, r*0.7, r*0.4, 3);
     ctx.restore();
   }
-
-  // initial platforms (above & below)
-  for(let i=-6;i<=10;i++) addPlatform(VJ.player.y + i*62*U);
-
-  function floatingText(px,py,text, col='#3DFF6E'){
-    const el = document.createElement('div');
-    el.textContent = text; el.style.position='absolute'; el.style.fontWeight='900';
-    el.style.color = col; el.style.left = (px)+'px'; el.style.top = (py)+'px';
-    el.style.transform='translate(-50%,-50%)'; el.style.pointerEvents='none';
-    VJ.canvas.parentElement.appendChild(el);
-    requestAnimationFrame(()=>{ el.style.transition='transform .9s ease, opacity .9s ease'; el.style.transform='translate(-50%,-70%)'; el.style.opacity='0'; });
-    setTimeout(()=> el.remove(), 1000);
+  function drawSparks(dt){
+    for(let i=state.sparks.length-1;i>=0;i--){
+      const s = state.sparks[i];
+      s.life -= dt;
+      if (s.life <= 0){ state.sparks.splice(i,1); continue; }
+      s.x += s.vx*dt; s.y += s.vy*dt; s.vy += U(300)*dt;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2.2));
+      const grd = ctx.createRadialGradient(s.x, s.y - state.camY, 0, s.x, s.y - state.camY, U(10));
+      grd.addColorStop(0, '#fff5c7'); grd.addColorStop(1, 'rgba(255,216,107,0)');
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y - state.camY, U(10), 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
 
-  // ——— update & draw ———
+  // logic
   function update(dt){
+    // platforms motion
+    const W = canvas.width / (window.devicePixelRatio||1);
+    for(const p of state.platforms){
+      if(p.mv){ p.x += p.dir * p.sp * dt; if (p.x<0){ p.x=0; p.dir=1; } if (p.x+p.w > W){ p.x=W-p.w; p.dir=-1; } }
+    }
+
+    // input accel
+    const want = (input.left? -1:0) + (input.right? +1:0);
+    if (want) state.player.vx += want * MOVE * dt;
+    state.player.vx *= want ? AIR : FRICTION;
+
+    // gravity / integrate
+    state.player.vy += GRAV * dt;
+    state.player.x  += state.player.vx * dt;
+    state.player.y  += state.player.vy * dt;
+
+    // wrap horizontally
+    const r = state.player.r;
+    if (state.player.x < -r) state.player.x = W + r;
+    if (state.player.x >  W + r) state.player.x = -r;
+
+    // bounce on platforms
+    for(const p of state.platforms){
+      if (hitPlatform(p)){
+        state.player.y  = p.y - r;
+        state.player.vy = JUMP;
+        addSpark(state.player.x, p.y, '#9ef0c4');
+      }
+    }
+
+    // coin pickup
+    for(const c of state.coins){
+      if(!c.hit && circleHit({x:state.player.x,y:state.player.y},{x:c.x,y:c.y}, r*0.85, c.r)){
+        c.hit = true;
+        state.score += 1;
+        const award = 30 + (state.coinCount*5);
+        state.coinCount++;
+        state.earned += award;
+        addSpark(c.x, c.y, '#ffd86b');
+      }
+    }
+
+    // enemies
+    for(const e of state.enemies){
+      // simple spin for visuals, slight bob
+      e.ang += e.angSpd * dt;
+      e.y += Math.sin(e.ang*0.7) * U(6) * dt * 60;
+      if (circleHit({x:state.player.x,y:state.player.y},{x:e.x,y:e.y}, r*0.85, e.r*0.9)){
+        // hit -> game over
+        stop();
+        fancyAlert(`You were zapped! Coins ${state.score}. Press Quit to collect.`);
+      }
+    }
+
+    // camera follow
+    if (state.player.y < state.highestY) state.highestY = state.player.y;
+    const H = canvas.height / (window.devicePixelRatio||1);
+    const targetCam = state.highestY - H*0.45;
+    state.camY += (targetCam - state.camY) * Math.min(1, dt*4);
+
+    // ensure content
     ensureContent();
 
-    // platform motion
-    for(const p of VJ.platforms){
-      if (p.moving){
-        p.x += p.dir * p.speed * dt;
-        if (p.x < 0){ p.x=0; p.dir=1; }
-        if (p.x + p.w > VJ.w){ p.x=VJ.w - p.w; p.dir=-1; }
-      }
+    // fell below
+    if (state.player.y - state.camY > H + U(40)){
+      stop();
+      fancyAlert(`You fell! Coins ${state.score}. Press Quit to collect.`);
     }
-
-    // enemy motion
-    for(const e of VJ.enemies){
-      if (e.type===ENEMY.walker){
-        e.x += e.vx * dt;
-        if (e.x < e.min){ e.x = e.min; e.vx = Math.abs(e.vx); }
-        if (e.x > e.max){ e.x = e.max; e.vx = -Math.abs(e.vx); }
-      } else if (e.type===ENEMY.flyer){
-        e.x += e.vx * dt;
-        if (e.x < -40*U) e.x = VJ.w + 40*U;
-        if (e.x > VJ.w + 40*U) e.x = -40*U;
-      } else {
-        e.t += dt * e.speed;
-        e.y = e.baseY + Math.sin(e.t) * e.amp;
-      }
-    }
-
-    // input -> accel
-    const want = (VJ.input.left?-1:0) + (VJ.input.right?+1:0);
-    if (want !== 0) VJ.player.vx += want * MOVE * dt;
-    VJ.player.vx *= (want===0) ? FRICTION : AIR;
-
-    VJ.player.vy += GRAV*dt;
-    VJ.player.x  += VJ.player.vx*dt;
-    VJ.player.y  += VJ.player.vy*dt;
-
-    // wrap X
-    if (VJ.player.x < -VJ.player.r) VJ.player.x = VJ.w + VJ.player.r;
-    if (VJ.player.x > VJ.w + VJ.player.r) VJ.player.x = -VJ.player.r;
-
-    // land on platform (classic doodle-style)
-    for(const p of VJ.platforms){
-      const prevBottom = (VJ.player.y - VJ.player.vy*dt) + VJ.player.r;
-      const top = p.y;
-      const withinX = (VJ.player.x + VJ.player.r > p.x) && (VJ.player.x - VJ.player.r < p.x + p.w);
-      if (VJ.player.vy>0 && prevBottom <= top && (VJ.player.y + VJ.player.r) >= top - 1 && withinX){
-        VJ.player.y = top - VJ.player.r;
-        VJ.player.vy = JUMP;
-        spark(VJ.player.x, top, 8, '#ffd86b');
-      }
-    }
-
-    // coins
-    for (const c of VJ.coins){
-      if (c.hit) continue;
-      const dx=VJ.player.x - c.x, dy=VJ.player.y - c.y;
-      if (dx*dx + dy*dy <= (VJ.player.r*0.85 + c.r)*(VJ.player.r*0.85 + c.r)){
-        c.hit = true; VJ.score += 1;
-        const award = 30 + (VJ.coinCount*5); VJ.coinCount++;
-        VJ.sessionChads += award; spark(c.x, c.y, 14, '#ffd86b');
-        const rect = VJ.canvas.getBoundingClientRect();
-        floatingText(((c.x)/(VJ.canvas.width/(window.devicePixelRatio||1)))*rect.width, (((c.y - VJ.camY)/(VJ.canvas.height/(window.devicePixelRatio||1)))*rect.height), `+${award}`);
-      }
-    }
-
-    // enemies — stomp or die
-    for (let i=VJ.enemies.length-1;i>=0;i--){
-      const e = VJ.enemies[i];
-      const rx = e.x - e.w/2, ry = e.y - e.h; // top-left
-      const prevBottom = (VJ.player.y - VJ.player.vy*dt) + VJ.player.r;
-
-      const isAbove = VJ.player.vy>0 && prevBottom <= ry && (VJ.player.y + VJ.player.r) >= ry - 1 &&
-                      (VJ.player.x + VJ.player.r > rx) && (VJ.player.x - VJ.player.r < rx + e.w);
-
-      if (e.type!==ENEMY.spike && isAbove){
-        // stomp
-        VJ.player.y = ry - VJ.player.r;
-        VJ.player.vy = JUMP * 0.85;
-        spark(e.x, e.y, 16, '#7aff8b');
-        VJ.enemies.splice(i,1);
-        VJ.sessionChads += 15;
-        updateUI();
-        continue;
-      }
-
-      // collision -> dead
-      if (circleRectHit(VJ.player.x, VJ.player.y, VJ.player.r*0.85, rx, ry, e.w, e.h)){
-        VJ.dead = true;
-      }
-    }
-
-    // camera follows highest
-    if (VJ.player.y < VJ.highestY) VJ.highestY = VJ.player.y;
-    const targetCam = VJ.highestY - VJ.h*0.45;
-    VJ.camY += (targetCam - VJ.camY) * Math.min(1, dt*4);
-
-    // cull lower objects
-    const killY = VJ.camY + VJ.h + 90;
-    VJ.platforms = VJ.platforms.filter(p => p.y < killY);
-    VJ.coins     = VJ.coins.filter(c => !c.hit && c.y < killY);
-    VJ.enemies   = VJ.enemies.filter(e => e.y < killY);
-
-    // fall off screen -> dead
-    if (VJ.player.y - VJ.camY > VJ.h + 40) VJ.dead = true;
-
-    updateUI();
   }
 
-  function draw(){
-    drawBG();
-    // platforms
-    for(const p of VJ.platforms) drawPlatform(p);
-    // coins
-    for(const c of VJ.coins) if(!c.hit) drawCoin(c);
-    // enemies
-    for(const e of VJ.enemies) drawEnemy(e);
-    // sparks
-    for (let i=VJ.sparks.length-1;i>=0;i--){
-      const s = VJ.sparks[i]; s.life -= 1/60;
-      if (s.life <= 0){ VJ.sparks.splice(i,1); continue; }
-      s.x += s.vx*(1/60); s.y += s.vy*(1/60); s.vy += 300*U*(1/60);
-      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2));
-      const grd = ctx.createRadialGradient(s.x, s.y - VJ.camY, 0, s.x, s.y - VJ.camY, 10);
-      grd.addColorStop(0, '#fff5c7'); grd.addColorStop(1, 'rgba(255,216,107,0)');
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y - VJ.camY, 8, 0, Math.PI*2); ctx.fill(); ctx.restore();
-    }
-    // player
+  function draw(dt){
+    drawBackground();
+    for(const c of state.coins) if(!c.hit) drawCoin(c);
+    for(const p of state.platforms) drawPlatform(p);
+    for(const e of state.enemies) drawEnemy(e);
+    drawSparks(dt);
     drawPlayer();
   }
 
   function frame(ts){
-    if (!VJ) return;
-    const prev = VJ.lastTs || ts;
+    if(!state.running){ state.loopId=null; return; }
+    const prev = state.lastTs || ts;
+    state.lastTs = ts;
     const dt = Math.min(0.035, (ts - prev)/1000);
-    VJ.lastTs = ts;
-
-    if (!VJ.paused && !VJ.dead){ update(dt); draw(); }
-    else if (VJ.dead){
-      draw();
-      fancyAlert(`You fell! Coins ${VJ.score}. Press Quit to collect.`);
-      stopLoop(); return;
+    if (!state.paused){
+      update(dt);
+      draw(dt);
     }
-    VJ.loopId = requestAnimationFrame(frame);
+    state.loopId = requestAnimationFrame(frame);
   }
 
-  function stopLoop(){ if (VJ.loopId) cancelAnimationFrame(VJ.loopId); VJ.loopId=null; }
-
-  function cleanup(){
-    stopLoop(); try{ ro.disconnect(); }catch{}
-    window.removeEventListener('keydown', kd, {passive:false});
-    window.removeEventListener('keyup', ku, {passive:false});
-    wrap.removeEventListener('pointerdown', pDown);
-    wrap.removeEventListener('pointermove', pMove);
-    wrap.removeEventListener('pointerup', pUp);
-    wrap.removeEventListener('pointercancel', pUp);
-    wrap.removeEventListener('lostpointercapture', pUp);
+  function start(){
+    if(state.running) return;
+    state.running = true; state.paused = false; state.lastTs = performance.now();
+    document.getElementById('vjPause').textContent = 'Pause';
+    updateVJUI();
+    frame(state.lastTs);
   }
-  VJ.cleanup = cleanup;
+  function togglePause(){
+    if(!state.running) return start();
+    state.paused = !state.paused;
+    document.getElementById('vjPause').textContent = state.paused ? 'Resume' : 'Pause';
+  }
+  function stop(){
+    state.running = false;
+    if(state.loopId){ cancelAnimationFrame(state.loopId); state.loopId = null; }
+  }
+  function updateVJUI(){
+    const sc = document.getElementById('vjScore');
+    const se = document.getElementById('vjEarned');
+    const top= document.getElementById('vjTopChads');
+    if(sc) sc.textContent = state.score;
+    if(se) se.textContent = state.earned;
+    if(top) top.textContent = state.earned.toLocaleString();
+  }
+  updateVJUI();
 
-  // kick off
-  updateUI();
-  document.getElementById('vjPause').textContent = 'Pause';
-  VJ.lastTs = performance.now();
-  VJ.loopId = requestAnimationFrame(frame);
+  // expose + cleanup
+  VJ = {
+    start, togglePause,
+    get sessionChads(){ return state.earned; },
+    cleanup(){
+      stop();
+      try{ ro.disconnect(); }catch{}
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('keydown', kd, {passive:false});
+      window.removeEventListener('keyup', ku, {passive:false});
+      wrap.removeEventListener('pointerdown', pDown);
+      wrap.removeEventListener('pointermove', pMove);
+      wrap.removeEventListener('pointerup', pUp);
+      wrap.removeEventListener('pointercancel', pUp);
+    }
+  };
+
+  // auto-start when modal opens
+  start();
 }
 
 function quitVJ(){
-  if (VJ?.sessionChads>0){
-    state.chads += BigInt(VJ.sessionChads);
-    saveStateLocal(state); refreshUI();
-    showToast(`<span class="accent">+${VJ.sessionChads}</span> chads added to your balance.`);
+  if (VJ?.sessionChads > 0){
+    const earned = VJ.sessionChads;
+    state.chads += BigInt(earned);
+    saveStateLocal(state);
+    refreshUI();
+    showToast(`<span class="accent">+${earned}</span> chads added to your balance.`);
   }
   if (VJ?.cleanup) VJ.cleanup();
   VJ = null;
