@@ -398,35 +398,43 @@ canvas{ display:block }
     </div>
 
     <!-- VERTICAL JUMPER Modal -->
-    <div class="overlay" id="vjModal">
-      <div class="panel">
-        <div class="row">
-          <h2>Vertical Jumper (9:16)</h2>
-          <div class="row" style="gap:8px">
-            <button class="tile level" style="padding:8px 12px" id="vjStart">Start</button>
-            <button class="tile level" style="padding:8px 12px" id="vjPause">Pause</button>
-            <button class="tile level" style="padding:8px 12px" id="vjQuit">Quit</button>
-          </div>
-        </div>
-        <div class="row" style="gap:12px">
-          <div class="note">Coins: <b id="vjScore">0</b></div>
-          <div class="note">Session chads: <b id="vjEarned">0</b></div>
-        </div>
-        <div class="game-9x16">
-          <div class="vj-wrap" id="vjWrap">
-            <div class="hex-earn" style="pointer-events:none; position:absolute; top:4px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; padding:6px 12px; border-radius:18px; background:linear-gradient(180deg,#181b20,#0f1114); border:1px solid rgba(255,255,255,.08); font-weight:900;">
-              <span class="coin">🪙</span> <span class="amt" id="vjTopChads">0</span>
-            </div>
-            <canvas id="vjCanvas"></canvas>
-            <div class="vj-touch">
-              <button class="btn" id="vjLeft">◀</button>
-              <button class="btn" id="vjRight">▶</button>
-            </div>
-          </div>
-        </div>
-        <p class="note">Climb, grab coins, dodge enemies. Quit to collect.</p>
+<div class="overlay" id="vjModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Vertical Jumper (9:16)</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="vjStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="vjPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="vjQuit">Quit</button>
       </div>
     </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Coins: <b id="vjScore">0</b></div>
+      <div class="note">Session chads: <b id="vjEarned">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="vj-wrap" id="vjWrap">
+        <!-- live chad counter -->
+        <div style="pointer-events:none; position:absolute; top:6px; left:50%; transform:translateX(-50%); display:flex; gap:8px; align-items:center; padding:6px 12px; border-radius:18px; background:linear-gradient(180deg,#181b20,#0f1114); border:1px solid rgba(255,255,255,.08); font-weight:900;">
+          <span>🪙</span> <span id="vjTopChads">0</span>
+        </div>
+
+        <canvas id="vjCanvas" class="full"></canvas>
+
+        <!-- touch controls (optional) -->
+        <div class="vj-touch">
+          <button class="btn" id="vjLeft">◀</button>
+          <button class="btn" id="vjRight">▶</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">Jump from platform to platform. Avoid (or stomp) enemies. Coins pay 30 chads then +5 per coin. Quit to collect.</p>
+  </div>
+</div>
+
 
     <!-- HEXAGON (Hamster-style) -->
 <div class="overlay" id="hexModal">
@@ -966,123 +974,248 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
 
-/* ===== VERTICAL JUMPER (Doodle-style) ===== */
-let VJ=null;
-function openVertical(){ closeOverlay('playOverlay'); openOverlay('vjModal'); if(!VJ) newVJGame(); }
+/* ===== VERTICAL JUMPER (Doodle-style, with enemies) ===== */
+let VJ = null;
+
+function openVertical(){
+  closeOverlay('playOverlay');
+  openOverlay('vjModal');
+  if (!VJ) newVJGame();
+}
+
 document.getElementById('vjStart').addEventListener('click', newVJGame);
 document.getElementById('vjPause').addEventListener('click', ()=>{ if(!VJ) return; VJ.paused=!VJ.paused; document.getElementById('vjPause').textContent = VJ.paused?'Resume':'Pause'; });
 document.getElementById('vjQuit').addEventListener('click', quitVJ);
 
 function newVJGame(){
+  // clean up a previous run
   if (VJ && VJ.cleanup) VJ.cleanup();
-  const canvas = document.getElementById('vjCanvas'); const ctx = canvas.getContext('2d');
+
   const wrap = document.getElementById('vjWrap');
-  function sizeCanvas(){ const r = wrap.getBoundingClientRect(); canvas.width = Math.floor(r.width); canvas.height = Math.floor(r.height); }
-  sizeCanvas(); const ro = new ResizeObserver(()=>{ if (!document.getElementById('vjModal').classList.contains('show')) return; sizeCanvas(); });
+  const canvas = document.getElementById('vjCanvas');
+  const ctx = canvas.getContext('2d', { alpha:true });
+
+  // Hi-DPI canvas sizing (prevents blurry rendering on mobile)
+  function resizeCanvas(){
+    const r = wrap.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);     // hi-dpi scale
+    canvas.style.width  = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    canvas.width  = Math.floor(r.width  * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+  }
+  resizeCanvas();
+  const ro = new ResizeObserver(()=>{ if (document.getElementById('vjModal').classList.contains('show')) resizeCanvas(); });
   ro.observe(wrap);
 
-  const unit = canvas.height / 800;
-  const GRAV = 2300*unit, JUMP = -980*unit, MOVE = 620*unit, AIR = 0.92, FRICTION=0.86;
-  const P_W = Math.max(60, 120*unit), P_H = Math.max(12, 14*unit);
-  const COIN_R = Math.max(8, 12*unit);
+  // world units scale to the screen height
+  function unit(){ return (wrap.getBoundingClientRect().height || 800) / 800; }
+  const U = unit();
+
+  // Tunables (feel)
+  const GRAV   = 2800*U;
+  const JUMP   = -1050*U;
+  const MOVE   = 640*U;
+  const AIR    = 0.90;
+  const FRICTION = 0.86;
+
+  const P_H = Math.max(12, 14*U);             // platform height
+  const P_W_BASE = Math.max(70, 130*U);
+
+  const COIN_R = Math.max(10, 13*U);
+  const PLAYER_R = 20*U;
+
+  // Enemy types
+  // walker: patrols along a platform
+  // flyer : horizontal mover not tied to a platform
+  // spike : vertical piston
+  const ENEMY = {
+    walker: 'walker',
+    flyer : 'flyer',
+    spike : 'spike'
+  };
 
   VJ = {
-    canvas, ctx, ro, w:canvas.width, h:canvas.height, paused:false, dead:false,
-    camY:0, highestY:0,
-    player:{x:canvas.width/2, y:0, vx:0, vy:0, r:18*unit},
-    platforms:[], coins:[], enemies:[], sparks:[], t:0, loopId:null,
-    input:{left:false,right:false}, pointerActive:false, pointerId:null,
-    score:0, sessionChads:0, coinCount:0
+    canvas, ctx, ro, U,
+    w: wrap.getBoundingClientRect().width,
+    h: wrap.getBoundingClientRect().height,
+    camY: 0, highestY: 0,
+    paused:false, dead:false,
+    // state
+    player: { x:0, y:0, vx:0, vy:0, r:PLAYER_R },
+    platforms: [], coins: [], enemies: [], sparks: [],
+    score: 0, sessionChads: 0, coinCount: 0,
+    input: { left:false, right:false },
+    pointerActive:false, pointerId:null,
+    lastTs: performance.now(), loopId:null,
   };
-  VJ.player.y = VJ.h*0.6; VJ.camY = VJ.player.y - VJ.h*0.5; VJ.highestY = VJ.player.y;
+  VJ.player.x = VJ.w/2;
+  VJ.player.y = VJ.h*0.62;
+  VJ.camY = VJ.player.y - VJ.h*0.5;
+  VJ.highestY = VJ.player.y;
 
+  // ——— helpers ———
   function addPlatform(y){
-    const w = P_W * (0.8 + Math.random()*0.7);
+    const w = P_W_BASE * (0.8 + Math.random()*0.7);
     const x = Math.random()*(VJ.w - w);
     const moving = Math.random()<0.22;
-    const dir = Math.random()<0.5? -1:1;
-    const speed = moving? (60 + Math.random()*120)*unit : 0;
-    VJ.platforms.push({x,y,w,h:P_H, moving, dir, speed});
-    if (Math.random()<0.55) VJ.coins.push({x:x+w/2, y:y-22*unit, r:COIN_R, hit:false});
-    if (Math.random()<0.15) VJ.enemies.push({x:x+w/2, y:y-28*unit, r:12*unit, vx:(Math.random()<0.5?-1:1)*80*unit});
+    const dir = Math.random()<0.5 ? -1 : 1;
+    const speed = moving ? (60 + Math.random()*120)*U : 0;
+    const p = { x, y, w, h:P_H, moving, dir, speed };
+    VJ.platforms.push(p);
+
+    // maybe a coin on top
+    if (Math.random() < 0.55){
+      VJ.coins.push({ x: x + w/2, y: y - 24*U, r: COIN_R, hit:false });
+    }
+
+    // maybe a walker enemy on this platform
+    if (Math.random() < 0.18){
+      VJ.enemies.push({
+        type: ENEMY.walker,
+        x: x + (10+Math.random()*(w-20)),
+        y: y - (P_H/2),
+        w: 26*U, h: 18*U,
+        vx: (Math.random()<0.5?-1:1) * (45+Math.random()*55)*U,
+        min:x+6, max:x+w-6
+      });
+    }
   }
-  for(let i=-6;i<=10;i++){ addPlatform(VJ.player.y + i*60*unit); }
 
   function ensureContent(){
-    const topTarget = VJ.camY - 600*unit;
-    let minY = Infinity; for(const p of VJ.platforms) if(p.y<minY) minY=p.y;
-    if (minY===Infinity) minY = VJ.player.y+80;
-    while (minY > topTarget){
-      minY -= (95 + Math.random()*75)*unit;
+    const targetTop = VJ.camY - 650*U;
+    let minY = Infinity; for(const p of VJ.platforms) if (p.y < minY) minY = p.y;
+    if (minY === Infinity) minY = VJ.player.y + 80;
+    while (minY > targetTop){
+      minY -= (95 + Math.random()*75)*U; // spacing
       addPlatform(minY);
+      // sometimes a flyer enemy between two layers
+      if (Math.random() < 0.14){
+        VJ.enemies.push({
+          type: ENEMY.flyer,
+          x: Math.random()<0.5 ? -30*U : VJ.w+30*U,
+          y: minY - 60*U,
+          w: 26*U, h: 18*U,
+          vx: (Math.random()<0.5?1:-1) * (80 + Math.random()*90)*U
+        });
+      }
+      // sometimes a vertical spike
+      if (Math.random() < 0.12){
+        const sx = 20*U + Math.random()*(VJ.w-40*U);
+        VJ.enemies.push({
+          type: ENEMY.spike,
+          x: sx, y: minY - 40*U, w: 16*U, h: 28*U,
+          baseY: minY - 40*U, amp: 36*U, t: Math.random()*Math.PI*2, speed: 1+Math.random()*1.2
+        });
+      }
     }
   }
-  function hitPlatform(p){
-    const px = VJ.player.x, py = VJ.player.y, r=VJ.player.r;
-    const onTop = (VJ.player.vy>0) && (py + r <= p.y) && (py + r + VJ.player.vy*(1/60) >= p.y - 1);
-    const withinX = (px + r > p.x) && (px - r < p.x + p.w);
-    return onTop && withinX;
-  }
-  function circleHit(x1,y1,r1, x2,y2,r2){ const dx=x1-x2, dy=y1-y2; return (dx*dx+dy*dy) <= (r1+r2)*(r1+r2); }
 
-  function addSparks(x,y,count){
+  function circleRectHit(cx,cy,r, rx,ry,rw,rh){
+    // rectangle given with top-left (rx,ry)
+    const testX = Math.max(rx, Math.min(cx, rx+rw));
+    const testY = Math.max(ry, Math.min(cy, ry+rh));
+    const dx = cx - testX, dy = cy - testY;
+    return (dx*dx + dy*dy) <= r*r;
+  }
+
+  function updateUI(){
+    const sc = document.getElementById('vjScore'); if (sc) sc.textContent = VJ.score|0;
+    const se = document.getElementById('vjEarned'); if (se) se.textContent = VJ.sessionChads|0;
+    const tc = document.getElementById('vjTopChads'); if (tc) tc.textContent = (VJ.sessionChads|0).toLocaleString();
+  }
+
+  // ——— INPUT ———
+  const leftBtn  = document.getElementById('vjLeft');
+  const rightBtn = document.getElementById('vjRight');
+  function wireBtn(btn, prop){
+    const down = (e)=>{ e.preventDefault(); try{ btn.setPointerCapture(e.pointerId); }catch{} VJ.input[prop]=true; };
+    const up   = ()=>{ VJ.input[prop]=false; };
+    btn.addEventListener('pointerdown', down, {passive:false});
+    btn.addEventListener('pointerup',   up,   {passive:false});
+    btn.addEventListener('pointercancel', up, {passive:false});
+    btn.addEventListener('lostpointercapture', up, {passive:false});
+  }
+  wireBtn(leftBtn,'left'); wireBtn(rightBtn,'right');
+
+  // drag anywhere: left half = left, right half = right
+  function setFromX(x){
+    const r = wrap.getBoundingClientRect();
+    const mid = r.left + r.width/2;
+    VJ.input.left  = x <  mid - r.width*0.02;
+    VJ.input.right = x >  mid + r.width*0.02;
+  }
+  const pDown = (e)=>{ e.preventDefault(); VJ.pointerActive = true; VJ.pointerId=e.pointerId; try{ wrap.setPointerCapture(e.pointerId); }catch{} setFromX(e.clientX); };
+  const pMove = (e)=>{ if(!VJ.pointerActive) return; e.preventDefault(); setFromX(e.clientX); };
+  const pUp   = (e)=>{ if(e.pointerId!==VJ.pointerId) return; e.preventDefault(); VJ.pointerActive=false; VJ.input.left=VJ.input.right=false; try{ wrap.releasePointerCapture(e.pointerId); }catch{}; };
+  wrap.addEventListener('pointerdown', pDown, {passive:false});
+  wrap.addEventListener('pointermove', pMove, {passive:false});
+  wrap.addEventListener('pointerup',   pUp,   {passive:false});
+  wrap.addEventListener('pointercancel', pUp, {passive:false});
+  wrap.addEventListener('lostpointercapture', pUp, {passive:false});
+
+  // keyboard
+  const kd=(e)=>{ if (['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); VJ.input.left=true; } if (['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); VJ.input.right=true; } };
+  const ku=(e)=>{ if (['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); VJ.input.left=false; } if (['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); VJ.input.right=false; } };
+  window.addEventListener('keydown', kd, {passive:false});
+  window.addEventListener('keyup', ku, {passive:false});
+
+  // ——— particles (for stomps/coins) ———
+  function spark(x,y,count,col){
     for(let i=0;i<count;i++){
       const a = Math.random()*Math.PI*2;
-      const sp = 140*unit + Math.random()*180*unit;
-      VJ.sparks.push({x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.4+Math.random()*0.25});
-    }
-  }
-  function drawSparks(dt){
-    const {ctx} = VJ;
-    for(let i=VJ.sparks.length-1;i>=0;i--){
-      const s = VJ.sparks[i]; s.life -= dt;
-      if (s.life<=0){ VJ.sparks.splice(i,1); continue; }
-      s.x += s.vx*dt; s.y += s.vy*dt; s.vy += 300*unit*dt;
-      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2.2));
-      const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 10);
-      grd.addColorStop(0, '#fff5c7'); grd.addColorStop(1, 'rgba(255,216,107,0)');
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y - VJ.camY, 10, 0, Math.PI*2); ctx.fill(); ctx.restore();
+      const sp = 140*U + Math.random()*220*U;
+      VJ.sparks.push({x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.45+Math.random()*0.35, col});
     }
   }
 
-  function updateVJUI(){
-    const sc=document.getElementById('vjScore'); if(sc) sc.textContent = VJ?.score ?? 0;
-    const se=document.getElementById('vjEarned'); if(se) se.textContent = VJ?.sessionChads ?? 0;
-    const top=document.getElementById('vjTopChads'); if(top) top.textContent = fmt(VJ?.sessionChads ?? 0);
-  }
-
-  function drawBackground(){
-    const {ctx,w,h} = VJ;
-    const g = ctx.createLinearGradient(0,0,0,h);
+  // ——— draw helpers ———
+  function drawBG(){
+    const g = ctx.createLinearGradient(0,0,0,VJ.h);
     g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
-    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
-  }
-  function drawCoin(cx, cy){
-    const {ctx} = VJ; const pulse=1+Math.sin(VJ.t*6)*0.08;
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    const glow = ctx.createRadialGradient(cx, cy - VJ.camY, 0, cx, cy - VJ.camY, COIN_R*3.2);
-    glow.addColorStop(0,'rgba(255,216,107,0.55)'); glow.addColorStop(1,'rgba(255,216,107,0)'); ctx.fillStyle=glow;
-    ctx.beginPath(); ctx.arc(cx, cy - VJ.camY, COIN_R*3.2, 0, Math.PI*2); ctx.fill(); ctx.restore();
-
-    ctx.save(); ctx.translate(cx, cy - VJ.camY); ctx.scale(pulse,1);
-    ctx.beginPath(); ctx.arc(0,0,COIN_R,0,Math.PI*2);
-    const cgr = ctx.createRadialGradient(-COIN_R*0.3,-COIN_R*0.3,1,0,0,COIN_R);
-    cgr.addColorStop(0,'#fff5c7'); cgr.addColorStop(0.6,'#ffd86b'); cgr.addColorStop(1,'#e0a800'); ctx.fillStyle=cgr; ctx.fill(); ctx.restore();
+    ctx.fillStyle=g; ctx.fillRect(0,0,VJ.w,VJ.h);
   }
   function drawPlatform(p){
-    const {ctx} = VJ; const y = p.y - VJ.camY;
+    const y = p.y - VJ.camY;
     const grd = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
     grd.addColorStop(0,'#1a2a4a'); grd.addColorStop(1,'#2f5aa0');
-    ctx.fillStyle = grd; ctx.fillRect(p.x, y, p.w, P_H);
-    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(p.x, y, p.w, 2);
+    ctx.fillStyle=grd; ctx.fillRect(p.x,y,p.w,P_H);
+    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(p.x,y,p.w,2);
+  }
+  function drawCoin(c){
+    const pulse=1+Math.sin(performance.now()/200)*0.08;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    const glow = ctx.createRadialGradient(c.x, c.y - VJ.camY, 0, c.x, c.y - VJ.camY, COIN_R*3.2);
+    glow.addColorStop(0,'rgba(255,216,107,0.55)'); glow.addColorStop(1,'rgba(255,216,107,0)');
+    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(c.x, c.y - VJ.camY, COIN_R*3.2, 0, Math.PI*2); ctx.fill(); ctx.restore();
+
+    ctx.save(); ctx.translate(c.x, c.y - VJ.camY); ctx.scale(pulse,1);
+    ctx.beginPath(); ctx.arc(0,0,COIN_R,0,Math.PI*2);
+    const cgr = ctx.createRadialGradient(-COIN_R*0.3,-COIN_R*0.3,1,0,0,COIN_R);
+    cgr.addColorStop(0,'#fff5c7'); cgr.addColorStop(0.6,'#ffd86b'); cgr.addColorStop(1,'#e0a800');
+    ctx.fillStyle=cgr; ctx.fill(); ctx.restore();
   }
   function drawEnemy(e){
-    const {ctx} = VJ; const y = e.y - VJ.camY;
-    ctx.fillStyle='#ff6b6b'; ctx.beginPath(); ctx.arc(e.x,y,e.r,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#0b0f14'; ctx.beginPath(); ctx.arc(e.x+e.r*0.35,y-e.r*0.25,e.r*0.18,0,Math.PI*2); ctx.fill();
+    const y = e.y - VJ.camY;
+    if (e.type===ENEMY.walker){
+      ctx.fillStyle='#e86d6d';
+      ctx.fillRect(e.x- e.w/2, y- e.h, e.w, e.h);
+      ctx.fillStyle='#fff'; ctx.fillRect(e.x-5, y-e.h-4, 10, 3); // simple "eye"
+    } else if (e.type===ENEMY.flyer){
+      ctx.fillStyle='#67a6ff';
+      ctx.beginPath(); ctx.ellipse(e.x, y - e.h/2, e.w*0.6, e.h*0.6, 0, 0, Math.PI*2); ctx.fill();
+    } else { // spike
+      ctx.fillStyle='#c9b07a';
+      ctx.beginPath();
+      ctx.moveTo(e.x, y-e.h);
+      ctx.lineTo(e.x - e.w/2, y);
+      ctx.lineTo(e.x + e.w/2, y);
+      ctx.closePath(); ctx.fill();
+    }
   }
   function drawPlayer(){
-    const {ctx} = VJ; const tilt = Math.max(-0.5, Math.min(0.5, VJ.player.vx / 600));
+    const tilt = Math.max(-0.5, Math.min(0.5, VJ.player.vx / 700));
     ctx.save(); ctx.translate(VJ.player.x, VJ.player.y - VJ.camY); ctx.rotate(tilt);
     const r = VJ.player.r;
     const body = ctx.createRadialGradient(-r*0.3, -r*0.3, 2, 0,0, r);
@@ -1094,121 +1227,198 @@ function newVJGame(){
     ctx.restore();
   }
 
-  function floatingGain(px,py,text){
-    const rect = VJ.canvas.getBoundingClientRect();
-    const el = document.createElement('div'); el.className='floatPlus'; el.textContent=text;
-    el.style.left = ((px / (VJ.canvas.width||1)) * rect.width - 10)+'px';
-    el.style.top  = (((py - VJ.camY) / (VJ.canvas.height||1)) * rect.height - 10)+'px';
-    el.style.position='absolute'; el.style.zIndex='9'; el.style.fontWeight='900'; el.style.color='#3DFF6E';
+  // initial platforms (above & below)
+  for(let i=-6;i<=10;i++) addPlatform(VJ.player.y + i*62*U);
+
+  function floatingText(px,py,text, col='#3DFF6E'){
+    const el = document.createElement('div');
+    el.textContent = text; el.style.position='absolute'; el.style.fontWeight='900';
+    el.style.color = col; el.style.left = (px)+'px'; el.style.top = (py)+'px';
+    el.style.transform='translate(-50%,-50%)'; el.style.pointerEvents='none';
     VJ.canvas.parentElement.appendChild(el);
-    requestAnimationFrame(()=>{ el.style.transition='transform .9s ease, opacity .9s ease'; el.style.transform='translateY(-28px)'; el.style.opacity='0'; });
-    setTimeout(()=> el.remove(), 950);
+    requestAnimationFrame(()=>{ el.style.transition='transform .9s ease, opacity .9s ease'; el.style.transform='translate(-50%,-70%)'; el.style.opacity='0'; });
+    setTimeout(()=> el.remove(), 1000);
   }
 
+  // ——— update & draw ———
   function update(dt){
-    VJ.t += dt; ensureContent();
+    ensureContent();
 
+    // platform motion
     for(const p of VJ.platforms){
-      if (p.moving){ p.x += p.dir * p.speed * dt; if (p.x<0){ p.x=0; p.dir=1; } if (p.x+p.w>VJ.w){ p.x=VJ.w-p.w; p.dir=-1; } }
-    }
-
-    const want = (VJ.input.left?-1:0) + (VJ.input.right?+1:0);
-    if (want!==0) VJ.player.vx += want * MOVE * dt;
-    VJ.player.vx *= (want===0) ? FRICTION : AIR;
-
-    VJ.player.vy += GRAV*dt;
-    VJ.player.x += VJ.player.vx*dt;
-    VJ.player.y += VJ.player.vy*dt;
-
-    if (VJ.player.x < -VJ.player.r) VJ.player.x = VJ.w + VJ.player.r;
-    if (VJ.player.x > VJ.w + VJ.player.r) VJ.player.x = -VJ.player.r;
-
-    for(const e of VJ.enemies){
-      e.x += e.vx*dt;
-      if (e.x < e.r){ e.x = e.r; e.vx = Math.abs(e.vx); }
-      if (e.x > VJ.w - e.r){ e.x = VJ.w - e.r; e.vx = -Math.abs(e.vx); }
-      if (circleHit(VJ.player.x, VJ.player.y, VJ.player.r*0.85, e.x, e.y, e.r)){ VJ.dead = true; }
-    }
-
-    for(const p of VJ.platforms){
-      if (hitPlatform(p)){ VJ.player.y = p.y - VJ.player.r; VJ.player.vy = JUMP; addSparks(VJ.player.x, p.y, 8); }
-    }
-
-    for(const c of VJ.coins){
-      if (!c.hit && circleHit(VJ.player.x, VJ.player.y, VJ.player.r*0.85, c.x, c.y, COIN_R)){
-        c.hit = true; VJ.score += 1;
-        const award = 30 + (VJ.coinCount*5);
-        VJ.coinCount++; VJ.sessionChads += award; addSparks(c.x, c.y, 16);
-        floatingGain(c.x, c.y, `+${award}`); updateVJUI();
+      if (p.moving){
+        p.x += p.dir * p.speed * dt;
+        if (p.x < 0){ p.x=0; p.dir=1; }
+        if (p.x + p.w > VJ.w){ p.x=VJ.w - p.w; p.dir=-1; }
       }
     }
 
+    // enemy motion
+    for(const e of VJ.enemies){
+      if (e.type===ENEMY.walker){
+        e.x += e.vx * dt;
+        if (e.x < e.min){ e.x = e.min; e.vx = Math.abs(e.vx); }
+        if (e.x > e.max){ e.x = e.max; e.vx = -Math.abs(e.vx); }
+      } else if (e.type===ENEMY.flyer){
+        e.x += e.vx * dt;
+        if (e.x < -40*U) e.x = VJ.w + 40*U;
+        if (e.x > VJ.w + 40*U) e.x = -40*U;
+      } else {
+        e.t += dt * e.speed;
+        e.y = e.baseY + Math.sin(e.t) * e.amp;
+      }
+    }
+
+    // input -> accel
+    const want = (VJ.input.left?-1:0) + (VJ.input.right?+1:0);
+    if (want !== 0) VJ.player.vx += want * MOVE * dt;
+    VJ.player.vx *= (want===0) ? FRICTION : AIR;
+
+    VJ.player.vy += GRAV*dt;
+    VJ.player.x  += VJ.player.vx*dt;
+    VJ.player.y  += VJ.player.vy*dt;
+
+    // wrap X
+    if (VJ.player.x < -VJ.player.r) VJ.player.x = VJ.w + VJ.player.r;
+    if (VJ.player.x > VJ.w + VJ.player.r) VJ.player.x = -VJ.player.r;
+
+    // land on platform (classic doodle-style)
+    for(const p of VJ.platforms){
+      const prevBottom = (VJ.player.y - VJ.player.vy*dt) + VJ.player.r;
+      const top = p.y;
+      const withinX = (VJ.player.x + VJ.player.r > p.x) && (VJ.player.x - VJ.player.r < p.x + p.w);
+      if (VJ.player.vy>0 && prevBottom <= top && (VJ.player.y + VJ.player.r) >= top - 1 && withinX){
+        VJ.player.y = top - VJ.player.r;
+        VJ.player.vy = JUMP;
+        spark(VJ.player.x, top, 8, '#ffd86b');
+      }
+    }
+
+    // coins
+    for (const c of VJ.coins){
+      if (c.hit) continue;
+      const dx=VJ.player.x - c.x, dy=VJ.player.y - c.y;
+      if (dx*dx + dy*dy <= (VJ.player.r*0.85 + c.r)*(VJ.player.r*0.85 + c.r)){
+        c.hit = true; VJ.score += 1;
+        const award = 30 + (VJ.coinCount*5); VJ.coinCount++;
+        VJ.sessionChads += award; spark(c.x, c.y, 14, '#ffd86b');
+        const rect = VJ.canvas.getBoundingClientRect();
+        floatingText(((c.x)/(VJ.canvas.width/(window.devicePixelRatio||1)))*rect.width, (((c.y - VJ.camY)/(VJ.canvas.height/(window.devicePixelRatio||1)))*rect.height), `+${award}`);
+      }
+    }
+
+    // enemies — stomp or die
+    for (let i=VJ.enemies.length-1;i>=0;i--){
+      const e = VJ.enemies[i];
+      const rx = e.x - e.w/2, ry = e.y - e.h; // top-left
+      const prevBottom = (VJ.player.y - VJ.player.vy*dt) + VJ.player.r;
+
+      const isAbove = VJ.player.vy>0 && prevBottom <= ry && (VJ.player.y + VJ.player.r) >= ry - 1 &&
+                      (VJ.player.x + VJ.player.r > rx) && (VJ.player.x - VJ.player.r < rx + e.w);
+
+      if (e.type!==ENEMY.spike && isAbove){
+        // stomp
+        VJ.player.y = ry - VJ.player.r;
+        VJ.player.vy = JUMP * 0.85;
+        spark(e.x, e.y, 16, '#7aff8b');
+        VJ.enemies.splice(i,1);
+        VJ.sessionChads += 15;
+        updateUI();
+        continue;
+      }
+
+      // collision -> dead
+      if (circleRectHit(VJ.player.x, VJ.player.y, VJ.player.r*0.85, rx, ry, e.w, e.h)){
+        VJ.dead = true;
+      }
+    }
+
+    // camera follows highest
     if (VJ.player.y < VJ.highestY) VJ.highestY = VJ.player.y;
     const targetCam = VJ.highestY - VJ.h*0.45;
     VJ.camY += (targetCam - VJ.camY) * Math.min(1, dt*4);
 
-    const killY = VJ.camY + VJ.h + 80;
-    VJ.platforms = VJ.platforms.filter(p=> p.y < killY);
-    VJ.coins = VJ.coins.filter(c=> c.y < killY && !c.hit);
-    VJ.enemies = VJ.enemies.filter(e=> e.y < killY);
+    // cull lower objects
+    const killY = VJ.camY + VJ.h + 90;
+    VJ.platforms = VJ.platforms.filter(p => p.y < killY);
+    VJ.coins     = VJ.coins.filter(c => !c.hit && c.y < killY);
+    VJ.enemies   = VJ.enemies.filter(e => e.y < killY);
 
-    if (VJ.player.y - VJ.camY > VJ.h + 40){ VJ.dead = true; }
+    // fall off screen -> dead
+    if (VJ.player.y - VJ.camY > VJ.h + 40) VJ.dead = true;
+
+    updateUI();
   }
 
   function draw(){
-    const {ctx,w,h} = VJ;
-    ctx.setTransform(1,0,0,1, 0, 0);
-    drawBackground();
-    for(const c of VJ.coins){ if(!c.hit) drawCoin(c.x, c.y); }
+    drawBG();
+    // platforms
     for(const p of VJ.platforms) drawPlatform(p);
+    // coins
+    for(const c of VJ.coins) if(!c.hit) drawCoin(c);
+    // enemies
     for(const e of VJ.enemies) drawEnemy(e);
-    drawSparks(1/60);
+    // sparks
+    for (let i=VJ.sparks.length-1;i>=0;i--){
+      const s = VJ.sparks[i]; s.life -= 1/60;
+      if (s.life <= 0){ VJ.sparks.splice(i,1); continue; }
+      s.x += s.vx*(1/60); s.y += s.vy*(1/60); s.vy += 300*U*(1/60);
+      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2));
+      const grd = ctx.createRadialGradient(s.x, s.y - VJ.camY, 0, s.x, s.y - VJ.camY, 10);
+      grd.addColorStop(0, '#fff5c7'); grd.addColorStop(1, 'rgba(255,216,107,0)');
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y - VJ.camY, 8, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    }
+    // player
     drawPlayer();
   }
 
   function frame(ts){
     if (!VJ) return;
-    const prev = VJ.lastTs || ts; const dt = Math.min(0.035, (ts - prev)/1000);
+    const prev = VJ.lastTs || ts;
+    const dt = Math.min(0.035, (ts - prev)/1000);
     VJ.lastTs = ts;
+
     if (!VJ.paused && !VJ.dead){ update(dt); draw(); }
-    if (VJ.dead){
-      draw(); fancyAlert(`You fell! Coins ${VJ.score}. Press Quit to collect.`);
+    else if (VJ.dead){
+      draw();
+      fancyAlert(`You fell! Coins ${VJ.score}. Press Quit to collect.`);
       stopLoop(); return;
     }
     VJ.loopId = requestAnimationFrame(frame);
   }
+
   function stopLoop(){ if (VJ.loopId) cancelAnimationFrame(VJ.loopId); VJ.loopId=null; }
 
   function cleanup(){
     stopLoop(); try{ ro.disconnect(); }catch{}
+    window.removeEventListener('keydown', kd, {passive:false});
+    window.removeEventListener('keyup', ku, {passive:false});
+    wrap.removeEventListener('pointerdown', pDown);
+    wrap.removeEventListener('pointermove', pMove);
+    wrap.removeEventListener('pointerup', pUp);
+    wrap.removeEventListener('pointercancel', pUp);
+    wrap.removeEventListener('lostpointercapture', pUp);
   }
   VJ.cleanup = cleanup;
 
-  const key = (e, down)=>{
-    if (['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); VJ.input.left = down; }
-    if (['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); VJ.input.right = down; }
-  };
-  const kd = (e)=>key(e,true), ku=(e)=>key(e,false);
-  window.addEventListener('keydown', kd, {passive:false});
-  window.addEventListener('keyup', ku, {passive:false});
-  const leftBtn = document.getElementById('vjLeft'), rightBtn = document.getElementById('vjRight');
-  function setBtn(btn, prop){
-    const down=(e)=>{ e.preventDefault(); try{ btn.setPointerCapture(e.pointerId); }catch{} VJ.input[prop]=true; };
-    const up=()=>{ VJ.input[prop]=false; };
-    btn.addEventListener('pointerdown', down, {passive:false});
-    btn.addEventListener('pointerup', up, {passive:false});
-    btn.addEventListener('pointercancel', up, {passive:false});
-    btn.addEventListener('lostpointercapture', up, {passive:false});
-  }
-  setBtn(leftBtn,'left'); setBtn(rightBtn,'right');
-
-  VJ.lastTs = performance.now(); updateVJUI(); draw(); VJ.loopId = requestAnimationFrame(frame);
+  // kick off
+  updateUI();
   document.getElementById('vjPause').textContent = 'Pause';
+  VJ.lastTs = performance.now();
+  VJ.loopId = requestAnimationFrame(frame);
 }
+
 function quitVJ(){
-  if (VJ?.sessionChads>0){ state.chads += BigInt(VJ.sessionChads); refreshUI(); saveStateLocal(state); showToast(`<span class="accent">+${VJ.sessionChads}</span> chads added to your balance.`); }
-  if (VJ?.cleanup) VJ.cleanup(); VJ=null; closeOverlay('vjModal');
+  if (VJ?.sessionChads>0){
+    state.chads += BigInt(VJ.sessionChads);
+    saveStateLocal(state); refreshUI();
+    showToast(`<span class="accent">+${VJ.sessionChads}</span> chads added to your balance.`);
+  }
+  if (VJ?.cleanup) VJ.cleanup();
+  VJ = null;
+  closeOverlay('vjModal');
 }
+
 
 
   /* ===== Hamster-style HEXAGON (drag, merge stacks, clear at threshold) ===== */
