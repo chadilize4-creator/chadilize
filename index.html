@@ -6,6 +6,24 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ===== Zen Stack (visual homage to Ketchapp’s Stack) ===== */
+.zs-wrap{ position:relative; width:100%; height:100%; border-radius:10px; overflow:hidden; }
+#zsCanvas{ width:100%; height:100%; display:block; }
+
+/* dreamy gradient + stars behind canvas (subtle) */
+.zs-wrap::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(1200px 900px at 60% -10%, rgba(255,255,255,.06), transparent 40%),
+    linear-gradient(180deg,#0b0f14,#070a0d);
+}
+.zs-wrap::after{
+  content:""; position:absolute; inset:-20% -20% -10% -20%; pointer-events:none; 
+  background-image: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1px);
+  background-size: 18px 18px; opacity:.12; transform:translateY(0); animation:zsStars 18s linear infinite;
+}
+@keyframes zsStars{ to{ transform:translateY(40px); } }
+
 /* ===== 2048 Swipe (tw2) ===== */
 .tw2-wrap{position:relative; inset:0; width:100%; height:100%; overflow:hidden; border-radius:12px;}
 .tw2-bgglow{
@@ -466,6 +484,11 @@ canvas{ display:block }
           <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
             <div><div style="font-weight:800">Flappy Bird</div></div>
           </div>
+<!-- Play tile -->
+<div class="tile level" style="flex:1; min-height:68px" onclick="openZenStack()">
+  <div><div style="font-weight:800">Zen Stack</div></div>
+</div>
+
 <!-- inside the Play overlay's tile grid -->
 <div class="tile level" style="flex:1; min-height:68px" onclick="open2048Swipe()">
   <div><div style="font-weight:800">2048 Swipe</div></div>
@@ -631,6 +654,37 @@ canvas{ display:block }
         <p class="note">Tap / Space / Click to flap. Coins give +15 chads. Quit to collect.</p>
       </div>
     </div>
+<!-- ZEN STACK Modal -->
+<div class="overlay" id="zenStackModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Zen Stack</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="zsStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="zsPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="zsQuit">Quit</button>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Height: <b id="zsScore">0</b></div>
+      <div class="note">Combo: <b id="zsCombo">0</b></div>
+      <div class="note">Session chads: <b id="zsEarned">0</b></div>
+      <div class="note">Perfect: <b id="zsPerfects">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="zs-wrap" id="zsWrap">
+        <canvas id="zsCanvas"></canvas>
+      </div>
+    </div>
+
+    <p class="note">
+      Tap / click / Space to drop. Misaligned parts are sliced off and fall. Perfect streaks slightly widen the slab (like the original). Quit to collect chads.
+    </p>
+  </div>
+</div>
+
 <!-- 2048 SWIPE Modal -->
 <div class="overlay" id="tw2Modal">
   <div class="panel">
@@ -666,7 +720,7 @@ canvas{ display:block }
 <div class="overlay" id="laneModal">
   <div class="panel">
     <div class="row">
-      <h2>Lane Hopper (9:16)</h2>
+      <h2>Lane Hopper</h2>
       <div class="row" style="gap:8px">
         <button class="tile level" id="laneStart" style="padding:8px 12px">Start</button>
         <button class="tile level" id="lanePause" style="padding:8px 12px">Pause</button>
@@ -724,7 +778,7 @@ canvas{ display:block }
 <div class="overlay" id="tileRushModal">
   <div class="panel">
     <div class="row">
-      <h2>Tile Rush (9:16)</h2>
+      <h2>Tile Rush</h2>
       <div class="row" style="gap:8px">
         <button class="tile level" style="padding:8px 12px" id="trStart">Start</button>
         <button class="tile level" style="padding:8px 12px" id="trPause">Pause</button>
@@ -754,12 +808,6 @@ canvas{ display:block }
     <p class="note">Tap lanes to the beat. Build Combo to charge Fever. Fever doubles score; at half Fever the scroll speeds up a little.</p>
   </div>
 </div>
-
-
-
-
-
-
 
 
     <!-- VERTICAL JUMPER Modal -->
@@ -3291,6 +3339,427 @@ updateHUD();
   // Responsive sizing
   new ResizeObserver(()=> measure()).observe(gridEl);
 })();
+
+
+/* ===== Zen Stack — close visual/feel to Stack by Ketchapp =====
+   Mechanics references (overhang slice, perfect timing): 
+   see app guides/descriptions of Stack. 
+   Controls: tap/click/Space to drop.
+   Chad payout: +2 per placed block, +6 for PERFECT. (Change in CONSTS.)
+*/
+(function(){
+  const wrap   = document.getElementById('zsWrap');
+  const canvas = document.getElementById('zsCanvas');
+  if(!wrap || !canvas) return;
+  const ctx = canvas.getContext('2d', { alpha:false });
+
+  // ===== UI bits
+  const elScore   = document.getElementById('zsScore');
+  const elCombo   = document.getElementById('zsCombo');
+  const elEarned  = document.getElementById('zsEarned');
+  const elPerfect = document.getElementById('zsPerfects');
+  const btnStart  = document.getElementById('zsStart');
+  const btnPause  = document.getElementById('zsPause');
+  const btnQuit   = document.getElementById('zsQuit');
+
+  // ===== Helpers
+  function clamp(v,a,b){ return v<a?a : v>b?b : v; }
+  const TAU = Math.PI*2;
+
+  // HiDPI: draw in CSS px, render at DPR
+  let DPR = Math.max(1, window.devicePixelRatio||1);
+  function resize(){
+    const r = wrap.getBoundingClientRect();
+    DPR = Math.max(1, window.devicePixelRatio||1);
+    canvas.width  = Math.max(2, Math.floor(r.width  * DPR));
+    canvas.height = Math.max(2, Math.floor(r.height * DPR));
+    canvas.style.width  = Math.floor(r.width) + 'px';
+    canvas.style.height = Math.floor(r.height)+ 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  resize();
+  new ResizeObserver(resize).observe(wrap);
+
+  // ===== Visual theme
+  const THEME = {
+    depth: 10,                 // pseudo-3D depth in px
+    bgTop:  '#0e1420',
+    bgBot:  '#090c12',
+    sideA:  (c)=> shade(c, -0.20),
+    sideB:  (c)=> shade(c, -0.30),
+  };
+  function hsl(h,s,l){ return `hsl(${h} ${s}% ${l}%)`; }
+  function shade(hex, amt){ // hex -> shaded hex
+    // quick shade: parse and scale
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if(!m) return hex;
+    let [r,g,b] = [parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)];
+    r = clamp(Math.round(r*(1+amt)),0,255);
+    g = clamp(Math.round(g*(1+amt)),0,255);
+    b = clamp(Math.round(b*(1+amt)),0,255);
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
+  // nice pastel ramp, converted to hex once for perf
+  function rampColor(i){
+    // slow hue drift like the original
+    const hue = (i*7 + 200) % 360;
+    const c = hsl(hue, 70, 62);
+    // convert to canvas hex by drawing once to get computed value
+    // cache
+    if(!rampColor.cache) rampColor.cache = new Map();
+    if(rampColor.cache.has(hue)) return rampColor.cache.get(hue);
+    const off = document.createElement('canvas').getContext('2d');
+    off.fillStyle = c; const hex = off.fillStyle; // browser converts to rgb(...), keep it
+    rampColor.cache.set(hue, hex);
+    return hex;
+  }
+
+  // ===== Game state
+  const CONSTS = {
+    startSize: 0.62,           // % of min(W,H)
+    speed:  175,               // px/s base
+    speedGain: 2.0,            // per placed slab
+    tolPerfect: 2.0,           // px tolerance for PERFECT
+    widenPerPerfect: 2.0,      // px growth per perfect (caps at base size)
+    payNormal: 2,              // chads per normal place
+    payPerfect: 6              // chads per perfect
+  };
+
+  const G = {
+    running:false, paused:false,
+    last:0, raf:0,
+    W:0, H:0, camY:0,
+    slabs:[], offcuts:[],
+    mover:null, axis:'x', dir: +1, speed: CONSTS.speed,
+    baseW:0, baseD:0, // reference (max) size
+    score:0, earned:0, combo:0, perfects:0
+  };
+
+  // a slab is top-face: {x,y,w,d,color} measured in CSS px; y decreases upward.
+  function reset(){
+    const r = canvas.getBoundingClientRect();
+    G.W = r.width; G.H = r.height;
+    G.slabs.length = 0;
+    G.offcuts.length = 0;
+    G.camY = 0;
+    G.speed = CONSTS.speed;
+    G.score = 0; G.earned=0; G.combo=0; G.perfects=0;
+
+    const base = Math.floor(Math.min(G.W, G.H)*CONSTS.startSize);
+    G.baseW = base; G.baseD = base;
+
+    const x = Math.floor((G.W - base)/2);
+    const y = Math.floor(G.H*0.62);
+    const first = {x, y, w:base, d:base, color: colorHex(0)};
+    G.slabs.push(first);
+
+    // first mover
+    spawnMover('x');
+    updateHUD();
+  }
+
+  function colorHex(i){
+    // convert hsl ramp into hex-like string that canvas accepts
+    const s = rampColor(i);
+    // if it's rgb(...), keep; else return as-is
+    return s;
+  }
+
+  function spawnMover(axis){
+    G.axis = axis;
+    const top = G.slabs[G.slabs.length-1];
+    const i = G.slabs.length; // color index
+    const w = top.w, d = top.d;
+    let x = top.x, y = top.y - (d*0.75); // stack upwards (visually)
+    // start off-screen along the active axis
+    if(axis==='x'){
+      x = G.dir>0 ? -w - 40 : G.W + 40;
+    }else{ // 'y' axis = depth
+      // we simulate front/back by sliding along y coord; keep x aligned, move y in +/- direction
+      y = G.dir>0 ? -d - 60 : G.H + 60;
+    }
+    G.mover = {x, y, w, d, color: colorHex(i)};
+  }
+
+  function toggleAxis(){
+    G.axis = (G.axis==='x') ? 'y' : 'x';
+    G.dir  = (G.axis==='x') ? (Math.random()<0.5?-1:+1) : (Math.random()<0.5?-1:+1);
+    spawnMover(G.axis);
+  }
+
+  // ===== Input
+  function drop(){
+    if(!G.running || G.paused) return;
+    const last = G.slabs[G.slabs.length-1];
+    const m = G.mover;
+
+    // compute overlap on active axis
+    const aPos = G.axis==='x' ? m.x : m.y;
+    const aSize= G.axis==='x' ? m.w : m.d;
+    const bPos = G.axis==='x' ? last.x : last.y;
+    const bSize= G.axis==='x' ? last.w : last.d;
+
+    const delta = aPos - bPos;
+    const overlap = (delta>0)
+      ? Math.max(0, (bPos + bSize) - aPos)
+      : Math.max(0, (aPos + aSize) - bPos);
+
+    if(overlap <= 0){
+      // no overlap = game over
+      fancyAlert('Miss! Press Start to try again or Quit to collect.');
+      stop();
+      return;
+    }
+
+    // PERFECT?
+    const isPerfect = Math.abs(delta) <= CONSTS.tolPerfect;
+
+    // slice: new slab inherits overlap size
+    const newSlab = {x: last.x, y: last.y - (last.d*0.75), w:last.w, d:last.d, color: m.color};
+    if(G.axis==='x'){
+      // set new position/width to overlapping segment
+      newSlab.w = overlap;
+      newSlab.x = (delta>0) ? (m.x) : (last.x);
+      // spawn offcut as falling piece
+      const offW = aSize - overlap;
+      if(offW > 0.5){
+        const offX = (delta>0) ? (m.x + overlap) : (m.x);
+        G.offcuts.push(makeOffcut(offX, m.y, offW, m.d, m.color, G.axis, delta>0));
+      }
+    }else{ // axis 'y' (depth)
+      newSlab.d = overlap;
+      newSlab.x = last.x;
+      newSlab.y = (delta>0) ? (m.y) : (last.y);
+      const offD = aSize - overlap;
+      if(offD > 0.5){
+        const offY = (delta>0) ? (m.y + overlap) : (m.y);
+        G.offcuts.push(makeOffcut(m.x, offY, m.w, offD, m.color, G.axis, delta>0));
+      }
+    }
+
+    // PERFECT bonus: tiny widen back toward base size
+    if(isPerfect){
+      G.perfects++;
+      G.combo++;
+      // widen along active axis a little (cap at base)
+      if(G.axis==='x'){
+        newSlab.w = Math.min(G.baseW, newSlab.w + CONSTS.widenPerPerfect);
+        // center align with last slab to keep tower neat
+        newSlab.x = last.x + (last.w - newSlab.w)/2;
+      }else{
+        newSlab.d = Math.min(G.baseD, newSlab.d + CONSTS.widenPerPerfect);
+        newSlab.y = last.y + (last.d - newSlab.d)/2;
+      }
+      // glow pulse
+      ringPulse(newSlab);
+      // chads
+      G.earned += CONSTS.payPerfect;
+    }else{
+      G.combo = 0;
+      G.earned += CONSTS.payNormal;
+    }
+
+    // push new slab, accelerate, pan camera
+    G.slabs.push(newSlab);
+    G.score++;
+    G.speed += CONSTS.speedGain;
+    G.camY += (last.d*0.42); // gentle upward camera drift
+
+    updateHUD();
+    toggleAxis();
+  }
+
+  // ===== Offcuts (falling slices)
+  function makeOffcut(x,y,w,d,color,axis,positive){
+    const ang = (axis==='x') ? (positive ? 0.18 : -0.18) : (positive ? -0.12 : 0.12);
+    return {x,y,w,d, color, ax:axis, vx:0, vy: 180, rot: ang, life: 1.2};
+  }
+
+  // ===== Perfect ring pulse
+  const rings = []; // {x,y,r,t,color}
+  function ringPulse(slab){
+    const cx = slab.x + slab.w/2;
+    const cy = slab.y + slab.d/2;
+    rings.push({x:cx, y:cy, r:8, t:0, color:'#ffd86b'});
+  }
+
+  // ===== Start/Stop/Pause
+  function start(){
+    reset();
+    G.running=true; G.paused=false;
+    btnPause.textContent='Pause';
+    G.last = performance.now();
+    frame(G.last);
+  }
+  function stop(){
+    G.running=false;
+    if(G.raf) cancelAnimationFrame(G.raf), G.raf=0;
+  }
+  function togglePause(){
+    if(!G.running){ start(); return; }
+    G.paused=!G.paused;
+    btnPause.textContent = G.paused?'Resume':'Pause';
+    if(!G.paused){ G.last = performance.now(); frame(G.last); }
+  }
+
+  // ===== Drawing (pseudo-3D slab)
+  function drawSlab(s){
+    const depth = THEME.depth;
+    const x=s.x, y=s.y, w=s.w, d=s.d;
+    // top
+    ctx.fillStyle = s.color;
+    ctx.fillRect(x, y, w, d);
+    // right face
+    ctx.fillStyle = THEME.sideA(s.color);
+    ctx.beginPath();
+    ctx.moveTo(x+w, y);
+    ctx.lineTo(x+w+depth, y+depth);
+    ctx.lineTo(x+w+depth, y+d+depth);
+    ctx.lineTo(x+w, y+d);
+    ctx.closePath(); ctx.fill();
+    // front face
+    ctx.fillStyle = THEME.sideB(s.color);
+    ctx.beginPath();
+    ctx.moveTo(x, y+d);
+    ctx.lineTo(x+w, y+d);
+    ctx.lineTo(x+w+depth, y+d+depth);
+    ctx.lineTo(x+depth, y+d+depth);
+    ctx.closePath(); ctx.fill();
+    // soft highlight
+    ctx.fillStyle='rgba(255,255,255,.08)';
+    ctx.fillRect(x, y, w, 2);
+  }
+
+  function drawOffcut(c, dt, i){
+    // fall & fade
+    c.y += c.vy*dt;
+    c.x += c.vx*dt;
+    c.life -= dt;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, c.life*1.2));
+    ctx.translate(c.x + c.w/2, c.y + c.d/2);
+    ctx.rotate(c.rot);
+    ctx.translate(-(c.x + c.w/2), -(c.y + c.d/2));
+    drawSlab(c);
+    ctx.restore();
+    if(c.life<=0) G.offcuts.splice(i,1);
+  }
+
+  function bg(){
+    const g = ctx.createLinearGradient(0,0,0,canvas.height/DPR);
+    g.addColorStop(0, THEME.bgTop);
+    g.addColorStop(1, THEME.bgBot);
+    ctx.fillStyle=g; ctx.fillRect(0,0, G.W, G.H);
+  }
+
+  function drawRings(dt){
+    for(let i=rings.length-1;i>=0;i--){
+      const r=rings[i];
+      r.t += dt*2.2; // speed
+      const R = r.r + r.t*40;
+      ctx.beginPath();
+      ctx.strokeStyle='rgba(255,216,107,'+(1-r.t)+')';
+      ctx.lineWidth = 2;
+      ctx.arc(r.x, r.y - G.camY, R, 0, TAU);
+      ctx.stroke();
+      if(r.t>=1) rings.splice(i,1);
+    }
+  }
+
+  function updateMover(dt){
+    if(!G.mover) return;
+    const m = G.mover;
+    if(G.axis==='x'){
+      m.x += G.dir * G.speed * dt;
+      if(m.x <= -m.w - 50){ G.dir=+1; }
+      if(m.x >= G.W + 50){ G.dir=-1; }
+    }else{
+      m.y += G.dir * G.speed * dt;
+      const lo = -m.d - 80, hi = G.H + 80;
+      if(m.y <= lo){ G.dir=+1; }
+      if(m.y >= hi){ G.dir=-1; }
+    }
+  }
+
+  function frame(ts){
+    if(!G.running){ G.raf=0; return; }
+    const dt = Math.min(0.035, (ts - G.last)/1000);
+    G.last = ts;
+
+    if(!G.paused){
+      updateMover(dt);
+    }
+
+    // draw
+    bg();
+
+    ctx.save();
+    // apply camera (pan up as stack grows)
+    ctx.translate(0, -G.camY);
+
+    // draw tower
+    for(const s of G.slabs) drawSlab(s);
+    // mover
+    if(G.mover){
+      ctx.save();
+      // slight hover glow
+      const cx = (G.mover.x + G.mover.w/2);
+      const cy = (G.mover.y + G.mover.d/2);
+      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(G.mover.w,G.mover.d));
+      grd.addColorStop(0,'rgba(255,255,255,.06)');
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=grd; ctx.fillRect(G.mover.x-60,G.mover.y-60,G.mover.w+120,G.mover.d+120);
+      ctx.restore();
+      drawSlab(G.mover);
+    }
+
+    // offcuts
+    for(let i=G.offcuts.length-1;i>=0;i--) drawOffcut(G.offcuts[i], dt, i);
+
+    // perfect rings
+    drawRings(dt);
+
+    ctx.restore();
+
+    G.raf = requestAnimationFrame(frame);
+  }
+
+  function updateHUD(){
+    if(elScore)   elScore.textContent = G.score;
+    if(elCombo)   elCombo.textContent = G.combo;
+    if(elEarned)  elEarned.textContent= G.earned;
+    if(elPerfect) elPerfect.textContent= G.perfects;
+  }
+
+  // ===== Wiring
+  btnStart?.addEventListener('click', start);
+  btnPause?.addEventListener('click', togglePause);
+  btnQuit ?.addEventListener('click', ()=>{
+    // deposit session chads to your global balance
+    if(G.earned>0){
+      state.chads = (state.chads??0n) + BigInt(G.earned);
+      saveStateLocal?.(state); refreshUI?.();
+      showToast?.(`<span class="accent">+${G.earned}</span> chads added to balance.`);
+    }
+    stop();
+    closeOverlay('zenStackModal');
+  });
+
+  // input: tap/click/space
+  wrap.addEventListener('pointerdown', ()=> drop(), {passive:true});
+  window.addEventListener('keydown', (e)=>{
+    if(e.code==='Space' || e.key===' '){ e.preventDefault(); drop(); }
+  }, {passive:false});
+
+  // open helper to match your pattern
+  window.openZenStack = ()=>{
+    closeOverlay('playOverlay');
+    openOverlay('zenStackModal');
+    // don’t auto-start; user presses Start
+    setTimeout(resize, 30);
+  };
+})();
+
 
 
 
