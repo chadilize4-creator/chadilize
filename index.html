@@ -6,6 +6,19 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Hexagon game */
+.hex-wrap{ position:relative; width:100%; height:100%; user-select:none; touch-action:none; }
+#hexCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+#hexDragCanvas{ width:100%; height:100%; display:block; }
+.hex-palette{
+  position:absolute; left:50%; bottom:10px; transform:translateX(-50%);
+  display:flex; gap:14px; z-index:5; pointer-events:auto;
+  background:linear-gradient(180deg,#0e1318,#0a0d11); padding:8px 10px; border-radius:16px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.hexToken{ background:transparent; border-radius:12px; }
+.hexToken.dragging{ opacity:0.36 }
+
 :root{
   --bg1:#06060a; --ink:#e8edf4; --glass:rgba(255,255,255,0.06);
   --gold1:#f6e08a; --gold2:#e5b64d; --gold3:#8a5e06;
@@ -417,29 +430,30 @@ canvas{ display:block }
     <div class="row">
       <h2>Hexagon (9:16)</h2>
       <div class="row" style="gap:8px">
-        <button class="tile level" style="padding:8px 12px" id="hexStart">Start</button>
-        <button class="tile level" style="padding:8px 12px" id="hexPause">Pause</button>
+        <div class="note" style="display:flex;align-items:center;gap:8px;font-weight:900">
+          <span style="font-size:18px">🪙</span>
+          <span>Chads:</span>
+          <b id="hexEarned">0</b>
+        </div>
         <button class="tile level" style="padding:8px 12px" id="hexQuit">Quit</button>
       </div>
     </div>
 
-    <div class="row" style="gap:12px">
-      <div class="note">Score: <b id="hexScore">0</b></div>
-      <div class="note">Session chads: <b id="hexEarned">0</b></div>
-    </div>
-
     <div class="game-9x16">
-      <div id="hexWrap" style="position:relative;width:100%;height:100%;touch-action:none;">
-        <canvas id="hexCanvas" class="full"></canvas>
+      <div class="hex-wrap" id="hexWrap">
+        <canvas id="hexCanvas"></canvas>
+        <canvas id="hexDragCanvas" style="position:absolute; inset:0; pointer-events:none;"></canvas>
 
-        <!-- Palette (3 draggable hexes) -->
-        <div id="hexPalette" style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:14px;z-index:5;">
-          <!-- items are injected by JS -->
+        <!-- Palette -->
+        <div class="hex-palette" id="hexPalette" aria-label="drag hex to board">
+          <canvas class="hexToken" width="96" height="96"></canvas>
+          <canvas class="hexToken" width="96" height="96"></canvas>
+          <canvas class="hexToken" width="96" height="96"></canvas>
         </div>
       </div>
     </div>
 
-    <p class="note">Drag a hex onto the board. Drop on same color to stack. 3+ connected of one color clears for <b>+50</b> chads. Quit to collect.</p>
+    <p class="note">Drag a hex from the palette and drop on the board. 3+ connected clears for <b>+50</b> chads.</p>
   </div>
 </div>
 
@@ -1192,343 +1206,297 @@ function quitVJ(){
   if (VJ?.cleanup) VJ.cleanup(); VJ=null; closeOverlay('vjModal');
 }
 
-/* ===== HEXAGON (Hamster-style) =====
- * - Pointy-top axial grid, proper snap-to-cell
- * - Drag from palette; drop onto empty or same-color cell (stacks internally)
- * - Flood-fill: clear any connected group >= 3 same color => +50 chads
- * - No numbers shown (stack is internal only)
- * References: Hex grid math & axial/cube conversions (Red Blob Games) :contentReference[oaicite:0]{index=0}
- * Pointer Events drag flow (W3C / dev articles) :contentReference[oaicite:1]{index=1}
- * rAF loop basics (MDN) :contentReference[oaicite:2]{index=2}
- * Flood-fill idea (BFS/DFS) :contentReference[oaicite:3]{index=3}
- */
+/* ============ HEXAGON (Hamster-style, canvas-only) ============ */
 (function(){
-  const wrap  = document.getElementById('hexWrap');
-  const cvs   = document.getElementById('hexCanvas');
-  const ctx   = cvs.getContext('2d');
-  if(!wrap || !cvs || !ctx) return;
+  const wrap = document.getElementById('hexWrap');
+  if(!wrap) return;
 
-  // ------- Assets (your repo names) -------
-  const COLORS = ['yellow','red','green','purple','orange','blue'];
-  const IMG = {}; let assetsReady=false;
-  function preloadHexImages(done){
-    let left = COLORS.length;
-    COLORS.forEach(c=>{
-      const im = new Image();
-      im.onload=()=>{ if(--left===0){ assetsReady=true; done&&done(); } };
-      im.src = `img/hexagon${c}.png`;
-      IMG[c]=im;
-    });
-  }
+  const boardCanvas = document.getElementById('hexCanvas');
+  const dragCanvas  = document.getElementById('hexDragCanvas');
+  const bctx = boardCanvas.getContext('2d');
+  const dctx = dragCanvas.getContext('2d');
 
-  // ------- Grid layout (pointy-top axial) -------
-  // Using Red Blob’s layout for pixel<->axial conversions. :contentReference[oaicite:4]{index=4}
-  const SQRT3 = Math.sqrt(3);
-  let DPR=1, W=0, H=0, unit=1;
-  let RADIUS = 4; // board radius (bigger number => bigger board)
-  let HEX_R  = 26; // hex pixel radius (will be scaled on resize)
-  let origin = {x:0, y:0};
-
-  function setCanvasSize(){
-    const r = wrap.getBoundingClientRect();
-    DPR = window.devicePixelRatio||1;
-    W = Math.floor(r.width);
-    H = Math.floor(r.height);
-    cvs.width = Math.floor(W*DPR);
-    cvs.height= Math.floor(H*DPR);
-    cvs.style.width = W+'px';
-    cvs.style.height= H+'px';
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-
-    // Fit board nicely into the 9:16 area:
-    // compute HEX_R from available height (board diameter ≈ (2*RADIUS+1)*1.5*HEX_R vertically)
-    const rows = 2*RADIUS+1;
-    const approxBoardH = (rows*1.5 + 0.5) * HEX_R; // initial guess
-    // Instead, solve HEX_R from H with margins:
-    const margin = 60;
-    HEX_R = Math.min(32, Math.max(20, (H - 240) / ((rows*1.5 + 1.5)) )); // dynamic but bounded
-    origin.x = W*0.5;
-    origin.y = H*0.5 - 20; // slightly above center
-  }
-
-  // Axial <-> pixel (pointy-top)
-  function axialToPixel(q,r){
-    const x = HEX_R * (SQRT3*q + SQRT3/2 * r);
-    const y = HEX_R * (3/2 * r);
-    return {x: origin.x + x, y: origin.y + y};
-  }
-  function pixelToAxial(x,y){
-    const px = x - origin.x, py = y - origin.y;
-    const q = (SQRT3/3 * px - 1/3 * py) / HEX_R;
-    const r = (2/3 * py) / HEX_R;
-    return axialRound(q,r); // return nearest axial cell
-  }
-  function axialRound(q, r){
-    // Convert axial -> cube, round, back to axial (Red Blob) :contentReference[oaicite:5]{index=5}
-    let x = q, z = r, y = -x - z;
-    let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
-    const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
-    if (dx > dy && dx > dz) rx = -ry - rz;
-    else if (dy > dz)       ry = -rx - rz;
-    else                    rz = -rx - ry;
-    return {q:rx, r:rz};
-  }
-
-  function inBoard(q,r){
-    // Round “hexagon” of radius R
-    return (Math.abs(q) <= RADIUS) && (Math.abs(r) <= RADIUS) && (Math.abs(q + r) <= RADIUS);
-  }
-
-  // ------- Board data -------
-  const board = new Map(); // key = "q,r" -> { color, count }
-  function key(q,r){ return `${q},${r}`; }
-  function getCell(q,r){ return board.get(key(q,r)) || null; }
-  function setCell(q,r,v){ if(v) board.set(key(q,r), v); else board.delete(key(q,r)); }
-
-  function clearBoard(){
-    board.clear();
-  }
-
-  // ------- Palette / drag state -------
   const paletteEl = document.getElementById('hexPalette');
-  let palette = []; // [{color}]
-  let dragging = null; // {color, el, q?,r?}
-  let running = false, paused = false, loopId = null;
-  let score = 0, earned = 0;
+  const tokenEls = Array.from(paletteEl.querySelectorAll('.hexToken'));
 
-  function makePalette(){
-    palette = [];
-    paletteEl.innerHTML = '';
-    for(let i=0;i<3;i++){
-      const color = COLORS[Math.floor(Math.random()*COLORS.length)];
-      const img = IMG[color];
-      const slot = document.createElement('img');
-      slot.src = img.src;
-      slot.alt = color;
-      slot.width = 64; slot.height = 64;
-      slot.style.width='64px'; slot.style.height='64px';
-      slot.style.userSelect='none';
-      slot.style.touchAction='none';
-      slot.style.filter='drop-shadow(0 10px 24px rgba(0,0,0,.45))';
-      slot.dataset.color = color;
-      paletteEl.appendChild(slot);
-    }
+  const earnedEl = document.getElementById('hexEarned');
+  const quitBtn  = document.getElementById('hexQuit');
+
+  // Colors (pleasant, high-contrast)
+  const COLORS = [
+    {key:'green',  fill:'#6bd66b', edge:'#2d7e2d'},
+    {key:'yellow', fill:'#ffd24d', edge:'#a67c00'},
+    {key:'orange', fill:'#ff8b4a', edge:'#a34b13'},
+    {key:'blue',   fill:'#6ea8ff', edge:'#2b58a8'},
+    {key:'purple', fill:'#c16dff', edge:'#6a2ba8'},
+    {key:'red',    fill:'#ff5b5b', edge:'#a42020'},
+  ];
+
+  // Axial hex helpers (pointy-top layout) — formulas from Red Blob Games.
+  // axial to pixel & round pixel->axial.  :contentReference[oaicite:0]{index=0}
+  const HEX_DIRS = [[+1,0],[+1,-1],[0,-1],[-1,0],[-1,+1],[0,+1]];
+  function hexNeighbor(q,r,dir){ const d=HEX_DIRS[dir]; return [q+d[0], r+d[1]]; }
+  function axialToPixel(q,r, size, originX, originY){
+    const x = size * (Math.sqrt(3)*q + Math.sqrt(3)/2 * r) + originX;
+    const y = size * (3/2 * r) + originY;
+    return [x,y];
+  }
+  function pixelToAxial(x,y, size, originX, originY){
+    // convert to fractional axial
+    const px = x - originX, py = y - originY;
+    const q = (Math.sqrt(3)/3 * px - 1/3 * py) / size;
+    const r = (2/3 * py) / size;
+    return hexRound(q,r);
+  }
+  function hexRound(qf, rf){
+    let q = Math.round(qf), r = Math.round(rf);
+    let s = Math.round(-qf-rf);
+    const q_diff = Math.abs(q - qf);
+    const r_diff = Math.abs(r - rf);
+    const s_diff = Math.abs(s + qf + rf);
+    if (q_diff > r_diff && q_diff > s_diff) q = -r - s;
+    else if (r_diff > s_diff) r = -q - s;
+    return [q,r];
   }
 
-  // Create a free-floating drag image following the pointer
-  function spawnDragGhost(color, x, y){
-    const g = document.createElement('img');
-    g.className = 'hex-drag';
-    g.src = IMG[color].src;
-    g.style.left = x+'px';
-    g.style.top = y+'px';
-    wrap.appendChild(g);
-    return g;
-  }
+  // Game state
+  let W=0, H=0, size=0, originX=0, originY=0;
+  let cells=[];           // [{q,r,x,y,color:null}]
+  let cellMap=new Map();  // "q,r" -> cell
+  let radius=4;           // board radius (rings). 4 -> 61 cells.
+  let earned=0;
 
-  // Pointer events
-  function onDown(e){
-    if(!running || paused) return;
-    const t = e.target;
-    if (t && t.parentElement === paletteEl && t.dataset.color){
-      e.preventDefault();
-      const color = t.dataset.color;
-      dragging = {color, slot:t, ghost: spawnDragGhost(color, e.clientX, e.clientY)};
-      try{ t.setPointerCapture(e.pointerId); }catch{}
-    }
-  }
-  function onMove(e){
-    if(!dragging) return;
-    e.preventDefault();
-    dragging.ghost.style.left = e.clientX+'px';
-    dragging.ghost.style.top  = e.clientY+'px';
-  }
-  function onUp(e){
-    if(!dragging) return;
-    e.preventDefault();
-    const drop = screenToCanvas(e.clientX, e.clientY);
-    const snapped = pixelToAxial(drop.x, drop.y);
-    const ok = tryPlace(snapped.q, snapped.r, dragging.color);
-    // Clean up ghost
-    dragging.ghost.remove();
-    // If placed ok, remove slot and spawn a fresh one at the end
-    if(ok){
-      dragging.slot.remove();
-      const color = COLORS[Math.floor(Math.random()*COLORS.length)];
-      const slot = document.createElement('img');
-      slot.src = IMG[color].src; slot.alt=color; slot.width=64; slot.height=64;
-      slot.style.width='64px'; slot.style.height='64px';
-      slot.style.userSelect='none'; slot.style.touchAction='none';
-      slot.style.filter='drop-shadow(0 10px 24px rgba(0,0,0,.45))';
-      slot.dataset.color = color;
-      paletteEl.appendChild(slot);
-    }
-    dragging = null;
-  }
-  function screenToCanvas(sx, sy){
-    // convert client to canvas local
+  // Drag state
+  let dragging=null; // {color, x, y, tokenEl}
+  let pointerId=null;
+
+  // ---------- Setup / Resize ----------
+  function fitCanvases(){
     const r = wrap.getBoundingClientRect();
-    return {x: sx - r.left, y: sy - r.top};
+    boardCanvas.width = Math.floor(r.width);
+    boardCanvas.height= Math.floor(r.height);
+    dragCanvas.width  = boardCanvas.width;
+    dragCanvas.height = boardCanvas.height;
+    W = boardCanvas.width; H = boardCanvas.height;
+
+    // 9:16 safe area already handled by parent shell; calculate size
+    // Keep board large but with padding
+    const pad = Math.min(W,H)*0.10;
+    // choose hex size so (radius*2+1) fits nicely
+    size = Math.min( (W - pad*2) / (Math.sqrt(3)*(radius*2+1)),
+                     (H - pad*2) / (1.5*(radius*2+1)) );
+    originX = Math.floor(W/2);
+    originY = Math.floor(H/2) - size*0.4; // lift board a little
+
+    // Recompute pixel positions
+    for (const c of cells){
+      const [x,y]=axialToPixel(c.q,c.r,size,originX,originY);
+      c.x=x; c.y=y;
+    }
+    drawBoard();
   }
 
-  // ------- Placement & clearing -------
-  function tryPlace(q,r,color){
-    if(!inBoard(q,r)) return false;
-    const cur = getCell(q,r);
-    if(!cur){
-      // empty -> place new
-      setCell(q,r,{color, count:1});
-    }else{
-      if(cur.color !== color) return false; // only stack same color
-      cur.count += 1; // internal stack (invisible)
-      setCell(q,r,cur);
+  function buildBoard(){
+    cells.length=0; cellMap.clear();
+    for(let q=-radius;q<=radius;q++){
+      const r1 = Math.max(-radius, -q-radius);
+      const r2 = Math.min(radius,  -q+radius);
+      for(let r=r1;r<=r2;r++){
+        const cell={q,r,x:0,y:0,color:null};
+        cells.push(cell);
+        cellMap.set(`${q},${r}`, cell);
+      }
     }
-    checkClearsFrom(q,r,color);
+  }
+
+  // ---------- Rendering ----------
+  function hexPath(ctx, cx, cy, s){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = Math.PI/180 * (60*i - 30); // pointy-top
+      const px = cx + s*Math.cos(a), py = cy + s*Math.sin(a);
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.closePath();
+  }
+  function drawBoard(){
+    // background
+    bctx.clearRect(0,0,W,H);
+    const g = bctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0b1220'); g.addColorStop(1,'#070c12');
+    bctx.fillStyle=g; bctx.fillRect(0,0,W,H);
+
+    // faint grid
+    bctx.save();
+    bctx.globalAlpha = 0.18;
+    bctx.strokeStyle = '#c7d3e8';
+    bctx.lineWidth = 1;
+    for(const c of cells){
+      hexPath(bctx, c.x, c.y, size*0.78);
+      bctx.stroke();
+    }
+    bctx.restore();
+
+    // pieces
+    for(const c of cells){
+      if(!c.color) continue;
+      const col = COLORS.find(x=>x.key===c.color);
+      const s = size*0.72;
+      const glow = bctx.createRadialGradient(c.x, c.y, 2, c.x, c.y, s*1.2);
+      glow.addColorStop(0, col.fill+'aa');
+      glow.addColorStop(1, 'transparent');
+      bctx.fillStyle = glow; bctx.beginPath(); bctx.arc(c.x,c.y,s*1.2,0,Math.PI*2); bctx.fill();
+
+      hexPath(bctx, c.x, c.y, s);
+      const fill = bctx.createLinearGradient(c.x, c.y-s, c.x, c.y+s);
+      fill.addColorStop(0, '#fff'); fill.addColorStop(1, col.fill);
+      bctx.fillStyle = fill; bctx.fill();
+
+      bctx.lineWidth = 2;
+      bctx.strokeStyle = col.edge;
+      bctx.stroke();
+    }
+  }
+  function drawDrag(){
+    dctx.clearRect(0,0,W,H);
+    if(!dragging) return;
+    const col = COLORS.find(x=>x.key===dragging.color);
+    const s = size*0.72;
+    const x=dragging.x, y=dragging.y;
+
+    // glowing token following the finger
+    const glow = dctx.createRadialGradient(x, y, 0, x, y, s*1.5);
+    glow.addColorStop(0, col.fill+'aa'); glow.addColorStop(1, 'transparent');
+    dctx.fillStyle=glow; dctx.beginPath(); dctx.arc(x,y,s*1.5,0,Math.PI*2); dctx.fill();
+
+    hexPath(dctx, x, y, s);
+    const fill = dctx.createLinearGradient(x, y-s, x, y+s);
+    fill.addColorStop(0, '#fff'); fill.addColorStop(1, col.fill);
+    dctx.fillStyle=fill; dctx.fill();
+    dctx.lineWidth = 2; dctx.strokeStyle = col.edge; dctx.stroke();
+  }
+
+  // ---------- Palette ----------
+  function randomColorKey(){ return COLORS[Math.floor(Math.random()*COLORS.length)].key; }
+  function refillPalette(){
+    for(const t of tokenEls){
+      if(t.dataset.color) continue;
+      t.dataset.color = randomColorKey();
+      paintToken(t, t.dataset.color);
+    }
+  }
+  function paintToken(canvas, colorKey){
+    const ctx = canvas.getContext('2d'); const w=canvas.width, h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const s = Math.min(w,h)*0.34, cx=w/2, cy=h/2;
+    const col = COLORS.find(x=>x.key===colorKey);
+    hexPath(ctx, cx, cy, s);
+    const g = ctx.createLinearGradient(cx, cy-s, cx, cy+s);
+    g.addColorStop(0, '#fff'); g.addColorStop(1, col.fill);
+    ctx.fillStyle=g; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle=col.edge; ctx.stroke();
+  }
+
+  // ---------- Matching / Clearing ----------
+  function cellAt(q,r){ return cellMap.get(`${q},${r}`) || null; }
+  function neighbors(cell){
+    const out=[]; for(let i=0;i<6;i++){ const [q2,r2]=hexNeighbor(cell.q,cell.r,i); const nb=cellAt(q2,r2); if(nb) out.push(nb); }
+    return out;
+  }
+  function floodFill(start, colorKey){
+    // basic BFS flood fill / connected components.  :contentReference[oaicite:1]{index=1}
+    const q=[start]; const seen=new Set([`${start.q},${start.r}`]); const group=[start];
+    while(q.length){
+      const c=q.shift();
+      for(const nb of neighbors(c)){
+        const id=`${nb.q},${nb.r}`;
+        if(!seen.has(id) && nb.color===colorKey){ seen.add(id); q.push(nb); group.push(nb); }
+      }
+    }
+    return group;
+  }
+
+  function tryPlaceAtPointer(x,y, colorKey){
+    const [q,r] = pixelToAxial(x,y,size,originX,originY);          // convert pointer to nearest cell.  :contentReference[oaicite:2]{index=2}
+    const cell = cellAt(q,r);
+    if(!cell || cell.color) return false; // must place on empty
+    cell.color = colorKey;
+    drawBoard();
+
+    // Check for match
+    const cluster = floodFill(cell, colorKey);
+    if(cluster.length >= 3){
+      // clear them
+      for(const c of cluster) c.color = null;
+      drawBoard();
+      earned += 50;
+      if(earnedEl) earnedEl.textContent = String(earned);
+      if(window.state){ state.chads += BigInt(50); saveStateLocal(state); refreshUI(); }
+      showToast(`<span class="accent">+50</span> chads from Hexagon.`);
+    }
     return true;
   }
 
-  function neigh(q,r){ // 6 axial neighbors
-    return [
-      {q:q+1, r:r  }, {q:q+1, r:r-1}, {q:q, r:r-1},
-      {q:q-1, r:r  }, {q:q-1, r:r+1}, {q:q, r:r+1}
-    ];
-  }
+  // ---------- Input (Pointer Events) ----------
+  // We use Pointer Events + setPointerCapture for reliable touch/mouse drag.  :contentReference[oaicite:3]{index=3}
+  tokenEls.forEach(token=>{
+    token.addEventListener('pointerdown', (e)=>{
+      if(dragging) return;
+      if(!token.dataset.color) return;
+      pointerId = e.pointerId;
+      try{ token.setPointerCapture(pointerId); }catch{}
+      token.classList.add('dragging');
 
-  function floodCollect(q0,r0,color){
-    const out=[]; const seen=new Set(); const Q=[[q0,r0]];
-    while(Q.length){
-      const [q,r]=Q.pop(); const k=key(q,r);
-      if(seen.has(k)) continue; seen.add(k);
-      const c = getCell(q,r);
-      if(!c || c.color!==color) continue;
-      out.push({q,r});
-      for(const n of neigh(q,r)){
-        if(inBoard(n.q,n.r)) Q.push([n.q,n.r]);
+      dragging = { color: token.dataset.color, x:e.clientX, y:e.clientY, tokenEl: token };
+      drawDrag();
+    });
+    token.addEventListener('pointermove', (e)=>{
+      if(!dragging || e.pointerId!==pointerId) return;
+      dragging.x = e.clientX - wrap.getBoundingClientRect().left;
+      dragging.y = e.clientY - wrap.getBoundingClientRect().top;
+      drawDrag();
+    });
+    token.addEventListener('pointerup', (e)=>{
+      if(!dragging || e.pointerId!==pointerId) return;
+      const rect = wrap.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+
+      // attempt drop
+      const ok = tryPlaceAtPointer(x,y, dragging.color);
+      dctx.clearRect(0,0,W,H);
+      token.classList.remove('dragging');
+
+      if(ok){
+        // consume token and refill later
+        token.dataset.color = '';
+        token.getContext('2d').clearRect(0,0,token.width, token.height);
+        setTimeout(refillPalette, 80);
+      }else{
+        // restore visuals
+        paintToken(token, token.dataset.color);
       }
-    }
-    return out;
-  }
+      dragging=null; pointerId=null;
+    });
+    token.addEventListener('lostpointercapture', ()=>{ dragging=null; drawDrag(); token.classList.remove('dragging'); });
+    token.addEventListener('pointercancel', ()=>{ dragging=null; drawDrag(); token.classList.remove('dragging'); });
+  });
 
-  function checkClearsFrom(q,r,color){
-    const cluster = floodCollect(q,r,color);
-    if(cluster.length >= 3){
-      // clear cluster
-      for(const c of cluster) setCell(c.q, c.r, null);
-      score += 100;         // local score
-      earned += 50;         // session chads
-      document.getElementById('hexScore').textContent = score;
-      document.getElementById('hexEarned').textContent = earned;
-      showToast(`<span class="accent">+50</span> chads (Hexagon)`);
-    }
-  }
-
-  // ------- Draw -------
-  function drawBoardBG(){
-    // faint honeycomb grid
-    ctx.save();
-    ctx.fillStyle = 'rgba(10,14,20,1)'; ctx.fillRect(0,0,W,H);
-    // gradient vignette
-    const g = ctx.createRadialGradient(W*0.5,H*0.5, 10, W*0.5,H*0.5, Math.max(W,H)*0.6);
-    g.addColorStop(0,'#07111b'); g.addColorStop(1,'#06090f');
-    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
-    for(let r=-RADIUS; r<=RADIUS; r++){
-      const qmin = Math.max(-RADIUS, -r - RADIUS);
-      const qmax = Math.min( RADIUS, -r + RADIUS);
-      for(let q=qmin; q<=qmax; q++){
-        const p = axialToPixel(q,r);
-        strokeHex(p.x, p.y, HEX_R-1.5);
-      }
-    }
-    ctx.restore();
-  }
-
-  function strokeHex(cx,cy,r){
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-      const a = Math.PI/180 * (60*i - 30);
-      const x = cx + r * Math.cos(a);
-      const y = cy + r * Math.sin(a);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-  }
-
-  function drawTiles(){
-    for(let r=-RADIUS; r<=RADIUS; r++){
-      const qmin = Math.max(-RADIUS, -r - RADIUS);
-      const qmax = Math.min( RADIUS, -r + RADIUS);
-      for(let q=qmin; q<=qmax; q++){
-        const cell = getCell(q,r);
-        if(!cell) continue;
-        const p = axialToPixel(q,r);
-        const img = IMG[cell.color];
-        if(!img) continue;
-        const size = HEX_R*1.42; // fits inside hex
-        ctx.drawImage(img, p.x - size/2, p.y - size/2, size, size);
-      }
-    }
-  }
-
-  function render(){
-    drawBoardBG();
-    drawTiles();
-  }
-
-  // ------- Loop (we keep a loop to redraw smoothly if you want effects later) -------
-  function frame(){
-    if(!running){ loopId=null; return; }
-    if(!paused) render();
-    loopId = requestAnimationFrame(frame);
-  }
-
-  // ------- Controls / lifecycle -------
+  // ---------- Public controls ----------
+  function openHexagon(){ closeOverlay('playOverlay'); openOverlay('hexModal'); start(); }
   function start(){
-    if(!assetsReady) return;
-    running = true; paused=false; score=0; earned=0;
-    document.getElementById('hexScore').textContent = score;
-    document.getElementById('hexEarned').textContent = earned;
-    clearBoard(); makePalette(); setCanvasSize(); render();
-    if(!loopId) loopId = requestAnimationFrame(frame);
-    document.getElementById('hexPause').textContent = 'Pause';
+    earned=0; if(earnedEl) earnedEl.textContent='0';
+    buildBoard(); fitCanvases(); refillPalette(); drawBoard(); dctx.clearRect(0,0,W,H);
   }
-  function togglePause(){
-    if(!running) return;
-    paused = !paused;
-    document.getElementById('hexPause').textContent = paused ? 'Resume':'Pause';
-  }
-  function quit(){
-    // pay out session chads
-    if(earned>0){
-      state.chads += BigInt(earned);
-      saveStateLocal(state); refreshUI();
-      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
-    }
-    running=false; paused=false; earned=0; score=0; clearBoard(); render();
-    if(loopId){ cancelAnimationFrame(loopId); loopId=null; }
+  function stop(){
+    // add earned into state was already done on each clear; nothing else
     closeOverlay('hexModal');
   }
 
-  // ------- Events -------
-  window.addEventListener('resize', ()=>{ if(!running) return; setCanvasSize(); render(); });
-  wrap.addEventListener('pointerdown', onDown, {passive:false});
-  wrap.addEventListener('pointermove', onMove, {passive:false});
-  wrap.addEventListener('pointerup', onUp, {passive:false});
-  wrap.addEventListener('pointercancel', onUp, {passive:false});
+  new ResizeObserver(()=>{ if(document.getElementById('hexModal').classList.contains('show')) fitCanvases(); }).observe(wrap);
+  quitBtn.addEventListener('click', stop);
 
-  document.getElementById('hexStart').onclick = start;
-  document.getElementById('hexPause').onclick = togglePause;
-  document.getElementById('hexQuit').onclick  = quit;
-
-  // Public open function
-  window.openHexagon = ()=>{
-    closeOverlay('playOverlay');
-    openOverlay('hexModal');
-    if(!assetsReady) preloadHexImages(()=>{ setCanvasSize(); render(); });
-    else { setCanvasSize(); render(); }
-  };
+  // expose
+  window.openHexagon = openHexagon;
 })();
 
 /* ===== First run flow ===== */
