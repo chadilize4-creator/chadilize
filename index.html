@@ -6,17 +6,20 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== Zen Stack (robust version) ===== */
-.zs-wrap{ position:relative; width:100%; height:100%; border-radius:10px; overflow:hidden; }
-#zsCanvas{ width:100%; height:100%; display:block; background:linear-gradient(180deg,#0e1420,#090c12); }
+/* Zen Stack visuals */
+.zs-wrap{ position:relative; width:100%; height:100%; overflow:hidden; border-radius:10px; }
+#zsCanvas{ width:100%; height:100%; display:block; }
 
-/* soft star-grain overlay */
-.zs-wrap::after{
-  content:""; position:absolute; inset:-20% -20% -10% -20%; pointer-events:none;
-  background-image: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1px);
-  background-size: 18px 18px; opacity:.10; animation:zsGrain 18s linear infinite;
+/* soft vignette & subtle texture using layered gradients */
+.zs-wrap::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:10px;
+  background:
+    radial-gradient(800px 500px at 50% -10%, rgba(120,200,255,.10), transparent 40%),
+    radial-gradient(100% 140% at 50% 10%, rgba(255,255,255,.05), transparent 60%),
+    linear-gradient(180deg,#0b0f14,#070a0d);
+  mix-blend-mode:normal;
 }
-@keyframes zsGrain{ to{ transform:translateY(40px); } }
+
 
 
 /* ===== 2048 Swipe (tw2) ===== */
@@ -655,14 +658,14 @@ canvas{ display:block }
     <div class="row">
       <h2>Zen Stack</h2>
       <div class="row" style="gap:8px">
-        <button class="tile level" style="padding:8px 12px" id="zsStart">Start</button>
-        <button class="tile level" style="padding:8px 12px" id="zsPause">Pause</button>
-        <button class="tile level" style="padding:8px 12px" id="zsQuit">Quit</button>
+        <button class="tile level" id="zsStart" style="padding:8px 12px">Start</button>
+        <button class="tile level" id="zsPause" style="padding:8px 12px">Pause</button>
+        <button class="tile level" id="zsQuit"  style="padding:8px 12px">Quit</button>
       </div>
     </div>
 
     <div class="row" style="gap:12px">
-      <div class="note">Height: <b id="zsScore">0</b></div>
+      <div class="note">Height: <b id="zsHeight">0</b></div>
       <div class="note">Combo: <b id="zsCombo">0</b></div>
       <div class="note">Session chads: <b id="zsEarned">0</b></div>
       <div class="note">Perfect: <b id="zsPerfects">0</b></div>
@@ -675,10 +678,11 @@ canvas{ display:block }
     </div>
 
     <p class="note">
-      Tap / click / Space to drop. Misaligned parts are sliced off and fall. Perfect streaks slightly widen the slab (like the original). Quit to collect chads.
+      Tap / Click / Space to drop. Misaligned parts are sliced and fall. Perfect drops widen slightly and pay more.
     </p>
   </div>
 </div>
+
 
 <!-- 2048 SWIPE Modal -->
 <div class="overlay" id="tw2Modal">
@@ -3336,7 +3340,6 @@ updateHUD();
 })();
 
 
-<script>
 /* ===== Zen Stack — resilient Stack-like mini game =====
    Fixes:
    - Builds only after the modal & canvas have real size.
@@ -3629,7 +3632,6 @@ updateHUD();
   // Keep sizing fresh
   new ResizeObserver(()=>{ if(sizeCanvas() && G.ready){ G.W=cvs.width/DPR; G.H=cvs.height/DPR; draw(0); } }).observe(wrap);
 })();
-</script>
 
 
 
