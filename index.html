@@ -6,6 +6,11 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Brick Breaker+ */
+.bb-wrap{ position:relative; width:100%; height:100%; }
+#bbCanvas{ width:100%; height:100%; display:block; }
+#breakerModal .game-9x16{ min-height:360px; } /* makes sure canvas gets real space */
+
 #vjModal .game-9x16 { min-height: 360px; }
 #vjWrap { width:100%; height:100%; position:relative; }
 #vjCanvas { width:100%; height:100%; display:block; }
@@ -248,6 +253,9 @@ canvas{ display:block }
           <div class="tile level" style="flex:1; min-height:68px" onclick="openFlappy()">
             <div><div style="font-weight:800">Flappy Bird</div></div>
           </div>
+<div class="tile level" style="flex:1; min-height:68px" onclick="openBreaker()">
+  <div><div style="font-weight:800">Brick Breaker+</div></div>
+</div>
         </div>
         <div class="row" style="gap:10px; margin-top:10px">
           <div class="tile level" style="flex:1; min-height:68px" onclick="openVertical()">
@@ -398,6 +406,35 @@ canvas{ display:block }
         <p class="note">Tap / Space / Click to flap. Coins give +15 chads. Quit to collect.</p>
       </div>
     </div>
+<!-- BRICK BREAKER+ Modal -->
+<div class="overlay" id="breakerModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Brick Breaker+ (9:16)</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="bbStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="bbPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="bbQuit">Quit</button>
+      </div>
+    </div>
+
+    <div class="row" style="gap:12px">
+      <div class="note">Score: <b id="bbScore">0</b></div>
+      <div class="note">Session chads: <b id="bbEarned">0</b></div>
+      <div class="note">Level: <b id="bbLevel">1</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="bb-wrap" id="bbWrap">
+        <canvas id="bbCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- small description under the game -->
+    <p class="note">Drag to move the paddle (or ←/→). Break bricks to earn chads. Clear a stage for bonus. Quit to collect.</p>
+  </div>
+</div>
+
 
     <!-- VERTICAL JUMPER Modal -->
 <div class="overlay" id="vjModal">
@@ -1355,6 +1392,344 @@ function quitVJ(){
   closeOverlay('vjModal');
 }
 
+/* ===== BRICK BREAKER+ (9:16, HiDPI canvas, session chads) ===== */
+let BB = null; // current instance
+
+function openBreaker(){
+  closeOverlay('playOverlay');
+  openOverlay('breakerModal');
+  // wait for user to press Start
+}
+
+(function(){
+  const wrap   = document.getElementById('bbWrap');
+  const canvas = document.getElementById('bbCanvas');
+  const ctx    = canvas.getContext('2d', { alpha:false });
+
+  const scoreEl  = document.getElementById('bbScore');
+  const earnedEl = document.getElementById('bbEarned');
+  const levelEl  = document.getElementById('bbLevel');
+  const btnStart = document.getElementById('bbStart');
+  const btnPause = document.getElementById('bbPause');
+  const btnQuit  = document.getElementById('bbQuit');
+
+  function resizeCanvas(){
+    const rect = wrap.getBoundingClientRect();
+    const dpr  = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = Math.max(10, Math.floor(rect.width));
+    const cssH = Math.max(10, Math.floor(rect.height));
+    canvas.style.width = cssW+'px';
+    canvas.style.height= cssH+'px';
+    canvas.width  = Math.floor(cssW*dpr);
+    canvas.height = Math.floor(cssH*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels (prevents blur) :contentReference[oaicite:3]{index=3}
+  }
+
+  // Game factory so Start restarts cleanly
+  function createGame(){
+    resizeCanvas();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const W = canvas.width/dpr, H = canvas.height/dpr;
+
+    // Layout (portrait/9:16 friendly)
+    const wall = Math.max(6, W*0.012);
+    const topOffset = Math.max(50, H*0.08);
+
+    // Bricks grid sized to width
+    const COLS = 8;
+    const ROWS = 6;
+    const gutter = Math.max(6, W*0.01);
+    const gridW  = W - wall*2;
+    const brickW = Math.floor((gridW - gutter*(COLS-1)) / COLS);
+    const brickH = Math.max(14, Math.min(26, brickW*0.42));
+
+    // paddle & ball
+    const paddle = {
+      w: Math.max(70, Math.min(130, W*0.22)),
+      h: Math.max(10, 12),
+      x: W/2, y: H - 22,
+      speed: Math.max(320, W*0.6)
+    };
+    const ball = {
+      r: Math.max(6, Math.min(10, W*0.018)),
+      x: W/2, y: paddle.y - 14,
+      vx: (Math.random()<0.5? -1:1) * Math.max(200, W*0.35),
+      vy: -Math.max(260, H*0.35),
+      speedMax: Math.max(520, H*0.65)
+    };
+
+    // bricks
+    const bricks = [];
+    const colors = ['#7ac2ff','#9ef0c4','#ffd86b','#ff8d8d','#c39eff','#ffb574'];
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const x = wall + c*(brickW+gutter);
+        const y = topOffset + r*(brickH+gutter);
+        bricks.push({ x,y, w:brickW, h:brickH, alive:true, col: colors[(r+c)%colors.length] });
+      }
+    }
+
+    // power-ups (simple “+” flavor)
+    const powerups = []; // {x,y,vy,type,alive}
+    const PW_DROP_CHANCE = 0.12;
+    function spawnPowerup(x,y){
+      const roll = Math.random();
+      const type = roll < 0.5 ? 'expand' : 'slow';
+      powerups.push({ x, y, vy: 90, type, alive:true });
+    }
+
+    // score & earnings
+    let score=0, earned=0, cleared=0, level=1;
+    function addBrickReward(){
+      score += 10;
+      earned += 2; // +2 chads per brick
+    }
+    function addClearBonus(){
+      score += 100;
+      earned += 20; // stage clear bonus
+    }
+
+    // input
+    const input = { left:false, right:false, dragging:false, dragDX:0 };
+
+    function onKey(e, down){
+      if(['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); input.left = down; }
+      if(['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); input.right = down; }
+    }
+
+    // pointer (drag anywhere in canvas area)
+    function pointerDown(e){
+      e.preventDefault();
+      input.dragging = true;
+      const rect = canvas.getBoundingClientRect();
+      paddle.x = Math.max(wall+paddle.w/2, Math.min(W-wall-paddle.w/2, e.clientX - rect.left));
+    }
+    function pointerMove(e){
+      if(!input.dragging) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      paddle.x = Math.max(wall+paddle.w/2, Math.min(W-wall-paddle.w/2, e.clientX - rect.left));
+    }
+    function pointerUp(e){ e.preventDefault(); input.dragging=false; }
+
+    // brick collision (AABB) + ball reflect (basic)
+    function hitRect(cx,cy,r, rx,ry,rw,rh){
+      const nx = Math.max(rx, Math.min(cx, rx+rw));
+      const ny = Math.max(ry, Math.min(cy, ry+rh));
+      const dx = cx - nx, dy = cy - ny;
+      return (dx*dx + dy*dy) <= r*r;
+    }
+
+    // helpers
+    function clamp(v,a,b){ return v<a? a : v>b? b : v; }
+    function sign(v){ return v<0? -1 : 1; }
+
+    // draw
+    function drawBG(){
+      const g = ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    }
+    function drawBricks(){
+      for(const b of bricks){
+        if(!b.alive) continue;
+        ctx.fillStyle=b.col;
+        ctx.fillRect(b.x,b.y,b.w,b.h);
+        ctx.fillStyle='rgba(255,255,255,0.15)';
+        ctx.fillRect(b.x,b.y,b.w,2);
+      }
+    }
+    function drawPaddle(){
+      ctx.fillStyle='#e8edf4';
+      ctx.fillRect(paddle.x - paddle.w/2, paddle.y - paddle.h/2, paddle.w, paddle.h);
+    }
+    function drawBall(){
+      ctx.fillStyle='#ffd86b';
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+    }
+    function drawPowerups(){
+      for(const p of powerups){
+        if(!p.alive) continue;
+        ctx.fillStyle = p.type==='expand' ? '#9ef0c4' : '#7ac2ff';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#051022';
+        ctx.font='10px Inter, system-ui, sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(p.type==='expand'?'+':'S', p.x, p.y+0.5);
+      }
+    }
+
+    // loop
+    let running=false, paused=false, raf=null, lastTs=0;
+
+    function start(){
+      if(running) return;
+      running=true; paused=false; lastTs=performance.now();
+      btnPause.textContent='Pause';
+      frame(lastTs);
+    }
+    function stop(){
+      running=false;
+      if(raf) cancelAnimationFrame(raf), raf=null;
+    }
+    function togglePause(){
+      if(!running){ start(); return; }
+      paused = !paused;
+      btnPause.textContent = paused? 'Resume' : 'Pause';
+      if(!paused) { lastTs=performance.now(); frame(lastTs); }
+    }
+
+    function updateUI(){
+      if(scoreEl)  scoreEl.textContent  = score;
+      if(earnedEl) earnedEl.textContent = earned;
+      if(levelEl)  levelEl.textContent  = level;
+    }
+
+    function nextLevel(){
+      // simple “plus”: speed up ball slightly, rebuild bricks
+      level++;
+      ball.vx *= 1.05; ball.vy *= 1.05;
+      for (const b of bricks) b.alive=true;
+      addClearBonus();
+      updateUI();
+    }
+
+    function frame(ts){
+      if(!running){ raf=null; return; }
+      const dt = Math.min(0.035, (ts - lastTs)/1000);
+      lastTs = ts;
+
+      if(!paused){
+        // input -> paddle
+        const moveDir = (input.left? -1:0) + (input.right? 1:0);
+        if(moveDir!==0){
+          paddle.x += moveDir*paddle.speed*dt;
+          paddle.x = clamp(paddle.x, wall+paddle.w/2, W-wall-paddle.w/2);
+        }
+
+        // physics
+        ball.x += ball.vx*dt;
+        ball.y += ball.vy*dt;
+
+        // walls
+        if (ball.x - ball.r < wall){ ball.x = wall + ball.r; ball.vx = Math.abs(ball.vx); }
+        if (ball.x + ball.r > W - wall){ ball.x = W - wall - ball.r; ball.vx = -Math.abs(ball.vx); }
+        if (ball.y - ball.r < wall){ ball.y = wall + ball.r; ball.vy = Math.abs(ball.vy); }
+        // bottom -> game over (collect with Quit)
+        if (ball.y - ball.r > H){
+          stop();
+          fancyAlert('Ball lost — press Quit to collect your session chads or Start to try again.');
+        }
+
+        // paddle bounce (top only)
+        const px = paddle.x - paddle.w/2, py = paddle.y - paddle.h/2;
+        if (hitRect(ball.x, ball.y, ball.r, px, py, paddle.w, paddle.h) && ball.vy > 0){
+          ball.y = py - ball.r; // clamp above paddle
+          // reflect with angle based on hit position
+          const rel = (ball.x - paddle.x) / (paddle.w/2); // -1..1
+          const speed = Math.min(ball.speedMax, Math.hypot(ball.vx, ball.vy)*1.02);
+          const angle = (-Math.PI/4) + (rel * Math.PI/3); // tweakable spread
+          ball.vx = Math.cos(angle)*speed;
+          ball.vy = Math.sin(angle)*speed;
+        }
+
+        // bricks collision
+        let aliveBefore = 0, aliveAfter = 0;
+        for(const b of bricks) if(b.alive) aliveBefore++;
+        for(const b of bricks){
+          if(!b.alive) continue;
+          if (hitRect(ball.x,ball.y,ball.r, b.x,b.y,b.w,b.h)){
+            b.alive = false;
+            addBrickReward();
+            // reflect by stronger axis penetration
+            const cx = clamp(ball.x, b.x, b.x+b.w);
+            const cy = clamp(ball.y, b.y, b.y+b.h);
+            const dx = ball.x - cx, dy = ball.y - cy;
+            if (Math.abs(dx) > Math.abs(dy)){ ball.vx = -ball.vx; }
+            else { ball.vy = -ball.vy; }
+            // chance power-up
+            if (Math.random() < PW_DROP_CHANCE) spawnPowerup(b.x + b.w/2, b.y + b.h/2);
+          }
+        }
+        for(const b of bricks) if(b.alive) aliveAfter++;
+
+        if (aliveAfter===0 && aliveBefore>0) nextLevel();
+
+        // powerups
+        for(const p of powerups){
+          if(!p.alive) continue;
+          p.y += p.vy*dt;
+          // paddle catch
+          if (p.y>py && p.y<py+paddle.h+22 && Math.abs(p.x - paddle.x) < paddle.w/2){
+            p.alive=false;
+            if(p.type==='expand'){
+              paddle.w = Math.min(paddle.w*1.25, W*0.5);
+            }else{
+              ball.vx *= 0.85; ball.vy *= 0.85;
+            }
+          }
+          if (p.y > H+20) p.alive=false;
+        }
+
+        updateUI();
+      }
+
+      // draw
+      drawBG();
+      drawBricks();
+      drawPaddle();
+      drawBall();
+      drawPowerups();
+
+      raf = requestAnimationFrame(frame); // per-frame loop :contentReference[oaicite:4]{index=4}
+    }
+
+    // event wires (added/removed on instance lifetime)
+    const kd = (e)=>onKey(e,true);
+    const ku = (e)=>onKey(e,false);
+    window.addEventListener('keydown', kd, {passive:false});
+    window.addEventListener('keyup',   ku, {passive:false});
+    canvas.addEventListener('pointerdown', pointerDown, {passive:false});
+    canvas.addEventListener('pointermove', pointerMove, {passive:false});
+    canvas.addEventListener('pointerup',   pointerUp,   {passive:false});
+    canvas.addEventListener('pointercancel', pointerUp, {passive:false});
+    window.addEventListener('resize', resizeCanvas);
+
+    function cleanup(){
+      stop();
+      window.removeEventListener('keydown', kd, {passive:false});
+      window.removeEventListener('keyup',   ku, {passive:false});
+      canvas.removeEventListener('pointerdown', pointerDown);
+      canvas.removeEventListener('pointermove', pointerMove);
+      canvas.removeEventListener('pointerup',   pointerUp);
+      canvas.removeEventListener('pointercancel', pointerUp);
+      window.removeEventListener('resize', resizeCanvas);
+    }
+
+    return {
+      start, stop, togglePause, cleanup,
+      get sessionChads(){ return earned; }
+    };
+  }
+
+  // Buttons
+  btnStart.addEventListener('click', ()=>{
+    if (BB?.cleanup) BB.cleanup();
+    BB = createGame();
+    BB.start();
+  });
+  btnPause.addEventListener('click', ()=>{ BB?.togglePause(); });
+  btnQuit.addEventListener('click', ()=>{
+    if (BB?.sessionChads > 0){
+      const earned = BB.sessionChads;
+      state.chads += BigInt(earned);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
+    }
+    if (BB?.cleanup) BB.cleanup();
+    BB=null; closeOverlay('breakerModal');
+  });
+})();
 
 
 
