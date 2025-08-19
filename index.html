@@ -7,60 +7,18 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-/* ===== Tile Rush (Rhythm Taps) — v2 ===== */
-.tr-wrap{ position:relative; width:100%; height:100%; touch-action:none; user-select:none; overflow:hidden; }
-#trBg, #trCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
-#trBg{ filter:contrast(1.05) brightness(1.03); }
-#trCanvas{ background:radial-gradient(120% 90% at 50% 0%, rgba(28,48,88,0.25), rgba(10,16,24,0.75) 60%, rgba(6,9,15,1) 100%); }
-
-.tr-lanes{ position:absolute; inset:0; display:grid; grid-template-columns:repeat(4,1fr); pointer-events:none; }
-.tr-lane{ border-left:1px solid rgba(255,255,255,0.045); border-right:1px solid rgba(0,0,0,0.22); }
-.tr-lane.flash{ animation:trFlash 140ms ease; }
-@keyframes trFlash{ from{ background:rgba(120,200,255,0.28)} to{ background:transparent } }
-
-.tr-hitline{
-  position:absolute; left:0; right:0; bottom:12%;
-  height:2px; background:linear-gradient(90deg,rgba(255,255,255,.18),rgba(110,200,255,.85),rgba(255,255,255,.18));
-  box-shadow:0 0 10px rgba(110,200,255,.8), 0 0 20px rgba(110,200,255,.35);
+/* ===== Tile Rush (Rhythm) ===== */
+.tr-wrap{ position:relative; width:100%; height:100%; background:linear-gradient(180deg,#0b0f14,#070a0d); border-radius:10px; overflow:hidden; }
+#trCanvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.tr-hitzone{ position:absolute; left:0; right:0; bottom:18%; height:14px; pointer-events:none; }
+.tr-line{ position:absolute; left:6%; right:6%; top:0; bottom:0; border-radius:10px;
+  background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.22),rgba(255,255,255,.08));
+  box-shadow:0 0 10px rgba(255,255,255,.2), inset 0 0 4px rgba(255,255,255,.18);
 }
-
-/* Fever meter */
-.tr-fever{
-  position:absolute; left:10px; right:10px; top:8px; height:10px;
-  border-radius:999px; border:1px solid rgba(255,255,255,.08);
-  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,.35);
-}
-.tr-fever .fill{
-  height:100%; width:0%;
-  background:linear-gradient(90deg, #ffd86b, #7ac2ff, #a78bfa);
-  filter:saturate(1.3);
-  transition:width .15s ease;
-}
-.tr-fever .cap{
-  position:absolute; inset:0; box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(0,0,0,.4);
-}
-
-#tileModal .game-9x16{ min-height:460px; }
-
-/* judgement text */
-.tr-judge{
-  position:absolute; left:50%; transform:translateX(-50%);
-  bottom:14%; font-weight:900; letter-spacing:.4px; pointer-events:none;
-  text-shadow:0 2px 8px rgba(0,0,0,.55);
-  animation:judgePop 360ms ease-out forwards;
-}
-@keyframes judgePop{
-  0%{ transform:translate(-50%,8px) scale(.85); opacity:0 }
-  40%{ transform:translate(-50%,0) scale(1); opacity:1 }
-  100%{ transform:translate(-50%,-10px) scale(0.98); opacity:0 }
-}
-
-/* faint scanlines for vibe */
-#trCanvas::after{ content:""; position:absolute; inset:0; pointer-events:none;
-  background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
-  mix-blend-mode:soft-light; opacity:.5;
-}
+.tr-feverbar{ position:absolute; left:6%; right:6%; top:8px; height:10px; border-radius:8px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); overflow:hidden; }
+.tr-feverfill{ height:100%; width:0%; background:linear-gradient(90deg,#ffd86b,#ffb84d); box-shadow:0 0 12px rgba(255,216,107,.65); }
+.tr-laneGlow{ position:absolute; bottom:0; width:22%; left:0; right:0; height:100%; pointer-events:none; mix-blend-mode:screen; opacity:0; transition:opacity .12s ease; }
+.tr-wrap.fever .tr-line{ background:linear-gradient(90deg,rgba(255,235,120,.18),rgba(255,200,80,.42),rgba(255,235,120,.18)); }
 
 
 
@@ -523,8 +481,8 @@ canvas{ display:block }
     <p class="note">Hold & slide anywhere to move the paddle. Smaller neon bricks, faster ball, combo speed-ups. Quit to collect.</p>
   </div>
 </div>
-<!-- TILE RUSH (Rhythm Taps) Modal — v2 -->
-<div class="overlay" id="tileModal">
+<!-- TILE RUSH (Rhythm) Modal -->
+<div class="overlay" id="tileRushModal">
   <div class="panel">
     <div class="row">
       <h2>Tile Rush (9:16)</h2>
@@ -536,44 +494,28 @@ canvas{ display:block }
     </div>
 
     <div class="row" style="gap:12px">
-      <div class="note">Score: <b id="trScore">0</b></div>
       <div class="note">Combo: <b id="trCombo">0</b></div>
+      <div class="note">Streak: <b id="trStreak">0</b></div>
       <div class="note">Session chads: <b id="trEarned">0</b></div>
-      <div class="note">Speed: <b id="trSpeed">1.0x</b></div>
       <div class="note">Fever: <b id="trFeverPct">0%</b></div>
-      <button class="tile level" style="padding:8px 12px" id="trMute">Audio: Off</button>
     </div>
 
     <div class="game-9x16">
       <div class="tr-wrap" id="trWrap">
-        <!-- layered visuals -->
-        <canvas id="trBg"></canvas>
         <canvas id="trCanvas"></canvas>
-
-        <!-- hit line -->
-        <div class="tr-hitline"></div>
-
-        <!-- fever meter -->
-        <div class="tr-fever">
-          <div class="fill" id="trFeverFill"></div>
-          <div class="cap"></div>
+        <div class="tr-hitzone">
+          <div class="tr-line"></div>
         </div>
-
-        <!-- lanes overlay (flashes) -->
-        <div class="tr-lanes">
-          <div class="tr-lane" data-lane="0"></div>
-          <div class="tr-lane" data-lane="1"></div>
-          <div class="tr-lane" data-lane="2"></div>
-          <div class="tr-lane" data-lane="3"></div>
+        <div class="tr-feverbar">
+          <div class="tr-feverfill" id="trFeverFill"></div>
         </div>
       </div>
     </div>
 
-    <p class="note">
-      Tap lanes (DFJK or touch) as notes cross the line. Hold-notes: press and keep holding until the tail ends. Build Fever for x2 score & chads. Quit to collect.
-    </p>
+    <p class="note">Tap lanes to the beat. Build Combo to charge Fever. Fever doubles score; at half Fever the scroll speeds up a little.</p>
   </div>
 </div>
+
 
 
 
@@ -1978,530 +1920,412 @@ function openBreaker(){
 })();
 
 
-/* ===== TILE RUSH (Rhythm Taps) — v2 ===== */
-let TR = null;
-function openTileRush(){ closeOverlay('playOverlay'); openOverlay('tileModal'); }
-
+/* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
 (function(){
-  const wrap    = document.getElementById('trWrap');
-  const bg      = document.getElementById('trBg');
-  const canvas  = document.getElementById('trCanvas');
-  if(!wrap || !bg || !canvas) return;
+  const wrap = document.getElementById('trWrap');
+  if(!wrap) return;
+  const canvas = document.getElementById('trCanvas');
+  const ctx = canvas.getContext('2d');
+  const fillEl = document.getElementById('trFeverFill');
 
-  const bgCtx   = bg.getContext('2d', {alpha:false});
-  const ctx     = canvas.getContext('2d', {alpha:false});
+  const comboEl = document.getElementById('trCombo');
+  const streakEl = document.getElementById('trStreak');
+  const earnedEl = document.getElementById('trEarned');
+  const feverPctEl = document.getElementById('trFeverPct');
 
-  const scoreEl   = document.getElementById('trScore');
-  const comboEl   = document.getElementById('trCombo');
-  const earnedEl  = document.getElementById('trEarned');
-  const speedEl   = document.getElementById('trSpeed');
-  const feverPct  = document.getElementById('trFeverPct');
-  const feverFill = document.getElementById('trFeverFill');
-  const btnStart  = document.getElementById('trStart');
-  const btnPause  = document.getElementById('trPause');
-  const btnQuit   = document.getElementById('trQuit');
-  const btnMute   = document.getElementById('trMute');
-  const lanesEls  = [...wrap.querySelectorAll('.tr-lane')];
+  const btnStart = document.getElementById('trStart');
+  const btnPause = document.getElementById('trPause');
+  const btnQuit  = document.getElementById('trQuit');
 
-  // HiDPI sizing
-  function resizeCanvas(c, g){
+  const FEVER_MAX_MS = 40000;       // 4x longer than before
+  const FEVER_GAIN_PER_PERF = 1200; // ms added per Perfect
+  const FEVER_GAIN_PER_GRT  = 600;  // ms added per Great
+  const FEVER_DECAY_PER_MS  = 1.0;  // decay rate (ms/ms) while feverOn
+
+  const LANES = 4;
+  const COLORS = ['#69d2ff','#9ef0c4','#ffd86b','#e8a1ff'];
+  const HIT_WINDOWS_BASE = { // base windows (will tighten mid-fever)
+    PERFECT: 38,  // ms
+    GREAT:   85,  // ms
+    GOOD:    125, // ms (counts but no fever)
+  };
+
+  const BASE_CHADS_PERFECT = 2;
+  const BASE_CHADS_GREAT   = 1;
+  const CHAD_MULTIPLIER    = 2.5; // 2.5x more chads overall
+
+  let TR=null;
+
+  function px(wPct){ return Math.floor(wPct * canvas.width); }
+
+  function resize(){
     const r = wrap.getBoundingClientRect();
-    const dpr = Math.max(1, window.devicePixelRatio||1);
-    c.style.width  = Math.floor(r.width) + 'px';
-    c.style.height = Math.floor(r.height) + 'px';
-    c.width  = Math.floor(r.width * dpr);
-    c.height = Math.floor(r.height * dpr);
-    g.setTransform(dpr,0,0,dpr,0,0);
+    canvas.width = Math.floor(r.width);
+    canvas.height = Math.floor(r.height);
   }
-  function resizeAll(){ resizeCanvas(bg, bgCtx); resizeCanvas(canvas, ctx); }
 
-  // Audio (simple metronome ticks; gated by user Start click)  :contentReference[oaicite:1]{index=1}
-  let audioCtx=null, muted=true;
-  function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-  function tickSound(){
-    if(muted || !audioCtx) return;
+  // simple always-on audio (starts on Start; no mute button)
+  let audioCtx=null, master=null;
+  function ensureAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    master = audioCtx.createGain(); master.gain.value = 0.18; master.connect(audioCtx.destination);
+  }
+  function tickBeat(time){
+    // metronome "click"
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square'; o.frequency.value = 880;
+    g.gain.value = 0.0001;
+    g.gain.setValueAtTime(0.23, time);
+    g.gain.exponentialRampToValueAtTime(0.00001, time+0.05);
+    o.connect(g).connect(master); o.start(time); o.stop(time+0.06);
+  }
+  function sfxHit(freq=440){
     const now = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type='square';
-    o.frequency.setValueAtTime(880, now);
-    g.gain.setValueAtTime(0.12, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-    o.connect(g).connect(audioCtx.destination);
-    o.start(now); o.stop(now + 0.07);
+    const o = audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    g.gain.value=0.0001;
+    g.gain.setValueAtTime(0.18, now);
+    g.gain.exponentialRampToValueAtTime(0.00001, now+0.08);
+    o.connect(g).connect(master); o.start(now); o.stop(now+0.09);
   }
 
-  // lanes & layout helpers
-  function laneX(lane, W){ return lane * (W/4); }
-  const KEYS = new Map([['d',0],['f',1],['j',2],['k',3],['D',0],['F',1],['J',2],['K',3]]);
+  // simple chart generator
+  function buildChart(bpm, durMs){
+    const msPerBeat = 60000/bpm;
+    const notes=[];
+    // lanes pattern
+    let t=800; // spawn after 0.8s
+    while(t<durMs){
+      const kind = Math.random();
+      if(kind < 0.4){
+        // single
+        notes.push({t, lane: Math.floor(Math.random()*LANES)});
+        t += msPerBeat;
+      }else if(kind < 0.75){
+        // double
+        const a = Math.floor(Math.random()*LANES);
+        let b = Math.floor(Math.random()*LANES); if(b===a) b=(b+1)%LANES;
+        notes.push({t, lane:a}, {t, lane:b});
+        t += msPerBeat;
+      }else{
+        // stream
+        const baseLane = Math.floor(Math.random()*LANES);
+        for(let i=0;i<4;i++){
+          notes.push({t: t+i*(msPerBeat/2), lane:(baseLane+i)%LANES});
+        }
+        t += msPerBeat*2;
+      }
+    }
+    return {notes, msPerBeat};
+  }
 
-  // judgement (ms)
-  const WIN = { perfect:46, great:92, good:135 }; // conservative, fun-first  :contentReference[oaicite:2]{index=2}
+  function resetGame(){
+    TR = {
+      time: 0,
+      lastTs: 0,
+      running: false,
+      paused: false,
+      loopId: null,
+      chart: null,
+      msPerBeat: 500,
+      pxPerMs: 0.22,     // vertical speed base
+      speedMul: 1.0,     // becomes 1.25 mid-fever
+      winScale: 1.0,     // becomes 0.85 mid-fever
+      WIN: {...HIT_WINDOWS_BASE},
+      notes: [],
+      judgements: [],
+      hitY: 0,
+      laneX: [],
+      combo: 0,
+      streak: 0,
+      earned: 0,
+      fever: 0,
+      feverOn: false,
+      halfBuffApplied: false
+    };
+    updateHUD();
+    resize();
+    computeLayout();
+    drawAll(0);
+  }
 
-  // create particle pop
-  const pops=[];
-  function pop(x,y){ pops.push({x,y,t:0}); }
-  function drawPops(dt){
-    for(let i=pops.length-1;i>=0;i--){
-      const p = pops[i]; p.t += dt;
-      if(p.t>0.35){ pops.splice(i,1); continue; }
+  function updateHUD(){
+    comboEl.textContent = TR.combo|0;
+    streakEl.textContent = TR.streak|0;
+    earnedEl.textContent = TR.earned|0;
+    const pct = Math.max(0, Math.min(100, Math.round((TR.fever/FEVER_MAX_MS)*100)));
+    feverPctEl.textContent = pct + '%';
+    fillEl.style.width = pct + '%';
+    wrap.classList.toggle('fever', TR.feverOn);
+  }
+
+  function computeLayout(){
+    const w = canvas.width, h = canvas.height;
+    TR.hitY = Math.floor(h*0.72);
+    TR.laneX = [];
+    const pad = Math.floor(w*0.06);
+    const inner = w - pad*2;
+    const laneW = inner / LANES;
+    for(let i=0;i<LANES;i++){
+      TR.laneX[i] = pad + i*laneW + laneW/2; // center of lane
+    }
+  }
+
+  function start(){
+    ensureAudio();
+    // build chart fresh each start
+    const bpm = 122; // base bpm; difficulty bump increases scroll, not bpm
+    const dur = 90_000; // 90s chart
+    const chart = buildChart(bpm, dur);
+    TR.chart = chart;
+    TR.notes = chart.notes.map(n=>({ ...n, hit:false, judged:false }));
+    TR.msPerBeat = chart.msPerBeat;
+    TR.time=0; TR.lastTs=performance.now(); TR.running=true; TR.paused=false;
+    scheduleBeats();
+    loop();
+  }
+
+  function scheduleBeats(){
+    if(!audioCtx) return;
+    const ahead = 0.7; // seconds
+    let tAudio = audioCtx.currentTime;
+    const startAt = tAudio + 0.15;
+    // schedule clicks in a rolling window
+    if(TR._beatTimer) clearInterval(TR._beatTimer);
+    TR._beatTimer = setInterval(()=>{
+      if(!TR.running) return;
+      const now = audioCtx.currentTime;
+      while(tAudio < now + ahead){
+        tickBeat(tAudio + 0.0);
+        tAudio += TR.msPerBeat/1000;
+      }
+    }, 120);
+  }
+
+  function pauseToggle(){
+    if(!TR) return;
+    TR.paused = !TR.paused;
+    btnPause.textContent = TR.paused? 'Resume':'Pause';
+    if(!TR.paused && TR.running){ TR.lastTs = performance.now(); loop(); }
+  }
+
+  function quit(){
+    if(TR?.earned>0){
+      try{
+        state.chads += BigInt(TR.earned);
+        refreshUI(); saveStateLocal(state);
+        showToast(`<span class="accent">+${TR.earned}</span> chads added to balance.`);
+      }catch{}
+    }
+    cleanup();
+    closeOverlay('tileRushModal');
+  }
+
+  function cleanup(){
+    if(TR?._beatTimer) clearInterval(TR._beatTimer);
+    if(TR?.loopId) cancelAnimationFrame(TR.loopId);
+    TR && (TR.running=false);
+  }
+
+  function loop(){
+    if(!TR.running) return;
+    TR.loopId = requestAnimationFrame(frame);
+  }
+  function frame(ts){
+    if(!TR.running) return;
+    const dt = Math.min(0.035, (ts - TR.lastTs)/1000 || 0);
+    TR.lastTs = ts;
+    if(!TR.paused){
+      TR.time += dt*1000;
+      step(dt);
+      drawAll(dt);
+    }
+    TR.loopId = requestAnimationFrame(frame);
+  }
+
+  function laneAt(x){
+    // map pointer x to lane index
+    const w = canvas.width, pad = Math.floor(w*0.06), inner = w - pad*2;
+    const laneW = inner / LANES;
+    const rx = Math.max(pad, Math.min(w-pad, x));
+    let i = Math.floor((rx - pad)/laneW);
+    return Math.max(0, Math.min(LANES-1, i));
+  }
+
+  // input: tap/click
+  canvas.addEventListener('pointerdown', (e)=>{
+    if(!TR?.running || TR.paused) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    handleTap(laneAt(x));
+  }, {passive:true});
+
+  function award(kind){
+    // base chads
+    const base = (kind==='PERFECT')? BASE_CHADS_PERFECT : (kind==='GREAT'? BASE_CHADS_GREAT : 0);
+    let mult = CHAD_MULTIPLIER * (TR.feverOn? 2.0 : 1.0); // 2.5x total (and doubled in Fever)
+    const gain = Math.max(0, Math.round(base * mult));
+    TR.earned += gain;
+
+    // combo / streak
+    TR.combo++;
+    TR.streak = Math.max(TR.streak, TR.combo);
+
+    // fever gain
+    if(kind==='PERFECT') TR.fever = Math.min(FEVER_MAX_MS, TR.fever + FEVER_GAIN_PER_PERF);
+    else if(kind==='GREAT') TR.fever = Math.min(FEVER_MAX_MS, TR.fever + FEVER_GAIN_PER_GRT);
+
+    // turn fever on automatically when full
+    if(TR.fever>=FEVER_MAX_MS) TR.feverOn = true;
+
+    // half-fever difficulty bump (once)
+    if(!TR.halfBuffApplied && TR.fever >= FEVER_MAX_MS*0.5){
+      TR.halfBuffApplied = true;
+      TR.speedMul = 1.25;        // notes scroll 25% faster
+      TR.winScale = 0.85;        // timing windows 15% tighter
+      TR.WIN = {
+        PERFECT: Math.round(HIT_WINDOWS_BASE.PERFECT*TR.winScale),
+        GREAT:   Math.round(HIT_WINDOWS_BASE.GREAT*TR.winScale),
+        GOOD:    Math.round(HIT_WINDOWS_BASE.GOOD*TR.winScale)
+      };
+    }
+
+    // sfx
+    sfxHit(kind==='PERFECT'? 980 : (kind==='GREAT'? 720 : 520));
+  }
+
+  function miss(){
+    TR.combo = 0;
+  }
+
+  function handleTap(laneIndex){
+    // find nearest unjudged note for that lane near hitY
+    const hitY = TR.hitY;
+    const now = TR.time;
+
+    let best=null, bestDt=1e9, bestIdx=-1;
+    for(let i=0;i<TR.notes.length;i++){
+      const n = TR.notes[i]; if(n.lane!==laneIndex || n.judged) continue;
+      const dt = Math.abs(n.t - now);
+      if(dt < bestDt){ bestDt=dt; best=n; bestIdx=i; }
+      // early break if we're within GOOD
+      if(bestDt < TR.WIN.GOOD) break;
+    }
+
+    if(!best){ sfxHit(240); return; }
+
+    let judge=null;
+    if(bestDt <= TR.WIN.PERFECT) judge='PERFECT';
+    else if(bestDt <= TR.WIN.GREAT) judge='GREAT';
+    else if(bestDt <= TR.WIN.GOOD) judge='GOOD';
+
+    if(judge){
+      best.judged=true; best.hit=true; best.j = judge; best.dt = bestDt;
+      award(judge);
+    }else{
+      // outside window
+      best.judged=true; best.hit=false; best.j='MISS'; best.dt = bestDt;
+      miss();
+      sfxHit(220);
+    }
+    updateHUD();
+  }
+
+  function step(dt){
+    // Fever decay (when active)
+    if(TR.feverOn){
+      TR.fever = Math.max(0, TR.fever - FEVER_DECAY_PER_MS * (dt*1000));
+      if(TR.fever<=0){ TR.feverOn=false; }
+    }
+    updateHUD();
+
+    // auto-miss notes that pass hit line
+    const now = TR.time;
+    for(const n of TR.notes){
+      if(n.judged) continue;
+      if(now - n.t > TR.WIN.GOOD + 40){ // a bit after good window
+        n.judged=true; n.hit=false; n.j='MISS'; n.dt=9999;
+        miss();
+      }
+    }
+  }
+
+  function drawAll(dt){
+    const w=canvas.width, h=canvas.height;
+    // bg
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0, TR.feverOn?'#14120a':'#0b0f14');
+    g.addColorStop(1, TR.feverOn?'#1e1a0c':'#070a0d');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+    // lanes
+    const pad = Math.floor(w*0.06), inner = w - pad*2;
+    const laneW = inner / LANES;
+    for(let i=0;i<LANES;i++){
       ctx.save();
-      ctx.globalCompositeOperation='lighter';
-      ctx.globalAlpha = 1 - (p.t/0.35);
-      ctx.beginPath(); ctx.arc(p.x, p.y, 20 + p.t*80, 0, Math.PI*2); ctx.strokeStyle='rgba(110,200,255,.5)'; ctx.lineWidth=2; ctx.stroke();
+      const lx = pad + i*laneW;
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(lx, 0, laneW-2, h);
       ctx.restore();
     }
+
+    // hit line
+    ctx.fillStyle='rgba(255,255,255,.25)';
+    ctx.fillRect(pad, TR.hitY-1, inner, 2);
+
+    // notes
+    const headY = TR.hitY;
+    for(const n of TR.notes){
+      if(n.judged) continue;
+      const timeToHit = (n.t - TR.time);  // ms
+      const y = headY - (timeToHit * TR.pxPerMs * TR.speedMul);
+      if(y < -40 || y > h+80) continue;
+
+      const x = TR.laneX[n.lane];
+      const r = Math.max(10, Math.min(28, Math.abs(headY - y)*0.05+12));
+      const c = COLORS[n.lane];
+
+      // glow
+      ctx.save();
+      const glow = ctx.createRadialGradient(x,y,0,x,y,r*2.2);
+      glow.addColorStop(0, TR.feverOn ? 'rgba(255,216,107,.6)' : 'rgba(255,255,255,.35)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle=glow; ctx.globalCompositeOperation='lighter';
+      ctx.beginPath(); ctx.arc(x,y,r*2.2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      // note body
+      ctx.beginPath();
+      ctx.fillStyle = c;
+      ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+
+      // outline
+      ctx.lineWidth = 2;
+      ctx.strokeStyle='rgba(255,255,255,.25)';
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+    }
   }
 
-  function judgementText(text, color){
-    const el = document.createElement('div');
-    el.className='tr-judge';
-    el.style.color = color;
-    el.textContent = text;
-    wrap.appendChild(el);
-    setTimeout(()=> el.remove(), 380);
-  }
-
-  // Fever
-  const FEVER_MAX=100;
-  function feverColor(t){
-    // rainbow for fun
-    const a = (t/FEVER_MAX)*Math.PI*2;
-    const r = Math.floor(180 + 60*Math.sin(a));
-    const g = Math.floor(180 + 60*Math.sin(a+2));
-    const b = Math.floor(180 + 60*Math.sin(a+4));
-    return `rgb(${r},${g},${b})`;
-  }
-
-  // Build a game instance
-  function createGame(){
-    resizeAll();
-    const W = canvas.width / (window.devicePixelRatio||1);
-    const H = canvas.height / (window.devicePixelRatio||1);
-
-    const hitY      = H * 0.88;
-    const noteH     = Math.max(12, H*0.02);
-    const laneW     = W/4;
-    const noteW     = laneW * 0.78;
-    const spawnY    = -H*0.12;
-
-    // song / chart
-    let BPM        = 128;
-    const msPerBeat= 60000 / BPM;
-    let speedOpt   = 1.0;          // we’ll ramp this up slowly with combo
-    const approach = 1700 / speedOpt;
-    const pxPerMs  = (hitY - spawnY) / approach;
-    const DUR_MS   = 60000;
-
-    // generate notes with some holds
-    // note: { lane, t, type: 'tap' | 'hold', dur? , hit?, miss?, holding? }
-    const notes=[];
-    (function gen(){
-      let t=0; const lanes=[0,1,2,3];
-      while(t < DUR_MS){
-        const pattern = Math.random();
-        if(pattern < 0.10){
-          // small chord
-          let a = lanes[Math.floor(Math.random()*4)];
-          let b = (a + 2 + (Math.random()<0.5? -1: +1)) & 3;
-          notes.push({lane:a,t, type:'tap'});
-          notes.push({lane:b,t, type:'tap'});
-        } else if (pattern < 0.22){
-          // hold note spanning 2 beats
-          const l = lanes[Math.floor(Math.random()*4)];
-          notes.push({lane:l, t, type:'hold', dur: msPerBeat*2});
-        } else {
-          // tap + 8th
-          const l = lanes[Math.floor(Math.random()*4)];
-          notes.push({lane:l, t, type:'tap'});
-          if(Math.random()<0.40) notes.push({lane:(l+1)&3, t: t + msPerBeat/2, type:'tap'});
-        }
-        t += msPerBeat;
-      }
-      notes.sort((A,B)=> A.t - B.t);
-    })();
-
-    // state
-    let score=0, combo=0, earned=0;
-    let fever=0, feverOn=false, feverEndsAt=0;
-    let running=false, paused=false, raf=0, time=0, lastTs=0, started=false;
-
-    // input state for holds
-    const activeHoldByLane = new Map(); // lane -> {note, pressed:boolean}
-    const downLanes = new Set();
-
-    // background particles/parallax
-    const stars = Array.from({length:40}, ()=>({x:Math.random()*W, y:Math.random()*H*0.9, s:0.5+Math.random()*1.4}));
-    function drawBg(dt){
-      // gradient haze
-      const g = bgCtx.createLinearGradient(0,0,0,H);
-      g.addColorStop(0,'#0a1220'); g.addColorStop(1,'#060a10');
-      bgCtx.fillStyle=g; bgCtx.fillRect(0,0,W,H);
-
-      // subtle moving stars
-      bgCtx.save();
-      bgCtx.globalAlpha = .7;
-      for(const st of stars){
-        st.y += (0.02 + st.s*0.02) * (dt*60);
-        if(st.y>H*0.95) st.y = Math.random()*H*0.1;
-        bgCtx.beginPath(); bgCtx.arc(st.x, st.y, st.s, 0, Math.PI*2);
-        bgCtx.fillStyle='rgba(120,180,255,0.35)';
-        bgCtx.fill();
-      }
-      bgCtx.restore();
-
-      // Fever pulse overlay
-      if (feverOn){
-        bgCtx.save();
-        bgCtx.globalAlpha = 0.08;
-        bgCtx.fillStyle = feverColor((Date.now()/100)%FEVER_MAX);
-        bgCtx.fillRect(0,0,W,H);
-        bgCtx.restore();
-      }
-    }
-
-    // judge helpers
-    function judgeDelta(d){
-      const a = Math.abs(d);
-      if(a<=WIN.perfect) return 'Perfect';
-      if(a<=WIN.great)   return 'Great';
-      if(a<=WIN.good)    return 'Good';
-      return 'Miss';
-    }
-    function award(j){
-      const mult = feverOn ? 2 : 1;
-      if(j==='Perfect'){ score += 100*mult; combo++; earned += 2*mult; fever = Math.min(FEVER_MAX, fever+4); judgementText('PERFECT','#7af59a'); }
-      else if(j==='Great'){ score += 70*mult; combo++; earned += 1*mult; fever = Math.min(FEVER_MAX, fever+2); judgementText('GREAT','#7ac2ff'); }
-      else if(j==='Good'){ score += 40*mult; combo=0; judgementText('GOOD','#ffd86b'); }
-      else { combo=0; judgementText('MISS','#ff7a7a'); }
-    }
-    function updateUI(){
-      if(scoreEl)  scoreEl.textContent  = score;
-      if(comboEl)  comboEl.textContent  = combo;
-      if(earnedEl) earnedEl.textContent = earned;
-      if(speedEl)  speedEl.textContent  = speedOpt.toFixed(1)+'x';
-      if(feverPct) feverPct.textContent = Math.round(fever)+'%';
-      if(feverFill) feverFill.style.width = Math.min(100, fever)+'%';
-    }
-
-    function maybeFever(nowMs){
-      if(!feverOn && fever>=FEVER_MAX){
-        feverOn=true; fever=0; feverEndsAt = nowMs + 10000; // 10s fever
-        tickSound();
-      } else if (feverOn && nowMs>=feverEndsAt){
-        feverOn=false;
-      }
-    }
-
-    // find nearest hittable note in lane
-    let idx=0;
-    function nearestInLane(lane){
-      let bestI=-1, bestD=1e9;
-      for(let i=idx; i<Math.min(idx+10, notes.length); i++){
-        const n = notes[i];
-        if(n.hit||n.miss||n.lane!==lane) continue;
-        const d = (n.t - time);
-        const ad = Math.abs(d);
-        if (ad<bestD){ bestD=ad; bestI=i; }
-      }
-      return bestI;
-    }
-
-    // tap press
-    function handleTap(lane){
-      if(!running || paused) return;
-      lanesEls[lane]?.classList.add('flash'); setTimeout(()=>lanesEls[lane]?.classList.remove('flash'), 100);
-      const i = nearestInLane(lane);
-      if (i<0) return;
-
-      const n = notes[i];
-      if(n.type==='tap'){
-        const j = judgeDelta(n.t - time);
-        if(j!=='Miss'){
-          n.hit=true;
-          award(j);
-          const x = laneX(lane, W) + laneW/2; pop(x, hitY);
-          if(i===idx){ while(idx<notes.length && (notes[idx].hit||notes[idx].miss)) idx++; }
-        }
-      } else if (n.type==='hold' && !n.hit && !activeHoldByLane.has(lane)){
-        // begin holding if within Good window at head
-        const j = judgeDelta(n.t - time);
-        if(j!=='Miss'){
-          n.hit=true; // head judged
-          activeHoldByLane.set(lane, {note:n, pressed:true});
-          award(j);
-        }
-      }
-      updateUI();
-    }
-
-    function releaseLane(lane){
-      const h = activeHoldByLane.get(lane);
-      if(!h) return;
-      // judge tail: must be within Good at end
-      const tailDelta = (h.note.t + h.note.dur) - time;
-      const j = judgeDelta(tailDelta);
-      // if the player releases early, they likely get Good/Miss; we still award based on tail delta
-      award(j);
-      activeHoldByLane.delete(lane);
-      updateUI();
-    }
-
-    // miss overdue notes (tap or hold head)
-    function missOld(){
-      while(idx<notes.length){
-        const n = notes[idx];
-        if(n.hit||n.miss){ idx++; continue; }
-        if (time - n.t > WIN.good){
-          // if hold and the head is missed, mark miss & skip its tail
-          n.miss=true; combo=0;
-          idx++;
-        }else break;
-      }
-    }
-
-    // holds: auto-miss tail if never released after tail passed
-    function checkHoldTails(){
-      for(const [lane, h] of activeHoldByLane){
-        const end = h.note.t + h.note.dur;
-        if (time - end > WIN.good){
-          // still holding after tail passed: count as Perfect tail (reward loyalty) and auto-release
-          award('Perfect');
-          activeHoldByLane.delete(lane);
-          updateUI();
-        }
-      }
-    }
-
-    // pointer + keyboard
-    function whichLane(clientX){
-      const r = wrap.getBoundingClientRect();
-      const x = Math.max(0, Math.min(r.width-1, clientX - r.left));
-      return Math.min(3, Math.max(0, Math.floor( x / (r.width/4) )));
-    }
-    function onPointerDown(e){
-      e.preventDefault();
-      try{ wrap.setPointerCapture(e.pointerId); }catch{}
-      const lane = whichLane(e.clientX);
-      downLanes.add(lane);
-      handleTap(lane);
-    }
-    function onPointerMove(e){
-      if(!downLanes.size) return;
-      // optional slide: if moved into a new lane, treat as a fresh tap
-      const lane = whichLane(e.clientX);
-      if(!downLanes.has(lane)){
-        downLanes.clear(); downLanes.add(lane);
-        handleTap(lane);
-      }
-    }
-    function onPointerUp(e){
-      e.preventDefault();
-      const lane = whichLane(e.clientX);
-      releaseLane(lane);
-      downLanes.clear();
-      try{ wrap.releasePointerCapture(e.pointerId); }catch{}
-    }
-    function onKey(e){
-      const lane = KEYS.get(e.key);
-      if(lane==null) return;
-      e.preventDefault();
-      if(e.type==='keydown'){
-        handleTap(lane);
-        downLanes.add(lane);
-      }else{
-        releaseLane(lane);
-        downLanes.delete(lane);
-      }
-    }
-
-    // draw notes
-    function drawNotes(){
-      // window
-      const ahead = 2200, behind = 350;
-      const fromT = time - behind, toT = time + ahead;
-
-      for(let i=idx;i<notes.length;i++){
-        const n = notes[i];
-        if(n.hit||n.miss) continue;
-        if(n.t > toT) break;
-        if(n.t < fromT) continue;
-
-        const x = laneX(n.lane, W) + laneW/2;
-        const yHead = hitY - (n.t - time) * pxPerMs;
-
-        // hold
-        if(n.type==='hold'){
-          const yTail = hitY - (n.t + n.dur - time) * pxPerMs;
-          const y0 = Math.min(yHead, yTail), y1 = Math.max(yHead, yTail);
-          // tail glow
-          const grd = ctx.createLinearGradient(x, y0, x, y1);
-          grd.addColorStop(0, feverOn?'#ffd86b':'#7ac2ff');
-          grd.addColorStop(1, feverOn?'#ffa3f5':'#1e55aa');
-          ctx.fillStyle=grd; ctx.fillRect(x - noteW*0.25, y0, noteW*0.5, Math.max(8, y1-y0));
-          // head chip
-          ctx.save();
-          ctx.translate(x - noteW/2, yHead - noteH/2);
-          ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(-3,-3, noteW+6, noteH+6);
-          const g2 = ctx.createLinearGradient(0,0,0,noteH);
-          g2.addColorStop(0, '#a9d4ff'); g2.addColorStop(1, '#488be0');
-          ctx.fillStyle=g2; ctx.fillRect(0,0,noteW,noteH);
-          ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(0,0,noteW,2);
-          ctx.restore();
-          continue;
-        }
-
-        // tap
-        ctx.save();
-        ctx.translate(x - noteW/2, yHead - noteH/2);
-        ctx.fillStyle='rgba(255,255,255,0.16)'; ctx.fillRect(-3,-3, noteW+6, noteH+6);
-        const g = ctx.createLinearGradient(0,0,0,noteH);
-        if(feverOn){ g.addColorStop(0,'#ffd86b'); g.addColorStop(1,'#a78bfa'); }
-        else { g.addColorStop(0,'#7ac2ff'); g.addColorStop(1,'#1e55aa'); }
-        ctx.fillStyle=g; ctx.fillRect(0,0,noteW,noteH);
-        ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fillRect(0,0,noteW,2);
-        ctx.restore();
-      }
-    }
-
-    function update(dt){
-      time += dt;
-
-      // speed ramp with combo
-      const targetSpeed = 1.0 + Math.min(0.6, combo/200); // up to +0.6x
-      speedOpt += (targetSpeed - speedOpt) * 0.02;
-      // (we don’t change pxPerMs mid-run to avoid reflow; the ramp is cosmetic via fever & visuals)
-
-      // miss overdue heads, check tails
-      missOld();
-      checkHoldTails();
-
-      // Fever
-      maybeFever(time);
-
-      // metronome click each beat during Start
-      if(started){
-        const beatIdx = Math.floor(time / msPerBeat);
-        if(beatIdx !== update._lastBeat){
-          update._lastBeat = beatIdx;
-          tickSound();
-        }
-      }
-    }
-
-    function draw(dt){
-      drawBg(dt);
-
-      // lanes backdrop lines
-      ctx.clearRect(0,0,W,H);
-      ctx.fillStyle='rgba(255,255,255,0.06)'; for(let i=1;i<4;i++) ctx.fillRect(i*laneW-0.5, 0, 1, H);
-
-      // hit line
-      ctx.fillStyle='rgba(110,200,255,0.8)'; ctx.fillRect(0, hitY-1, W, 2);
-
-      // notes
-      drawNotes();
-
-      // pops
-      drawPops(dt);
-    }
-
-    function frame(ts){
-      if(!running){ raf=0; return; }
-      if (paused){ raf = requestAnimationFrame(frame); return; }
-      if (!lastTs) lastTs = ts;
-      const dt = Math.min(0.05, (ts - lastTs)/1000); // seconds
-      lastTs = ts;
-
-      update(dt*1000); // update in ms
-      draw(dt);
-
-      // end?
-      if (idx>=notes.length){
-        running=false; raf=0;
-        fancyAlert('Song finished — press Start to play again or Quit to collect.');
-        return;
-      }
-      raf = requestAnimationFrame(frame);
-    }
-
-    // input wires
-    function addInputs(){
-      wrap.addEventListener('pointerdown', onPointerDown, {passive:false});
-      wrap.addEventListener('pointermove', onPointerMove, {passive:false});
-      wrap.addEventListener('pointerup',   onPointerUp,   {passive:false});
-      wrap.addEventListener('pointercancel', onPointerUp, {passive:false});
-      window.addEventListener('keydown', onKey, {passive:false});
-      window.addEventListener('keyup',   onKey, {passive:false});
-    }
-    function removeInputs(){
-      wrap.removeEventListener('pointerdown', onPointerDown);
-      wrap.removeEventListener('pointermove', onPointerMove);
-      wrap.removeEventListener('pointerup', onPointerUp);
-      wrap.removeEventListener('pointercancel', onPointerUp);
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKey);
-    }
-
-    function start(){
-      initAudio(); // ok after Start click
-      muted = (btnMute?.textContent?.includes('Off')) ?? true;
-
-      // reset HUD
-      score=0; combo=0; earned=0; fever=0; feverOn=false; feverEndsAt=0;
-      idx=0; time=0; lastTs=0; started=true;
-      updateUI();
-
-      // inputs (fresh)
-      removeInputs(); addInputs();
-
-      running=true; paused=false; btnPause.textContent='Pause';
-      frame(performance.now());
-    }
-    function togglePause(){
-      if(!running){ start(); return; }
-      paused = !paused;
-      btnPause.textContent = paused ? 'Resume' : 'Pause';
-      if (!paused){ lastTs = performance.now(); frame(lastTs); }
-    }
-    function cleanup(){
-      running=false;
-      removeInputs();
-      if(raf) cancelAnimationFrame(raf), raf=0;
-    }
-
-    // expose for outer buttons
-    return {
-      start, togglePause, cleanup,
-      get sessionChads(){ return earned; }
-    };
-  }
-
-  // Buttons
-  btnStart.addEventListener('click', ()=>{
-    if (TR?.cleanup) TR.cleanup();
-    TR = createGame();
-    TR.start();
+  // buttons
+  btnStart?.addEventListener('click', ()=>{
+    cleanup(); resetGame(); start();
   });
-  btnPause.addEventListener('click', ()=>{ TR?.togglePause(); });
-  btnQuit.addEventListener('click', ()=>{
-    if (TR?.sessionChads > 0){
-      const got = TR.sessionChads;
-      state.chads += BigInt(got);
-      saveStateLocal(state); refreshUI();
-      showToast(`<span class="accent">+${got}</span> chads added to balance.`);
-    }
-    if (TR?.cleanup) TR.cleanup();
-    TR=null; closeOverlay('tileModal');
-  });
+  btnPause?.addEventListener('click', ()=> pauseToggle());
+  btnQuit ?.addEventListener('click', ()=> quit());
 
-  btnMute?.addEventListener('click', ()=>{
-    initAudio();
-    muted = !muted;
-    btnMute.textContent = 'Audio: ' + (muted? 'Off' : 'On');
-  });
+  // sizing
+  new ResizeObserver(()=>{
+    if(!document.getElementById('tileRushModal').classList.contains('show')) return;
+    resize(); computeLayout(); drawAll(0);
+  }).observe(wrap);
 
-  window.addEventListener('resize', ()=>{ if(!TR) resizeAll(); });
+  // expose opener if needed
+  window.openTileRush = ()=>{ closeOverlay('playOverlay'); openOverlay('tileRushModal'); };
+
+  // bootstrap
+  resetGame();
 })();
 
 
