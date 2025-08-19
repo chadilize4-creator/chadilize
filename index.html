@@ -978,35 +978,36 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
 
-/* ===== VERTICAL JUMPER (Doodle-style, fixed + longer airtime) ===== */
-let VJ = null;
+/* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
+let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
 
 function openVertical(){
   closeOverlay('playOverlay');
   openOverlay('vjModal');
-  if(!VJ) newVJGame(); // build once modal is showing
+  // do not auto-start; user will press Start
 }
 
-document.getElementById('vjStart').addEventListener('click', ()=>{ if(!VJ) newVJGame(); VJ.start(); });
-document.getElementById('vjPause').addEventListener('click', ()=>{ if(!VJ) return; VJ.togglePause(); });
+// Always rebuild fresh when Start is pressed
+document.getElementById('vjStart').addEventListener('click', ()=>{ newVJGame(); });
+document.getElementById('vjPause').addEventListener('click', ()=>{ VJ?.togglePause(); });
 document.getElementById('vjQuit').addEventListener('click', quitVJ);
 
 function newVJGame(){
-  // clean previous instance
+  // clean previous instance if any
   if (VJ?.cleanup) VJ.cleanup();
 
-  const canvas = document.getElementById('vjCanvas');
   const wrap   = document.getElementById('vjWrap');
+  const canvas = document.getElementById('vjCanvas');
   const ctx    = canvas.getContext('2d', { alpha:false });
 
-  // --- HiDPI sizing so canvas never ends up 0x0 or blurry ---
+  // HiDPI-safe sizing so canvas never ends up tiny/black
   function resizeCanvas(){
     const rect = wrap.getBoundingClientRect();
     const dpr  = Math.max(1, window.devicePixelRatio || 1);
     const cssW = Math.max(10, Math.floor(rect.width));
     const cssH = Math.max(10, Math.floor(rect.height));
-    canvas.style.width  = cssW + 'px';
-    canvas.style.height = cssH + 'px';
+    canvas.style.width = cssW+'px';
+    canvas.style.height= cssH+'px';
     canvas.width  = Math.floor(cssW * dpr);
     canvas.height = Math.floor(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
@@ -1016,293 +1017,337 @@ function newVJGame(){
   ro.observe(wrap);
   window.addEventListener('resize', resizeCanvas);
 
-  // unit helper (scale by viewport height)
-  function U(v){ return v * (canvas.height / (window.devicePixelRatio||1)) / 800; }
+  // convenient unit based on viewport height
+  function U(v){ const dpr = Math.max(1, window.devicePixelRatio||1); return v * (canvas.height/dpr) / 800; }
 
-  // --- Jump airtime tuner (longer time-in-air, same peak height) ---
-  // Use the same base numbers you used before, these are typical defaults:
-  const BASE_GRAV = U(2300);     // was GRAV
-  const BASE_JUMP = -U(980);     // was JUMP (negative = upward impulse)
+  // ---- Physics with longer airtime but same jump height ----
+  const BASE_GRAV = U(2300);     // your old feel
+  const BASE_JUMP = -U(980);     // jump impulse (negative: up)
 
-  // Make airtime longer without changing jump height:
-  // AIRTIME = 1.0 (default) → 1.2 = +20% longer airtime, 1.3 = +30%, etc.
-  const AIRTIME = 1.20;
-  const A = 1 / (AIRTIME * AIRTIME);
-  const GRAV = BASE_GRAV * A;             // g' = g / T^2
-  const JUMP = BASE_JUMP * Math.sqrt(A);  // v0' = v0 / T
+  const AIRTIME = 1.20;          // 1.20 = +20% longer airtime (same height)
+  const A = 1/(AIRTIME*AIRTIME);
+  const GRAV = BASE_GRAV * A;            // g' = g / T^2
+  const JUMP = BASE_JUMP * Math.sqrt(A); // v0' = v0 / T
+
+  // Compute actual jump height (CSS px) from physics; use it for platform gaps
+  const v0   = -JUMP;                       // magnitude
+  const HMAX = (v0*v0)/(2*GRAV);            // max vertical reach
 
   const MOVE = U(620), AIR = 0.92, FRICTION = 0.86;
 
-  const state = {
+  // --- Local game state (named G to avoid shadowing your global 'state') ---
+  const G = {
+    running:false, paused:false, loop:null, lastTs:0,
     ctx, canvas, wrap,
-    running:false, paused:false, loopId:null, lastTs:0,
+    W: 0, H: 0,
     camY:0, highestY:0,
     player:{ x:0, y:0, vx:0, vy:0, r:U(18) },
-    platforms:[], coins:[], enemies:[], sparks:[],
-    score:0, earned:0, coinCount:0
+    plats:[], coins:[], enemies:[], sparks:[],
+    score:0, earned:0, coinCount:0,
+    input:{left:false,right:false}
   };
+  // derive W/H in CSS px
+  const dpr = Math.max(1, window.devicePixelRatio||1);
+  G.W = canvas.width/dpr; G.H = canvas.height/dpr;
 
   // initial placement
-  state.player.x = canvas.width / (window.devicePixelRatio||1) / 2;
-  state.player.y = (canvas.height / (window.devicePixelRatio||1)) * 0.60;
-  state.camY     = state.player.y - (canvas.height / (window.devicePixelRatio||1)) * 0.5;
-  state.highestY = state.player.y;
+  G.player.x = G.W/2;
+  G.player.y = G.H*0.60;
+  G.camY     = G.player.y - G.H*0.5;
+  G.highestY = G.player.y;
 
-  // world build
+  // ---- Level generation using jump height to ensure reachability ----
+  const PLAT_H = Math.max(U(12), U(14));
   function addPlatform(y){
-    const w  = U(120) * (0.8 + Math.random()*0.7);
-    const x  = Math.random()*((canvas.width/(window.devicePixelRatio||1)) - w);
-    const mv = Math.random() < 0.22;
-    const sp = mv ? (U(60) + Math.random()*U(120)) : 0;
-    const dir= Math.random() < 0.5 ? -1 : 1;
-    state.platforms.push({x, y, w, h: Math.max(U(12), U(14)), mv, sp, dir});
-    if (Math.random() < 0.55) state.coins.push({x:x+w/2, y:y-U(22), r:Math.max(U(8), U(12)), hit:false});
-    if (Math.random() < 0.18){
+    const w   = U(120) * (0.85 + Math.random()*0.65);
+    const x   = Math.random()*(G.W - w);
+    const mv  = Math.random()<0.22;
+    const sp  = mv ? (U(60) + Math.random()*U(120)) : 0;
+    const dir = Math.random()<0.5 ? -1 : 1;
+    G.plats.push({x,y,w,h:PLAT_H, mv, sp, dir});
+
+    // coin just above platform; always reachable since platform is
+    if (Math.random()<0.55) G.coins.push({x:x+w/2, y:y-U(22), r:Math.max(U(8),U(12)), hit:false});
+
+    // occasional slow enemy hovering around platform height
+    if (Math.random()<0.16){
       const r = U(12);
-      state.enemies.push({
-        x: x + w*0.5, y: y - U(10), r,
-        ang: Math.random()*Math.PI*2,
-        angSpd: (0.6 + Math.random()*0.8) * (Math.random()<0.5?-1:1)
-      });
+      G.enemies.push({ x:x+w*0.5, y:y-U(10), r, ang:Math.random()*6.283, angSpd:(0.5+Math.random()*0.6)*(Math.random()<0.5?-1:1) });
     }
   }
-  for(let i=-6;i<=10;i++){ addPlatform(state.player.y + i*U(60)); }
+
+  // Seed a vertical column of platforms.
+  // Vertical gap is clamped to a safe range based on HMAX so the next platform is always reachable.
+  const MIN_GAP = Math.max(U(45), 0.45*HMAX);
+  const MAX_GAP = Math.min(U(110),0.65*HMAX);
+  function safeGap(){ return MIN_GAP + Math.random()*(MAX_GAP-MIN_GAP); }
+
+  let yCursor = G.player.y + U(60)*4; // a few below player so you can bounce up immediately
+  for(let i=0;i<10;i++){ addPlatform(yCursor); yCursor -= safeGap(); }
+  // ensure content exists further up
+  ensureContent();
 
   function ensureContent(){
-    const H = canvas.height / (window.devicePixelRatio||1);
-    const topTarget = state.camY - U(600);
+    // generate upwards until well above camera
+    const targetTop = G.camY - U(600);
     let minY = Infinity;
-    for(const p of state.platforms) if (p.y < minY) minY = p.y;
-    if (minY === Infinity) minY = state.player.y + U(80);
-    while(minY > topTarget){
-      minY -= U(95 + Math.random()*75);
+    for (const p of G.plats) if (p.y < minY) minY = p.y;
+    if (minY === Infinity) minY = G.player.y;
+
+    while (minY > targetTop){
+      minY -= safeGap();
       addPlatform(minY);
     }
-    const killY = state.camY + H + U(80);
-    state.platforms = state.platforms.filter(p=> p.y < killY);
-    state.coins     = state.coins.filter(c=> c.y < killY && !c.hit);
-    state.enemies   = state.enemies.filter(e=> e.y < killY);
+
+    // cull below screen
+    const killY = G.camY + G.H + U(90);
+    G.plats   = G.plats.filter(p => p.y < killY);
+    G.coins   = G.coins.filter(c => c.y < killY && !c.hit);
+    G.enemies = G.enemies.filter(e => e.y < killY);
   }
 
-  function hitPlatform(p){
-    const px = state.player.x, py = state.player.y, r = state.player.r;
-    const onTop   = (state.player.vy > 0) && (py + r <= p.y) && (py + r + state.player.vy*(1/60) >= p.y - 1);
-    const withinX = (px + r > p.x) && (px - r < p.x + p.w);
-    return onTop && withinX;
+  // helpers
+  function onTopOfPlatform(p){
+    const px=G.player.x, py=G.player.y, r=G.player.r;
+    const isFalling = G.player.vy > 0;
+    const withinX   = (px + r > p.x) && (px - r < p.x + p.w);
+    const crossingY = (py + r <= p.y) && (py + r + G.player.vy*(1/60) >= p.y - 1);
+    return isFalling && withinX && crossingY;
   }
-  function circleHit(a,b, ra,rb){ const dx=a.x-b.x, dy=a.y-b.y; return (dx*dx+dy*dy) <= (ra+rb)*(ra+rb); }
+  function circleHit(ax,ay,ar, bx,by,br){
+    const dx=ax-bx, dy=ay-by; return (dx*dx+dy*dy) <= (ar+br)*(ar+br);
+  }
 
-  // tiny particles
-  function addSpark(x,y){ state.sparks.push({x,y, vx:Math.cos(Math.random()*6.283)*U(200), vy:-U(120)-Math.random()*U(160), life:0.4+Math.random()*0.25}); }
+  // particles
+  function spark(x,y){
+    G.sparks.push({
+      x,y, vx: (Math.random()*2-1)*U(220), vy: -U(160)-Math.random()*U(200), life: 0.35+Math.random()*0.25
+    });
+  }
 
-  // input (Pointer Events + keyboard)
-  const input = { left:false, right:false };
+  // INPUT: keyboard + on-screen buttons + drag anywhere (pointer capture)
   function key(e,down){
-    if(['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); input.left = down; }
-    if(['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); input.right = down; }
+    if(['ArrowLeft','a','A'].includes(e.key)){ e.preventDefault(); G.input.left  = down; }
+    if(['ArrowRight','d','D'].includes(e.key)){ e.preventDefault(); G.input.right = down; }
   }
   const kd=(e)=>key(e,true), ku=(e)=>key(e,false);
   window.addEventListener('keydown', kd, {passive:false});
-  window.addEventListener('keyup', ku, {passive:false});
+  window.addEventListener('keyup',   ku, {passive:false});
 
-  function updateDirFromX(cx){
-    const r = wrap.getBoundingClientRect();
-    const mid = r.left + r.width/2;
-    input.left  = cx <  mid - r.width*0.02;
-    input.right = cx >  mid + r.width*0.02;
+  // on-screen buttons
+  const leftBtn  = document.getElementById('vjLeft');
+  const rightBtn = document.getElementById('vjRight');
+  function bindBtn(btn, prop){
+    const down=(e)=>{ e.preventDefault(); try{ btn.setPointerCapture(e.pointerId); }catch{} G.input[prop]=true; };
+    const up  =()=>{ G.input[prop]=false; };
+    btn.addEventListener('pointerdown', down, {passive:false});
+    btn.addEventListener('pointerup',   up,   {passive:false});
+    btn.addEventListener('pointercancel', up, {passive:false});
+    btn.addEventListener('lostpointercapture', up, {passive:false});
   }
-  const pDown = (e)=>{ e.preventDefault(); wrap.setPointerCapture?.(e.pointerId); updateDirFromX(e.clientX); };
-  const pMove = (e)=>{ if(e.buttons===0) return; e.preventDefault(); updateDirFromX(e.clientX); };
-  const pUp   = (e)=>{ e.preventDefault(); input.left=input.right=false; wrap.releasePointerCapture?.(e.pointerId); };
+  bindBtn(leftBtn,'left'); bindBtn(rightBtn,'right');
+
+  // drag anywhere on playfield
+  function updateDirFromX(cx){ const r=wrap.getBoundingClientRect(), mid=r.left+r.width/2;
+    G.input.left  = cx <  mid - r.width*0.02;
+    G.input.right = cx >  mid + r.width*0.02;
+  }
+  const pDown=(e)=>{ e.preventDefault(); try{ wrap.setPointerCapture(e.pointerId); }catch{} updateDirFromX(e.clientX); };
+  const pMove=(e)=>{ if(e.buttons===0) return; e.preventDefault(); updateDirFromX(e.clientX); };
+  const pUp  =(e)=>{ e.preventDefault(); G.input.left = G.input.right = false; try{ wrap.releasePointerCapture(e.pointerId); }catch{} };
   wrap.addEventListener('pointerdown', pDown, {passive:false});
   wrap.addEventListener('pointermove', pMove, {passive:false});
   wrap.addEventListener('pointerup',   pUp,   {passive:false});
   wrap.addEventListener('pointercancel', pUp, {passive:false});
 
-  // draw
+  // DRAW
   function drawBG(){
-    const W = canvas.width / (window.devicePixelRatio||1), H = canvas.height / (window.devicePixelRatio||1);
-    const g = ctx.createLinearGradient(0,0,0,H);
+    const g = ctx.createLinearGradient(0,0,0,G.H);
     g.addColorStop(0,'#0b1223'); g.addColorStop(0.6,'#08101b'); g.addColorStop(1,'#06090f');
-    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=g; ctx.fillRect(0,0,G.W,G.H);
   }
   function drawPlatform(p){
-    const y = p.y - state.camY;
-    const grad = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
-    grad.addColorStop(0,'#1a2a4a'); grad.addColorStop(1,'#2f5aa0');
-    ctx.fillStyle = grad; ctx.fillRect(p.x, y, p.w, p.h);
-    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(p.x, y, p.w, 2);
+    const y = p.y - G.camY;
+    const grd = ctx.createLinearGradient(p.x,0,p.x+p.w,0);
+    grd.addColorStop(0,'#1a2a4a'); grd.addColorStop(1,'#2f5aa0');
+    ctx.fillStyle=grd; ctx.fillRect(p.x,y,p.w,PLAT_H);
+    ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(p.x,y,p.w,2);
   }
   function drawCoin(c){
-    const y = c.y - state.camY;
+    const y = c.y - G.camY;
     ctx.save(); ctx.globalCompositeOperation='lighter';
-    const glow = ctx.createRadialGradient(c.x, y, 0, c.x, y, U(36));
+    const glow = ctx.createRadialGradient(c.x,y,0,c.x,y,U(36));
     glow.addColorStop(0,'rgba(255,216,107,0.5)'); glow.addColorStop(1,'rgba(255,216,107,0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(c.x, y, U(36), 0, Math.PI*2); ctx.fill(); ctx.restore();
-    ctx.fillStyle='#ffd86b'; ctx.beginPath(); ctx.arc(c.x, y, c.r, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='#8a5e06'; ctx.font = `${Math.max(10, c.r*0.9)}px Inter, system-ui, sans-serif`;
+    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(c.x,y,U(36),0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.fillStyle='#ffd86b'; ctx.beginPath(); ctx.arc(c.x,y,c.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#8a5e06'; ctx.font = `${Math.max(10,c.r*0.9)}px Inter,system-ui,sans-serif`;
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('CHAD', c.x, y);
   }
   function drawEnemy(e){
-    const y = e.y - state.camY, r = e.r;
-    ctx.save(); ctx.translate(e.x, y); ctx.rotate(e.ang);
-    ctx.fillStyle = '#ff5858';
-    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r, r); ctx.lineTo(-r, r); ctx.closePath(); ctx.fill();
+    const y=e.y-G.camY, r=e.r;
+    ctx.save(); ctx.translate(e.x,y); ctx.rotate(e.ang);
+    ctx.fillStyle='#ff5858'; ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r,r); ctx.lineTo(-r,r); ctx.closePath(); ctx.fill();
     ctx.restore();
   }
   function drawPlayer(){
-    const y = state.player.y - state.camY;
-    const r = state.player.r;
-    const tilt = Math.max(-0.5, Math.min(0.5, state.player.vx / U(600)));
-    ctx.save(); ctx.translate(state.player.x, y); ctx.rotate(tilt);
-    const body = ctx.createRadialGradient(-r*0.3, -r*0.3, 2, 0,0, r);
+    const y=G.player.y-G.camY, r=G.player.r;
+    const tilt = Math.max(-0.5, Math.min(0.5, G.player.vx/U(600)));
+    ctx.save(); ctx.translate(G.player.x,y); ctx.rotate(tilt);
+    const body = ctx.createRadialGradient(-r*0.3,-r*0.3,2,0,0,r);
     body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#8fb6ff');
-    ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=body; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#0b0f14'; ctx.beginPath(); ctx.arc(r*0.35,-r*0.2,r*0.15,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
   function drawSparks(dt){
-    for(let i=state.sparks.length-1;i>=0;i--){
-      const s = state.sparks[i];
-      s.life -= dt;
-      if (s.life <= 0){ state.sparks.splice(i,1); continue; }
+    for(let i=G.sparks.length-1;i>=0;i--){
+      const s=G.sparks[i]; s.life-=dt; if(s.life<=0){ G.sparks.splice(i,1); continue; }
       s.x += s.vx*dt; s.y += s.vy*dt; s.vy += U(300)*dt;
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2.2));
-      const grd = ctx.createRadialGradient(s.x, s.y - state.camY, 0, s.x, s.y - state.camY, U(10));
-      grd.addColorStop(0, '#fff5c7'); grd.addColorStop(1, 'rgba(255,216,107,0)');
-      ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(s.x, s.y - state.camY, U(10), 0, Math.PI*2); ctx.fill();
-      ctx.restore();
+      ctx.save(); ctx.globalAlpha = Math.max(0, Math.min(1, s.life*2.2));
+      const gr = ctx.createRadialGradient(s.x, s.y-G.camY, 0, s.x, s.y-G.camY, U(10));
+      gr.addColorStop(0,'#fff5c7'); gr.addColorStop(1,'rgba(255,216,107,0)');
+      ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(s.x, s.y-G.camY, U(10), 0, Math.PI*2); ctx.fill(); ctx.restore();
     }
   }
 
-  // update
+  // UPDATE
   function update(dt){
-    const W = canvas.width / (window.devicePixelRatio||1);
-    for(const p of state.platforms){
-      if(p.mv){ p.x += p.dir * p.sp * dt; if (p.x<0){ p.x=0; p.dir=1; } if (p.x+p.w > W){ p.x=W-p.w; p.dir=-1; } }
+    // moving platforms
+    for(const p of G.plats){
+      if(p.mv){
+        p.x += p.dir * p.sp * dt;
+        if (p.x<0){ p.x=0; p.dir=1; }
+        if (p.x+p.w>G.W){ p.x=G.W-p.w; p.dir=-1; }
+      }
     }
-    const want = (input.left? -1:0) + (input.right? +1:0);
-    if (want) state.player.vx += want * MOVE * dt;
-    state.player.vx *= want ? AIR : FRICTION;
+    // input forces
+    const want = (G.input.left?-1:0) + (G.input.right?+1:0);
+    if (want) G.player.vx += want*MOVE*dt;
+    G.player.vx *= want? AIR : FRICTION;
 
-    state.player.vy += GRAV * dt;
-    state.player.x  += state.player.vx * dt;
-    state.player.y  += state.player.vy * dt;
+    // integrate
+    G.player.vy += GRAV*dt;
+    G.player.x  += G.player.vx*dt;
+    G.player.y  += G.player.vy*dt;
 
-    const r = state.player.r;
-    if (state.player.x < -r) state.player.x = W + r;
-    if (state.player.x >  W + r) state.player.x = -r;
+    // wrap horizontally
+    const r=G.player.r;
+    if (G.player.x < -r) G.player.x = G.W + r;
+    if (G.player.x >  G.W + r) G.player.x = -r;
 
-    for(const p of state.platforms){
-      if (hitPlatform(p)){
-        state.player.y  = p.y - r;
-        state.player.vy = JUMP; // uses airtime-tuned impulse
-        addSpark(state.player.x, p.y);
+    // land & jump
+    for(const p of G.plats){
+      if (onTopOfPlatform(p)){
+        G.player.y = p.y - r;
+        G.player.vy = JUMP;
+        spark(G.player.x, p.y);
       }
     }
 
-    for(const c of state.coins){
-      if(!c.hit && circleHit({x:state.player.x,y:state.player.y},{x:c.x,y:c.y}, r*0.85, c.r)){
+    // coins ➜ session chads
+    for(const c of G.coins){
+      if(!c.hit && circleHit(G.player.x,G.player.y,r*0.85, c.x,c.y,c.r)){
         c.hit = true;
-        state.score += 1;
-        const award = 30 + (state.coinCount*5);
-        state.coinCount++;
-        state.earned += award;
-        addSpark(c.x, c.y);
+        G.score += 1;
+        const award = 30 + G.coinCount*5;
+        G.coinCount++;
+        G.earned += award;
+        spark(c.x, c.y);
+        updateUI();
       }
     }
 
-    for(const e of state.enemies){
+    // light enemies
+    for(const e of G.enemies){
       e.ang += e.angSpd * dt;
       e.y   += Math.sin(e.ang*0.7) * U(6) * dt * 60;
-      if (circleHit({x:state.player.x,y:state.player.y},{x:e.x,y:e.y}, r*0.85, e.r*0.9)){
+      if (circleHit(G.player.x,G.player.y,r*0.85, e.x,e.y,e.r*0.9)){
         stop();
-        fancyAlert(`You were zapped! Coins ${state.score}. Press Quit to collect.`);
+        fancyAlert(`You were zapped! Coins ${G.score}. Press Quit to collect.`);
       }
     }
 
-    if (state.player.y < state.highestY) state.highestY = state.player.y;
-    const H = canvas.height / (window.devicePixelRatio||1);
-    const targetCam = state.highestY - H*0.45;
-    state.camY += (targetCam - state.camY) * Math.min(1, dt*4);
+    // camera
+    if (G.player.y < G.highestY) G.highestY = G.player.y;
+    const targetCam = G.highestY - G.H*0.45;
+    G.camY += (targetCam - G.camY) * Math.min(1, dt*4);
 
     ensureContent();
 
-    if (state.player.y - state.camY > H + U(40)){
+    // fell below screen
+    if (G.player.y - G.camY > G.H + U(40)){
       stop();
-      fancyAlert(`You fell! Coins ${state.score}. Press Quit to collect.`);
+      fancyAlert(`You fell! Coins ${G.score}. Press Quit to collect.`);
     }
   }
 
   function draw(dt){
     drawBG();
-    for(const c of state.coins) if(!c.hit) drawCoin(c);
-    for(const p of state.platforms) drawPlatform(p);
-    for(const e of state.enemies) drawEnemy(e);
+    for(const c of G.coins) if(!c.hit) drawCoin(c);
+    for(const p of G.plats) drawPlatform(p);
+    for(const e of G.enemies) drawEnemy(e);
     drawSparks(dt);
     drawPlayer();
   }
 
   function frame(ts){
-    if(!state.running){ state.loopId=null; return; }
-    const prev = state.lastTs || ts;
-    state.lastTs = ts;
+    if(!G.running){ G.loop=null; return; }
+    const prev = G.lastTs || ts; G.lastTs = ts;
     const dt = Math.min(0.035, (ts - prev)/1000);
-    if (!state.paused){ update(dt); draw(dt); }
-    state.loopId = requestAnimationFrame(frame);
+    if(!G.paused){ update(dt); draw(dt); }
+    G.loop = requestAnimationFrame(frame);
   }
 
   function start(){
-    if(state.running) return;
-    state.running = true; state.paused = false; state.lastTs = performance.now();
+    if(G.running){ return; }
+    G.running = true; G.paused=false; G.lastTs = performance.now();
     document.getElementById('vjPause').textContent = 'Pause';
     updateUI();
-    frame(state.lastTs);
+    frame(G.lastTs);
   }
   function togglePause(){
-    if(!state.running) return start();
-    state.paused = !state.paused;
-    document.getElementById('vjPause').textContent = state.paused ? 'Resume' : 'Pause';
+    if(!G.running){ start(); return; }
+    G.paused = !G.paused;
+    document.getElementById('vjPause').textContent = G.paused ? 'Resume' : 'Pause';
   }
   function stop(){
-    state.running = false;
-    if(state.loopId){ cancelAnimationFrame(state.loopId); state.loopId = null; }
+    G.running = false;
+    if(G.loop) cancelAnimationFrame(G.loop), G.loop=null;
   }
   function updateUI(){
-    const sc = document.getElementById('vjScore');
-    const se = document.getElementById('vjEarned');
-    const top= document.getElementById('vjTopChads');
-    if(sc) sc.textContent = state.score;
-    if(se) se.textContent = state.earned;
-    if(top) top.textContent = state.earned.toLocaleString();
+    const sc  = document.getElementById('vjScore');
+    const se  = document.getElementById('vjEarned');
+    const top = document.getElementById('vjTopChads');
+    if(sc)  sc.textContent  = G.score;
+    if(se)  se.textContent  = G.earned;
+    if(top) top.textContent = G.earned.toLocaleString();
   }
-  updateUI();
 
+  // public API used by outer buttons/quit
   VJ = {
-    start, togglePause,
-    get sessionChads(){ return state.earned; },
+    togglePause,
+    get sessionChads(){ return G.earned; },
     cleanup(){
       stop();
       try{ ro.disconnect(); }catch{}
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('keydown', kd, {passive:false});
-      window.removeEventListener('keyup', ku, {passive:false});
+      window.removeEventListener('keyup',   ku, {passive:false});
       wrap.removeEventListener('pointerdown', pDown);
       wrap.removeEventListener('pointermove', pMove);
-      wrap.removeEventListener('pointerup', pUp);
+      wrap.removeEventListener('pointerup',   pUp);
       wrap.removeEventListener('pointercancel', pUp);
     }
   };
 
-  // auto-start when opened
+  // Start immediately after pressing Start
   start();
 }
 
 function quitVJ(){
   if (VJ?.sessionChads > 0){
     const earned = VJ.sessionChads;
-    state.chads += BigInt(earned);
+    state.chads += BigInt(earned);       // uses your global app 'state'
     saveStateLocal(state);
     refreshUI();
     showToast(`<span class="accent">+${earned}</span> chads added to your balance.`);
@@ -1311,6 +1356,7 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
+
 
 
 
