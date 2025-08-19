@@ -350,7 +350,7 @@ canvas{ display:block }
   <div><div style="font-weight:800">Brick Breaker</div></div>
 </div>
 <div class="tile level" style="flex:1; min-height:68px" onclick="openDash()">
-  <div><div style="font-weight:800">Neon Runner</div></div>
+  <div><div style="font-weight:800">Pulse Dash</div></div>
 </div>
 <div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
   <div><div style="font-weight:800">Tile Rush</div></div>
@@ -506,18 +506,17 @@ canvas{ display:block }
         <p class="note">Tap / Space / Click to flap. Coins give +15 chads. Quit to collect.</p>
       </div>
     </div>
-<!-- NEON RUNNER (Geometry-Dash-style) Modal -->
+<!-- PULSE DASH (Geometry-Dash style) Modal -->
 <div class="overlay" id="dashModal">
   <div class="panel">
     <div class="row">
-      <h2>Neon Runner</h2>
+      <h2>Pulse Dash</h2>
       <div class="row" style="gap:8px">
         <button class="tile level" style="padding:8px 12px" id="dashStart">Start</button>
         <button class="tile level" style="padding:8px 12px" id="dashPause">Pause</button>
         <button class="tile level" style="padding:8px 12px" id="dashQuit">Quit</button>
       </div>
     </div>
-
     <div class="row" style="gap:12px">
       <div class="note">Score: <b id="dashScore">0</b></div>
       <div class="note">Session chads: <b id="dashEarned">0</b></div>
@@ -525,8 +524,16 @@ canvas{ display:block }
 
     <div class="game-9x16">
       <canvas id="dashCanvas" class="full"></canvas>
-      <!-- reuse vj-touch styles so no extra CSS needed -->
-      <div class="vj-touch"><button class="btn" id="dashJump">JUMP</button></div>
+
+      <!-- on-screen jump button (mobile) -->
+      <div id="dashJumpBtn"
+           style="position:absolute;left:50%;bottom:14%;transform:translateX(-50%);
+                  padding:12px 18px;border-radius:12px;
+                  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa);
+                  color:#051022;font-weight:900;border:1px solid rgba(255,255,255,.08);
+                  box-shadow:0 16px 40px rgba(0,0,0,.55);user-select:none;cursor:pointer;">
+        JUMP
+      </div>
     </div>
 
     <p class="note">Tap anywhere / press Space to jump. Grab coins (🪙) for <b>+50</b> chads. Quit to collect.</p>
@@ -2407,368 +2414,352 @@ function openBreaker(){
   resetGame();
 })();
 
-/* ===== NEON RUNNER (Geometry-Dash-style, original levels) ===== */
+<script>
+/* ===== Pulse Dash — one-button auto-runner (works in your shell) ===== */
 (function(){
-  const modalId = 'dashModal';
   const cvs = document.getElementById('dashCanvas');
   const ctx = cvs?.getContext('2d');
-  if(!cvs || !ctx) return;
+  if (!cvs || !ctx) return;
 
-  let W=0, H=0, unit=1;
+  // ----- core state -----
+  let W=0,H=0, unit=1;
   let running=false, paused=false, loop=null, lastTs=0;
-  let speed=0, maxSpeed=0, t=0;
-  let score=0, earned=0;
+  let score=0, sessionChads=0;
 
-  const world = { x:0, groundY:0, obstacles:[], coins:[] };
-  const player = { x:0, y:0, r:0, vy:0, onGround:false, alive:true };
+  const GRAV = 3600;       // px/s^2
+  const JUMP_V = 1080;     // jump velocity (tweak this to adjust feel)
+  const MAX_HOLD = 0.11;   // extra jump sustain (seconds)
+  const SPEED = 420;       // world scroll speed (px/s)
+  const ROT_PER_S = 540;   // cube rotation (deg/s) while airborne
+  const COIN_PAY = 50;     // chads per coin
 
-  // physics (scaled by unit from height so it feels right on phones)
-  let GRAV=2600, JUMP_IMP=-980, JUMP_HOLD_MS=120, jumpHoldLeft=0;
-  function size(){
-    const r = cvs.getBoundingClientRect();
-    cvs.width = Math.floor(r.width);
+  const world = { x:0, // camera left
+                  segments:[], // array of obstacle/coin objects
+                };
+
+  const player = {
+    x:0, y:0, s:40, vy:0, onGround:false, angle:0,
+    wantJump:false, holding:false, holdT:0
+  };
+
+  function resize(){
+    const r = cvs.parentElement.getBoundingClientRect();
+    cvs.width  = Math.floor(r.width);
     cvs.height = Math.floor(r.height);
-    W = cvs.width; H = cvs.height; unit = H/800;
-    world.groundY = Math.floor(H*0.8);
-    player.r = Math.max(10, 16*unit);
-    player.x = Math.floor(W*0.25);
+    W = cvs.width; H = cvs.height;
+    unit = Math.max(1, H/800);
+    if (!running) draw();
   }
-  size(); new ResizeObserver(size).observe(cvs);
+  new ResizeObserver(resize).observe(cvs.parentElement);
+  resize();
 
+  // ----- level gen (original, not GD’s levels) -----
+  // We build a long course made of patterns (spike sets, short blocks, gaps, coins).
+  function genCourse(){
+    world.segments = [];
+    let x = 0;
+    const groundY = H*0.78;
+    const u = unit;
+
+    function spikeRow(cnt, gap, tall=1){
+      for(let i=0;i<cnt;i++){
+        world.segments.push({type:'spike', x:x+i*(gap*u+28*u), y:groundY, w:28*u, h:28*u*tall});
+      }
+      x += cnt*(gap*u+28*u) + 80*u;
+    }
+    function block(wTiles,hTiles){
+      const w=wTiles*40*u, h=hTiles*40*u;
+      world.segments.push({type:'block', x:x, y:groundY-h, w, h});
+      x += w + 140*u;
+    }
+    function coinLine(cnt, gap, yOff=-120*u){
+      for(let i=0;i<cnt;i++){
+        world.segments.push({type:'coin', x:x+i*gap*u, y:groundY+yOff, r:14*u, got:false});
+      }
+      x += cnt*gap*u + 100*u;
+    }
+    function saw(d=42*u, yOff=-60*u){
+      world.segments.push({type:'saw', x:x, y:groundY+yOff, r:d/2});
+      x += 160*u;
+    }
+
+    // intro (easy)
+    x += 220*u;
+    coinLine(3, 80);
+    spikeRow(2, 90);
+    block(2,1);
+    coinLine(4, 70, -150*u);
+
+    // mid patterns
+    spikeRow(3, 80);
+    saw();
+    block(1,2);
+    coinLine(3, 80, -180*u);
+    spikeRow(4, 70);
+    block(2,2);
+    saw(52*u, -90*u);
+    coinLine(5, 70, -140*u);
+
+    // tempo up
+    spikeRow(5, 65);
+    block(1,3);
+    coinLine(4, 76, -160*u);
+    saw(60*u, -110*u);
+    spikeRow(6, 60);
+
+    // tail
+    block(2,2);
+    coinLine(6, 64, -160*u);
+    spikeRow(5, 65);
+    x += 800*u; // runway
+  }
+
+  // ----- helpers -----
   function reset(){
-    running=false; paused=false; cancelAnimationFrame(loop); loop=null;
-    t=0; world.x=0; speed=260*unit; maxSpeed=780*unit;
-    score=0; earned=0;
-    document.getElementById('dashScore').textContent = '0';
-    document.getElementById('dashEarned').textContent = '0';
+    paused=false; running=false;
+    sessionChads=0; score=0;
+    world.x = 0;
+    genCourse();
 
-    world.obstacles = [];
-    world.coins = [];
-    player.y = world.groundY - player.r;
-    player.vy=0; player.onGround=true; player.alive=true;
-    jumpHoldLeft = 0;
+    player.s = Math.max(36*unit, 36);
+    player.x = Math.max(0.23*W, 0.23*W);
+    player.y = H*0.78 - player.s; // stand on ground
+    player.vy = 0; player.onGround=true; player.angle=0;
+    player.wantJump=false; player.holding=false; player.holdT=0;
 
-    // seed a few patterns
-    genUntil(W*3);
+    updateHeader();
     draw();
   }
 
-  /* ---------- content generation (original patterns) ---------- */
-  function addSpikeStrip(x, count, gap, base=46*unit, h=58*unit){
-    for(let i=0;i<count;i++){
-      const w=base, y=world.groundY;
-      world.obstacles.push({type:'spike', x:x+i*(w+gap), y:y, w, h});
-      // sprinkle coins above some spikes
-      if(i%2===0){
-        world.coins.push({x:x+i*(w+gap)+w*0.5, y:y-h-28*unit, r:11*unit, hit:false});
-      }
-    }
-    return x + count*(base+gap);
-  }
-  function addBlock(x, w, h, yTop){
-    // rectangle hanging from ground up or from top down
-    const y = yTop ?? (world.groundY - h);
-    world.obstacles.push({type:'block', x, y, w, h});
-    return x+w;
-  }
-  function addPlatformRun(x, n, gap, w=90*unit, h=18*unit, step=-26*unit){
-    // series of small blocks stepping up/down
-    let y = world.groundY - 120*unit;
-    for(let i=0;i<n;i++){
-      world.obstacles.push({type:'block', x, y, w, h});
-      // coin above every second platform
-      if(i%2===1) world.coins.push({x:x+w*0.5, y:y-28*unit, r:11*unit, hit:false});
-      x += w + gap;
-      y += step; // negative = up, positive = down
-    }
-    return x;
-  }
-  function addGap(x, w){ // empty space (visual ground only)
-    // we just don't place obstacles—player still runs on ground
-    // add a jump coin in the middle
-    world.coins.push({x:x+w*0.5, y:world.groundY-90*unit, r:11*unit, hit:false});
-    return x+w;
-  }
-  function genUntil(targetX){
-    let cx = lastGenX;
-    while(cx < targetX){
-      const pick = Math.random();
-      if(pick < 0.35){
-        cx = addSpikeStrip(cx+80*unit, 3+Math.floor(Math.random()*3), 18*unit);
-      } else if(pick < 0.62){
-        cx = addPlatformRun(cx+60*unit, 4+Math.floor(Math.random()*3), 24*unit, 84*unit, 18*unit,
-                            (Math.random()<0.5?-1:1)*(20*unit));
-      } else if(pick < 0.82){
-        cx = addGap(cx+70*unit, 150*unit + Math.random()*100*unit);
-      } else {
-        // tall block then spikes
-        cx = addBlock(cx+70*unit, 80*unit, 90*unit);
-        cx = addSpikeStrip(cx+20*unit, 2+Math.floor(Math.random()*3), 16*unit);
-      }
-      // occasional bonus coin high
-      if(Math.random()<0.35){
-        world.coins.push({x:cx-40*unit, y:world.groundY-180*unit, r:11*unit, hit:false});
-      }
-    }
-    lastGenX = cx;
-  }
-  let lastGenX = 0;
-
-  /* ------------------ input (jump tap/hold) ------------------ */
-  let jumping=false;
-  function pressJump(){
-    if(!player.alive) return;
-    if(player.onGround){
-      player.vy = JUMP_IMP*unit;
-      player.onGround=false;
-      jumpHoldLeft = JUMP_HOLD_MS; // allow brief variable jump
-      try{ playTap(); }catch{}
-    }
-    jumping=true;
-  }
-  function releaseJump(){ jumping=false; }
-
-  // mouse/touch anywhere on game to jump
-  function bindInput(){
-    const down=(e)=>{e.preventDefault(); pressJump();};
-    const up=(e)=>{e.preventDefault(); releaseJump();};
-    cvs.addEventListener('pointerdown', down, {passive:false});
-    cvs.addEventListener('pointerup', up, {passive:false});
-    cvs.addEventListener('pointercancel', up, {passive:false});
-    document.getElementById('dashJump').addEventListener('pointerdown', down, {passive:false});
-    document.getElementById('dashJump').addEventListener('pointerup', up, {passive:false});
-    const key=(e)=>{
-      if(e.code==='Space' || e.code==='ArrowUp'){
-        if(e.type==='keydown'){ e.preventDefault(); pressJump(); }
-        else releaseJump();
-      }
-    };
-    window.addEventListener('keydown', key, {passive:false});
-    window.addEventListener('keyup', key, {passive:false});
-    return ()=>{ // cleanup
-      cvs.removeEventListener('pointerdown', down);
-      cvs.removeEventListener('pointerup', up);
-      cvs.removeEventListener('pointercancel', up);
-      document.getElementById('dashJump').removeEventListener('pointerdown', down);
-      document.getElementById('dashJump').removeEventListener('pointerup', up);
-      window.removeEventListener('keydown', key);
-      window.removeEventListener('keyup', key);
-    };
-  }
-  let unbindInput = ()=>{};
-
-  /* --------------------- collision helpers ------------------- */
-  function circleVsRect(cx, cy, cr, rx, ry, rw, rh){
-    const nx = Math.max(rx, Math.min(cx, rx+rw));
-    const ny = Math.max(ry, Math.min(cy, ry+rh));
-    const dx = cx-nx, dy=cy-ny;
-    return dx*dx + dy*dy <= cr*cr;
-  }
-  // is point inside isosceles triangle pointing up (base [x,x+w] at y, apex at (x+w/2, y-h))
-  function pointInUpTri(px, py, x, y, w, h){
-    if(py<y-h || py>y) return false;
-    const cx = x + w*0.5;
-    const k = (y - py)/h; // 0 at base, 1 at apex
-    const half = (w*0.5)*(1 - k);
-    return Math.abs(px - cx) <= half + 0.0001;
-  }
-  function circleVsUpTri(cx, cy, cr, x, y, w, h){
-    // quick reject with bbox
-    if(cx+cr < x || cx-cr > x+w || cy+cr < y-h || cy-cr > y) return false;
-    // sample center & a couple of rim points
-    if(pointInUpTri(cx, cy, x, y, w, h)) return true;
-    // sample left/right rim horizontally
-    if(pointInUpTri(cx-cr*0.707, cy, x, y, w, h)) return true;
-    if(pointInUpTri(cx+cr*0.707, cy, x, y, w, h)) return true;
-    // sample vertically
-    if(pointInUpTri(cx, cy-cr*0.707, x, y, w, h)) return true;
-    return false;
+  function updateHeader(){
+    document.getElementById('dashScore').textContent   = Math.floor(score);
+    document.getElementById('dashEarned').textContent  = sessionChads;
   }
 
-  /* --------------------------- loop --------------------------- */
+  function start(){
+    if (!running){
+      running=true; paused=false; lastTs=performance.now();
+      document.getElementById('dashPause').textContent='Pause';
+      loop = requestAnimationFrame(frame);
+    }
+  }
+  function stop(){
+    running=false; paused=false;
+    if (loop){ cancelAnimationFrame(loop); loop=null; }
+  }
+  function gameOver(){
+    stop();
+    showToast('Crashed — press Start to try again.');
+  }
+
+  // ----- input -----
+  function wantJump(down){
+    if (down){
+      player.wantJump = true;
+      player.holding = true; player.holdT = 0;
+    } else {
+      player.holding = false;
+    }
+  }
+  cvs.addEventListener('pointerdown', e=>{ e.preventDefault(); wantJump(true); });
+  cvs.addEventListener('pointerup',   e=>{ e.preventDefault(); wantJump(false); });
+  window.addEventListener('keydown',  e=>{ if(e.code==='Space'){ e.preventDefault(); wantJump(true);} });
+  window.addEventListener('keyup',    e=>{ if(e.code==='Space'){ e.preventDefault(); wantJump(false);} });
+
+  const jumpBtn = document.getElementById('dashJumpBtn');
+  jumpBtn.addEventListener('pointerdown', e=>{ e.preventDefault(); wantJump(true); });
+  jumpBtn.addEventListener('pointerup',   e=>{ e.preventDefault(); wantJump(false); });
+
+  // ----- physics & collision -----
+  function rectHit(ax,ay,aw,ah, bx,by,bw,bh){
+    return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+  }
+  function pointInTri(px,py, ax,ay, bx,by, cx,cy){
+    const v0x=cx-ax, v0y=cy-ay, v1x=bx-ax, v1y=by-ay, v2x=px-ax, v2y=py-ay;
+    const dot00=v0x*v0x+v0y*v0y, dot01=v0x*v1x+v0y*v1y, dot02=v0x*v2x+v0y*v2y;
+    const dot11=v1x*v1x+v1y*v1y, dot12=v1x*v2x+v1y*v2y;
+    const inv = 1/ (dot00*dot11 - dot01*dot01);
+    const u = (dot11*dot02 - dot01*dot12)*inv;
+    const v = (dot00*dot12 - dot01*dot02)*inv;
+    return (u>=0 && v>=0 && u+v<=1);
+  }
+
   function update(dt){
-    t += dt;
-    // speed up slowly
-    speed = Math.min(maxSpeed, speed + 24*unit*dt);
+    // scrolling
+    world.x += SPEED*dt;
+    score += SPEED*dt*0.65;
 
-    // variable jump (holding reduces gravity briefly)
-    let gy = GRAV*unit;
-    if(jumping && jumpHoldLeft>0){
-      gy *= 0.45; // lighter while holding
-      jumpHoldLeft -= dt*1000;
+    // player jump
+    const groundY = H*0.78;
+    if (player.onGround && player.wantJump){
+      player.vy = -JUMP_V*unit;
+      player.onGround=false;
+    }
+    if (player.holding && !player.onGround){
+      player.holdT += dt;
+      if (player.holdT < MAX_HOLD) player.vy -= 2600*unit*dt;
     }
 
-    // physics
-    player.vy += gy*dt;
-    player.y += player.vy*dt;
+    // gravity
+    player.vy += GRAV*unit*dt;
+    player.y  += player.vy*dt;
 
-    // ground
-    if(player.y > world.groundY - player.r){
-      player.y = world.groundY - player.r;
-      player.vy = 0;
-      player.onGround = true;
+    // land
+    const floor = groundY - player.s;
+    if (player.y > floor){
+      player.y = floor;
+      player.vy = 0; player.onGround = true;
     }
 
-    // scroll world
-    world.x += speed*dt;
+    // rotate while airborne
+    if (!player.onGround) player.angle += ROT_PER_S*dt;
 
-    // generate further segments
-    genUntil(world.x + W*2.2);
+    const px = player.x, py = player.y, ps = player.s;
 
-    // collisions & coins
-    for(const o of world.obstacles){
-      const ox = o.x - world.x;
-      if(ox > W+160) break; // ahead; they are sorted by x
-      if(ox + (o.w||0) < -160) continue; // behind
-      if(o.type==='block'){
-        if(circleVsRect(player.x, player.y, player.r, ox, o.y, o.w, o.h)){
-          return gameOver();
+    // collide with obstacles & collect coins
+    for (const o of world.segments){
+      const ox = o.x - world.x; // screen x
+      if (ox < -200 || ox > W+400) continue;
+
+      if (o.type==='block'){
+        // AABB against player
+        if (rectHit(px,py,ps,ps, ox,o.y,o.w,o.h)){
+          // push out only from top (simple)
+          if (py+ps- o.y < 20*unit && player.vy>0){
+            player.y = o.y - ps; player.vy=0; player.onGround=true;
+          } else {
+            return gameOver();
+          }
         }
-      } else if(o.type==='spike'){
-        if(circleVsUpTri(player.x, player.y, player.r, ox, o.y, o.w, o.h)){
-          return gameOver();
+      } else if (o.type==='spike'){
+        // isosceles triangle on block base: points (ox, o.y), (ox+o.w,o.y), (ox+o.w*0.5,o.y-o.h)
+        const p1x=ox, p1y=o.y, p2x=ox+o.w, p2y=o.y, p3x=ox+o.w*0.5, p3y=o.y-o.h;
+        // check four corners of the cube
+        const hit = pointInTri(px,py,p1x,p1y,p2x,p2y,p3x,p3y) ||
+                    pointInTri(px+ps,py,p1x,p1y,p2x,p2y,p3x,p3y) ||
+                    pointInTri(px,py+ps,p1x,p1y,p2x,p2y,p3x,p3y) ||
+                    pointInTri(px+ps,py+ps,p1x,p1y,p2x,p2y,p3x,p3y);
+        if (hit) return gameOver();
+      } else if (o.type==='saw'){
+        const dx = (px+ps*0.5) - (ox);
+        const dy = (py+ps*0.5) - (o.y);
+        if (dx*dx + dy*dy < (o.r+ps*0.45)*(o.r+ps*0.45)) return gameOver();
+      } else if (o.type==='coin' && !o.got){
+        const dx=(px+ps*0.5) - (ox);
+        const dy=(py+ps*0.5) - (o.y);
+        const r=o.r+ps*0.42;
+        if (dx*dx+dy*dy < r*r){
+          o.got=true; sessionChads += COIN_PAY; updateHeader();
+          // small pop
+          showToast(`<span class="accent">+${COIN_PAY}</span> chads`);
         }
       }
     }
-    for(const c of world.coins){
-      if(c.hit) continue;
-      const cx = c.x - world.x;
-      if(cx < -40 || cx > W+40) continue;
-      const dx = player.x - cx, dy = player.y - c.y, r = player.r + c.r;
-      if(dx*dx + dy*dy <= r*r){
-        c.hit = true;
-        earned += 50;
-        document.getElementById('dashEarned').textContent = earned;
-        try{ playTap(); }catch{}
-      }
-    }
 
-    // score by distance
-    score += dt*60;
-    document.getElementById('dashScore').textContent = Math.floor(score);
+    // finish line: when past end of course
+    const last = world.segments[world.segments.length-1];
+    if (last && (world.x > last.x + 1200*unit)){
+      stop();
+      showToast('Level complete! Quit to collect.');
+    }
   }
 
+  // ----- rendering -----
   function draw(){
-    // bg
     const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#0c0f14'); g.addColorStop(1,'#080b10');
+    g.addColorStop(0,'#0b1223');
+    g.addColorStop(1,'#06090f');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-    // ground line
-    ctx.strokeStyle='rgba(120,160,255,0.25)';
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.moveTo(0, world.groundY+0.5);
-    ctx.lineTo(W, world.groundY+0.5);
-    ctx.stroke();
+    // lane
+    ctx.fillStyle='rgba(255,255,255,0.04)';
+    ctx.fillRect(0, H*0.78+2, W, 2);
 
-    // draw obstacles
-    for(const o of world.obstacles){
-      const ox = o.x - world.x;
-      if(ox > W+160) break;
-      if(ox + (o.w||0) < -160) continue;
-      if(o.type==='block'){
-        ctx.fillStyle='#1f2b46';
-        ctx.fillRect(ox, o.y, o.w, o.h);
-        ctx.strokeStyle='rgba(255,255,255,0.08)';
-        ctx.strokeRect(ox+0.5, o.y+0.5, o.w-1, o.h-1);
-      } else if(o.type==='spike'){
-        ctx.fillStyle='#2e5aa3';
+    // draw segments
+    for (const o of world.segments){
+      const x = o.x - world.x;
+      if (x < -200 || x > W+400) continue;
+
+      if (o.type==='block'){
+        const grd = ctx.createLinearGradient(x,0,x+o.w,0);
+        grd.addColorStop(0,'#142235'); grd.addColorStop(1,'#24456c');
+        ctx.fillStyle=grd; ctx.fillRect(x, o.y, o.w, o.h);
+        ctx.fillStyle='rgba(255,255,255,0.10)';
+        ctx.fillRect(x, o.y, o.w, 2);
+      } else if (o.type==='spike'){
+        ctx.fillStyle='#3b69c1';
         ctx.beginPath();
-        ctx.moveTo(ox, o.y);
-        ctx.lineTo(ox+o.w*0.5, o.y-o.h);
-        ctx.lineTo(ox+o.w, o.y);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(x, o.y);
+        ctx.lineTo(x+o.w, o.y);
+        ctx.lineTo(x+o.w*0.5, o.y-o.h);
+        ctx.closePath(); ctx.fill();
+      } else if (o.type==='saw'){
+        const steps=24, r=o.r;
+        ctx.save();
+        ctx.translate(x, o.y);
+        ctx.rotate(((performance.now()/600)% (Math.PI*2)));
+        ctx.fillStyle='#b4c7ff';
+        ctx.beginPath();
+        for(let i=0;i<steps;i++){
+          const a=i*(Math.PI*2/steps);
+          const rr = (i%2===0)? r*1.1 : r*0.8;
+          ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      } else if (o.type==='coin' && !o.got){
+        // glow
+        const rad = ctx.createRadialGradient(x, o.y, 0, x, o.y, o.r*3.2);
+        rad.addColorStop(0,'rgba(255,216,107,0.50)');
+        rad.addColorStop(1,'rgba(255,216,107,0)');
+        ctx.fillStyle=rad; ctx.beginPath(); ctx.arc(x,o.y,o.r*3.2,0,Math.PI*2); ctx.fill();
+        // coin
+        const cgr = ctx.createRadialGradient(x-o.r*0.3, o.y-o.r*0.3, 1, x, o.y, o.r);
+        cgr.addColorStop(0,'#fff5c7'); cgr.addColorStop(0.6,'#ffd86b'); cgr.addColorStop(1,'#e0a800');
+        ctx.fillStyle=cgr; ctx.beginPath(); ctx.arc(x, o.y, o.r, 0, Math.PI*2); ctx.fill();
       }
     }
 
-    // coins
-    for(const c of world.coins){
-      if(c.hit) continue;
-      const cx = c.x - world.x;
-      if(cx < -40 || cx > W+40) continue;
-      // glow
-      const glow = ctx.createRadialGradient(cx, c.y, 0, cx, c.y, c.r*2.8);
-      glow.addColorStop(0,'rgba(255,216,107,0.5)');
-      glow.addColorStop(1,'rgba(255,216,107,0)');
-      ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(cx, c.y, c.r*2.8, 0, Math.PI*2); ctx.fill();
-      // coin
-      const coin = ctx.createRadialGradient(cx-c.r*0.3, c.y-c.r*0.3, 1, cx, c.y, c.r);
-      coin.addColorStop(0,'#fff5c7'); coin.addColorStop(0.6,'#ffd86b'); coin.addColorStop(1,'#e0a800');
-      ctx.fillStyle=coin; ctx.beginPath(); ctx.arc(cx, c.y, c.r, 0, Math.PI*2); ctx.fill();
-    }
-
-    // player (neon cube-circle hybrid)
+    // player (rotating cube)
     ctx.save();
-    ctx.translate(player.x, player.y);
-    const body = ctx.createRadialGradient(-player.r*0.3, -player.r*0.3, 1, 0,0, player.r);
-    body.addColorStop(0,'#dfe9ff'); body.addColorStop(1,'#7fa8ff');
-    ctx.fillStyle = body;
-    ctx.beginPath(); ctx.arc(0,0,player.r,0,Math.PI*2); ctx.fill();
-    // face dot
-    ctx.fillStyle='#0b0f14';
-    ctx.beginPath(); ctx.arc(player.r*0.35,-player.r*0.15, player.r*0.12, 0, Math.PI*2); ctx.fill();
+    ctx.translate(player.x + player.s*0.5, player.y + player.s*0.5);
+    ctx.rotate(player.angle * Math.PI/180);
+    const body = ctx.createLinearGradient(-player.s/2,0,player.s/2,0);
+    body.addColorStop(0,'#8bd3ff'); body.addColorStop(1,'#4aa3ff');
+    ctx.fillStyle=body;
+    ctx.fillRect(-player.s/2, -player.s/2, player.s, player.s);
     ctx.restore();
   }
 
-  function gameOver(){
-    player.alive=false;
-    running=false;
-    showToast(`Game over — score <b>${Math.floor(score)}</b>. Press Quit to collect.`);
-  }
-
+  // ----- loop -----
   function frame(ts){
-    const dt = Math.min(0.035, (ts - lastTs)/1000 || 0);
-    lastTs = ts;
-    if(running && !paused && player.alive){
+    const dt = Math.min(0.033, (ts - lastTs)/1000); lastTs = ts;
+    if (running && !paused){
       update(dt);
       draw();
-    } else if(!running){
-      // idle draw
-      draw();
+      updateHeader();
     }
     loop = requestAnimationFrame(frame);
   }
 
-  function start(){
-    if(running){ // restart
-      reset();
-    } else {
-      reset();
-      running=true; paused=false; lastTs=performance.now();
-      loop = requestAnimationFrame(frame);
-      document.getElementById('dashPause').textContent = 'Pause';
-    }
-  }
-  function togglePause(){
+  // ----- wire buttons -----
+  document.getElementById('dashStart').onclick = ()=>{ reset(); start(); };
+  document.getElementById('dashPause').onclick = ()=>{
+    if (!running) return;
     paused = !paused;
     document.getElementById('dashPause').textContent = paused?'Resume':'Pause';
-  }
-  function quit(){
-    if(earned>0){
-      state.chads += BigInt(earned);
-      saveStateLocal(state); refreshUI();
-      showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
-    }
-    closeOverlay(modalId);
-    // cleanup listeners to avoid leaks
-    unbindInput();
-    running=false; cancelAnimationFrame(loop); loop=null;
-  }
-
-  // hook buttons
-  document.getElementById('dashStart').onclick = start;
-  document.getElementById('dashPause').onclick = togglePause;
-  document.getElementById('dashQuit').onclick = quit;
-
-  // expose launcher
-  window.openDash = ()=>{
-    closeOverlay('playOverlay');
-    openOverlay(modalId);
-    unbindInput = bindInput();
-    reset();
   };
+  document.getElementById('dashQuit').onclick = ()=>{
+    if (sessionChads>0){
+      state.chads += BigInt(sessionChads);
+      saveStateLocal(state); refreshUI();
+      showToast(`<span class="accent">+${sessionChads}</span> chads added to balance.`);
+    }
+    stop(); closeOverlay('dashModal');
+  };
+
+  // bootstrap on open
+  reset();
 })();
 
 
