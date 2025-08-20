@@ -3665,6 +3665,155 @@ updateHUD();
 })();
 
 
+
+/* ===== Night Grid (stunning edition) ===== */
+(function () {
+  const SIZE = 5;                    // 5x5
+  const REWARD = 30;                 // chads for a solved board (change here)
+  const gridEl = document.getElementById('ngGrid');
+  const movesEl = document.getElementById('ngMoves');
+  const earnEl  = document.getElementById('ngEarned');
+  const banner  = document.getElementById('ngBanner');
+
+  let board = [], tiles = [], running=false, paused=false, moves=0, earned=0;
+
+  // Build DOM grid
+  function buildGrid(){
+    gridEl.innerHTML = '';
+    tiles.length = 0;
+    board = Array.from({length: SIZE}, _ => Array(SIZE).fill(false));
+    for(let r=0;r<SIZE;r++){
+      for(let c=0;c<SIZE;c++){
+        const d = document.createElement('div');
+        d.className = 'ng-cell off';
+        d.dataset.r = r; d.dataset.c = c;
+        d.addEventListener('click', (e)=> onClick(e, d));
+        gridEl.appendChild(d);
+        tiles.push(d);
+      }
+    }
+  }
+
+  // Make a solvable puzzle by applying random valid moves to an all-off board
+  function scramble(){
+    const steps = 10 + Math.floor(Math.random()*10);
+    for(let i=0;i<steps;i++){
+      const r = (Math.random()*SIZE)|0, c=(Math.random()*SIZE)|0;
+      applyMove(r,c,false);
+    }
+    moves = 0; earned = 0; updateHUD();
+    banner.style.display='none';
+  }
+
+  // Toggle a cell and its four orthogonal neighbors
+  function applyMove(r,c, animateRipple = true){
+    const flip = (rr,cc)=>{
+      if(rr<0||rr>=SIZE||cc<0||cc>=SIZE) return;
+      board[rr][cc] = !board[rr][cc];
+      const idx = rr*SIZE+cc, el = tiles[idx];
+      el.classList.toggle('on',  board[rr][cc]);
+      el.classList.toggle('off', !board[rr][cc]);
+    };
+    flip(r,c); flip(r-1,c); flip(r+1,c); flip(r,c-1); flip(r,c+1);
+
+    if(animateRipple){
+      const cell = tiles[r*SIZE+c];
+      const rect = cell.getBoundingClientRect();
+      const ripple = document.createElement('div');
+      ripple.className='ng-ripple';
+      // center
+      ripple.style.setProperty('--x', (rect.width/2)+'px');
+      ripple.style.setProperty('--y', (rect.height/2)+'px');
+      cell.appendChild(ripple);
+      setTimeout(()=> ripple.remove(), 650);
+    }
+  }
+
+  function onClick(evt, cell){
+    if(!running || paused) return;
+    const r = cell.dataset.r|0, c = cell.dataset.c|0;
+    applyMove(r,c,true);
+    moves++; updateHUD();
+    if (isSolved()) onWin();
+  }
+
+  function isSolved(){
+    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(board[r][c]) return false;
+    return true;
+  }
+
+  function updateHUD(){
+    movesEl.textContent = moves;
+    earnEl.textContent  = earned;
+  }
+
+  function winConfetti(){
+    const host = gridEl.closest('.ng-wrap');
+    const rect = host.getBoundingClientRect();
+    const colors = ['#7ac2ff','#9ef0c4','#ffd86b','#ff8d8d','#c39eff','#ffb574'];
+    for(let i=0;i<80;i++){
+      const bit = document.createElement('div');
+      bit.className='ng-confetti';
+      bit.style.left = (rect.width/2)+'px';
+      bit.style.top  = (rect.height/2 - 10)+'px';
+      bit.style.background = colors[(Math.random()*colors.length)|0];
+      const tx = (Math.random()*2-1) * (rect.width*0.9) + 'px';
+      const ty = (Math.random()*-1) * (rect.height*0.7) + 'px';
+      bit.style.setProperty('--tx', tx);
+      bit.style.setProperty('--ty', ty);
+      host.appendChild(bit);
+      setTimeout(()=> bit.remove(), 1000);
+    }
+    // Inspiration: confetti bursts rendered on canvas/DOM. :contentReference[oaicite:2]{index=2}
+  }
+
+  function onWin(){
+    running=false;
+    banner.style.display='';
+    earned += REWARD;
+    updateHUD();
+    try{
+      // deposit to your global balance
+      state.chads = (state.chads??0n) + BigInt(REWARD);
+      saveStateLocal(state); refreshUI?.();
+      showToast?.(`<span class="accent">+${REWARD}</span> chads added to balance.`);
+    }catch{}
+    winConfetti();
+  }
+
+  function start(){
+    buildGrid(); scramble();
+    running=true; paused=false;
+    document.getElementById('ngPause').textContent = 'Pause';
+  }
+
+  function togglePause(){
+    if(!running){ start(); return; }
+    paused = !paused;
+    document.getElementById('ngPause').textContent = paused? 'Resume':'Pause';
+  }
+
+  function quit(){
+    if(earned>0){
+      try{
+        state.chads = (state.chads??0n) + BigInt(earned);
+        saveStateLocal(state); refreshUI?.();
+        showToast?.(`<span class="accent">+${earned}</span> chads added to balance.`);
+      }catch{}
+    }
+    running=false; closeOverlay('nightGridModal');
+  }
+
+  document.getElementById('ngStart')?.addEventListener('click', start);
+  document.getElementById('ngPause')?.addEventListener('click', togglePause);
+  document.getElementById('ngQuit') ?.addEventListener('click', quit);
+
+  // Opener for your Play list
+  window.openNightGrid = ()=>{ closeOverlay('playOverlay'); openOverlay('nightGridModal'); start(); };
+})();
+
+
+
 /* ===== SIMON (Sequence, luxe visuals) ===== */
 (function(){
   const wrap   = document.getElementById('simonWrap');
