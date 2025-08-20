@@ -6,6 +6,98 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* === SIMON (lux version) === */
+.simon-wrap{
+  position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden;
+  background:
+    radial-gradient(120% 100% at 50% -10%, rgba(120,200,255,.10), transparent 40%),
+    radial-gradient(90% 70% at 90% 10%, rgba(255,120,200,.08), transparent 50%),
+    linear-gradient(180deg,#0b0f14,#070a0d);
+  filter:saturate(110%);
+}
+
+/* subtle stars/noise */
+.simon-wrap::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(180px 140px at 20% 25%, rgba(255,255,255,.06), transparent 60%),
+    radial-gradient(220px 160px at 70% 10%, rgba(255,255,255,.04), transparent 65%),
+    radial-gradient(160px 120px at 50% 60%, rgba(255,255,255,.045), transparent 70%);
+  mix-blend-mode:soft-light; opacity:.9;
+}
+
+/* 2x2 pads grid */
+.simon-grid{ position:absolute; inset:12px 12px 64px; display:grid; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); gap:14px; filter:url(#gooey); }
+
+.simon-pad{
+  --h: 210; /* hue, set per pad via inline style */
+  position:relative; border-radius:16px; overflow:hidden; cursor:pointer; user-select:none;
+  background:
+    radial-gradient(120% 90% at 50% 35%, hsl(var(--h) 92% 70% / .22), transparent 60%),
+    linear-gradient(180deg, #10151b, #0a0e12);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 24px 80px rgba(0,0,0,.55);
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+
+/* neon inner bloom */
+.simon-pad::before{
+  content:""; position:absolute; inset:-40% -40% -35%; pointer-events:none;
+  background:
+    conic-gradient(from 220deg, hsl(var(--h) 92% 62% / .18), transparent 35%, transparent 65%, hsl(var(--h) 92% 62% / .14));
+  mix-blend-mode:screen; filter:blur(18px); opacity:.9; transition:filter .12s ease, opacity .12s ease;
+}
+
+/* glossy highlight */
+.simon-pad::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(20deg, rgba(255,255,255,.20), transparent 40%),
+    radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,.24), transparent 60%);
+  mix-blend-mode:overlay; opacity:.45;
+}
+
+/* active / playback */
+.simon-pad.lit{
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 6px 24px hsl(var(--h) 92% 62% / .45));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 34px 110px hsl(var(--h) 92% 62% / .28);
+}
+.simon-pad.lit::before{ filter:blur(10px); opacity:1; }
+
+/* ring HUD at bottom */
+.simon-hud{
+  position:absolute; left:10px; right:10px; bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.simon-ring{
+  --pct: 0; /* 0..1 set via JS */
+  width:72px; height:72px; border-radius:50%; position:relative; flex:0 0 auto;
+  background:
+    conic-gradient(#ffd86b calc(var(--pct)*1turn), rgba(255,255,255,.08) 0),
+    radial-gradient(100% 100% at 50% 50%, rgba(255,255,255,.06), transparent 70%);
+  mask: radial-gradient(circle at 50% 50%, transparent 58%, #000 58.5%);
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.simon-ring .txt{ position:absolute; inset:0; display:grid; place-items:center; font-weight:900; font-size:14px; color:#eaf1f8; }
+
+/* ripples when tapping */
+.ripple{
+  position:absolute; border-radius:50%; pointer-events:none; mix-blend-mode:screen;
+  background: radial-gradient(circle, rgba(255,255,255,.35), rgba(255,255,255,0) 60%);
+  transform: translate(-50%,-50%) scale(.6); opacity:.8; animation: ripple .6s ease-out forwards;
+}
+@keyframes ripple{ 100%{ transform:translate(-50%,-50%) scale(2.2); opacity:0 } }
+
+/* prefers reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .simon-pad, .simon-pad::before, .ripple{ transition:none; animation:none; }
+}
+
 /* Subtle app-wide background inside the phone frame */
 .phone {
   position: relative; /* already true in your code; keep it */
@@ -533,6 +625,16 @@ canvas{ display:block }
     </div>
   </div>
 
+
+<!-- Add in Play overlay grid -->
+<div class="tile level" style="flex:1; min-height:68px" onclick="openSimon()">
+  <div class="game-card">
+    <img src="img/simon.png" alt="Simon" class="game-thumb" loading="lazy">
+    <div class="game-title">Simon</div>
+  </div>
+</div>
+
+
   <div class="tile level" style="flex:1; min-height:68px" onclick="open2048Swipe()">
     <div class="game-card">
       <img src="img/2048.png" alt="2048 Swipe" class="game-thumb" loading="lazy">
@@ -719,6 +821,58 @@ canvas{ display:block }
         <p class="note">Tap / Space / Click to flap. Coins give +15 chads. Quit to collect.</p>
       </div>
     </div>
+
+<!-- SIMON (Sequence) Modal -->
+<div class="overlay" id="simonModal">
+  <div class="panel">
+    <div class="row">
+      <h2>Simon Sequence</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="simonStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="simonPause">Pause</button>
+        <button class="tile level" style="padding:8px 12px" id="simonQuit">Quit</button>
+      </div>
+    </div>
+    <div class="row" style="gap:12px">
+      <div class="note">Round: <b id="simonRound">0</b></div>
+      <div class="note">Session chads: <b id="simonEarned">0</b></div>
+      <div class="note">Speed: <b id="simonSpeed">1.0x</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="simon-wrap" id="simonWrap">
+        <div class="simon-grid" id="simonGrid" aria-label="Simon pads">
+          <div class="simon-pad" data-id="0" style="--h: 200"></div> <!-- blue -->
+          <div class="simon-pad" data-id="1" style="--h: 140"></div> <!-- green -->
+          <div class="simon-pad" data-id="2" style="--h: 45"></div>  <!-- yellow -->
+          <div class="simon-pad" data-id="3" style="--h: 350"></div> <!-- pink -->
+        </div>
+
+        <div class="simon-hud">
+          <div class="simon-ring" id="simonRing"><div class="txt" id="simonPct">0%</div></div>
+          <div class="note">Repeat the pattern. +5 chads per round.</div>
+        </div>
+
+        <!-- SVG Gooey filter -->
+        <svg width="0" height="0" style="position:absolute">
+          <defs>
+            <filter id="gooey">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+              <feColorMatrix in="blur" mode="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 18 -8" result="goo"/>
+              <feBlend in="SourceGraphic" in2="goo"/>
+            </filter>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <p class="note">Tap pads in order. Finishing a round adds <b>+5</b> chads to your session. Quit to collect.</p>
+  </div>
+</div>
 
 
 <!-- 2048 SWIPE Modal -->
@@ -3376,6 +3530,164 @@ updateHUD();
   new ResizeObserver(()=> measure()).observe(gridEl);
 })();
 
+
+/* ===== SIMON (Sequence, luxe visuals) ===== */
+(function(){
+  const wrap   = document.getElementById('simonWrap');
+  if(!wrap) return;
+  const grid   = document.getElementById('simonGrid');
+  const pads   = Array.from(grid.querySelectorAll('.simon-pad'));
+  const ring   = document.getElementById('simonRing');
+  const pctTxt = document.getElementById('simonPct');
+  const roundEl= document.getElementById('simonRound');
+  const earnEl = document.getElementById('simonEarned');
+  const speedEl= document.getElementById('simonSpeed');
+
+  const btnStart = document.getElementById('simonStart');
+  const btnPause = document.getElementById('simonPause');
+  const btnQuit  = document.getElementById('simonQuit');
+
+  // state
+  let seq=[], step=0, round=0, running=false, paused=false, playing=false, earned=0, speed=1.0;
+
+  // Web Audio (tiny blips)
+  let ac=null;
+  function audio(){ if(!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); return ac; }
+  function beep(id, dur=0.18){
+    const f = [392, 523.25, 659.25, 784][id]; // G4, C5, E5, G5
+    const ctx = audio(), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type='sine'; o.frequency.value=f;
+    g.gain.value = 0.001;
+    g.gain.setValueAtTime(0.22, t);
+    g.gain.exponentialRampToValueAtTime(0.00001, t+dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t); o.stop(t+dur+0.01);
+  }
+
+  function setPct(n){ // n: 0..1
+    const clamped = Math.max(0, Math.min(1, n));
+    ring.style.setProperty('--pct', clamped);
+    pctTxt.textContent = Math.round(clamped*100) + '%';
+  }
+  function setHUD(){
+    roundEl.textContent = round;
+    earnEl.textContent  = earned;
+    speedEl.textContent = speed.toFixed(1)+'x';
+  }
+
+  function rippleOn(el, x, y){
+    const r = document.createElement('span');
+    r.className='ripple';
+    r.style.left = x + 'px';
+    r.style.top  = y + 'px';
+    el.appendChild(r);
+    setTimeout(()=> r.remove(), 650);
+  }
+
+  function light(id, dur=360){
+    const el = pads[id];
+    el.classList.add('lit');
+    beep(id, Math.max(.12, dur/1000-0.02));
+    setTimeout(()=> el.classList.remove('lit'), dur);
+  }
+
+  function randomPad(){ return Math.floor(Math.random()*4); }
+
+  async function playback(){
+    playing=true;
+    // speed up slightly each round
+    const on = Math.max(190, 420 / speed);
+    const off= Math.max(120, 260 / speed);
+    setPct(0);
+    for(let i=0;i<seq.length;i++){
+      if(!running || paused) break;
+      light(seq[i], on);
+      setPct((i+1)/seq.length);
+      await wait(on+off);
+      if(!running || paused) break;
+    }
+    playing=false;
+    step=0;
+    setPct(0);
+  }
+
+  function wait(ms){ return new Promise(res=> setTimeout(res, ms)); }
+
+  function nextRound(){
+    round++;
+    speed = 1 + (round-1)*0.08;            // gentle ramp
+    seq.push(randomPad());
+    setHUD();
+    playback();
+  }
+
+  function start(){
+    running=true; paused=false; playing=false;
+    btnPause.textContent='Pause';
+    seq=[]; step=0; round=0; earned=0; speed=1.0; setHUD(); setPct(0);
+    nextRound();
+  }
+  function togglePause(){
+    if(!running){ start(); return; }
+    paused = !paused;
+    btnPause.textContent = paused ? 'Resume' : 'Pause';
+    if(!paused && playing){ playback(); }
+  }
+  function quit(){
+    running=false; paused=false; playing=false;
+    // pay out session
+    if(earned>0){
+      try{
+        state.chads = (state.chads??0n) + BigInt(earned);
+        saveStateLocal(state); refreshUI();
+        showToast(`<span class="accent">+${earned}</span> chads added to balance.`);
+      }catch{}
+    }
+    closeOverlay('simonModal');
+  }
+
+  function onPadPress(e){
+    if(!running || paused || playing) return;
+    const el = e.currentTarget;
+    const id = Number(el.dataset.id);
+    const rect = el.getBoundingClientRect();
+    rippleOn(el, (e.clientX||rect.left+rect.width/2)-rect.left, (e.clientY||rect.top+rect.height/2)-rect.top);
+    light(id, 220);
+
+    // check
+    if (id !== seq[step]){
+      fancyAlert('Wrong pad — try again!');
+      // soft retry of same round
+      step=0;
+      setPct(0);
+      playback();
+      return;
+    }
+    step++;
+    setPct(step/seq.length);
+
+    if(step===seq.length){
+      // round success ➜ +5 chads
+      earned += 5;
+      setHUD();
+      setTimeout(()=> nextRound(), 420);
+    }
+  }
+
+  // bind pads
+  pads.forEach(p=>{
+    p.addEventListener('pointerdown', onPadPress, {passive:true});
+  });
+
+  // buttons
+  btnStart.addEventListener('click', start);
+  btnPause.addEventListener('click', togglePause);
+  btnQuit .addEventListener('click', quit);
+
+  // opener to use in your Play overlay
+  window.openSimon = ()=>{ closeOverlay('playOverlay'); openOverlay('simonModal'); start(); };
+})();
 
 
 
