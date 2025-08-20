@@ -6,38 +6,6 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ---------- Modal shell ---------- */
-.ag-modal{position:fixed;inset:0;display:none;z-index:9999;background:rgba(4,8,15,.6);backdrop-filter:blur(6px)}
-.ag-modal.open{display:block}
-.ag-frame{position:absolute;inset:24px;overflow:hidden;border-radius:22px;box-shadow:0 20px 70px rgba(0,0,0,.45)}
-.ag-topbar{position:absolute;inset:0 0 auto 0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#e8f3ff;pointer-events:none}
-.ag-topbar .left,.ag-topbar .right{display:flex;gap:8px;align-items:center;pointer-events:auto}
-.ag-btn{appearance:none;border:0;border-radius:12px;padding:8px 12px;background:rgba(255,255,255,.08);color:#e8f3ff;font:600 14px/1.1 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
-.ag-btn:hover{background:rgba(255,255,255,.15)}
-#auroraCanvas{position:absolute;inset:0;display:block;background:linear-gradient(180deg,#07121f 0%,#0b1e34 40%,#0a1c2e 70%,#05121e 100%)}
-
-
-/* ---------- HUD ---------- */
-.ag-hud{position:absolute;top:60px;left:0;right:0;display:flex;justify-content:center;gap:16px;color:#e6f4ff;font:500 14px/1 system-ui,Segoe UI,Roboto}
-.ag-chip{display:inline-flex;gap:8px;align-items:center;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);backdrop-filter:blur(2px);padding:8px 12px;border-radius:999px}
-.ag-dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 18px currentColor}
-.ag-dot.chads{background:#96f07d;color:#96f07d}
-.ag-dot.speed{background:#7dd3fc;color:#7dd3fc}
-
-
-/* ---------- Overlays ---------- */
-.ag-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-.ag-start,.ag-win,.ag-pause{pointer-events:auto;background:rgba(2,10,20,.7);border-radius:20px;padding:22px 26px;box-shadow:0 15px 50px rgba(0,0,0,.35);color:#eaf6ff;text-align:center}
-.ag-title{font:700 24px/1.2 system-ui,Segoe UI,Roboto;margin:0 0 8px}
-.ag-desc{opacity:.9;margin:0 0 14px}
-.ag-start .ag-cta,.ag-win .ag-cta,.ag-pause .ag-cta{margin-top:10px}
-
-
-/* Tiny helpers */
-.hidden{display:none}
-.ag-kbd{font:600 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:rgba(255,255,255,.1);padding:2px 6px;border-radius:6px}
-
-
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -839,14 +807,6 @@ canvas{ display:block }
   </div>
 
 
-<div class="tile level" style="flex:1; min-height:68px" onclick="openAuroraGlide()">
-    <div class="game-card">
-      <img src="img/AuroraGlide.png" alt="Brick Breaker" class="game-thumb" loading="lazy">
-      <div class="game-title">Aurora Glide</div>
-    </div>
-  </div>
-
-
   <div class="tile level" style="flex:1; min-height:68px" onclick="openTileRush()">
     <div class="game-card">
       <img src="img/tilerush.png" alt="Tile Rush" class="game-thumb" loading="lazy">
@@ -1151,41 +1111,6 @@ canvas{ display:block }
       </div>
     </div>
   </div>
-</div>
-
-<!-- Drop this block anywhere in your page (preferably once, near the end of <body>) -->
-<div id="aurora-glide-modal" class="ag-modal" aria-hidden="true" role="dialog" aria-label="Aurora Glide">
-<div class="ag-frame">
-<canvas id="auroraCanvas" width="1280" height="720"></canvas>
-<div class="ag-topbar">
-<div class="left">
-<button class="ag-btn" id="agCloseBtn" title="Close (Esc)">✕ Close</button>
-<button class="ag-btn" id="agPauseBtn" title="Pause/Resume (P)">⏸ Pause</button>
-</div>
-<div class="right">
-<div class="ag-chip"><span class="ag-dot chads"></span><span id="agChads">0</span>/15 Chads</div>
-<div class="ag-chip"><span class="ag-dot speed"></span><span id="agSpeed">0</span> m/s</div>
-</div>
-</div>
-<div class="ag-hud"></div>
-<div class="ag-center">
-<div id="agStart" class="ag-start">
-<h2 class="ag-title">Aurora Glide</h2>
-<p class="ag-desc">Hold <span class="ag-kbd">Space</span> or press & hold to dive. Release to soar. Collect 15 shimmering chads.</p>
-<button class="ag-btn ag-cta" id="agStartBtn">Start</button>
-</div>
-<div id="agWin" class="ag-win hidden">
-<h2 class="ag-title">You did it!</h2>
-<p class="ag-desc"><strong>15</strong> chads secured under the northern lights ✨</p>
-<button class="ag-btn ag-cta" id="agReplayBtn">Play again</button>
-</div>
-<div id="agPause" class="ag-pause hidden">
-<h2 class="ag-title">Paused</h2>
-<p class="ag-desc">Press <span class="ag-kbd">P</span> or the button to resume.</p>
-<button class="ag-btn ag-cta" id="agResumeBtn">Resume</button>
-</div>
-</div>
-</div>
 </div>
 
 
@@ -4088,101 +4013,6 @@ updateHUD();
 
   // opener to use in your Play overlay
   window.openSimon = ()=>{ closeOverlay('playOverlay'); openOverlay('simonModal'); start(); };
-})();
-
-
-/* ===== aurora glide (drag, merge stacks, clear at threshold) ===== */
-
- ;(() => {
-ctx.lineTo(base+w, y);
-ctx.lineTo(base+w, h);
-ctx.lineTo(base, h);
-ctx.closePath(); ctx.fill();
-}
-ctx.restore();
-}
-
-
-function drawTerrain(t, w, h){
-ctx.save();
-ctx.translate(-state.camX,0);
-// ground fill
-ctx.beginPath();
-ctx.moveTo(0, h);
-const step = 8;
-for(let x=0;x<=w+state.camX+20;x+=step){ ctx.lineTo(x, heightAt(x)); }
-ctx.lineTo(w+state.camX+20, h); ctx.closePath();
-const grad = ctx.createLinearGradient(0,h*0.55,0,h);
-grad.addColorStop(0,'#0b2438'); grad.addColorStop(1,'#05131f');
-ctx.fillStyle = grad; ctx.fill();
-
-
-// glossy ridge
-ctx.beginPath();
-for(let x=0;x<=w+state.camX+20;x+=step){ ctx.lineTo(x, heightAt(x)-1); }
-ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(185,240,255,0.25)'; ctx.stroke();
-ctx.restore();
-}
-
-
-function drawChads(t){
-for(const c of state.chads){
-if(c.taken) continue;
-const x = c.x - state.camX;
-const y = c.y + Math.sin(c.wob)*3;
-const r = 9 + Math.sin(t*6 + x*0.01)*1.5;
-const rg = ctx.createRadialGradient(x,y,0,x,y,r*2.2);
-rg.addColorStop(0,'rgba(190,255,160,0.95)');
-rg.addColorStop(0.35,'rgba(150,240,120,0.55)');
-rg.addColorStop(1,'rgba(150,240,120,0)');
-ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-}
-}
-
-
-function drawPlayer(t){
-const x = state.player.x, y = state.player.y;
-ctx.save();
-// little comet
-const tail = ctx.createLinearGradient(x-40,y-10,x+10,y+10);
-tail.addColorStop(0,'rgba(146,206,255,0)');
-tail.addColorStop(1,'rgba(146,206,255,0.55)');
-ctx.fillStyle = tail;
-ctx.beginPath(); ctx.ellipse(x-20,y,30,10,0,0,Math.PI*2); ctx.fill();
-// body
-const body = ctx.createRadialGradient(x,y,2,x,y,16);
-body.addColorStop(0,'#b5e5ff'); body.addColorStop(1,'#6ab8ff');
-ctx.fillStyle = body; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill();
-// glossy highlight
-ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(x-4,y-4,4,0,Math.PI*2); ctx.fill();
-ctx.restore();
-}
-
-
-function drawParticles(t){
-ctx.save();
-for(let i=state.particles.length-1;i>=0;i--){
-const p = state.particles[i];
-p.life += 1/60; p.x += p.vx/60; p.y += p.vy/60; p.vy += 12;
-const a = Math.max(0, 1 - p.life/p.max);
-if(a<=0){ state.particles.splice(i,1); continue; }
-ctx.globalAlpha = a; ctx.fillStyle = 'rgba(210,255,200,1)';
-ctx.fillRect(p.x-1,p.y-1,2,2);
-}
-ctx.restore();
-}
-
-
-// ---------- Utils ----------
-function show(el){ el.classList.remove('hidden'); }
-function hide(el){ el.classList.add('hidden'); }
-
-
-// Start fresh each open
-modal.addEventListener('transitionend', resizeCanvas);
-// Optional: automatically focus canvas when opening for keyboard
-const observer = new MutationObserver(()=>{ if(modal.classList.contains('open')) canvas.focus(); });
-observer.observe(modal,{attributes:true,attributeFilter:['class']});
 })();
 
 
