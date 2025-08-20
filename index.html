@@ -204,7 +204,7 @@
   position: absolute;
   inset: 0; /* top:0; right:0; bottom:0; left:0 */
   background: url("img/totalbackground.png") center / cover no-repeat; /* same folder as your loader */
-  opacity: 0.6;     /* 40% fade -> black stays visible */
+  opacity: 0.0;     /* 100% fade -> black stays visible */
   pointer-events: none; /* don’t block taps/clicks */
   border-radius: inherit; /* match the phone’s rounded corners */
   z-index: 0; /* sits under all UI */
@@ -575,7 +575,52 @@ body{
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
-.tile.buy{background:linear-gradient(180deg,#9ef0c4,#2fc78c 60%, #0f6b42); color:#062b18}
+/* BUY CARDS — glowing version */
+.tile.buy{
+  /* vivid green gradient surface */
+  background:
+    radial-gradient(120% 120% at 50% 0%, #1affb0 0%, #0cc887 35%, #065a3b 80%) padding-box,
+    linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.05)) border-box;
+  color:#052e1c;
+  /* soft inner/outer glow */
+  box-shadow:
+    0 0 .5rem rgba(26,255,176,.5),
+    0 0 1.25rem rgba(26,255,176,.35),
+    inset 0 0 .5rem rgba(255,255,255,.06);
+  position:relative;
+  isolation:isolate;           /* keeps the halo behind the tile */
+}
+
+.tile.buy:hover{
+  transform:translateY(-1px);
+  box-shadow:
+    0 0 .75rem rgba(26,255,176,.8),
+    0 0 1.8rem rgba(26,255,176,.55),
+    0 8px 32px rgba(0,0,0,.55);
+}
+
+/* halo behind the button */
+.tile.buy::after{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    radial-gradient(60% 80% at 50% -10%, rgba(26,255,176,.65), transparent 60%),
+    radial-gradient(80% 80% at 100% 0%, rgba(14,190,120,.3), transparent 70%),
+    radial-gradient(90% 80% at 0% 100%, rgba(255,255,255,.06), transparent 60%);
+  filter:blur(20px);
+  opacity:.9;
+  animation:buyPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes buyPulse{
+  0%,100%{ opacity:.75; transform:scale(1); }
+  50%    { opacity:1;   transform:scale(1.02); }
+}
+
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
 /* Overlays */
