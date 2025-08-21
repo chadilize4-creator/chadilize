@@ -6,6 +6,176 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ---------- THEME ---------- */
+:root{
+  --bg1: radial-gradient(1200px 800px at 10% 10%, #3a1e83 0%, transparent 60%),
+         radial-gradient(900px 600px at 90% 30%, #0f93ff 0%, transparent 65%),
+         radial-gradient(1000px 700px at 50% 100%, #00ffa8 0%, transparent 65%),
+         linear-gradient(120deg, #0a0a12, #0b0f1e 60%, #0a0a12 100%);
+  --glass: rgba(255,255,255,0.08);
+  --glass-2: rgba(255,255,255,0.14);
+  --stroke: rgba(255,255,255,0.18);
+  --shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+  --accent: #79fff6;
+  --accent-2: #9b8cff;
+  --danger: #ff5876;
+  --success: #8bffcf;
+  --text: #f5f7ff;
+  --muted: #b6c2ff;
+  --cell-size: 56px; /* will be updated by JS for "Zoom" */
+}
+
+/* ---------- BASE ---------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body{
+  margin:0; color:var(--text); font:16px/1.1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial;
+  background:#080a12; overflow-x:hidden;
+}
+.bg{
+  position:fixed; inset:0; background:var(--bg1); background-size:140% 140%;
+  animation:bgMove 30s ease-in-out infinite alternate;
+  filter:saturate(120%);
+  z-index:-1;
+}
+@keyframes bgMove{ from{background-position:10% 20%} to{background-position:90% 70%} }
+
+.topbar{
+  display:flex; align-items:center; gap:16px; padding:18px clamp(16px,3vw,32px);
+}
+.back{ color:var(--muted); text-decoration:none; padding:8px 12px; border:1px solid var(--stroke); border-radius:999px; }
+.title{
+  margin:0; font-size:clamp(28px, 5vw, 44px); letter-spacing:.5px; font-weight:800;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 20px rgba(121,255,246,.3);
+}
+.stats{
+  margin-left:auto; display:flex; gap:16px; flex-wrap:wrap;
+}
+.stat{ min-width:120px; padding:10px 14px; border:1px solid var(--stroke); border-radius:14px; background:var(--glass); backdrop-filter: blur(8px); box-shadow:var(--shadow); }
+.stat .label{ font-size:12px; color:var(--muted); opacity:.9; }
+.stat .value{ font-size:22px; font-weight:800; }
+
+.shell{
+  max-width:1200px; margin:0 auto; padding:0 clamp(16px,3vw,32px) 40px;
+}
+.controls{
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:8px 0 18px;
+}
+.control{ display:flex; align-items:center; gap:10px; border:1px solid var(--stroke); background:var(--glass); padding:10px 12px; border-radius:12px; }
+select, input[type="range"]{ accent-color:var(--accent-2); }
+.btn{
+  padding:10px 14px; border-radius:14px; border:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
+  color:var(--text); cursor:pointer; box-shadow:var(--shadow);
+}
+.btn:hover{ transform:translateY(-1px); }
+.btn.primary{ background:linear-gradient(90deg, var(--accent), var(--accent-2)); color:#0b0f1e; font-weight:800; }
+
+.board-wrap{
+  display:grid; place-items:center; padding:20px; border-radius:18px;
+  border:1px solid var(--stroke); background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+  backdrop-filter: blur(10px); box-shadow:var(--shadow);
+}
+
+/* ---------- BOARD / CELLS ---------- */
+.board{
+  --cols: 16; /* JS updates this */
+  display:grid;
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  gap:10px;
+  padding:14px;
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(255,255,255,.06));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 40px 120px rgba(0,0,0,.55);
+}
+
+.cell{
+  position:relative;
+  width:var(--cell-size);
+  aspect-ratio:1 / 1; /* keeps squares regardless of zoom */
+  display:grid; place-items:center;
+  font-weight:900; font-size:calc(var(--cell-size) * 0.44);
+  border-radius:14px;
+  color:#fff;
+  user-select:none; cursor:pointer;
+  background:
+    radial-gradient(120% 140% at 20% 5%, rgba(255,255,255,.22), rgba(255,255,255,0) 40%),
+    linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.55),
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    inset 0 -8px 24px rgba(0,0,0,.35);
+  transition: transform .12s ease, box-shadow .2s ease, background .25s ease;
+}
+.cell:hover{ transform:translateY(-2px) scale(1.02); }
+.cell:active{ transform:translateY(0) scale(.98); }
+
+.cell.revealed{
+  cursor:default;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  box-shadow: inset 0 2px 6px rgba(255,255,255,.08), inset 0 -8px 24px rgba(0,0,0,.35);
+  animation: pop .18s ease-out;
+}
+@keyframes pop{ from{transform:scale(.85)} to{transform:scale(1)} }
+
+.cell.flag::after{
+  content:"⚑";
+  position:absolute; font-size:calc(var(--cell-size) * .62);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));
+}
+
+.cell.mine.revealed{
+  background: radial-gradient(120% 140% at 50% 40%, rgba(255,88,118,.35), rgba(255,255,255,.02)),
+              linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border-color: rgba(255,88,118,.5);
+}
+.cell.mine.revealed::before{
+  content:"💥";
+  font-size:calc(var(--cell-size) * .7);
+  transform:scale(1.05);
+  filter:drop-shadow(0 4px 10px rgba(255,88,118,.7));
+}
+
+/* number colors */
+.cell.n1{ color:#9cf; }
+.cell.n2{ color:#8bffcf; }
+.cell.n3{ color:#ffd28b; }
+.cell.n4{ color:#ff8bbd; }
+.cell.n5{ color:#ff9f8b; }
+.cell.n6{ color:#79fff6; }
+.cell.n7{ color:#9b8cff; }
+.cell.n8{ color:#b6c2ff; }
+
+.overlay{
+  position:fixed; inset:0; display:grid; place-items:center;
+  backdrop-filter: blur(8px) saturate(120%);
+  background:rgba(8,10,18,.35);
+}
+.modal{
+  width:min(560px, 92vw);
+  padding:22px;
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+  box-shadow:var(--shadow);
+}
+.modal h2{ margin:0 0 6px; font-size:34px; }
+.modal-actions{ display:flex; gap:12px; margin-top:14px; }
+
+.confetti{ position:absolute; inset:0; pointer-events:none; }
+
+.foot{
+  text-align:center; color:var(--muted);
+  padding:18px 16px 40px; font-size:14px;
+}
+
+.sr-only{
+  position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;
+}
+
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -791,6 +961,14 @@ canvas{ display:block }
   </div>
 </div>
 
+<!-- Put this inside your Play Games grid -->
+<div class="tile level" style="flex:1; min-height:68px" onclick="openLuminSweep()">
+  <div class="game-card">
+    <img src="img/LuminSweep.png" alt="LuminSweep" class="game-thumb" loading="lazy">
+    <div class="game-title">LuminSweep</div>
+  </div>
+</div>
+
 
   <div class="tile level" style="flex:1; min-height:68px" onclick="openLaneHopper()">
     <div class="game-card">
@@ -1055,6 +1233,77 @@ canvas{ display:block }
     <p class="note">Swipe or use ◀▶▲▼. Merge tiles to reach 2048. Quit to collect chads.</p>
   </div>
 </div>
+
+
+<!-- lumin sweep Modal -->
+
+<div class="bg"></div>
+
+  <header class="topbar">
+    <a class="back" href="../index.html" aria-label="Back to all games">← All Games</a>
+    <h1 class="title">LuminSweep</h1>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Chads (total)</div>
+        <div class="value" id="totalChads">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">This game</div>
+        <div class="value" id="sessionChads">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">Flags</div>
+        <div class="value" id="flagsLeft">0</div>
+      </div>
+      <div class="stat">
+        <div class="label">Time</div>
+        <div class="value" id="timer">0:00</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div class="controls">
+      <label class="control">
+        Difficulty
+        <select id="difficulty">
+          <option value="easy">Easy (9×9, 10 mines)</option>
+          <option value="medium" selected>Medium (16×16, 40 mines)</option>
+          <option value="hard">Hard (24×20, 99 mines)</option>
+        </select>
+      </label>
+
+      <label class="control">
+        Zoom
+        <input id="zoom" type="range" min="36" max="72" value="56" />
+      </label>
+
+      <button id="newGame" class="btn">New Game</button>
+    </div>
+
+    <section class="board-wrap">
+      <div id="board" class="board" role="grid" aria-label="Minesweeper board"></div>
+      <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+    </section>
+
+    <div id="status" class="sr-only" aria-live="polite"></div>
+  </main>
+
+  <div id="overlay" class="overlay" hidden>
+    <div class="modal">
+      <h2 id="resultTitle">You Win!</h2>
+      <p id="resultText"></p>
+      <div class="modal-actions">
+        <button id="playAgain" class="btn primary">Play Again</button>
+        <button id="closeOverlay" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>Left-click: reveal &nbsp;•&nbsp; Right-click: flag &nbsp;•&nbsp; Don’t hit a mine!</span>
+  </footer>
 
 
 <!-- NIGHT GRID Modal -->
@@ -4013,6 +4262,362 @@ updateHUD();
 
   // opener to use in your Play overlay
   window.openSimon = ()=>{ closeOverlay('playOverlay'); openOverlay('simonModal'); start(); };
+})();
+
+/* LuminSweep — bigger neon Minesweeper with "chads" rewards
+   Rules you asked for:
+   - +40 chads for every SAFE move (left-click that doesn’t hit a mine)
+   - +300 chads when the player wins
+   - Totals persist via localStorage
+*/
+
+(() => {
+  // ---- Config ----
+  const CURRENCY = "chads";
+  const SAFE_MOVE_REWARD = 40;
+  const WIN_REWARD = 300;
+
+  const DIFFS = {
+    easy:   { rows: 9,  cols: 9,  mines: 10 },
+    medium: { rows: 16, cols: 16, mines: 40 },
+    hard:   { rows: 20, cols: 24, mines: 99 },
+  };
+
+  // ---- State ----
+  let rows, cols, mineTotal;
+  let grid = []; // array of cell objects
+  let firstClick = true;
+  let flagsLeft = 0;
+  let remainingSafe = 0;
+  let gameOver = false;
+  let timerId = null;
+  let seconds = 0;
+  let sessionChads = 0;
+
+  // Persisted total chads
+  let totalChads = parseInt(localStorage.getItem("luminSweep_totalChads") || "0", 10);
+
+  // ---- Elements ----
+  const elBoard = document.getElementById("board");
+  const elFlags = document.getElementById("flagsLeft");
+  const elTimer = document.getElementById("timer");
+  const elTotal = document.getElementById("totalChads");
+  const elSession = document.getElementById("sessionChads");
+  const elDifficulty = document.getElementById("difficulty");
+  const elNewGame = document.getElementById("newGame");
+  const elZoom = document.getElementById("zoom");
+  const elOverlay = document.getElementById("overlay");
+  const elResultTitle = document.getElementById("resultTitle");
+  const elResultText = document.getElementById("resultText");
+  const elPlayAgain = document.getElementById("playAgain");
+  const elCloseOverlay = document.getElementById("closeOverlay");
+  const elStatus = document.getElementById("status");
+  const confettiCanvas = document.getElementById("confetti");
+  const ctx = confettiCanvas.getContext("2d");
+
+  // ---- Utilities ----
+  const id = (r, c) => r * cols + c;
+  const inBounds = (r, c) => r >= 0 && r < rows && c >= 0 && c < cols;
+
+  function setCSSVar(name, value) {
+    document.documentElement.style.setProperty(name, value);
+  }
+
+  function fmtTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  }
+
+  function updateChadsUI() {
+    elTotal.textContent = totalChads.toLocaleString();
+    elSession.textContent = sessionChads.toLocaleString();
+  }
+
+  function saveChads() {
+    localStorage.setItem("luminSweep_totalChads", String(totalChads));
+  }
+
+  function setBoardSize() {
+    confettiCanvas.width = elBoard.clientWidth + 40;
+    confettiCanvas.height = elBoard.clientHeight + 40;
+  }
+
+  // ---- Game setup ----
+  function newGame() {
+    const { rows: R, cols: C, mines } = DIFFS[elDifficulty.value];
+    rows = R; cols = C; mineTotal = mines;
+
+    // Reset state
+    grid = [];
+    firstClick = true;
+    flagsLeft = mineTotal;
+    remainingSafe = rows * cols - mineTotal;
+    gameOver = false;
+    seconds = 0;
+    sessionChads = 0;
+    updateChadsUI();
+
+    elFlags.textContent = flagsLeft;
+    elTimer.textContent = "0:00";
+    if (timerId) { clearInterval(timerId); timerId = null; }
+
+    // Build UI cells
+    elBoard.innerHTML = "";
+    elBoard.style.setProperty("--cols", cols);
+    setTimeout(setBoardSize, 0);
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = {
+          r, c,
+          mine: false,
+          n: 0,
+          revealed: false,
+          flagged: false,
+          el: null,
+        };
+        const div = document.createElement("button");
+        div.className = "cell";
+        div.setAttribute("role", "gridcell");
+        div.setAttribute("aria-label", "hidden");
+        div.addEventListener("click", (e) => onReveal(cell, e));
+        div.addEventListener("contextmenu", (e) => { e.preventDefault(); onFlag(cell); });
+        cell.el = div;
+        grid.push(cell);
+        elBoard.appendChild(div);
+      }
+    }
+  }
+
+  function placeMines(excludeR, excludeC) {
+    let placed = 0;
+    while (placed < mineTotal) {
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      const index = id(r, c);
+
+      // Never place a mine on the very first clicked cell (for a fair start)
+      if ((r === excludeR && c === excludeC) || grid[index].mine) continue;
+
+      grid[index].mine = true;
+      placed++;
+    }
+
+    // Compute numbers
+    const dirs = [-1,0,1];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = grid[id(r,c)];
+        if (cell.mine) continue;
+        let count = 0;
+        for (let dr of dirs) for (let dc of dirs) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (inBounds(nr, nc) && grid[id(nr,nc)].mine) count++;
+        }
+        cell.n = count;
+      }
+    }
+  }
+
+  // ---- Interactions ----
+  function startTimerOnce() {
+    if (timerId) return;
+    timerId = setInterval(() => {
+      seconds++;
+      elTimer.textContent = fmtTime(seconds);
+    }, 1000);
+  }
+
+  function onReveal(cell, clickEvent) {
+    if (gameOver || cell.revealed || cell.flagged) return;
+
+    // First click => place mines (never on the first clicked cell)
+    if (firstClick) {
+      placeMines(cell.r, cell.c);
+      firstClick = false;
+      startTimerOnce();
+    }
+
+    // Reveal flow
+    if (cell.mine) {
+      revealMine(cell);
+      endGame(false);
+      return;
+    }
+
+    // Safe move: reward +40 chads (one per successful click)
+    awardChads(SAFE_MOVE_REWARD, clickEvent);
+
+    floodReveal(cell);
+    checkWin();
+  }
+
+  function onFlag(cell) {
+    if (gameOver || cell.revealed) return;
+    cell.flagged = !cell.flagged;
+    cell.el.classList.toggle("flag", cell.flagged);
+    flagsLeft += cell.flagged ? -1 : 1;
+    elFlags.textContent = flagsLeft;
+    cell.el.setAttribute("aria-label", cell.flagged ? "flagged" : "hidden");
+  }
+
+  function revealMine(cell) {
+    cell.revealed = true;
+    cell.el.classList.add("revealed", "mine");
+    cell.el.setAttribute("aria-label", "mine");
+    // Reveal all mines
+    grid.forEach(c => {
+      if (c.mine) {
+        c.el.classList.add("revealed","mine");
+      }
+    });
+  }
+
+  function revealSingle(cell) {
+    if (cell.revealed || cell.flagged) return;
+    cell.revealed = true;
+    cell.el.classList.add("revealed");
+    cell.el.setAttribute("aria-label", cell.n ? `number ${cell.n}` : "empty");
+    if (cell.n) {
+      cell.el.textContent = String(cell.n);
+      cell.el.classList.add(`n${cell.n}`);
+    }
+    remainingSafe--;
+  }
+
+  // flood fill for empty cells
+  function floodReveal(start) {
+    const q = [start];
+    while (q.length) {
+      const cur = q.shift();
+      if (cur.revealed || cur.flagged) continue;
+      revealSingle(cur);
+      if (cur.n !== 0) continue;
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = cur.r + dr, nc = cur.c + dc;
+          if (inBounds(nr, nc)) {
+            const neigh = grid[id(nr,nc)];
+            if (!neigh.revealed && !neigh.mine) q.push(neigh);
+          }
+        }
+      }
+    }
+  }
+
+  function checkWin() {
+    if (remainingSafe === 0) {
+      endGame(true);
+    }
+  }
+
+  function endGame(win) {
+    gameOver = true;
+    if (timerId) { clearInterval(timerId); timerId = null; }
+
+    if (win) {
+      awardChads(WIN_REWARD);
+      fireworks();
+      elResultTitle.textContent = "You Win!";
+      elResultText.textContent = `+${WIN_REWARD} ${CURRENCY} bonus — nice sweep!`;
+      elStatus.textContent = "You won the game.";
+    } else {
+      elResultTitle.textContent = "Boom!";
+      elResultText.textContent = "You clicked a mine. Try again!";
+      elStatus.textContent = "You lost the game.";
+    }
+
+    elOverlay.hidden = false;
+  }
+
+  function awardChads(amount, evt) {
+    sessionChads += amount;
+    totalChads += amount;
+    updateChadsUI();
+    saveChads();
+    floatingText(`+${amount} ${CURRENCY}`, evt);
+  }
+
+  // Pretty floating reward text
+  function floatingText(text, evt) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    span.style.position = "fixed";
+    span.style.left = (evt?.clientX ?? window.innerWidth/2) + "px";
+    span.style.top = (evt?.clientY ?? window.innerHeight/2) + "px";
+    span.style.transform = "translate(-50%,-50%)";
+    span.style.fontWeight = "900";
+    span.style.fontSize = "20px";
+    span.style.padding = "6px 10px";
+    span.style.border = "1px solid rgba(255,255,255,.25)";
+    span.style.borderRadius = "999px";
+    span.style.background = "linear-gradient(90deg, rgba(121,255,246,.9), rgba(155,140,255,.9))";
+    span.style.color = "#0b0f1e";
+    span.style.pointerEvents = "none";
+    span.style.zIndex = "9999";
+    document.body.appendChild(span);
+
+    const start = performance.now();
+    const dur = 900;
+    requestAnimationFrame(function anim(t){
+      const k = Math.min(1, (t - start) / dur);
+      span.style.opacity = String(1 - k);
+      span.style.top = `calc(${span.style.top} - ${80*k}px)`;
+      if (k < 1) requestAnimationFrame(anim); else span.remove();
+    });
+  }
+
+  // Simple confetti on win
+  const confettiParts = [];
+  function fireworks() {
+    setBoardSize();
+    confettiParts.length = 0;
+    for (let i = 0; i < 220; i++) {
+      confettiParts.push({
+        x: confettiCanvas.width/2,
+        y: confettiCanvas.height/2,
+        vx: (Math.random()*2-1) * (2 + Math.random()*5),
+        vy: (Math.random()*2-1) * (2 + Math.random()*5),
+        size: 2 + Math.random()*5,
+        life: 60 + Math.random()*60
+      });
+    }
+    drawConfetti();
+  }
+  function drawConfetti() {
+    ctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+    let alive = 0;
+    for (const p of confettiParts) {
+      if (p.life <= 0) continue;
+      alive++;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.life--;
+      ctx.globalAlpha = Math.max(0, p.life/120);
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    if (alive > 0) requestAnimationFrame(drawConfetti);
+  }
+
+  // ---- Events & init ----
+  elNewGame.addEventListener("click", newGame);
+  elPlayAgain.addEventListener("click", () => { elOverlay.hidden = true; newGame(); });
+  elCloseOverlay.addEventListener("click", () => { elOverlay.hidden = true; });
+
+  elDifficulty.addEventListener("change", newGame);
+
+  // Zoom slider -> change CSS var (pixel size)
+  const applyZoom = () => setCSSVar("--cell-size", elZoom.value + "px");
+  elZoom.addEventListener("input", () => { applyZoom(); setBoardSize(); });
+
+  // Resize observer for confetti canvas fit
+  new ResizeObserver(setBoardSize).observe(elBoard);
+
+  // First load
+  updateChadsUI();
+  applyZoom();
+  newGame();
 })();
 
 
