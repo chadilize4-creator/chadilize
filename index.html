@@ -6,224 +6,124 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ---------- Nova Sweep (scoped) ---------- */
+#novaSweepModal {
+  --ns-cell: 48px;            /* bigger cells */
+  --ns-gap: 8px;              /* space between cells */
+  --ns-radius: 14px;
+  --ns-font: 600 18px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --ns-bg: radial-gradient(120% 120% at 10% 10%, #0b1220 0%, #050812 35%, #02040a 100%);
+  --ns-txt: #e8f0ff;
+  --ns-glow: 0 10px 24px rgba(88, 146, 255, .25);
+  --ns-card: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+}
 
-/* Everything is scoped under #ls-game to avoid touching your app */
-#ls-game {
-  --ls-bg-1: #0f1221;
-  --ls-bg-2: #11162c;
-  --ls-accent: #8ad7ff;
-  --ls-accent-2: #b18cff;
-  --ls-good: #78ffa7;
-  --ls-bad: #ff6b6b;
-  --ls-text: #e7ecff;
-  --ls-muted: #a7b0d4;
-  --ls-card: rgba(255,255,255,0.06);
-  --ls-stroke: rgba(255,255,255,0.12);
-  --ls-shadow: 0 10px 30px rgba(0,0,0,0.45);
-  --ls-radius: 16px;
-  --ls-cell: 56px;         /* base cell size, scaled by Zoom slider */
-  --ls-gap: 6px;
-  --ls-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  color: var(--ls-text);
-  font-family: var(--ls-font);
-  background: radial-gradient(1200px 800px at 10% -10%, #1a1f3b 0%, transparent 60%),
-              radial-gradient(1200px 800px at 120% 10%, #231a3b 0%, transparent 60%),
-              linear-gradient(180deg, var(--ls-bg-1), var(--ls-bg-2));
-  min-height: 100dvh;
-  padding: 18px clamp(12px, 3vw, 28px) 28px;
+/* wrap/panel just gets a nicer background without touching your global .panel */
+#novaSweepModal .panel {
+  background: var(--ns-bg);
+  color: var(--ns-txt);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* grid layout */
+#novaSweepModal .ns-grid {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 16px;
-}
-
-#ls-game .ls-topbar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 12px;
-}
-
-#ls-game .ls-back {
-  justify-self: start;
-  color: var(--ls-muted);
-  text-decoration: none;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--ls-stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
-  box-shadow: var(--ls-shadow);
-}
-#ls-game .ls-back:hover { color: var(--ls-text); border-color: #5d6bff; }
-
-#ls-game .ls-brand {
-  text-align: center;
-  letter-spacing: 0.5px;
-  margin: 0;
-  font-weight: 800;
-  font-size: clamp(20px, 3.2vw, 36px);
-}
-#ls-game .ls-brand span {
-  background: linear-gradient(135deg, var(--ls-accent), var(--ls-accent-2));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 20px rgba(138,215,255,0.3);
-}
-
-#ls-game .ls-stats {
-  justify-self: end;
-  display: flex;
-  gap: 14px;
-}
-#ls-game .ls-stat { 
-  background: var(--ls-card);
-  border: 1px solid var(--ls-stroke);
-  border-radius: 12px;
-  padding: 8px 12px;
-  box-shadow: var(--ls-shadow);
-}
-#ls-game .ls-stat label { display:block; font-size:12px; color:var(--ls-muted); }
-#ls-game .ls-stat strong { font-size:18px; font-weight:800; }
-
-#ls-game .ls-controls {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-#ls-game .ls-row {
-  background: var(--ls-card);
-  border: 1px solid var(--ls-stroke);
-  border-radius: var(--ls-radius);
-  padding: 10px 12px;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: var(--ls-shadow);
-}
-#ls-game .ls-row label { color: var(--ls-muted); font-size: 13px; }
-#ls-game select, #ls-game input[type="range"], #ls-game .ls-btn {
-  width: 100%;
-  appearance: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-  color: var(--ls-text);
-  border: 1px solid var(--ls-stroke);
-  border-radius: 12px;
-  padding: 10px 12px;
-  outline: none;
-}
-#ls-game .ls-btn { cursor: pointer; font-weight: 700; letter-spacing: 0.3px; }
-#ls-game .ls-btn:hover { border-color: var(--ls-accent); box-shadow: 0 0 0 3px rgba(138,215,255,0.15) inset; }
-
-#ls-game .ls-board-wrap {
-  position: relative;
-  display: grid;
-  place-items: center;
-  padding: clamp(8px, 1vw, 12px);
-}
-
-#ls-game .ls-board {
-  --scale: 1; /* controlled by slider */
-  transform: scale(var(--scale));
-  transform-origin: top center;
-  display: grid;
-  gap: var(--ls-gap);
-  padding: var(--ls-gap);
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 1px solid var(--ls-stroke);
-  border-radius: 20px;
-  box-shadow: var(--ls-shadow);
-}
-
-#ls-game .ls-cell {
-  width: var(--ls-cell);
-  height: var(--ls-cell);
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.12);
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  font-size: 20px;
-  letter-spacing: 0.3px;
+  grid-template-columns: repeat(var(--ns-cols, 18), var(--ns-cell));
+  grid-auto-rows: var(--ns-cell);
+  gap: var(--ns-gap);
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--ns-card);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), var(--ns-glow);
   user-select: none;
+}
+
+/* cells */
+#novaSweepModal .ns-cell {
+  display: grid;
+  place-items: center;
+  font: var(--ns-font);
+  letter-spacing: .3px;
+  width: var(--ns-cell);
+  height: var(--ns-cell);
+  border-radius: var(--ns-radius);
   cursor: pointer;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02)),
-    radial-gradient(80% 120% at 30% 20%, rgba(255,255,255,0.16), transparent 55%),
-    linear-gradient(135deg, #1e2a4a, #1a1f38);
-  transition: transform .12s ease, box-shadow .12s ease, background .2s ease, border-color .2s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  color: var(--ls-text);
+    radial-gradient(140% 120% at 0% 0%, rgba(123,178,255,.22), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.02));
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 8px 18px rgba(0,0,0,.35);
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+  color: #cfe3ff;
 }
-#ls-game .ls-cell:hover { transform: translateY(-1px); border-color: rgba(138,215,255,0.6); }
-#ls-game .ls-cell:active { transform: translateY(0); }
 
-#ls-game .ls-cell.revealed {
+#novaSweepModal .ns-cell.hidden:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.14),
+    0 12px 24px rgba(24,64,180,.25);
+}
+
+#novaSweepModal .ns-cell.revealed {
   cursor: default;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01)),
-    linear-gradient(135deg, #12223c, #0f1933);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -8px 24px rgba(0,0,0,0.35);
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06);
+  color: #d9e6ff;
 }
 
-#ls-game .ls-cell.mine.revealed { 
-  background:
-    radial-gradient(200px 160px at 50% -20%, rgba(255,107,107,0.35), transparent 40%),
-    linear-gradient(135deg, #2b0f17, #3b111a);
-  border-color: rgba(255,107,107,0.6);
+/* flagged state */
+#novaSweepModal .ns-cell.flag::after {
+  content: "⚑";
+  font-size: 22px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
 }
 
-#ls-game .ls-num-1 { color: #8ad7ff; text-shadow: 0 0 8px rgba(138,215,255,0.35); }
-#ls-game .ls-num-2 { color: #8cffb2; text-shadow: 0 0 8px rgba(124,255,176,0.35); }
-#ls-game .ls-num-3 { color: #ffb38a; text-shadow: 0 0 8px rgba(255,179,138,0.35); }
-#ls-game .ls-num-4 { color: #b18cff; text-shadow: 0 0 8px rgba(177,140,255,0.35); }
-#ls-game .ls-num-5 { color: #ffd66b; text-shadow: 0 0 8px rgba(255,214,107,0.35); }
-#ls-game .ls-num-6 { color: #93f0ff; text-shadow: 0 0 8px rgba(147,240,255,0.35); }
-#ls-game .ls-num-7 { color: #ff6bd6; text-shadow: 0 0 8px rgba(255,107,214,0.35); }
-#ls-game .ls-num-8 { color: #b0c8ff; text-shadow: 0 0 8px rgba(176,200,255,0.35); }
-
-#ls-game .ls-flag, #ls-game .ls-bomb {
-  font-size: 24px;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
-}
-#ls-game .ls-flag { color: #ff8fb1; }
-#ls-game .ls-bomb { color: #ffd66b; }
-
-#ls-game .ls-toast {
-  position: absolute; inset: 0;
-  pointer-events: none;
-}
-#ls-game .ls-float {
-  position: absolute;
-  font-weight: 900;
-  font-size: 20px;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  animation: ls-pop 900ms ease forwards;
-}
-#ls-game .ls-float.good { color: var(--ls-good); text-shadow: 0 0 18px rgba(120,255,167,0.6); }
-#ls-game .ls-float.win { color: #fff; text-shadow: 0 0 22px rgba(255,214,107,0.9), 0 0 44px rgba(177,140,255,0.55); }
-#ls-game @keyframes ls-pop {
-  0% { opacity:0; transform: translate(-50%,-30%) scale(0.8); }
-  25% { opacity:1; transform: translate(-50%,-58%) scale(1.05); }
-  100% { opacity:0; transform: translate(-50%,-90%) scale(0.98); }
+/* mine (shown on loss) */
+#novaSweepModal .ns-cell.mine.revealed::before {
+  content: "✹";
+  font-size: 22px;
+  line-height: 1;
 }
 
-#ls-game .ls-confetti {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-}
+/* numbers */
+#novaSweepModal .ns-cell[data-n="1"] { color:#7cc0ff; }
+#novaSweepModal .ns-cell[data-n="2"] { color:#6df0c2; }
+#novaSweepModal .ns-cell[data-n="3"] { color:#ffc28a; }
+#novaSweepModal .ns-cell[data-n="4"] { color:#ffa0d6; }
+#novaSweepModal .ns-cell[data-n="5"] { color:#ffd86a; }
+#novaSweepModal .ns-cell[data-n="6"] { color:#91ff9b; }
+#novaSweepModal .ns-cell[data-n="7"] { color:#ff9f9f; }
+#novaSweepModal .ns-cell[data-n="8"] { color:#e0e8ff; }
 
-#ls-game .ls-footer {
-  margin-top: 8px;
+/* banner */
+#novaSweepModal .ns-banner {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
   text-align: center;
-  color: var(--ls-muted);
-  opacity: 0.92;
+  font: 600 16px/1.2 var(--ns-font);
+  background: linear-gradient(180deg, rgba(78,190,255,.18), rgba(78,190,255,.06));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
 }
 
-/* Responsive: tighten gaps when board grows huge */
-@media (max-width: 740px) {
-  #ls-game .ls-controls { grid-template-columns: 1fr; }
+/* flag mode button (visual toggle only; uses your base .tile .level) */
+#novaSweepModal #nsFlagMode[aria-pressed="true"] {
+  outline: 2px solid #83b1ff;
+  box-shadow: 0 0 0 4px rgba(131,177,255,.15);
 }
 
+/* responsive cell size */
+@media (max-width: 900px) {
+  #novaSweepModal { --ns-cell: 40px; }
+}
+@media (max-width: 600px) {
+  #novaSweepModal { --ns-cell: 36px; }
+}
 
 
 /* ===== Night Grid (stunning edition) ===== */
@@ -1011,11 +911,11 @@ canvas{ display:block }
   </div>
 </div>
 
-<!-- LuminSweep tile -->
-<div class="tile level" style="flex:1; min-height:68px" onclick="openLuminSweep()">
+<!-- Play Games tile (launcher) -->
+<div class="tile level" style="flex:1; min-height:68px" onclick="openNovaSweep()">
   <div class="game-card">
-    <img src="img/LuminSweep.png" alt="LuminSweep" class="game-thumb" loading="lazy">
-    <div class="game-title">LuminSweep</div>
+    <img src="img/NovaSweep.png" alt="Minesweeper" class="game-thumb" loading="lazy">
+    <div class="game-title">Nova Sweep</div>
   </div>
 </div>
 
@@ -1284,48 +1184,38 @@ canvas{ display:block }
 </div>
 
 
-<!-- Everything is sandboxed inside #ls-game to avoid global CSS bleed -->
-  <main id="ls-game" aria-label="LuminSweep Minesweeper">
-    <header class="ls-topbar">
-      <a class="ls-back" href="../index.html" aria-label="Back">⟵ Back</a>
-      <h1 class="ls-brand">Lumin<span>Sweep</span></h1>
-      <div class="ls-stats">
-        <div class="ls-stat"><label>Chads</label><strong id="ls-chads">0</strong></div>
-        <div class="ls-stat"><label>Time</label><strong id="ls-time">0.0s</strong></div>
-        <div class="ls-stat"><label>Mines</label><strong id="ls-mines">0</strong></div>
+<!-- NOVA SWEEP Modal -->
+<div class="overlay" id="novaSweepModal" aria-hidden="true" style="display:none">
+  <div class="panel">
+    <div class="row">
+      <h2>Nova Sweep</h2>
+      <div class="row" style="gap:8px">
+        <button class="tile level" style="padding:8px 12px" id="nsStart">Start</button>
+        <button class="tile level" style="padding:8px 12px" id="nsFlagMode" aria-pressed="false">Flag Mode</button>
+        <button class="tile level" style="padding:8px 12px" id="nsQuit">Quit</button>
       </div>
-    </header>
+    </div>
 
-    <section class="ls-controls" aria-label="Game controls">
-      <div class="ls-row">
-        <label>Difficulty</label>
-        <select id="ls-diff">
-          <option value="easy">Easy (9×9, 10)</option>
-          <option value="normal" selected>Normal (12×12, 22)</option>
-          <option value="hard">Hard (16×16, 40)</option>
-          <option value="extreme">Extreme (20×20, 70)</option>
-        </select>
+    <div class="row" style="gap:12px">
+      <div class="note">Moves: <b id="nsMoves">0</b></div>
+      <div class="note">Flags: <b id="nsFlags">0</b></div>
+      <div class="note">Session chads: <b id="nsEarned">0</b></div>
+    </div>
+
+    <div class="game-9x16">
+      <div class="ns-wrap">
+        <div class="ns-panel">
+          <div id="nsGrid" class="ns-grid" aria-label="Nova Sweep board"></div>
+        </div>
+        <div id="nsBanner" class="ns-banner" style="display:none" role="status" aria-live="polite"></div>
       </div>
-      <div class="ls-row">
-        <label>Zoom</label>
-        <input id="ls-zoom" type="range" min="0.8" max="1.4" step="0.02" value="1.15" />
-      </div>
-      <div class="ls-row">
-        <button id="ls-new" class="ls-btn">New Game</button>
-      </div>
-    </section>
+    </div>
 
-    <section class="ls-board-wrap">
-      <div id="ls-board" class="ls-board" data-board aria-label="Minesweeper board" role="grid"></div>
-      <!-- Overlays live inside the container so they don't affect your whole page -->
-      <canvas id="ls-confetti" class="ls-confetti" width="1" height="1" aria-hidden="true"></canvas>
-      <div id="ls-toast" class="ls-toast" aria-live="polite" aria-atomic="true"></div>
-    </section>
-
-    <footer class="ls-footer">
-      Left-click: reveal • Right-click: flag • Win = <b>+300</b> chads • Safe move = <b>+40</b> chads
-    </footer>
-
+    <p class="note">
+      Click or tap to reveal. Toggle <b>Flag Mode</b> to mark suspected mines. Clear all safe tiles to win.
+    </p>
+  </div>
+</div>
 
 <!-- NIGHT GRID Modal -->
 <div class="overlay" id="nightGridModal">
@@ -4286,334 +4176,241 @@ updateHUD();
 })();
 
 
-/* LuminSweep — fully scoped, no globals (except tiny helper in your tile)
-   Award 40 chads per safe click; +300 on a win. */
 (() => {
-  const $root = document.getElementById('ls-game');
-  if (!$root) return; // hard-guard if someone loads the JS without the HTML
+  // ------- scoped state -------
+  const modal = document.getElementById('novaSweepModal');
+  const gridEl = document.getElementById('nsGrid');
+  const startBtn = document.getElementById('nsStart');
+  const flagBtn  = document.getElementById('nsFlagMode');
+  const quitBtn  = document.getElementById('nsQuit');
+  const movesEl  = document.getElementById('nsMoves');
+  const flagsEl  = document.getElementById('nsFlags');
+  const earnedEl = document.getElementById('nsEarned');
+  const bannerEl = document.getElementById('nsBanner');
 
-  // ------- DOM refs (scoped) -------
-  const $board   = $root.querySelector('#ls-board');
-  const $confetti= $root.querySelector('#ls-confetti');
-  const $toast   = $root.querySelector('#ls-toast');
-  const $diff    = $root.querySelector('#ls-diff');
-  const $zoom    = $root.querySelector('#ls-zoom');
-  const $new     = $root.querySelector('#ls-new');
-  const $chads   = $root.querySelector('#ls-chads');
-  const $time    = $root.querySelector('#ls-time');
-  const $mines   = $root.querySelector('#ls-mines');
+  // Bigger board
+  const ROWS = 12, COLS = 18, MINES = 40;
 
-  // ------- State (scoped) -------
-  const STORE_KEY = 'luminSweep.chads.v1';
-  let chads = Number(localStorage.getItem(STORE_KEY) || 0);
-  let grid = []; // 2D cells
-  let rows = 0, cols = 0, mineCount = 0;
-  let started = false, dead = false, revealed = 0;
-  let startAt = 0, timerId = null;
-  let firstClickCell = null;
+  let cells = [];             // 2D array of cell objects
+  let isPlaying = false;
+  let firstClick = true;
+  let flagMode = false;
+  let revealedSafe = 0;
+  let moves = 0;
+  let flags = 0;
+  let earned = 0;
 
-  // cell helper
-  const Cell = (r, c) => ({ r, c, mine:false, flag:false, reveal:false, count:0, el:null });
-
-  // difficulty presets
-  const PRESETS = {
-    easy   : { rows: 9,  cols: 9,  mines: 10 },
-    normal : { rows: 12, cols: 12, mines: 22 },
-    hard   : { rows: 16, cols: 16, mines: 40 },
-    extreme: { rows: 20, cols: 20, mines: 70 }
+  // ------- helpers -------
+  const inBounds = (r, c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+  const idx = (r, c) => r * COLS + c;
+  const neighbors = (r, c) => {
+    const list = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const rr = r + dr, cc = c + dc;
+        if (inBounds(rr, cc)) list.push([rr, cc]);
+      }
+    }
+    return list;
   };
 
-  // ------- UI helpers -------
-  function setChads(v) {
-    chads = Math.max(0, v);
-    $chads.textContent = chads.toLocaleString();
-    localStorage.setItem(STORE_KEY, String(chads));
-  }
-  function addChads(delta) {
-    if (delta === 0) return;
-    setChads(chads + delta);
-  }
-  function showFloat(text, x, y, cls='good') {
-    const el = document.createElement('div');
-    el.className = `ls-float ${cls}`;
-    el.textContent = text;
-    el.style.left = `${x}px`;
-    el.style.top  = `${y}px`;
-    $toast.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
-  }
-  function boardPointFromCellEl(el) {
-    const rectBoard = $board.getBoundingClientRect();
-    const rectCell  = el.getBoundingClientRect();
-    return { x: (rectCell.left + rectCell.width/2) - rectBoard.left,
-             y: (rectCell.top  + rectCell.height/2) - rectBoard.top };
-  }
-
-  // confetti (contained to the game area)
-  function confettiBurst(ms = 1200) {
-    const ctx = $confetti.getContext('2d');
-    let W = $confetti.width  = $board.clientWidth;
-    let H = $confetti.height = $board.clientHeight;
-
-    const N = 140;
-    const parts = Array.from({length:N}, () => ({
-      x: Math.random()*W, y: -10 - Math.random()*50,
-      vx: (Math.random()-0.5)*2.6, vy: Math.random()*1.2 + 1.2,
-      size: Math.random()*6 + 3,
-      rot: Math.random()*Math.PI, vr: (Math.random()-0.5)*0.3,
-      life: Math.random()*ms*0.6 + ms*0.6
-    }));
-
-    let t0 = performance.now();
-    let raf = null;
-    (function frame(t){
-      const dt = t - t0; t0 = t;
-      ctx.clearRect(0,0,W,H);
-      parts.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.015;
-        p.rot += p.vr;
-        p.life -= dt;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = `hsl(${(p.x/W)*360}, 90%, 65%)`;
-        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.6);
-        ctx.restore();
-      });
-      if (parts.some(p => p.life > 0 && p.y < H+20)) {
-        raf = requestAnimationFrame(frame);
-      } else {
-        ctx.clearRect(0,0,W,H);
-        cancelAnimationFrame(raf);
-      }
-    })(performance.now());
-  }
-
-  // ------- Game logic -------
-  function neighbors(r, c) {
-    const out = [];
-    for (let dr=-1; dr<=1; dr++) for (let dc=-1; dc<=1; dc++) {
-      if (dr===0 && dc===0) continue;
-      const rr=r+dr, cc=c+dc;
-      if (rr>=0 && rr<rows && cc>=0 && cc<cols) out.push(grid[rr][cc]);
-    }
-    return out;
-  }
-
-  function placeMinesSafe(startCell) {
-    // avoid first-click cell & its neighbors
-    const forbidden = new Set([`${startCell.r},${startCell.c}`]);
-    neighbors(startCell.r, startCell.c).forEach(n => forbidden.add(`${n.r},${n.c}`));
-
-    let placed = 0;
-    while (placed < mineCount) {
-      const r = (Math.random()*rows)|0;
-      const c = (Math.random()*cols)|0;
-      const key = `${r},${c}`;
-      if (forbidden.has(key)) continue;
-      const cell = grid[r][c];
-      if (!cell.mine) {
-        cell.mine = true;
-        placed++;
-      }
-    }
-    // counts
-    for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) {
-      const cell = grid[r][c];
-      cell.count = cell.mine ? 0 : neighbors(r,c).reduce((n, v) => n + (v.mine?1:0), 0);
-    }
-  }
-
-  function revealCell(cell, userTriggered = false) {
-    if (cell.reveal || cell.flag || dead) return { hit:false, newly:0 };
-    cell.reveal = true;
-    revealed++;
-    paintCell(cell);
-
-    if (cell.mine) {
-      gameOver(false, cell);
-      return { hit:true, newly:1 };
-    }
-    // flood for zeros
-    let newly = 1;
-    if (cell.count === 0) {
-      neighbors(cell.r, cell.c).forEach(n => {
-        const res = revealCell(n, false);
-        newly += res.newly;
-      });
-    }
-    // if this action was a *user* safe move that did not end the game, award +40
-    if (userTriggered && !dead) {
-      awardMove(cell);
-    }
-    if (revealed === rows*cols - mineCount) {
-      gameOver(true);
-    }
-    return { hit:false, newly };
-  }
-
-  function chordReveal(cell) {
-    if (!cell.reveal || cell.count === 0) return;
-    const nbs = neighbors(cell.r, cell.c);
-    const flagCount = nbs.reduce((n, v) => n + (v.flag?1:0), 0);
-    if (flagCount !== cell.count) return;
-    let anyNewSafe = false;
-    for (const n of nbs) {
-      if (!n.reveal && !n.flag) {
-        const wasRevealed = n.reveal;
-        const res = revealCell(n, false);
-        if (!wasRevealed && !res.hit) anyNewSafe = true;
-      }
-    }
-    if (anyNewSafe && !dead) {
-      // consider chording that reveals safe squares one move
-      showMoveAwardFrom(cell.el);
-      addChads(40);
-    }
-  }
-
-  function awardMove(cell) {
-    showMoveAwardFrom(cell.el);
-    addChads(40);
-  }
-  function showMoveAwardFrom(el) {
-    const {x,y} = boardPointFromCellEl(el);
-    showFloat("+40", x, y, 'good');
-  }
-
-  function gameOver(win, explodedCell=null) {
-    dead = true;
-    clearInterval(timerId);
-    timerId = null;
-    // reveal all mines
-    for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) {
-      const cell = grid[r][c];
-      if (cell.mine) {
-        cell.reveal = true;
-        paintCell(cell);
-      }
-    }
-    if (win) {
-      const rect = $board.getBoundingClientRect();
-      confettiBurst(1400);
-      showFloat("+300", rect.width/2, rect.height/2, 'win');
-      addChads(300);
-    } else if (explodedCell) {
-      const {x,y} = boardPointFromCellEl(explodedCell.el);
-      showFloat("BOOM!", x, y, 'bad');
-    }
-  }
-
-  // ------- Rendering -------
-  function paintCell(cell) {
-    const el = cell.el;
-    el.className = 'ls-cell' + (cell.reveal ? ' revealed' : '') + (cell.mine ? ' mine' : '');
-    el.setAttribute('aria-label', cell.mine ? 'Mine' : (cell.count ? `Number ${cell.count}` : 'Empty'));
-    el.setAttribute('aria-pressed', cell.reveal ? 'true' : 'false');
-
-    if (cell.reveal) {
-      if (cell.mine) {
-        el.innerHTML = `<span class="ls-bomb">💣</span>`;
-      } else if (cell.count > 0) {
-        el.textContent = String(cell.count);
-        el.classList.add(`ls-num-${cell.count}`);
-      } else {
-        el.innerHTML = ''; // blank
-      }
-    } else {
-      el.innerHTML = cell.flag ? `<span class="ls-flag">🚩</span>` : '';
-    }
-  }
-
-  function buildBoard() {
-    $board.innerHTML = '';
-    $board.style.setProperty('--scale', $zoom.value);
-
-    const preset = PRESETS[$diff.value] || PRESETS.normal;
-    rows = preset.rows; cols = preset.cols; mineCount = preset.mines;
-    $mines.textContent = String(mineCount);
-
-    // CSS grid size
-    $board.style.gridTemplateColumns = `repeat(${cols}, var(--ls-cell))`;
-    $board.style.gridTemplateRows    = `repeat(${rows}, var(--ls-cell))`;
-
-    grid = Array.from({ length: rows }, (_, r) =>
-      Array.from({ length: cols }, (_, c) => {
-        const cell = Cell(r, c);
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = 'ls-cell';
-        el.role = 'gridcell';
-        el.dataset.r = r; el.dataset.c = c;
-        cell.el = el;
-        $board.appendChild(el);
-        return cell;
-      })
+  function makeEmptyBoard() {
+    cells = Array.from({ length: ROWS }, (_, r) =>
+      Array.from({ length: COLS }, (_, c) => ({
+        r, c, mine: false, n: 0, revealed: false, flagged: false, el: null
+      }))
     );
+    revealedSafe = 0;
+    moves = 0; flags = 0;
+    firstClick = true;
+    isPlaying = true;
+    bannerEl.style.display = 'none';
+    movesEl.textContent = moves;
+    flagsEl.textContent = flags;
 
-    // interactions (event delegation)
-    $board.oncontextmenu = e => { // right click flag
-      const el = e.target.closest('.ls-cell');
-      if (!el || dead) return;
-      e.preventDefault();
-      const cell = grid[Number(el.dataset.r)][Number(el.dataset.c)];
-      if (cell.reveal) return;
-      cell.flag = !cell.flag;
-      paintCell(cell);
-    };
-
-    $board.addEventListener('click', e => {
-      const el = e.target.closest('.ls-cell');
-      if (!el || dead) return;
-      const cell = grid[Number(el.dataset.r)][Number(el.dataset.c)];
-      if (cell.reveal || cell.flag) return;
-
-      // lazy start: build mines after the first safe click to guarantee safety
-      if (!started) {
-        started = true;
-        firstClickCell = cell;
-        placeMinesSafe(cell);
-        startAt = performance.now();
-        timerId = setInterval(() => {
-          const t = (performance.now() - startAt) / 1000;
-          $time.textContent = `${t.toFixed(1)}s`;
-        }, 100);
+    // render fresh UI
+    gridEl.innerHTML = '';
+    gridEl.style.setProperty('--ns-cols', COLS);
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const d = cells[r][c];
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'ns-cell hidden';
+        tile.setAttribute('data-r', r);
+        tile.setAttribute('data-c', c);
+        tile.setAttribute('aria-label', 'Hidden tile');
+        tile.addEventListener('click', onTileClick);
+        tile.addEventListener('contextmenu', onTileRightClick);
+        d.el = tile;
+        gridEl.appendChild(tile);
       }
-      const res = revealCell(cell, true);
-      // nothing else to do; awarding handled inside
-    });
-
-    // middle-click/alt-click chording support
-    $board.addEventListener('auxclick', e => {
-      const el = e.target.closest('.ls-cell');
-      if (!el || dead) return;
-      const cell = grid[Number(el.dataset.r)][Number(el.dataset.c)];
-      if (e.button === 1 || e.altKey) {
-        e.preventDefault();
-        chordReveal(cell);
-      }
-    });
-
-    // reset state
-    started = false; dead = false; revealed = 0; firstClickCell = null;
-    clearInterval(timerId); timerId = null; $time.textContent = '0.0s';
-
-    // clear overlays
-    const ctx = $confetti.getContext('2d');
-    ctx && ctx.clearRect(0,0,$confetti.width,$confetti.height);
-    $toast.innerHTML = '';
+    }
   }
 
-  // ------- Wire controls -------
-  $new.addEventListener('click', buildBoard);
-  $diff.addEventListener('change', buildBoard);
-  $zoom.addEventListener('input', () => $board.style.setProperty('--scale', $zoom.value));
+  function plantMines(excludeR, excludeC) {
+    // place mines avoiding the first clicked tile and its neighbors
+    const forbidden = new Set();
+    forbidden.add(idx(excludeR, excludeC));
+    neighbors(excludeR, excludeC).forEach(([rr, cc]) => forbidden.add(idx(rr, cc)));
 
-  // init
-  setChads(chads);
-  buildBoard();
+    let planted = 0;
+    while (planted < MINES) {
+      const r = Math.floor(Math.random() * ROWS);
+      const c = Math.floor(Math.random() * COLS);
+      const k = idx(r, c);
+      if (forbidden.has(k) || cells[r][c].mine) continue;
+      cells[r][c].mine = true;
+      planted++;
+    }
+
+    // numbers
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (cells[r][c].mine) continue;
+        cells[r][c].n = neighbors(r, c).reduce((acc, [rr, cc]) => acc + (cells[rr][cc].mine ? 1 : 0), 0);
+      }
+    }
+  }
+
+  function onTileRightClick(e) {
+    e.preventDefault();
+    const tile = e.currentTarget;
+    const r = +tile.dataset.r, c = +tile.dataset.c;
+    toggleFlag(r, c);
+  }
+
+  function onTileClick(e) {
+    if (!isPlaying) return;
+    const tile = e.currentTarget;
+    const r = +tile.dataset.r, c = +tile.dataset.c;
+
+    if (flagMode) {
+      toggleFlag(r, c);
+      return;
+    }
+    reveal(r, c, true);
+  }
+
+  function toggleFlag(r, c) {
+    const d = cells[r][c];
+    if (d.revealed) return;
+    d.flagged = !d.flagged;
+    d.el.classList.toggle('flag', d.flagged);
+    d.el.setAttribute('aria-label', d.flagged ? 'Flagged tile' : 'Hidden tile');
+    flags += d.flagged ? 1 : -1;
+    flagsEl.textContent = flags;
+  }
+
+  function reveal(r, c, countMove) {
+    const d = cells[r][c];
+    if (d.revealed || d.flagged) return;
+
+    // first click: build board guaranteed safe
+    if (firstClick) {
+      plantMines(r, c);
+      firstClick = false;
+    }
+
+    if (countMove) {
+      moves++; movesEl.textContent = moves;
+    }
+
+    d.revealed = true;
+    d.el.classList.remove('hidden');
+    d.el.classList.add('revealed');
+    d.el.removeEventListener('click', onTileClick);
+    d.el.removeEventListener('contextmenu', onTileRightClick);
+
+    if (d.mine) {
+      d.el.classList.add('mine');
+      showAllMines();
+      endGame(false);
+      return;
+    }
+
+    // award 40 chads for each safe reveal the player actively makes
+    earned += 40;
+    earnedEl.textContent = earned;
+
+    revealedSafe++;
+    if (d.n > 0) {
+      d.el.dataset.n = d.n;
+      d.el.textContent = d.n;
+      d.el.setAttribute('aria-label', `Revealed ${d.n}`);
+    } else {
+      d.el.setAttribute('aria-label', 'Revealed 0');
+      // flood-fill zeroes
+      neighbors(r, c).forEach(([rr, cc]) => {
+        if (!cells[rr][cc].revealed && !cells[rr][cc].mine) {
+          reveal(rr, cc, false);
+        }
+      });
+    }
+
+    // win?
+    const safeTotal = ROWS * COLS - MINES;
+    if (revealedSafe >= safeTotal) {
+      earned += 300; // win bonus
+      earnedEl.textContent = earned;
+      endGame(true);
+    }
+  }
+
+  function showAllMines() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const d = cells[r][c];
+        if (d.mine) {
+          d.el.classList.add('revealed', 'mine');
+          d.el.textContent = '';
+        }
+      }
+    }
+  }
+
+  function endGame(win) {
+    isPlaying = false;
+    bannerEl.style.display = 'block';
+    bannerEl.textContent = win ? 'Cleared! +300 chads 🎉' : 'Boom! Try again 💥';
+    // disable remaining inputs
+    gridEl.querySelectorAll('.ns-cell').forEach(btn => {
+      btn.disabled = true;
+      btn.style.cursor = 'default';
+    });
+  }
+
+  // ------- buttons -------
+  startBtn?.addEventListener('click', () => makeEmptyBoard());
+  flagBtn?.addEventListener('click', () => {
+    flagMode = !flagMode;
+    flagBtn.setAttribute('aria-pressed', String(flagMode));
+  });
+  quitBtn?.addEventListener('click', () => {
+    closeNovaSweep();
+  });
+
+  // ------- public API used by your launcher tile -------
+  window.openNovaSweep = function openNovaSweep() {
+    // keep earned across runs in this session; reset counters if first open
+    modal.style.display = 'block';
+    modal.setAttribute('aria-hidden', 'false');
+    if (!gridEl.children.length) makeEmptyBoard();
+  };
+
+  window.closeNovaSweep = function closeNovaSweep() {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    // optional: reset everything when closing
+    gridEl.innerHTML = '';
+    bannerEl.style.display = 'none';
+    isPlaying = false; firstClick = true;
+    moves = 0; flags = 0; revealedSafe = 0;
+    movesEl.textContent = '0'; flagsEl.textContent = '0';
+    // keep earned (session chads) visible; comment next line to persist across closings
+    // earned = 0; earnedEl.textContent = '0';
+  };
 })();
 
 
