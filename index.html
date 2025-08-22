@@ -749,7 +749,7 @@ canvas{ display:block }
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
         <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Level</div><div id="levelText" style="font-weight:900;font-size:18px">OFF</div></div></div>
-        <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
+        <div class="tile buy" data-open-buy-cards>Buy<br>Cards</div>
       </div>
     </div>
 
@@ -1396,10 +1396,6 @@ function closeOverlay(id){ document.getElementById(id)?.classList.remove('show')
 document.getElementById('playBtn')?.addEventListener('click', ()=>{
   if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
   openOverlay('playOverlay');
-}, {passive:true});
-document.getElementById('buyBtn')?.addEventListener('click', ()=>{
-  if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
-  openOverlay('buyOverlay');
 }, {passive:true});
 document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Level is OFF for now ✨'), {passive:true});
 
