@@ -744,7 +744,8 @@ canvas{ display:block }
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
         <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Level</div><div id="levelText" style="font-weight:900;font-size:18px">OFF</div></div></div>
-        <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
+        <button id="buyCardsBtn">Buy cards</button>
+
       </div>
     </div>
 
@@ -4861,7 +4862,7 @@ document.addEventListener('DOMContentLoaded', bootstrap);
   loadState();
   // offline catch-up
   tick(); // updates labels immediately
-const btn = document.getElementById('buyBtn');
+const btn = document.getElementById('buyCardsBtn');
   btn.addEventListener('click', openBuy);
 })();
 
