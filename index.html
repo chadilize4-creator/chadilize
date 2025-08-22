@@ -576,6 +576,53 @@ body{
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
+/* BUY CARDS — glowing version */
+.tile.buy{
+  /* vivid green gradient surface */
+  background:
+    radial-gradient(120% 120% at 50% 0%, #1affb0 0%, #0cc887 35%, #065a3b 80%) padding-box,
+    linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.05)) border-box;
+  color:#052e1c;
+  /* soft inner/outer glow */
+  box-shadow:
+    0 0 .5rem rgba(26,255,176,.5),
+    0 0 1.25rem rgba(26,255,176,.35),
+    inset 0 0 .5rem rgba(255,255,255,.06);
+  position:relative;
+  isolation:isolate;           /* keeps the halo behind the tile */
+}
+
+.tile.buy:hover{
+  transform:translateY(-1px);
+  box-shadow:
+    0 0 .75rem rgba(26,255,176,.8),
+    0 0 1.8rem rgba(26,255,176,.55),
+    0 8px 32px rgba(0,0,0,.55);
+}
+
+/* halo behind the button */
+.tile.buy::after{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    radial-gradient(60% 80% at 50% -10%, rgba(26,255,176,.65), transparent 60%),
+    radial-gradient(80% 80% at 100% 0%, rgba(14,190,120,.3), transparent 70%),
+    radial-gradient(90% 80% at 0% 100%, rgba(255,255,255,.06), transparent 60%);
+  filter:blur(20px);
+  opacity:.9;
+  animation:buyPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes buyPulse{
+  0%,100%{ opacity:.75; transform:scale(1); }
+  50%    { opacity:1;   transform:scale(1.02); }
+}
+
+@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
 /* Overlays */
 .overlay{ position:fixed; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96)); display:none; align-items:center; justify-content:center; z-index:120; padding: clamp(8px, 3vw, 16px); }
@@ -583,150 +630,6 @@ body{
 .panel{ background:linear-gradient(180deg,#071017,#0b0f12); padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03); width:100%;max-width:920px;color:#ddd;box-shadow:0 28px 100px rgba(0,0,0,0.6); max-height:calc(var(--app-h) - 24px); overflow:auto }
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px; flex-wrap:wrap}
 .note{font-size:13px;color:#9aa3ab}
-
-/* ---------- Overlay layout ---------- */
-.shop {
-  position: fixed; inset: 0;
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(255,255,255,.08), transparent 60%),
-              radial-gradient(1000px 800px at 120% 110%, rgba(255,255,255,.06), transparent 65%),
-              var(--tg-theme-bg-color, #0e0f13);
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 12px;
-  padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
-  z-index: 9999;
-  backdrop-filter: blur(4px);
-  color: var(--tg-theme-text-color, #fff);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-}
-.hidden { display: none !important; }
-
-.shop__chrome{
-  display:flex; align-items:center; justify-content:space-between;
-  padding: 10px 8px 0 8px;
-}
-.shop__title{ display:flex; flex-direction:column; gap:4px; }
-.shop__title-left{
-  font-size: 22px; font-weight: 800; letter-spacing:.3px;
-}
-.shop__subtitle{ opacity:.7; font-size:12px; }
-
-.shop__close{
-  width:36px; height:36px; border-radius:12px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
-  color: inherit; font-size:18px; cursor:pointer;
-  transition: transform .06s ease;
-}
-.shop__close:active{ transform: scale(.95); }
-
-.shop__tabs{
-  display:flex; gap:8px; padding: 0 8px;
-}
-.shop__tab{
-  flex:1; padding:10px 12px; border-radius:14px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04);
-  color:inherit; font-weight:700; cursor:pointer;
-}
-.shop__tab.is-active{
-  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.06));
-  box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 8px 20px rgba(0,0,0,.25);
-}
-
-.shop__body{
-  min-height: 0; /* allow grid scroll */
-  overflow: hidden; padding: 0 4px;
-}
-
-/* Two-column grid like your mockup (1:1 image cards). */
-.cardlist{
-  height: 100%; overflow: auto; padding: 8px;
-  display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px;
-}
-
-/* ---------- Card ---------- */
-.card{
-  display:flex; flex-direction:column; gap:8px;
-  border-radius:18px; padding:10px;
-  background: rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.12);
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-}
-.card__name{
-  font-weight:800; font-size:14px; padding:6px 8px;
-  border-radius:10px; background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-}
-.card__imgwrap{
-  position:relative; width:100%; aspect-ratio:1/1;
-  border-radius:12px; overflow:hidden; background:#15171d;
-  border:2px solid rgba(255,255,255,.1);
-}
-.card__img{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; filter: saturate(1.05) contrast(1.05);
-}
-.card__stamp{
-  position:absolute; inset:auto 8px 8px auto;
-  padding:6px 8px; background: rgba(0,0,0,.55);
-  color:#ff5a5a; border:1px solid rgba(255,0,0,.6);
-  border-radius:8px; font-weight:900; font-size:11px; text-transform:uppercase;
-}
-.card__stamp--big{
-  inset: 50% auto auto 50%; transform: translate(-50%, -50%) rotate(-10deg);
-  font-size: 18px; letter-spacing:1px; background: rgba(0,0,0,.65);
-  padding: 10px 14px; border-width: 2px;
-}
-
-.card__row{ display:flex; gap:8px; }
-.pill{
-  flex:1; padding:8px; font-size:12px; border-radius:10px;
-  background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
-}
-.card__level{ text-align:center; font-weight:800; }
-
-.card.--disabled .card__img{ filter: grayscale(1) brightness(.65); }
-.card.--disabled{ opacity:.8; }
-.card.--completed .card__img{ filter: grayscale(1) brightness(.5); }
-
-/* ---------- Bottom strip ---------- */
-.shop__bottom{
-  display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding: 0 8px 8px;
-}
-.shop__texture{
-  height:72px; border-radius:14px; overflow:hidden;
-  border:1px solid rgba(255,255,255,.12); background: #222;
-}
-.shop__texture img{ width:100%; height:100%; object-fit:cover; }
-.shop__limited-banner{
-  display:grid; place-items:center; border-radius:14px; height:72px;
-  background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.12);
-  font-weight:800; font-size:18px; opacity:.7;
-}
-
-/* ---------- Confirm ---------- */
-.confirm{
-  position:fixed; inset:0; display:grid; place-items:center;
-  background: rgba(0,0,0,.45); z-index:10000;
-}
-.confirm__card{
-  width:min(92vw, 420px); border-radius:16px; padding:16px;
-  background: #1a1d23; color:#fff; border:1px solid rgba(255,255,255,.14);
-  box-shadow: 0 30px 80px rgba(0,0,0,.5);
-}
-.confirm__text{ font-size:15px; margin-bottom:14px; }
-.confirm__row{ display:flex; gap:10px; }
-.btn{
-  flex:1; padding:10px 14px; border-radius:12px; border:1px solid transparent;
-  background: rgba(255,255,255,.06); color:#fff; font-weight:800; cursor:pointer;
-}
-.btn.primary{ background: linear-gradient(180deg,#4ade80,#2dd4bf); color:#02110a; }
-.btn.ghost{ border-color: rgba(255,255,255,.2); }
-
-
-
 
 /* Username & Avatar */
 #nameOverlay .panel{ width:min(560px,100%); padding:0; border-radius:18px; overflow:hidden; background:transparent; border:none; box-shadow:none }
@@ -830,7 +733,7 @@ canvas{ display:block }
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
         <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Level</div><div id="levelText" style="font-weight:900;font-size:18px">OFF</div></div></div>
-        <div class="tile buy" id="buyBtn" onclick="openShop()">Buy<br/>Cards</div>
+        <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
 
@@ -935,51 +838,22 @@ canvas{ display:block }
       </div>
     </div>
 
-    <!-- ===== BUY CARDS OVERLAY (FULL SCREEN) ===== -->
-<div id="shopOverlay" class="shop hidden" aria-hidden="true">
-  <div class="shop__chrome">
-    <div class="shop__title">
-      <span class="shop__title-left">Buy cards</span>
-      <div class="shop__subtitle">increase generation/hr</div>
+    <!-- BUY CARDS overlay -->
+    <div class="overlay" id="buyOverlay">
+      <div class="panel">
+        <div class="row">
+          <h2>Buy Cards</h2>
+          <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('buyOverlay')">Close</button>
+        </div>
+        <div class="row" style="gap:10px">
+          <div class="tile buy" style="flex:1" onclick="buyCard('Bronze Drip', 250, 2)"><div><div style="font-weight:900">Bronze Drip</div><div class="note">+2 gen/hr • 250 chads</div></div></div>
+          <div class="tile buy" style="flex:1" onclick="buyCard('Silver Drip', 1200, 12)"><div><div style="font-weight:900">Silver Drip</div><div class="note">+12 gen/hr • 1,200 chads</div></div></div>
+          <div class="tile buy" style="flex:1" onclick="buyCard('Golden Drip', 5200, 60)"><div><div style="font-weight:900">Golden Drip</div><div class="note">+60 gen/hr • 5,200 chads</div></div></div>
+          <div class="tile buy" style="flex:1" onclick="buyCard('Emerald Drip', 22000, 280)"><div><div style="font-weight:900">Emerald Drip</div><div class="note">+280 gen/hr • 22,000 chads</div></div></div>
+        </div>
+        <p class="note">Cards stack permanently. Generation runs even when the app is closed.</p>
+      </div>
     </div>
-
-    <button class="shop__close" id="shopCloseBtn" aria-label="Close">✕</button>
-  </div>
-
-  <div class="shop__tabs">
-    <button class="shop__tab is-active" data-tab="buy">Buy Cards</button>
-    <button class="shop__tab" data-tab="completed">Completed Cards</button>
-    <button class="shop__tab" data-tab="limited">Limited Offers</button>
-  </div>
-
-  <div class="shop__body">
-    <!-- Buy / Completed / Limited lists -->
-    <div id="list-buy" class="cardlist"></div>
-    <div id="list-completed" class="cardlist hidden"></div>
-    <div id="list-limited" class="cardlist hidden"></div>
-  </div>
-
-  <!-- Bottom strip with texture + “limited offer” slot (empty by design) -->
-  <div class="shop__bottom">
-    <div class="shop__texture">
-      <img src="./img/wall.jpg" alt="wall texture" />
-    </div>
-    <div class="shop__limited-banner">limited offer</div>
-  </div>
-</div>
-
-<!-- Confirm modal -->
-<div id="confirmModal" class="confirm hidden" aria-hidden="true">
-  <div class="confirm__card">
-    <div class="confirm__text" id="confirmText">Are you sure?</div>
-    <div class="confirm__row">
-      <button class="btn ghost" id="btnCancelBuy">No</button>
-      <button class="btn primary" id="btnConfirmBuy">Yes</button>
-    </div>
-  </div>
-</div>
-<!-- ===== END OVERLAY ===== -->
-
 
     <!-- USERNAME overlay (step 1) -->
     <div class="overlay" id="nameOverlay">
@@ -1497,9 +1371,10 @@ document.getElementById('playBtn')?.addEventListener('click', ()=>{
   if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
   openOverlay('playOverlay');
 }, {passive:true});
-// REPLACE the existing buyBtn listener with this:
-document.getElementById('buyBtn')?.addEventListener('click', openShop, { passive: true });
-
+document.getElementById('buyBtn')?.addEventListener('click', ()=>{
+  if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
+  openOverlay('buyOverlay');
+}, {passive:true});
 document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Level is OFF for now ✨'), {passive:true});
 
 /* ===== Name & Avatar ===== */
@@ -1545,53 +1420,15 @@ document.getElementById('avatarSelectBtn')?.addEventListener('click', ()=>{
   state.avatarIdx = selectedAvatarIdx; saveStateLocal(state); setUserPill(state.name, state.avatarIdx); closeOverlay('avatarOverlay'); showToast('Welcome!');
 });
 
-
-/* ==== Telegram Mini App bootstrapping (safe, optional) ==== */
-(function () {
-  if (window.Telegram && Telegram.WebApp) {
-    Telegram.WebApp.ready();
-    // Respect Telegram theme where possible
-    document.documentElement.style.setProperty(
-      '--tg-theme-bg-color',
-      Telegram.WebApp.backgroundColor || '#0e0f13'
-    );
-    document.documentElement.style.setProperty(
-      '--tg-theme-text-color',
-      Telegram.WebApp.colorScheme === 'dark' ? '#fff' : '#111'
-    );
-  }
-})();
-
-/* ===== Small numeric helpers (fix "Not enough chads" false negatives) ===== */
-const EPS = 1e-6;
-// Turn things like "12,345", "1.5k", "2m" into a plain Number
-function toNum(v) {
-  if (typeof v === 'number') return v;
-  if (v == null) return 0;
-  const s = String(v).trim().toLowerCase().replace(/,/g, '');
-  const m = s.match(/^([0-9]*\.?[0-9]+)\s*([kmb])?$/);
-  if (m) {
-    const n = parseFloat(m[1]);
-    const mult = m[2] === 'k' ? 1e3 : m[2] === 'm' ? 1e6 : m[2] === 'b' ? 1e9 : 1;
-    return n * mult;
-  }
-  const n = Number(s);
-  return Number.isFinite(n) ? n : 0;
-}
-// UI-only formatter (we never store this formatted string)
-function format(n) {
-  n = Math.round(toNum(n));
-  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + 'B';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
-  if (n >= 1_000) return (n / 1_000).toFixed(2) + 'k';
-  return String(n);
-}
-
-
-
 /* ===== Toasts ===== */
 function showToast(html){ const wrap = document.getElementById('toastWrap'); if(!wrap) return; const t = document.createElement('div'); t.className='toast'; t.innerHTML = html; wrap.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s ease'; }, 2200); setTimeout(()=> t.remove(), 2600); }
+
+/* ===== Buy Cards ===== */
+function buyCard(name,cost,addGen){
+  if (state.chads < BigInt(cost)){ showToast('Not enough chads'); return; }
+  state.chads -= BigInt(cost); state.gen += BigInt(addGen); saveStateLocal(state); refreshUI(); showToast(`<b>${name}</b> purchased. +${addGen} gen/hr`);
+}
 
 /* ===== Grid helpers (Snake/Tetris) ===== */
 function buildGrid(container, cols, rows){
@@ -1602,17 +1439,6 @@ function buildGrid(container, cols, rows){
     clear(x,y){ const el=cells[idx(x,y)]; if(el){ el.className='cell'; } },
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
-
-// one-time fixer: ensure the shop save has a numeric chads
-try {
-  const s = JSON.parse(localStorage.getItem('chad_shop_state') || '{}');
-  const oldS = JSON.parse(localStorage.getItem('state') || '{}');
-  s.levels = s.levels || {};
-  s.chads  = Number(s.chads ?? oldS?.chads ?? 0);
-  localStorage.setItem('chad_shop_state', JSON.stringify(s));
-  Object.assign(STATE, s);
-} catch {}
-
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -4529,9 +4355,6 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
-// Hide the splash after boot
-window.addEventListener('load', hideLoaderSoon);
-
 </script>
 </body>
 </html>
