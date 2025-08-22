@@ -2070,20 +2070,16 @@ function render() {
   // Limited left empty
 }
 
-/* Confirm + purchase */
-let pendingBuy = null;
-const confirmModal = document.getElementById('confirmModal');
-const confirmText = document.getElementById('confirmText');
-document.getElementById('btnCancelBuy').onclick = () => {
-  confirmModal.classList.add('hidden');
-  pendingBuy = null;
-};
-document.getElementById('btnConfirmBuy').onclick = () => {
-  if (!pendingBuy) return;
-  const { card } = pendingBuy;
-  const lvl = currentLevel(card);
-  const price = toNum(card.levels[lvl].price);
-  const have = toNum(STATE.chads);
+const have  = Number(STATE.chads);
+const cost  = Number(price);
+
+if (have < cost) {
+  (window.Telegram?.WebApp?.showAlert || alert)('Not enough chads.');
+  return;
+}
+
+STATE.chads = have - cost;  // pay
+saveState();                // persist right away
 
   // ✅ robust numeric check (handles floats & any prior stringy state)
   if (have + EPS < price) {
