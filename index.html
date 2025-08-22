@@ -576,102 +576,164 @@ body{
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
-/* ===== Shop Overlay ===== */
-.shop-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.92);
-  backdrop-filter: blur(2px);
-  display: none; /* toggled via JS */
-  z-index: 9999;
-  color: #eee;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-}
-.shop-overlay.show { display: block; }
-
-.shop-shell { height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
-
-.shop-top {
-  display: grid; grid-template-columns: 1fr auto; align-items: center;
-  padding: 12px 12px 0 12px;
-}
-.shop-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.shop-tab {
-  background: #1f1f1f; border: 2px solid #333; color: #f1f1f1;
-  padding: 14px 10px; border-radius: 12px;
-  font-weight: 800; text-transform: lowercase; letter-spacing: .2px;
-}
-.shop-tab .sub { display:block; font-weight:600; opacity:.6; font-size:12px; margin-top:3px; }
-.shop-tab.is-active { outline: 2px solid #555; background: #262626; }
-
-.shop-close {
-  background: #2a2a2a; border: 2px solid #444; color: #fff;
-  width: 44px; height: 44px; border-radius: 12px; font-size: 20px; font-weight: 900;
+/* ===== BUY CARDS — Look & feel ===== */
+:root {
+  --bg-900: #0b0b0c;
+  --bg-800: #121214;
+  --bg-700: #17181b;
+  --glass: rgba(255,255,255,0.06);
+  --glass-2: rgba(255,255,255,0.08);
+  --stroke: rgba(255,255,255,0.10);
+  --muted: #9aa3ab;
+  --text: #e8e9ea;
+  --accent: #8a8aff;   /* subtle violet accent */
+  --danger: #ff5252;
+  --success: #8cffc9;
 }
 
-.shop-content { padding: 10px 12px 6px 12px; overflow: auto; }
-.card-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-  padding-bottom: 12px;
+.buy-overlay.hidden { display: none; }
+.buy-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: radial-gradient(1200px 1200px at 80% -10%, #20202a 0%, #0a0a0c 40%, #000 100%);
+  color: var(--text);
 }
 
-/* Card tile (matches your sketch) */
+.buy-shell { display:flex; flex-direction:column; height:100%; }
+
+.buy-topbar {
+  position: sticky; top:0; z-index: 2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 12px clamp(12px, 2vw, 24px);
+  background: color-mix(in hsl, black 70%, transparent);
+  border-bottom: 1px solid var(--stroke);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+
+.buy-tabs { display:flex; gap:10px; }
+.buy-tab {
+  all:unset; cursor:pointer; padding:10px 14px; border-radius:12px;
+  background: var(--glass); border:1px solid var(--stroke);
+  font-weight:700; line-height:1.1; text-transform: lowercase;
+  box-shadow: 0 0 0 1px #000 inset, 0 8px 20px rgba(0,0,0,.35);
+}
+.buy-tab span { display:block; font-weight:400; color:var(--muted); font-size:12px; margin-top:2px; }
+.buy-tab.is-active { background: linear-gradient(180deg, var(--glass-2), transparent); outline: 1px solid var(--accent); }
+
+.buy-close {
+  all:unset; cursor:pointer; font-size:34px; line-height:1; padding: 0 8px; border-radius: 12px;
+  color: var(--text); opacity:.9; transition:.2s ease;
+}
+.buy-close:hover { transform: scale(1.1); opacity:1; }
+
+.buy-content { flex:1; overflow:auto; padding: clamp(12px, 2vw, 24px); }
+
+.cards-grid {
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 1.8vw, 22px);
+  max-width: 1000px; margin: 0 auto;
+}
+
 .card {
-  background: #0f0f0f; border: 3px solid #2b2b2b; border-radius: 12px;
-  display: grid; grid-template-rows: auto auto auto auto auto; gap: 6px; padding: 10px;
-  position: relative;
-}
-.card-header {
-  background: #1b1b1b; border: 2px solid #2e2e2e; border-radius: 8px; padding: 8px 10px;
-  font-weight: 800; text-align: center;
-}
-.card-imgbox {
-  position: relative;
-  background: #151515; border: 3px solid #2a2a2a; border-radius: 8px;
-  overflow: hidden;
-  /* keep it perfectly square, as requested */
-  aspect-ratio: 1 / 1; /* modern CSS; guarantees 1:1 image area */
-}
-.card-imgbox img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.card-badge {
-  position: absolute; left: 6px; top: 6px;
-  font-size: 12px; font-weight: 900; color: #ff4242; text-shadow: 0 1px 0 #000;
-  background: rgba(0,0,0,0.6); padding: 4px 6px; border-radius: 6px; border: 1px solid #5a0000;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border:1px solid var(--stroke);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+  overflow:hidden; position:relative;
 }
 
-.card-row {
-  background: #1b1b1b; border: 2px solid #2e2e2e; border-radius: 8px; padding: 8px 10px;
-  font-weight: 700; display:flex; justify-content:space-between; align-items:center;
-}
-.card-row .label { opacity:.7; }
-.card-row .value { font-weight:900; }
-
-.level-row {
-  text-align: center; font-weight: 900; background:#0f0f0f; border:2px solid #2e2e2e; border-radius:8px; padding:8px 10px;
+.card-head {
+  padding: 10px 12px; font-weight:800; letter-spacing:.2px;
+  border-bottom:1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+  text-transform: none;
 }
 
-.card.disabled { opacity: .6; filter: grayscale(100%); }
-.card.disabled .card-badge { color: #ff3a3a; }
+.card-media {
+  position:relative;
+  padding:10px 10px 0 10px;
+}
+.card-media .imgbox {
+  width:100%; aspect-ratio: 1 / 1; /* keeps images perfectly square */
+  border-radius: 10px; overflow:hidden;
+  background: #111 url('img/.gitkeep') center/cover no-repeat; /* fallback */
+  border:1px solid var(--stroke);
+}
+.card-media img { width:100%; height:100%; object-fit:cover; display:block; }
 
-/* Bottom row */
-.shop-bottom {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 12px 12px 12px;
-}
-.texture-box {
-  border: 3px solid #2b2b2b; border-radius: 12px; background: #111;
-  min-height: 84px;
-  background-image: url('img/wall.jpg');
-  background-size: cover; background-position: center;
-}
-.limited-btn {
-  border: 3px solid #2b2b2b; border-radius: 12px; background: #1a1a1a; color: #eee;
-  font-weight: 900; font-size: 18px; min-height: 84px;
+.card-lock,
+.card-complete {
+  position:absolute; inset:auto 16px 16px 16px;
+  background: rgba(0,0,0,.6); color: var(--danger);
+  border:1px solid rgba(255,82,82,.45);
+  border-radius: 10px; padding: 8px 10px; font-weight:800; text-align:center;
 }
 
-/* Scrollbar for content (dark) */
-.shop-content::-webkit-scrollbar { width: 10px; }
-.shop-content::-webkit-scrollbar-thumb { background: #2d2d2d; border-radius: 6px; }
+.card-body { padding: 10px 12px 12px; display:grid; gap:8px; }
+.kv { display:flex; justify-content:space-between; font-size:13px; }
+.kv .label { color: var(--muted); }
+.level-pill {
+  margin-top:2px;
+  border:1px solid var(--stroke);
+  background: var(--glass);
+  padding:6px 10px; border-radius: 999px; display:inline-flex; align-items:center; gap:8px;
+  font-size:12px; letter-spacing:.3px;
+}
+.level-pill .dot { width:8px; height:8px; border-radius:99px; background:var(--accent); box-shadow:0 0 0 2px rgba(138,138,255,.25); }
+
+.card-actions { display:flex; gap:8px; margin-top:6px; }
+.btn {
+  all:unset; cursor:pointer; text-align:center; font-weight:800;
+  border-radius:12px; padding:10px 12px;
+  background: linear-gradient(180deg, #2b2b33, #1a1a1f);
+  border:1px solid var(--stroke);
+  box-shadow: 0 12px 24px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.btn.ghost {
+  background: transparent; border-style:dashed; color:var(--muted);
+}
+.price-ok { color: var(--success); }
+
+/* completed look */
+.card.is-complete { filter: grayscale(1) brightness(.85); }
+.card.is-complete .card-complete { display:block; }
+.card-complete { display:none; }
+
+/* bottom bar */
+.buy-bottombar {
+  position: sticky; bottom:0; z-index:2;
+  display:grid; grid-template-columns: 1fr 1fr; gap:12px;
+  padding: 12px clamp(12px, 2vw, 24px);
+  background: color-mix(in hsl, black 70%, transparent);
+  border-top:1px solid var(--stroke);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.texture-tile, .limited-tile {
+  border:1px solid var(--stroke); border-radius:16px;
+  min-height:84px; display:grid; place-items:center; font-size:22px; font-weight:800;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+}
+.texture-tile {
+  background: #000 url('img/wall.jpg') center/cover no-repeat;
+  user-select:none; pointer-events:none; /* taps do nothing */
+}
+
+/* confirm */
+.confirm-pane.hidden { display:none; }
+.confirm-pane {
+  position:fixed; inset:0; display:grid; place-items:center; z-index: 10000;
+  background: rgba(0,0,0,.55);
+}
+.confirm-card {
+  width:min(92vw, 440px); border-radius:16px; padding:18px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border:1px solid var(--stroke);
+  box-shadow: 0 18px 50px rgba(0,0,0,.6);
+}
+.confirm-card h3 { margin:0 0 6px; }
+.confirm-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+
 
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
@@ -889,31 +951,45 @@ canvas{ display:block }
       </div>
     </div>
 
-    <!-- ===== SHOP OVERLAY ===== -->
-<div id="shopOverlay" class="shop-overlay" aria-hidden="true">
-  <div class="shop-shell">
-    <!-- top bar -->
-    <div class="shop-top">
-      <div class="shop-tabs">
-        <button class="shop-tab is-active" data-tab="buy">Buy Cards<br><span class="sub">increase generation/hr</span></button>
-        <button class="shop-tab" data-tab="completed">Completed cards</button>
+    <!-- ===== BUY CARDS — Fullscreen Overlay ===== -->
+<div id="buyOverlay" class="buy-overlay hidden" aria-hidden="true">
+  <div class="buy-shell">
+
+    <!-- Top bar -->
+    <div class="buy-topbar">
+      <div class="buy-tabs">
+        <button class="buy-tab is-active" data-tab="shop">Buy cards<br><span>increase generation/hr</span></button>
+        <button class="buy-tab" data-tab="completed">Completed cards</button>
       </div>
-      <button class="shop-close" id="shopCloseBtn" aria-label="Close">✕</button>
+      <button id="closeBuyOverlay" class="buy-close" aria-label="Close">&times;</button>
     </div>
 
-    <!-- content -->
-    <div class="shop-content">
-      <div id="shopGrid" class="card-grid" data-mode="buy"></div>
+    <!-- Content -->
+    <div class="buy-content">
+      <div id="cardsGrid" class="cards-grid" data-tab-panel="shop"></div>
+      <div id="completedGrid" class="cards-grid hidden" data-tab-panel="completed"></div>
     </div>
 
-    <!-- bottom row -->
-    <div class="shop-bottom">
-      <div class="texture-box" title="Texture only — no action"></div>
-      <button class="limited-btn" id="limitedBtn">Limited offer</button>
+    <!-- Bottom bar -->
+    <div class="buy-bottombar">
+      <div class="texture-tile" aria-hidden="true" title="Texture only"></div>
+      <div class="limited-tile" title="Limited offers">Limited offer</div>
     </div>
+
+    <!-- Confirm dialog -->
+    <div id="confirmPane" class="confirm-pane hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="confirm-card">
+        <h3 id="confirmTitle">Buy this upgrade?</h3>
+        <p id="confirmBody">Are you sure you want to spend chads?</p>
+        <div class="confirm-actions">
+          <button id="confirmNo" class="btn ghost">No</button>
+          <button id="confirmYes" class="btn">Yes</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
-<!-- ===== /SHOP OVERLAY ===== -->
 
 
     <!-- USERNAME overlay (step 1) -->
@@ -1485,482 +1561,354 @@ document.getElementById('avatarSelectBtn')?.addEventListener('click', ()=>{
 function showToast(html){ const wrap = document.getElementById('toastWrap'); if(!wrap) return; const t = document.createElement('div'); t.className='toast'; t.innerHTML = html; wrap.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s ease'; }, 2200); setTimeout(()=> t.remove(), 2600); }
 
-/* ================= Shop Data & Helpers ================= */
+/* =========================================================
+   BUY CARDS v2 — Beautiful UI + full logic
+   - uses your existing: state { chads:BigInt, gen:BigInt, purchases:{} }
+   - recomputes total gen/h from current card levels
+   - locks per dependencies
+   ========================================================= */
 
+/* ---------- tiny helpers ---------- */
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 const IMG_BASE = 'img/';
 
-/** utility: BigIntify a number */
-const bi = (n) => BigInt(n);
-
-/** default toast */
-function shopToast(msg){
-  if (typeof showToast === 'function') showToast(msg);
-  else alert(msg);
+/* Fallbacks if not present in your file (keep your originals if you have them) */
+if (typeof refreshUI !== 'function') { window.refreshUI = ()=>{}; }
+if (typeof saveStateLocal !== 'function') {
+  const params = new URLSearchParams(location.search);
+  const UID_HINT = (params.get('token') || tg?.initDataUnsafe?.user?.id) ?? 'guest';
+  const STORAGE_KEY = `chad_state_${UID_HINT}`;
+  window.loadStateLocal = () => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    try{ const o = JSON.parse(raw||'{}'); return {
+      chads: BigInt(o.chads||"0"), gen: BigInt(o.gen||"0"), acc: BigInt(o.acc||"0"),
+      last: o.last||Math.floor(Date.now()/1000), level:o.level||1,
+      purchases: o.purchases||{}, name:o.name||null, avatarIdx:o.avatarIdx??null, avatarLocked: !!o.avatarLocked
+    } }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false }; }
+  };
+  window.saveStateLocal = (s) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      chads: s.chads.toString(), gen: s.gen.toString(), acc: s.acc.toString(),
+      last: s.last, level: s.level, purchases: s.purchases, name: s.name||null,
+      avatarIdx: s.avatarIdx ?? null, avatarLocked: !!s.avatarLocked
+    }));
+  };
 }
+if (!window.state) window.state = loadStateLocal();
 
-/** get current level for a card (1..12). Missing -> 1 */
-function getLevel(cardId){
-  const p = (state.purchases||{})[cardId];
-  return (typeof p === 'number') ? p : 1;
+/* ---------- card data ---------- */
+/* Level helper: an array of 11 entries -> we auto mark 12 as completed */
+const LSEQ = {
+  A: [ [100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000] ],
+  B: [ [300,200],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[450000,500000] ],
+  C: [ [200,300],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,300000],[30000,450000] ], // American Revolution (lvl11 price as given)
+  D: [ [200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000] ],
+  E: [ [300,150],[400,700],[700,1000],[2000,4000],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000] ],
+};
+function makeLevels(seq, reqs={}) {
+  return seq.map((pair, idx) => {
+    const level = idx+1;
+    const [price, gen] = pair;
+    const r = reqs[level];
+    return { level, price: BigInt(price), gen: BigInt(gen), req: r ? { id:r.id, name:r.name, level:r.level } : null };
+  });
 }
-/** set next level for card */
-function setLevel(cardId, lvl){
-  if (!state.purchases) state.purchases = {};
-  state.purchases[cardId] = lvl;
-}
-
-/** returns a standard level array from pairs [[price,gen],...] (11 entries for levels 1..11). */
-const mkLevels = (pairs) => pairs.map(([p,g]) => ({ price: bi(p), gen: bi(g) }));
-
-/** common patterns to reduce repetition */
-const PATTERN_A = mkLevels([
-  [200,170],[300,200],[500,400],[700,800],[5000,10000],
-  [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-  [70000,200000],[100000,154000]
-]);
-
-/* helper to quickly make card objects */
-function card(id, name, img, levelPairs, prereqs=[]){
-  return { id, name, img, levels: mkLevels(levelPairs), prereqs };
-}
-
-/* prereq helper */
-function req(atLevel, id, level, labelText){
-  return { atLevel, needs:[{ id, level, label: labelText }] };
-}
-
-/* ===== ALL 45 CARDS =====
-   Note: I corrected one obvious mismatch the game needs:
-   - Card 12 uses image ancientegypt.png and is named "Ancient Egypt" (your note said “Troy” but other cards depend on "Ancient Egypt").
-*/
 const CARDS = [
-  // 1
-  {
-    id:'americancivilwar', name:'American Civil War', img:'americancivilwar.png',
-    levels: mkLevels([
-      [500,150],[850,300],[1000,600],[1300,4000],[4000,8000],
-      [10000,35000],[70000,110000],[200000,300000],[400000,450000],
-      [500000,600000],[600000,650000]
-    ]),
-    prereqs:[
-      req(3,'americanrevolution',3,'American Revolution level 3 required'),
-      req(6,'greatdepression',3,'Great Depression level 3 required'),
-      req(10,'georgewashington',6,'George Washington level 6 required'),
-    ]
-  },
-  // 2
-  {
-    id:'troy', name:'Troy', img:'troy.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ]),
-    prereqs:[
-      req(3,'foundingofrome',3,'Founding Of Rome level 3 required'),
-      req(8,'marathon',6,'Marathon level 6 required'),
-    ]
-  },
-  // 3
-  {
-    id:'charliechoplin', name:'Charlie Choplin', img:'charliechoplin.png',
-    levels: mkLevels([
-      [400,200],[600,400],[800,600],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,400000],[400000,800000]
-    ]),
-    prereqs:[
-      req(3,'greatfireoflondon',3,'Great Fire Of London level 3 required'),
-      req(8,'ifletower',6,'Ifle Tower level 6 required'),
-    ]
-  },
-  // 4
-  {
-    id:'juliusceasar', name:'Julius Ceasar', img:'juliusceasar.png',
-    levels: mkLevels([
-      [600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],
-      [40000,50000],[70000,100000],[100000,200000],[200000,400000],
-      [400000,500000],[600000,800000]
-    ]),
-    prereqs:[
-      req(3,'foundingofrome',3,'Founding Of Rome level 3 required'),
-      req(8,'mayanempire',6,'Mayan Empire level 6 required'),
-    ]
-  },
-  // 5
-  {
-    id:'napoleon', name:'Napoleon', img:'napoleon.png',
-    levels: mkLevels([
-      [4000,5000],[6000,8000],[8000,11000],[12000,18000],[20000,40000],
-      [40000,50000],[70000,100000],[100000,200000],[200000,400000],
-      [400000,500000],[600000,800000]
-    ]),
-    prereqs:[
-      req(3,'waterloo',3,'Waterloo level 3 required'),
-      req(8,'blackdeath',6,'Black Death level 6 required'),
-    ]
-  },
-  // 6
-  {
-    id:'russiarevolution', name:'Russia Revolution', img:'russiarevolution.png',
-    levels: mkLevels([
-      [2000,4000],[4000,6000],[8000,11000],[12000,18000],[20000,40000],
-      [40000,50000],[70000,100000],[100000,200000],[200000,400000],
-      [400000,500000],[600000,800000]
-    ]),
-    prereqs:[
-      req(3,'coldwar',3,'Cold War level 3 required'),
-      req(8,'battleofstalingrad',6,'Battle Of Stalingrad level 6 required'),
-    ]
-  },
-  // 7
-  {
-    id:'monalisa', name:'Monalisa', img:'monalisa.png',
-    levels: mkLevels([
-      [1500,3000],[4000,6500],[9000,15000],[19000,28000],[30000,45000],
-      [60000,80000],[100000,200000],[300000,400000],[400000,500000],
-      [55000,666660],[700000,800000] // level10 as specified
-    ]),
-    prereqs:[
-      req(3,'issacnewton',3,'Issac Newton level 3 required'),
-      req(8,'georgewashington',6,'George Washington level 6 required'),
-    ]
-  },
-  // 8
-  {
-    id:'greatfireoflondon', name:'Great Fire Of London', img:'greatfireoflondon.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ]),
-    prereqs:[
-      req(3,'worldwar2',3,'World War 2 level 3 required'),
-      req(8,'marathon',6,'Marathon level 6 required'),
-    ]
-  },
-  // 9
-  {
-    id:'frenchrevolution', name:'French Revolution', img:'frenchrevolution.png',
-    levels: mkLevels([
-      [300,150],[400,600],[500,800],[900,1700],[4000,10000],
-      [13000,20000],[24000,36000],[45000,70000],[80000,90000],
-      [100000,200000],[300000,500000]
-    ]),
-    prereqs:[
-      req(3,'birthofjesus',3,'Birth Of Jesus level 3 required'),
-      req(8,'darkages',6,'Dark Ages level 6 required'),
-    ]
-  },
-  // 10
-  {
-    id:'indianindependence', name:'Indian Independence', img:'indianindependence.png',
-    levels: mkLevels([
-      [400,200],[600,400],[800,600],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,400000],[400000,800000]
-    ]),
-    prereqs:[
-      req(3,'greatfireoflondon',3,'Great Fire Of London level 3 required'),
-      req(8,'greatdepression',6,'Great Depression level 6 required'),
-    ]
-  },
-  // 11
-  {
-    id:'greatwallofchina', name:'Great Wall Of China', img:'greatwallofchina.png',
-    levels: mkLevels([
-      [200,300],[400,600],[800,1000],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,400000],[400000,800000]
-    ]),
-    prereqs:[
-      req(3,'feudaljapan',3,'Feudal Japan level 3 required'),
-      req(8,'ancientegypt',6,'Ancient Egypt level 6 required'),
-    ]
-  },
-  // 12
-  {
-    id:'ancientegypt', name:'Ancient Egypt', img:'ancientegypt.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ]),
-    prereqs:[
-      req(3,'spartacus',3,'Spartacus level 3 required'),
-      req(8,'stoneage',6,'Stone Age level 6 required'),
-    ]
-  },
-  // 13
-  {
-    id:'georgewashington', name:'George Washington', img:'georgewashington.png',
-    levels: mkLevels([
-      [600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],
-      [40000,50000],[70000,100000],[100000,200000],[200000,400000],
-      [400000,500000],[600000,800000]
-    ]),
-    prereqs:[ req(8,'moonlanding',6,'Moon Landing level 6 required') ]
-  },
-  // 14
-  {
-    id:'marathon', name:'Marathon', img:'marathon.png',
-    levels: mkLevels([
-      [100,100],[300,300],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ])
-  },
-  // 15
-  {
-    id:'jfkassassination', name:'Assassination Of JFK', img:'jfkassassination.png',
-    levels: mkLevels([
-      [400,200],[600,400],[800,600],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,400000],[400000,800000]
-    ]),
-    prereqs:[
-      req(3,'americanrevolution',3,'American Revolution level 3 required'),
-      req(8,'moonlanding',6,'Moon Landing level 6 required'),
-    ]
-  },
-  // 16
-  { id:'moonlanding', name:'Moon Landing', img:'moonlanding.png',
-    levels: mkLevels([
-      [300,200],[300,400],[500,600],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,400000],[450000,500000]
-    ])
-  },
-  // 17
-  { id:'americanrevolution', name:'American Revolution', img:'americanrevolution.png',
-    levels: mkLevels([
-      [200,300],[300,400],[500,600],[2000,5000],[5000,10000],
-      [20000,40000],[40000,60000],[80000,100000],[100000,200000],
-      [200000,300000],[30000,450000] // as supplied
-    ])
-  },
-  // 18
-  {
-    id:'stoneage', name:'Stone Age', img:'stoneage.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ]),
-    prereqs:[
-      req(3,'iceage',3,'Ice Age level 3 required'),
-      req(8,'bronzeage',6,'Bronze Age level 6 required'),
-    ]
-  },
-  // 19
-  { id:'iceage', name:'Ice Age', img:'iceage.png',
-    levels: mkLevels([
-      [300,150],[400,700],[700,1000],[2000,4000],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,300000]
-    ])
-  },
-  // 20
-  {
-    id:'renaicense', name:'Renaicense', img:'renaicense.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,154000]
-    ]),
-    prereqs:[
-      req(3,'spartacus',3,'Spartacus level 3 required'),
-      req(8,'vikings',6,'Vikings level 6 required'),
-    ]
+  /* 1 */ { id:'americancivilwar', name:'American Civil War', img:'americancivilwar.png',
+    levels: makeLevels(
+      [ [500,150],[850,300],[1000,600],[1300,4000],[4000,8000],[10000,35000],[70000,110000],[200000,300000],[400000,450000],[500000,600000],[600000,650000] ],
+      {3:{id:'americanrevolution',name:'American Revolution',level:3}, 6:{id:'greatdepression',name:'Great Depression',level:3}, 10:{id:'georgewashington',name:'George Washington',level:6}}
+    )
   },
 
-  /* 21..45 mostly follow the repeating pattern you provided */
-  { id:'spartacus', name:'Spartacus', img:'spartacus.png', levels: PATTERN_A },
-  { id:'bronzeage', name:'Bronze Age', img:'bronzeage.png',
-    levels: mkLevels([
-      [300,200],[600,700],[1000,2000],[3000,6000],[6000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,147000]
-    ])
+  /* 2 */ { id:'troy', name:'Troy', img:'troy.png',
+    levels: makeLevels(
+      [ [100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000] ],
+      {3:{id:'foundingofrome',name:'Founding Of Rome',level:3}, 8:{id:'marathon',name:'Marathon',level:6}}
+    )
   },
-  {
-    id:'falloftheberlinwall', name:'Fall Of The Berlin Wall', img:'falloftheberlinwall.png',
-    levels: PATTERN_A,
-    prereqs:[
-      req(3,'chernobyldisaster',3,'Chernobyl Disaster level 3 required'),
-      req(8,'statueofliberty',6,'Statue Of Liberty level 6 required'),
-    ]
+
+  /* 3 */ { id:'charliechoplin', name:'Charlie Choplin', img:'charliechoplin.png',
+    levels: makeLevels(
+      [ [400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000] ],
+      {3:{id:'greatfireoflondon',name:'Great Fire Of London',level:3}, 8:{id:'ifletower',name:'Ifle Tower',level:6}}
+    )
   },
-  { id:'waterloo', name:'Waterloo', img:'waterloo.png', levels: PATTERN_A },
-  { id:'battleofstalingrad', name:'Battle Of Stalingrad', img:'battleofstalingrad.png', levels: PATTERN_A },
-  { id:'statueofliberty', name:'Statue Of Liberty', img:'statueofliberty.png', levels: PATTERN_A },
-  { id:'worldwar2', name:'World War 2', img:'worldwar2.png', levels: PATTERN_A },
-  { id:'issacnewton', name:'Issac Newton', img:'issacnewton.png', levels: PATTERN_A },
-  { id:'chernobyldisaster', name:'Chernobyl Disaster', img:'chernobyldisaster.png', levels: PATTERN_A },
-  { id:'coldwar', name:'Cold War', img:'coldwar.png', levels: PATTERN_A },
-  { id:'birthofjesus', name:'Birth Of Jesus', img:'birthofjesus.png', levels: PATTERN_A },
-  { id:'feudaljapan', name:'Feudal Japan', img:'feudaljapan.png', levels: PATTERN_A },
-  { id:'foundingofrome', name:'Founding Of Rome', img:'foundingofrome.png', levels: PATTERN_A },
-  { id:'ifletower', name:'Ifle Tower', img:'ifletower.png', levels: PATTERN_A },
-  { id:'greatdepression', name:'Great Depression', img:'greatdepression.png', levels: PATTERN_A },
-  { id:'mayanempire', name:'Mayan Empire', img:'mayanempire.png', levels: PATTERN_A },
-  {
-    id:'blackdeath', name:'Black Death', img:'blackdeath.png',
-    levels: mkLevels([
-      [100,50],[300,200],[500,400],[700,800],[5000,10000],
-      [10000,30000],[20000,40000],[40000,50000],[60000,70000],
-      [70000,200000],[100000,250000]
-    ]),
-    prereqs:[
-      req(3,'darkages',3,'Dark Ages level 3 required'),
-      req(8,'crusades',6,'Crusades level 6 required'),
-    ]
+
+  /* 4 */ { id:'juliusceasar', name:'Julius Ceasar', img:'juliusceasar.png',
+    levels: makeLevels(
+      [ [600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000] ],
+      {3:{id:'foundingofrome',name:'Founding Of Rome',level:3}, 8:{id:'mayanempire',name:'Mayan Empire',level:6}}
+    )
   },
-  { id:'crusades', name:'Crusades', img:'crusades.png', levels: PATTERN_A },
-  { id:'inventionoftelephone', name:'Invention of Telephone', img:'inventionoftelephone.png', levels: PATTERN_A },
-  { id:'darkages', name:'Dark Ages', img:'darkages.png', levels: PATTERN_A },
-  { id:'arabianspring', name:'Arabian Spring', img:'arabianspring.png', levels: PATTERN_A },
-  { id:'babylontower', name:'Babylon Tower', img:'babylontower.png', levels: PATTERN_A },
-  { id:'charlesdarwin', name:'Charles Darwin', img:'charlesdarwin.png', levels: PATTERN_A },
-  { id:'industrialrevolution', name:'Industrial Revolution', img:'industrialrevolution.png', levels: PATTERN_A },
-  { id:'vikings', name:'Vikings', img:'vikings.png', levels: PATTERN_A },
+
+  /* 5 */ { id:'napoleon', name:'Napoleon', img:'napoleon.png',
+    levels: makeLevels(
+      [ [4000,5000],[6000,8000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000] ],
+      {3:{id:'waterloo',name:'Waterloo',level:3}, 8:{id:'blackdeath',name:'Black Death',level:6}}
+    )
+  },
+
+  /* 6 */ { id:'russiarevolution', name:'Russia Revolution', img:'russiarevolution.png',
+    levels: makeLevels(
+      [ [2000,4000],[4000,6000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000] ],
+      {3:{id:'coldwar',name:'Cold War',level:3}, 8:{id:'battleofstalingrad',name:'Battle Of Stalingrad',level:6}}
+    )
+  },
+
+  /* 7 */ { id:'monalisa', name:'Monalisa', img:'monalisa.png',
+    levels: makeLevels(
+      [ [1500,3000],[4000,6500],[9000,15000],[19000,28000],[30000,45000],[60000,80000],[100000,200000],[300000,400000],[400000,500000],[55000,666660],[700000,800000] ],
+      {3:{id:'issacnewton',name:'Issac Newton',level:3}, 8:{id:'georgewashington',name:'George Washington',level:6}}
+    )
+  },
+
+  /* 8 */ { id:'greatfireoflondon', name:'Great Fire Of London', img:'greatfireoflondon.png',
+    levels: makeLevels(LSEQ.A, {3:{id:'worldwar2',name:'World War 2',level:3}, 8:{id:'marathon',name:'Marathon',level:6}})
+  },
+
+  /* 9 */ { id:'frenchrevolution', name:'French Revolution', img:'frenchrevolution.png',
+    levels: makeLevels(
+      [ [300,150],[400,600],[500,800],[900,1700],[4000,10000],[13000,20000],[24000,36000],[45000,70000],[80000,90000],[100000,200000],[300000,500000] ],
+      {3:{id:'birthofjesus',name:'Birth Of Jesus',level:3}, 8:{id:'darkages',name:'Dark Ages',level:6}}
+    )
+  },
+
+  /* 10 */ { id:'indianindependence', name:'Indian Independence', img:'indianindependence.png',
+    levels: makeLevels(
+      [ [400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000] ],
+      {3:{id:'greatfireoflondon',name:'Great Fire Of London',level:3}, 8:{id:'greatdepression',name:'Great Depression',level:6}}
+    )
+  },
+
+  /* 11 */ { id:'greatwallofchina', name:'Great Wall Of China', img:'greatwallofchina.png',
+    levels: makeLevels(
+      [ [200,300],[400,600],[800,1000],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000] ],
+      {3:{id:'feudaljapan',name:'Feudal Japan',level:3}, 8:{id:'ancientegypt',name:'Ancient Egypt',level:6}}
+    )
+  },
+
+  /* 12 */ { id:'ancientegypt', name:'Ancient Egypt', img:'ancientegypt.png',
+    levels: makeLevels(LSEQ.A, {3:{id:'spartacus',name:'Spartacus',level:3}, 8:{id:'stoneage',name:'Stone Age',level:6}})
+  },
+
+  /* 13 */ { id:'georgewashington', name:'George Washington', img:'georgewashington.png',
+    levels: makeLevels(
+      [ [600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000] ],
+      {8:{id:'moonlanding',name:'Moon Landing',level:6}}
+    )
+  },
+
+  /* 14 */ { id:'marathon', name:'Marathon', img:'marathon.png',
+    levels: makeLevels([ [100,100],[300,300],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000] ])
+  },
+
+  /* 15 */ { id:'jfkassassination', name:'Assassination Of JFK', img:'jfkassassination.png',
+    levels: makeLevels(LSEQ.B, {3:{id:'americanrevolution',name:'American Revolution',level:3}, 8:{id:'moonlanding',name:'Moon Landing',level:6}})
+  },
+
+  /* 16 */ { id:'moonlanding', name:'Moon Landing', img:'moonlanding.png',
+    levels: makeLevels(LSEQ.B)
+  },
+
+  /* 17 */ { id:'americanrevolution', name:'American Revolution', img:'americanrevolution.png',
+    levels: makeLevels(LSEQ.C)
+  },
+
+  /* 18 */ { id:'stoneage', name:'Stone Age', img:'stoneage.png',
+    levels: makeLevels(LSEQ.A, {3:{id:'iceage',name:'Ice Age',level:3}, 8:{id:'bronzeage',name:'Bronze Age',level:6}})
+  },
+
+  /* 19 */ { id:'iceage', name:'Ice Age', img:'iceage.png',
+    levels: makeLevels(LSEQ.E)
+  },
+
+  /* 20 */ { id:'renaicense', name:'Renaicense', img:'renaicense.png',
+    levels: makeLevels(LSEQ.A, {3:{id:'spartacus',name:'Spartacus',level:3}, 8:{id:'vikings',name:'Vikings',level:6}})
+  },
+
+  /* 21 */ { id:'spartacus', name:'Spartacus', img:'spartacus.png', levels: makeLevels(LSEQ.D) },
+  /* 22 */ { id:'bronzeage', name:'Bronze Age', img:'bronzeage.png',
+    levels: makeLevels([ ...LSEQ.D.slice(0,10), [100000,147000] ]) },
+
+  /* 23 */ { id:'falloftheberlinwall', name:'Fall Of The Berlin Wall', img:'falloftheberlinwall.png',
+    levels: makeLevels(LSEQ.A, {3:{id:'chernobyldisaster',name:'Chernobyl Disaster',level:3}, 8:{id:'statueofliberty',name:'Statue Of Liberty',level:6}})
+  },
+
+  /* 24 */ { id:'waterloo', name:'Waterloo', img:'waterloo.png', levels: makeLevels(LSEQ.D) },
+  /* 25 */ { id:'battleofstalingrad', name:'Battle Of Stalingrad', img:'battleofstalingrad.png', levels: makeLevels(LSEQ.D) },
+  /* 26 */ { id:'statueofliberty', name:'Statue Of Liberty', img:'statueofliberty.png', levels: makeLevels(LSEQ.D) },
+  /* 27 */ { id:'worldwar2', name:'World War 2', img:'worldwar2.png', levels: makeLevels(LSEQ.D) },
+  /* 28 */ { id:'issacnewton', name:'Issac Newton', img:'issacnewton.png', levels: makeLevels(LSEQ.D) },
+  /* 29 */ { id:'chernobyldisaster', name:'Chernobyl Disaster', img:'chernobyldisaster.png', levels: makeLevels(LSEQ.D) },
+  /* 30 */ { id:'coldwar', name:'Cold War', img:'coldwar.png', levels: makeLevels(LSEQ.D) },
+  /* 31 */ { id:'birthofjesus', name:'Birth Of Jesus', img:'birthofjesus.png', levels: makeLevels(LSEQ.D) },
+  /* 32 */ { id:'feudaljapan', name:'Feudal Japan', img:'feudaljapan.png', levels: makeLevels(LSEQ.D) },
+  /* 33 */ { id:'foundingofrome', name:'Founding Of Rome', img:'foundingofrome.png', levels: makeLevels(LSEQ.D) },
+  /* 34 */ { id:'ifletower', name:'Ifle Tower', img:'ifletower.png', levels: makeLevels(LSEQ.D) },
+  /* 35 */ { id:'greatdepression', name:'Great Depression', img:'greatdepression.png', levels: makeLevels(LSEQ.D) },
+  /* 36 */ { id:'mayanempire', name:'Mayan Empire', img:'mayanempire.png', levels: makeLevels(LSEQ.D) },
+
+  /* 37 */ { id:'blackdeath', name:'Black Death', img:'blackdeath.png',
+    levels: makeLevels(
+      [ [100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,250000] ],
+      {3:{id:'darkages',name:'Dark Ages',level:3}, 8:{id:'crusades',name:'Crusades',level:6}}
+    )
+  },
+
+  /* 38 */ { id:'crusades', name:'Crusades', img:'crusades.png', levels: makeLevels(LSEQ.D) },
+  /* 39 */ { id:'inventionoftelephone', name:'Invention of Telephone', img:'inventionoftelephone.png', levels: makeLevels(LSEQ.D) },
+  /* 40 */ { id:'darkages', name:'Dark Ages', img:'darkages.png', levels: makeLevels(LSEQ.D) },
+  /* 41 */ { id:'arabianspring', name:'Arabian Spring', img:'arabianspring.png', levels: makeLevels(LSEQ.D) },
+  /* 42 */ { id:'babylontower', name:'Babylon Tower', img:'babylontower.png', levels: makeLevels(LSEQ.D) },
+  /* 43 */ { id:'charlesdarwin', name:'Charles Darwin', img:'charlesdarwin.png', levels: makeLevels(LSEQ.D) },
+  /* 44 */ { id:'industrialrevolution', name:'Industrial Revolution', img:'industrialrevolution.png', levels: makeLevels(LSEQ.D) },
+  /* 45 */ { id:'vikings', name:'Vikings', img:'vikings.png', levels: makeLevels(LSEQ.D) },
 ];
 
-/* ================= Rendering & Logic ================= */
-
-function openShop(mode='buy'){
-  const ov = document.getElementById('shopOverlay');
-  ov.classList.add('show');
-  ov.setAttribute('aria-hidden','false');
-  setTab(mode);
-  renderShop(mode);
+/* ---------- state helpers for cards ---------- */
+function getLevel(id){ return (state.purchases?.[id]|0); }       // 0..12
+function setLevel(id, lvl){ state.purchases[id] = Math.min(12, Math.max(0, lvl)); }
+function levelData(card, nextLevel){ return card.levels.find(l=>l.level===nextLevel); }
+function isCompleted(id){ return getLevel(id) >= 12; }
+function unmetReq(card, nextLevel){
+  const data = levelData(card, nextLevel); if (!data || !data.req) return null;
+  const has = getLevel(data.req.id) >= data.req.level;
+  return has ? null : `${data.req.name} level ${data.req.level} required`;
 }
-function closeShop(){
-  const ov = document.getElementById('shopOverlay');
-  ov.classList.remove('show');
-  ov.setAttribute('aria-hidden','true');
-}
-
-function setTab(mode){
-  document.querySelectorAll('.shop-tab').forEach(b=>{
-    b.classList.toggle('is-active', b.dataset.tab === mode);
-  });
-  const grid = document.getElementById('shopGrid');
-  grid.dataset.mode = mode;
-}
-
-function cardById(id){ return CARDS.find(c => c.id === id); }
-
-function prereqMessage(card, nextLevel){
-  // find any rule that targets this nextLevel and is not yet satisfied
-  const needs = (card.prereqs||[]).filter(r => r.atLevel === nextLevel).flatMap(r=>r.needs||[]);
-  for (const need of needs){
-    const otherLevel = getLevel(need.id);
-    if (otherLevel < need.level) return need.label || `${cardById(need.id)?.name||need.id} level ${need.level} required`;
-  }
-  return null;
-}
-
-function isCompleted(cardId){
-  return getLevel(cardId) >= 12;
-}
-
-function renderShop(mode='buy'){
-  const grid = document.getElementById('shopGrid');
-  grid.innerHTML = '';
-
-  // filter cards
-  const list = CARDS.filter(c => mode==='completed' ? isCompleted(c.id) : !isCompleted(c.id));
-
-  for (const card of list){
-    const lvl = getLevel(card.id); // next level to buy or display
-    const done = lvl >= 12;
-    const data = card.levels[lvl-1]; // levels array is 1..11
-    const blockMsg = !done ? prereqMessage(card, lvl) : null;
-
-    const div = document.createElement('div');
-    div.className = 'card' + (done ? ' disabled' : '');
-    div.innerHTML = `
-      <div class="card-header">${card.name}</div>
-      <div class="card-imgbox">
-        <img src="${IMG_BASE + card.img}" alt="${card.name}">
-        ${ done ? `<div class="card-badge">completed</div>` :
-           blockMsg ? `<div class="card-badge">${blockMsg}</div>` : '' }
-      </div>
-      <div class="card-row"><span class="label">price :</span><span class="value">${fmt(data?.price||0n)} chads</span></div>
-      <div class="card-row"><span class="label">generation/h increased :</span><span class="value">${fmt(data?.gen||0n)} chads</span></div>
-      <div class="level-row">level ${Math.min(lvl,12)}</div>
-    `;
-
-    if (!done){
-      div.addEventListener('click', () => {
-        // guard prereqs
-        if (blockMsg){
-          shopToast(blockMsg);
-          return;
-        }
-        // confirm
-        const ok = confirm(`Are you sure you want to buy the card?\n\n${card.name} — Level ${lvl}\nPrice: ${fmt(data.price)} chads\nGives: +${fmt(data.gen)} gen/hour`);
-        if (!ok) return;
-
-        // enough chads?
-        if (state.chads < data.price){
-          shopToast('Not enough chads.');
-          return;
-        }
-
-        // charge and apply generation
-        state.chads -= data.price;
-        state.gen += data.gen;
-
-        // level up
-        const newLvl = lvl + 1;
-        setLevel(card.id, newLvl);
-
-        // save & refresh UI
-        saveStateLocal(state);
-        if (typeof refreshUI === 'function') refreshUI();
-
-        // re-render current tab
-        renderShop(mode);
-      });
+function recomputeGen(){
+  let total = 0n;
+  for (const c of CARDS){
+    const lvl = getLevel(c.id);
+    if (lvl>0){
+      const d = levelData(c, Math.min(lvl, 11)); // level 12 uses level 11 gen
+      if (d) total += d.gen;
     }
-
-    grid.appendChild(div);
   }
+  state.gen = total;
+}
 
-  if (!list.length){
-    const empty = document.createElement('div');
-    empty.style.gridColumn = '1 / -1';
-    empty.style.textAlign = 'center';
-    empty.style.opacity = '.8';
-    empty.style.padding = '24px 8px';
-    empty.textContent = (mode==='completed') ? 'No completed cards yet.' : 'No limited offers right now.';
-    grid.appendChild(empty);
+/* ---------- rendering ---------- */
+const overlay = $("#buyOverlay");
+const shopGrid = $("#cardsGrid");
+const doneGrid = $("#completedGrid");
+function fmt(n){ return typeof n==='bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
+
+function renderCard(card, targetGrid){
+  const current = getLevel(card.id);            // 0..12
+  const next = Math.min(current+1, 12);
+  const done = isCompleted(card.id);
+  const d = levelData(card, Math.min(next, 11)); // level 12 has no new data
+  const reqText = next<=11 ? unmetReq(card, next) : null;
+  const price = (next<=11 && d) ? d.price : 0n;
+  const inc = (next<=11 && d) ? d.gen : 0n;
+  const affordable = state.chads >= price;
+
+  const cardEl = document.createElement("div");
+  cardEl.className = `card${done? ' is-complete':''}`;
+  cardEl.innerHTML = `
+    <div class="card-head">${card.name}</div>
+    <div class="card-media">
+      <div class="imgbox">
+        <img src="${IMG_BASE + card.img}" alt="${card.name}" loading="lazy">
+      </div>
+      ${done ? `<div class="card-complete">COMPLETED</div>` : ''}
+      ${reqText ? `<div class="card-lock">${reqText}</div>` : ''}
+    </div>
+    <div class="card-body">
+      <div class="kv"><span class="label">price:</span><span class="${affordable?'price-ok':''}">${next<=11? fmt(price): '—' } chads</span></div>
+      <div class="kv"><span class="label">generation/h increased:</span><span>${next<=11? fmt(inc): '—' } chads</span></div>
+      <div class="level-pill"><span class="dot"></span> level ${current}</div>
+      <div class="card-actions">
+        <button class="btn ghost" data-info>Details</button>
+        <button class="btn" data-buy ${(!d || done || !!reqText || next>11 || !affordable) ? 'disabled':''}>Buy</button>
+      </div>
+    </div>
+  `;
+
+  cardEl.querySelector('[data-info]').addEventListener('click', ()=>{
+    const msg = (next<=11)
+      ? `${card.name}\n• Current level: ${current}\n• Next level: ${next}\n• Price: ${fmt(price)} chads\n• Gen/h gain: ${fmt(inc)}`
+      : `${card.name}\n• Completed at level 12`;
+    showConfirm(msg, null, true); // info-only
+  });
+
+  const buyBtn = cardEl.querySelector('[data-buy]');
+  if (buyBtn){
+    buyBtn.addEventListener('click', ()=>{
+      showConfirm(
+        `Are you sure you want to buy\n“${card.name}” level ${next} for ${fmt(price)} chads?`,
+        ()=> doPurchase(card, next, price)
+      );
+    });
+  }
+  targetGrid.appendChild(cardEl);
+}
+
+function render(){
+  shopGrid.innerHTML = ''; doneGrid.innerHTML = '';
+  for (const c of CARDS){
+    (isCompleted(c.id) ? renderCard(c, doneGrid) : renderCard(c, shopGrid));
   }
 }
 
-/* tabs & limited offers */
-document.addEventListener('click', (e)=>{
-  const t = e.target;
-  if (t.classList.contains('shop-tab')){
-    const mode = t.dataset.tab;
-    setTab(mode);
-    renderShop(mode);
-  }
-});
-document.getElementById('limitedBtn').addEventListener('click', ()=>{
-  setTab('limited');
-  renderShop('limited');
+/* ---------- buying ---------- */
+function doPurchase(card, nextLevel, price){
+  const reqText = unmetReq(card, nextLevel);
+  const d = levelData(card, nextLevel);
+  if (!d || nextLevel>11) return;
+  if (reqText){ showConfirm(reqText, null, true); return; }
+  if (state.chads < d.price){ showConfirm(`Not enough chads. You need ${fmt(d.price)}.`, null, true); return; }
+
+  state.chads -= d.price;
+  setLevel(card.id, nextLevel);
+  recomputeGen();
+  saveStateLocal(state);
+  refreshUI();
+  render();
+}
+
+/* ---------- confirm dialog ---------- */
+const confirmPane = $("#confirmPane");
+let confirmYesCb = null;
+function showConfirm(text, yesCb, info=false){
+  $("#confirmBody").textContent = text;
+  confirmYesCb = yesCb || null;
+  $("#confirmYes").style.display = info ? 'none' : '';
+  confirmPane.classList.remove('hidden');
+}
+$("#confirmNo").addEventListener('click', ()=> confirmPane.classList.add('hidden'));
+$("#confirmYes").addEventListener('click', ()=>{
+  confirmPane.classList.add('hidden');
+  if (confirmYesCb) confirmYesCb();
 });
 
-/* open/close hooks */
-document.getElementById('buyBtn')?.addEventListener('click', ()=>openShop('buy'));
-document.getElementById('shopCloseBtn')?.addEventListener('click', closeShop);
+/* ---------- tabs ---------- */
+for (const tab of $$('.buy-tab')){
+  tab.addEventListener('click', ()=>{
+    $$('.buy-tab').forEach(t=>t.classList.remove('is-active'));
+    tab.classList.add('is-active');
+    const name = tab.dataset.tab;
+    for (const panel of $$('[data-tab-panel]')){
+      panel.classList.toggle('hidden', panel.dataset.tabPanel !== name);
+    }
+  });
+}
 
-/* Defensive: ensure state shape exists (in case opened before bootstrap) */
-if (!state){ try { state = loadStateLocal(); } catch(e){} }
-if (state && !state.purchases) state.purchases = {};
+/* ---------- open / close ---------- */
+$("#buyBtn")?.addEventListener('click', ()=>{
+  overlay.classList.remove('hidden');
+  overlay.setAttribute('aria-hidden','false');
+  render();
+});
+$("#closeBuyOverlay").addEventListener('click', ()=>{
+  overlay.classList.add('hidden');
+  overlay.setAttribute('aria-hidden','true');
+});
+
+/* initial compute to be safe */
+recomputeGen();
 
 /* ===== Grid helpers (Snake/Tetris) ===== */
 function buildGrid(container, cols, rows){
