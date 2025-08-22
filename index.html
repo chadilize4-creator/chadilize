@@ -2070,23 +2070,6 @@ function render() {
   // Limited left empty
 }
 
-const have  = Number(STATE.chads);
-const cost  = Number(price);
-
-if (have < cost) {
-  (window.Telegram?.WebApp?.showAlert || alert)('Not enough chads.');
-  return;
-}
-
-STATE.chads = have - cost;  // pay
-saveState();                // persist right away
-
-  // ✅ robust numeric check (handles floats & any prior stringy state)
-  if (have + EPS < price) {
-    alert('Not enough chads.');
-    pendingBuy = null;
-    return;
-  }
 
   STATE.chads = have - price;
   STATE.levels[card.id] = lvl + 1;
