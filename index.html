@@ -2134,6 +2134,11 @@ tabBtns.forEach(btn => {
 /* ===== Public API to open/close the overlay ===== */
 function openShop() {
   overlay.classList.remove('hidden');
+// make sure shop uses the real (numeric) balance
+const oldS = JSON.parse(localStorage.getItem('state') || '{}');  // your old wallet
+STATE.chads = Number(STATE.chads ?? oldS?.chads ?? 0);            // copy + cast to Number
+saveState();
+
   render();
 }
 function closeShop() {
@@ -2164,6 +2169,17 @@ function buildGrid(container, cols, rows){
     clear(x,y){ const el=cells[idx(x,y)]; if(el){ el.className='cell'; } },
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
+
+// one-time fixer: ensure the shop save has a numeric chads
+try {
+  const s = JSON.parse(localStorage.getItem('chad_shop_state') || '{}');
+  const oldS = JSON.parse(localStorage.getItem('state') || '{}');
+  s.levels = s.levels || {};
+  s.chads  = Number(s.chads ?? oldS?.chads ?? 0);
+  localStorage.setItem('chad_shop_state', JSON.stringify(s));
+  Object.assign(STATE, s);
+} catch {}
+
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
