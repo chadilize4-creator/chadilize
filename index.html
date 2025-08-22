@@ -576,7 +576,7 @@ body{
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
-/* BUY CARDS — glowing version */
+/* BUY CARDS — glowing version (REPLACE your old .tile.buy rules with these) */
 .tile.buy{
   /* vivid green gradient surface */
   background:
@@ -589,7 +589,7 @@ body{
     0 0 1.25rem rgba(26,255,176,.35),
     inset 0 0 .5rem rgba(255,255,255,.06);
   position:relative;
-  isolation:isolate;           /* keeps the halo behind the tile */
+  isolation:isolate;
 }
 
 .tile.buy:hover{
@@ -617,12 +617,11 @@ body{
   animation:buyPulse 2.4s ease-in-out infinite;
 }
 
+/* needed by .tile.buy::after */
 @keyframes buyPulse{
   0%,100%{ opacity:.75; transform:scale(1); }
   50%    { opacity:1;   transform:scale(1.02); }
 }
-
-@media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
 /* Overlays */
 .overlay{ position:fixed; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(2,2,2,0.96)); display:none; align-items:center; justify-content:center; z-index:120; padding: clamp(8px, 3vw, 16px); }
