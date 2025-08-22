@@ -576,51 +576,155 @@ body{
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
 .tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
-/* BUY CARDS — glowing version */
-.tile.buy{
-  /* vivid green gradient surface */
+
+/* ===== Shop look (black / grey, glass, subtle glow) ===== */
+:root{
+  --bg: #0c0c0f;
+  --panel: #121216;
+  --ink: #dfe1e6;
+  --muted: #9aa3ab;
+  --line: #22242b;
+  --accent: #61dafb;      /* soft cyan glow */
+  --danger: #ff4444;      /* red text for requirements */
+  --ok: #28d67a;          /* button / highlight */
+}
+
+.shop.hidden{ display:none; }
+.shop{
+  position:fixed; inset:0; z-index:9999;
+  display:grid; place-items:center;
   background:
-    radial-gradient(120% 120% at 50% 0%, #1affb0 0%, #0cc887 35%, #065a3b 80%) padding-box,
-    linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.05)) border-box;
-  color:#052e1c;
-  /* soft inner/outer glow */
-  box-shadow:
-    0 0 .5rem rgba(26,255,176,.5),
-    0 0 1.25rem rgba(26,255,176,.35),
-    inset 0 0 .5rem rgba(255,255,255,.06);
+    radial-gradient(1000px 600px at 10% -10%, #1b1d23 0%, transparent 60%),
+    radial-gradient(1000px 600px at 110% 110%, #181a20 0%, transparent 60%),
+    var(--bg);
+  animation: shopFade .25s ease-out;
+}
+@keyframes shopFade{ from{opacity:0} to{opacity:1} }
+
+.shop__shell{
   position:relative;
-  isolation:isolate;           /* keeps the halo behind the tile */
-}
-
-.tile.buy:hover{
-  transform:translateY(-1px);
+  width: min(1200px, 100vw);
+  height: min(94vh, 100%);
+  margin: 0;
+  display:flex; flex-direction:column;
+  color:var(--ink);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
   box-shadow:
-    0 0 .75rem rgba(26,255,176,.8),
-    0 0 1.8rem rgba(26,255,176,.55),
-    0 8px 32px rgba(0,0,0,.55);
+    0 20px 60px rgba(0,0,0,.50),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter: blur(12px) saturate(110%);
 }
 
-/* halo behind the button */
-.tile.buy::after{
-  content:"";
-  position:absolute;
-  inset:-6px;
-  border-radius:inherit;
-  pointer-events:none;
-  z-index:-1;
-  background:
-    radial-gradient(60% 80% at 50% -10%, rgba(26,255,176,.65), transparent 60%),
-    radial-gradient(80% 80% at 100% 0%, rgba(14,190,120,.3), transparent 70%),
-    radial-gradient(90% 80% at 0% 100%, rgba(255,255,255,.06), transparent 60%);
-  filter:blur(20px);
-  opacity:.9;
-  animation:buyPulse 2.4s ease-in-out infinite;
+/* Top bar */
+.shop__topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:18px 20px 10px 20px;
+  border-bottom:1px solid var(--line);
+}
+.shop__left{ display:flex; align-items:center; gap:14px; }
+.shop__title{ font-size:28px; margin:0; letter-spacing:.3px; }
+.shop__subtitle{ font-size:12px; color:var(--muted); margin-left:2px; }
+.shop__close{
+  width:38px; height:38px; border-radius:12px;
+  border:1px solid var(--line); background:#15161b; color:var(--ink);
+  font-size:20px; line-height:1; cursor:pointer;
+  box-shadow: 0 0 0 0 rgba(97,218,251,.0);
+  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.shop__close:hover{ transform: translateY(-1px); border-color:#2a2f3a; box-shadow:0 0 0 4px rgba(97,218,251,.08); }
+
+/* Tabs */
+.shop__tabs{ display:flex; gap:10px; }
+.shop__tab{
+  background:#12141a; color:var(--ink); border:1px solid var(--line);
+  padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700;
+}
+.shop__tab.is-active{ border-color:rgba(97,218,251,.5); box-shadow:0 0 0 3px rgba(97,218,251,.12); }
+
+/* Grid of cards */
+.shop__content{ padding:16px 18px 0 18px; overflow:auto; }
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* responsive cards */
+  gap:18px;
 }
 
-@keyframes buyPulse{
-  0%,100%{ opacity:.75; transform:scale(1); }
-  50%    { opacity:1;   transform:scale(1.02); }
+/* Card */
+.card{
+  display:flex; flex-direction:column; gap:10px;
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border:1px solid var(--line);
+  border-radius:18px; padding:12px;
+  position:relative; overflow:hidden;
+  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease;
 }
+.card:hover{ transform: translateY(-2px); border-color:#2a2f3a; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+
+/* “name of the card” capsule */
+.card__name{
+  background:#0f1115; border:1px solid var(--line); border-radius:12px;
+  padding:10px 12px; font-weight:800; text-align:center;
+}
+
+/* 1:1 image area */
+.card__img{
+  aspect-ratio: 1/1; border-radius:12px; overflow:hidden; border:1px solid var(--line);
+  background:#0c0d10 center/cover no-repeat;
+  display:grid; place-items:center; position:relative;
+}
+.card__img img{ width:100%; height:100%; object-fit:cover; display:block; filter:none; }
+.card.completed .card__img img{ filter: grayscale(100%) contrast(90%) brightness(80%); }
+
+/* requirement or completed ribbon */
+.card__badge{
+  position:absolute; inset:auto 10px 10px auto;
+  background:rgba(0,0,0,.65); color:var(--danger); border:1px solid rgba(255,68,68,.45);
+  padding:4px 8px; border-radius:8px; font-weight:900; text-transform:uppercase;
+  font-size:12px; letter-spacing:.3px;
+}
+
+/* rows under the image */
+.card__row{ display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center; }
+.card__label{ font-size:12px; color:var(--muted); }
+.card__value{ font-weight:800; }
+
+.card__level{
+  margin-top:2px; padding:8px 10px; border:1px dashed var(--line); border-radius:10px;
+  text-align:center; font-weight:800; font-size:12px; color:#adb5bd;
+}
+
+/* click-to-buy overlay */
+.card__buy{
+  position:absolute; inset:0; cursor:pointer;
+  background: radial-gradient(300px 150px at 50% 120%, rgba(97,218,251,.08), transparent 60%);
+}
+.card.disabled .card__buy{ cursor:not-allowed; }
+
+/* Bottom area */
+.shop__bottom{
+  display:grid; grid-template-columns: 1fr 220px; gap:16px;
+  padding:14px 18px 18px 18px; border-top:1px solid var(--line);
+}
+.shop__texture{
+  position:relative; height:94px; border-radius:16px; overflow:hidden;
+  border:1px solid var(--line);
+  background: center/cover no-repeat url("img/wall.jpg");
+}
+.shop__texture::after{
+  content:""; position:absolute; inset:0; background:linear-gradient(0deg, rgba(0,0,0,.35), rgba(0,0,0,.0));
+}
+.shop__textureTag{
+  position:absolute; left:14px; bottom:10px; font-weight:900; letter-spacing:.3px;
+  text-transform:lowercase; color:#e6e6e6; text-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.shop__limitedBtn{
+  border-radius:16px; border:1px solid var(--line); background:#13151a; color:var(--ink);
+  font-weight:900; text-transform:lowercase; cursor:pointer;
+}
+.shop__limitedBtn:hover{ border-color:#2a2f3a; box-shadow:0 0 0 3px rgba(97,218,251,.12); }
+
 
 @media (max-width:420px){ .controls{grid-template-columns: 1fr 1fr 1fr} }
 
@@ -838,22 +942,35 @@ canvas{ display:block }
       </div>
     </div>
 
-    <!-- BUY CARDS overlay -->
-    <div class="overlay" id="buyOverlay">
-      <div class="panel">
-        <div class="row">
-          <h2>Buy Cards</h2>
-          <button class="tile level" style="padding:8px 12px" onclick="closeOverlay('buyOverlay')">Close</button>
-        </div>
-        <div class="row" style="gap:10px">
-          <div class="tile buy" style="flex:1" onclick="buyCard('Bronze Drip', 250, 2)"><div><div style="font-weight:900">Bronze Drip</div><div class="note">+2 gen/hr • 250 chads</div></div></div>
-          <div class="tile buy" style="flex:1" onclick="buyCard('Silver Drip', 1200, 12)"><div><div style="font-weight:900">Silver Drip</div><div class="note">+12 gen/hr • 1,200 chads</div></div></div>
-          <div class="tile buy" style="flex:1" onclick="buyCard('Golden Drip', 5200, 60)"><div><div style="font-weight:900">Golden Drip</div><div class="note">+60 gen/hr • 5,200 chads</div></div></div>
-          <div class="tile buy" style="flex:1" onclick="buyCard('Emerald Drip', 22000, 280)"><div><div style="font-weight:900">Emerald Drip</div><div class="note">+280 gen/hr • 22,000 chads</div></div></div>
-        </div>
-        <p class="note">Cards stack permanently. Generation runs even when the app is closed.</p>
+    <!-- ===== SHOP OVERLAY ===== -->
+<div id="shopOverlay" class="shop hidden" aria-hidden="true">
+  <div class="shop__shell">
+    <header class="shop__topbar">
+      <div class="shop__left">
+        <button class="shop__close" id="shopCloseBtn" aria-label="Close shop" title="Close">✕</button>
+        <h1 class="shop__title">Buy Cards</h1>
+        <div class="shop__subtitle">increase generation/hr</div>
       </div>
-    </div>
+      <nav class="shop__tabs" role="tablist" aria-label="Card views">
+        <button class="shop__tab is-active" data-view="buy" role="tab" aria-selected="true">Buy cards</button>
+        <button class="shop__tab" data-view="completed" role="tab" aria-selected="false">Completed cards</button>
+        <button class="shop__tab" data-view="limited" role="tab" aria-selected="false">Limited offers</button>
+      </nav>
+    </header>
+
+    <main class="shop__content">
+      <div id="cardsGrid" class="grid"></div>
+    </main>
+
+    <footer class="shop__bottom">
+      <div class="shop__texture">
+        <div class="shop__textureTag">texture</div>
+      </div>
+      <button class="shop__limitedBtn" data-view="limited">limited offer</button>
+    </footer>
+  </div>
+</div>
+
 
     <!-- USERNAME overlay (step 1) -->
     <div class="overlay" id="nameOverlay">
@@ -1424,11 +1541,674 @@ document.getElementById('avatarSelectBtn')?.addEventListener('click', ()=>{
 function showToast(html){ const wrap = document.getElementById('toastWrap'); if(!wrap) return; const t = document.createElement('div'); t.className='toast'; t.innerHTML = html; wrap.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s ease'; }, 2200); setTimeout(()=> t.remove(), 2600); }
 
-/* ===== Buy Cards ===== */
-function buyCard(name,cost,addGen){
-  if (state.chads < BigInt(cost)){ showToast('Not enough chads'); return; }
-  state.chads -= BigInt(cost); state.gen += BigInt(addGen); saveStateLocal(state); refreshUI(); showToast(`<b>${name}</b> purchased. +${addGen} gen/hr`);
-}
+/* ===== BUY CARDS – SHOP LOGIC ===== */
+(() => {
+  // ---------- helpers ----------
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+  const B = (n) => BigInt(n);           // BigInt helper
+  const IMG = (file) => `img/${file}`;  // image path helper
+
+  // ensure state fields we rely on exist
+  function ensureShopState(){
+    state = state || loadStateLocal();
+    state.purchases = state.purchases || {}; // { [key]: levelNumber }
+    saveStateLocal(state);
+  }
+
+  // Build the standard levels (most cards share this)
+  function stdLevels(l11 = 154000){
+    return [
+      {p:200, g:170},
+      {p:300, g:200},
+      {p:500, g:400},
+      {p:700, g:800},
+      {p:5000, g:10000},
+      {p:10000, g:30000},
+      {p:20000, g:40000},
+      {p:40000, g:50000},
+      {p:60000, g:70000},
+      {p:70000, g:200000},
+      {p:100000, g:l11},
+      {complete:true}
+    ];
+  }
+  const req = (card, level) => ({ require: { card, level } });
+
+  // Shorthand to make/modify a card object
+  function makeCard(key, name, img, setup){
+    const lv = stdLevels(); // start with standard, then customize
+    if (typeof setup === 'function') setup(lv);
+    return { key, name, img, levels: lv };
+  }
+
+  // ---------- CARDS (45) ----------
+  const CARDS = [
+    // 1) American Civil War
+    makeCard('americancivilwar','American Civil War','americancivilwar.png', lv=>{
+      lv[0]={p:500,g:150};
+      lv[1]={p:850,g:300};
+      lv[2]={p:1000,g:600, ...req('American Revolution',3)};
+      lv[3]={p:1300,g:4000};
+      lv[4]={p:4000,g:8000};
+      lv[5]={p:10000,g:35000, ...req('Great Depression',3)};
+      lv[6]={p:70000,g:110000};
+      lv[7]={p:200000,g:300000};
+      lv[8]={p:400000,g:450000};
+      lv[9]={p:500000,g:600000, ...req('George Washington',6)};
+      lv[10]={p:600000,g:650000};
+      lv[11]={complete:true};
+    }),
+
+    // 2) Troy
+    makeCard('troy','Troy','troy.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Founding Of Rome',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Marathon',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 3) Charlie Choplin
+    makeCard('charliechoplin','Charlie Choplin','charliechoplin.png', lv=>{
+      lv[0]={p:400,g:200};
+      lv[1]={p:600,g:400};
+      lv[2]={p:800,g:600, ...req('Great Fire Of London',3)};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000, ...req('Ifle Tower',6)};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:400000};
+      lv[10]={p:400000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 4) Julius Ceasar
+    makeCard('juliusceasar','julius ceasar','juliusceasar.png', lv=>{
+      lv[0]={p:600,g:800};
+      lv[1]={p:1000,g:2000};
+      lv[2]={p:4000,g:8000, ...req('Founding Of Rome',3)};
+      lv[3]={p:8000,g:15000};
+      lv[4]={p:20000,g:30000};
+      lv[5]={p:40000,g:50000};
+      lv[6]={p:70000,g:100000};
+      lv[7]={p:100000,g:200000, ...req('Mayan Empire',6)};
+      lv[8]={p:200000,g:400000};
+      lv[9]={p:400000,g:500000};
+      lv[10]={p:600000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 5) Napoleon
+    makeCard('napoleon','Napoleon','napoleon.png', lv=>{
+      lv[0]={p:4000,g:5000};
+      lv[1]={p:6000,g:8000};
+      lv[2]={p:8000,g:11000, ...req('Waterloo',3)};
+      lv[3]={p:12000,g:18000};
+      lv[4]={p:20000,g:40000};
+      lv[5]={p:40000,g:50000};
+      lv[6]={p:70000,g:100000};
+      lv[7]={p:100000,g:200000, ...req('Black Death',6)};
+      lv[8]={p:200000,g:400000};
+      lv[9]={p:400000,g:500000};
+      lv[10]={p:600000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 6) Russia Revolution
+    makeCard('russiarevolution','Russia Revolution','russiarevolution.png', lv=>{
+      lv[0]={p:2000,g:4000};
+      lv[1]={p:4000,g:6000};
+      lv[2]={p:8000,g:11000, ...req('Cold War',3)};
+      lv[3]={p:12000,g:18000};
+      lv[4]={p:20000,g:40000};
+      lv[5]={p:40000,g:50000};
+      lv[6]={p:70000,g:100000};
+      lv[7]={p:100000,g:200000, ...req('Battle Of Stalingrad',6)};
+      lv[8]={p:200000,g:400000};
+      lv[9]={p:400000,g:500000};
+      lv[10]={p:600000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 7) Monalisa
+    makeCard('monalisa','monalisa','monalisa.png', lv=>{
+      lv[0]={p:1500,g:3000};
+      lv[1]={p:4000,g:6500};
+      lv[2]={p:9000,g:15000, ...req('Issac Newton',3)};
+      lv[3]={p:19000,g:28000};
+      lv[4]={p:30000,g:45000};
+      lv[5]={p:60000,g:80000};
+      lv[6]={p:100000,g:200000};
+      lv[7]={p:300000,g:400000, ...req('George Washington',6)};
+      lv[8]={p:400000,g:500000};
+      lv[9]={p:55000,g:666660};   /* as given */
+      lv[10]={p:700000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 8) Great Fire Of London
+    makeCard('greatfireoflondon','Great Fire Of London','greatfireoflondon.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('World War 2',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Marathon',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 9) French Revolution
+    makeCard('frenchrevolution','French Revolution','frenchrevolution.png', lv=>{
+      lv[0]={p:300,g:150};
+      lv[1]={p:400,g:600};
+      lv[2]={p:500,g:800, ...req('Birth Of Jesus',3)};
+      lv[3]={p:900,g:1700};
+      lv[4]={p:4000,g:10000};
+      lv[5]={p:13000,g:20000};
+      lv[6]={p:24000,g:36000};
+      lv[7]={p:45000,g:70000, ...req('Dark Ages',6)};
+      lv[8]={p:80000,g:90000};
+      lv[9]={p:100000,g:200000};
+      lv[10]={p:300000,g:500000};
+      lv[11]={complete:true};
+    }),
+
+    // 10) Indian Independence
+    makeCard('indianindependence','Indian Independence','indianindependence.png', lv=>{
+      lv[0]={p:400,g:200};
+      lv[1]={p:600,g:400};
+      lv[2]={p:800,g:600, ...req('Great Fire Of London',3)};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000, ...req('Great Depression',6)};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:400000};
+      lv[10]={p:400000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 11) Great Wall Of China
+    makeCard('greatwallofchina','Great Wall Of China','greatwallofchina.png', lv=>{
+      lv[0]={p:200,g:300};
+      lv[1]={p:400,g:600};
+      lv[2]={p:800,g:1000, ...req('Feudal Japan',3)};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000, ...req('Ancient Egypt',6)};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:400000};
+      lv[10]={p:400000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 12) Ancient Egypt  (you wrote "Troy" here; using the image name)
+    makeCard('ancientegypt','Ancient Egypt','ancientegypt.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Spartacus',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Stone Age',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 13) George Washington
+    makeCard('georgewashington','George Washington','georgewashington.png', lv=>{
+      lv[0]={p:600,g:800};
+      lv[1]={p:1000,g:2000};
+      lv[2]={p:4000,g:8000};
+      lv[3]={p:8000,g:15000};
+      lv[4]={p:20000,g:30000};
+      lv[5]={p:40000,g:50000};
+      lv[6]={p:70000,g:100000};
+      lv[7]={p:100000,g:200000, ...req('Moon Landing',6)};
+      lv[8]={p:200000,g:400000};
+      lv[9]={p:400000,g:500000};
+      lv[10]={p:600000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 14) Marathon
+    makeCard('marathon','Marathon','marathon.png', lv=>{
+      lv[0]={p:100,g:100};
+      lv[1]={p:300,g:300};
+      lv[2]={p:500,g:400};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 15) Assassination Of JFK
+    makeCard('jfk','Assassination Of JFK','jfkassassination.png', lv=>{
+      lv[0]={p:400,g:200};
+      lv[1]={p:600,g:400};
+      lv[2]={p:800,g:600, ...req('American Revolution',3)};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000, ...req('Moon Landing',6)};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:400000};
+      lv[10]={p:400000,g:800000};
+      lv[11]={complete:true};
+    }),
+
+    // 16) Moon Landing
+    makeCard('moonlanding','Moon Landing','moonlanding.png', lv=>{
+      lv[0]={p:300,g:200};
+      lv[1]={p:300,g:400};
+      lv[2]={p:500,g:600};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:400000};
+      lv[10]={p:450000,g:500000};
+      lv[11]={complete:true};
+    }),
+
+    // 17) American Revolution
+    makeCard('americanrevolution','American Revolution','americanrevolution.png', lv=>{
+      lv[0]={p:200,g:300};
+      lv[1]={p:300,g:400};
+      lv[2]={p:500,g:600};
+      lv[3]={p:2000,g:5000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:20000,g:40000};
+      lv[6]={p:40000,g:60000};
+      lv[7]={p:80000,g:100000};
+      lv[8]={p:100000,g:200000};
+      lv[9]={p:200000,g:300000};
+      lv[10]={p:30000,g:450000}; /* given (looks like a typo, kept as-is) */
+      lv[11]={complete:true};
+    }),
+
+    // 18) Stone Age
+    makeCard('stoneage','Stone Age','stoneage.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Ice Age',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Bronze Age',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 19) Ice Age
+    makeCard('iceage','Ice Age','iceage.png', lv=>{
+      lv[0]={p:300,g:150};
+      lv[1]={p:400,g:700};
+      lv[2]={p:700,g:1000};
+      lv[3]={p:2000,g:4000};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 20) Renaicense
+    makeCard('renaicense','Renaicense','renaicense.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Spartacus',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Vikings',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:154000};
+      lv[11]={complete:true};
+    }),
+
+    // 21) Spartacus
+    makeCard('spartacus','Spartacus','spartacus.png', lv=>{
+      lv[0]={p:200,g:170};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:154000};
+      lv[11]={complete:true};
+    }),
+
+    // 22) Bronze Age
+    makeCard('bronzeage','Bronze Age','bronzeage.png', lv=>{
+      lv[0]={p:300,g:200};
+      lv[1]={p:600,g:700};
+      lv[2]={p:1000,g:2000};
+      lv[3]={p:3000,g:6000};
+      lv[4]={p:6000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:147000};
+      lv[11]={complete:true};
+    }),
+
+    // 23) Fall Of The Berlin Wall
+    makeCard('falloftheberlinwall','Fall Of The Berlin Wall','falloftheberlinwall.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Chernobyl Disaster',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Statue Of Liberty',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:300000};
+      lv[11]={complete:true};
+    }),
+
+    // 24) Waterloo
+    makeCard('waterloo','Waterloo','waterloo.png', lv=>{}),
+
+    // 25) Battle Of Stalingrad
+    makeCard('battleofstalingrad','Battle Of Stalingrad','battleofstalingrad.png', lv=>{}),
+
+    // 26) Statue Of Liberty
+    makeCard('statueofliberty','Statue Of Liberty','statueofliberty.png', lv=>{}),
+
+    // 27) World War 2
+    makeCard('worldwar2','World War 2','worldwar2.png', lv=>{}),
+
+    // 28) Issac Newton
+    makeCard('issacnewton','Issac Newton','issacnewton.png', lv=>{}),
+
+    // 29) Chernobyl Disaster
+    makeCard('chernobyldisaster','Chernobyl Disaster','chernobyldisaster.png', lv=>{}),
+
+    // 30) Cold War
+    makeCard('coldwar','Cold War','coldwar.png', lv=>{}),
+
+    // 31) Birth Of Jesus
+    makeCard('birthofjesus','Birth Of Jesus','birthofjesus.png', lv=>{}),
+
+    // 32) Feudal Japan
+    makeCard('feudaljapan','Feudal Japan','feudaljapan.png', lv=>{}),
+
+    // 33) Founding Of Rome
+    makeCard('foundingofrome','Founding Of Rome','foundingofrome.png', lv=>{}),
+
+    // 34) Ifle Tower
+    makeCard('ifletower','Ifle Tower','ifletower.png', lv=>{}),
+
+    // 35) Great Depression
+    makeCard('greatdepression','Great Depression','greatdepression.png', lv=>{}),
+
+    // 36) Mayan Empire
+    makeCard('mayanempire','Mayan Empire','mayanempire.png', lv=>{}),
+
+    // 37) Black Death
+    makeCard('blackdeath','Black Death','blackdeath.png', lv=>{
+      lv[0]={p:100,g:50};
+      lv[1]={p:300,g:200};
+      lv[2]={p:500,g:400, ...req('Dark Ages',3)};
+      lv[3]={p:700,g:800};
+      lv[4]={p:5000,g:10000};
+      lv[5]={p:10000,g:30000};
+      lv[6]={p:20000,g:40000};
+      lv[7]={p:40000,g:50000, ...req('Crusades',6)};
+      lv[8]={p:60000,g:70000};
+      lv[9]={p:70000,g:200000};
+      lv[10]={p:100000,g:250000};
+      lv[11]={complete:true};
+    }),
+
+    // 38) Crusades
+    makeCard('crusades','Crusades','crusades.png', lv=>{}),
+
+    // 39) Invention of telephone
+    makeCard('inventionoftelephone','invention of telephone','inventionoftelephone.png', lv=>{}),
+
+    // 40) Dark Ages
+    makeCard('darkages','Dark Ages','darkages.png', lv=>{}),
+
+    // 41) Arabian Spring
+    makeCard('arabianspring','Arabian Spring','arabianspring.png', lv=>{}),
+
+    // 42) Babylon Tower
+    makeCard('babylontower','Babylon Tower','babylontower.png', lv=>{}),
+
+    // 43) Charles Darwin
+    makeCard('charlesdarwin','Charles Darwin','charlesdarwin.png', lv=>{}),
+
+    // 44) Industrial Revolution
+    makeCard('industrialrevolution','Industrial Revolution','industrialrevolution.png', lv=>{}),
+
+    // 45) Vikings
+    makeCard('vikings','Vikings','vikings.png', lv=>{})
+  ];
+  // NOTE: Cards 24–36 & 38–45 use the standard sequence unchanged.
+
+  // ---------- rendering ----------
+  const overlay = $('#shopOverlay');
+  const grid = $('#cardsGrid');
+  const tabs = $$('.shop__tab');
+  const limitedBtn = $('.shop__limitedBtn');
+
+  function openShop(view='buy'){
+    ensureShopState();
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden','false');
+    setActiveView(view);
+    render(view);
+  }
+  function closeShop(){
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden','true');
+  }
+
+  function setActiveView(view){
+    tabs.forEach(t=>{
+      const on = t.dataset.view === view;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on?'true':'false');
+    });
+  }
+
+  function render(view='buy'){
+    grid.innerHTML = '';
+    const isCompleted = (c)=> (state.purchases[c.key]||0) >= 12;
+    const show = CARDS.filter(c => {
+      if (view==='buy') return !isCompleted(c);
+      if (view==='completed') return isCompleted(c);
+      if (view==='limited') return false; // none are limited
+      return true;
+    });
+
+    for(const card of show){
+      const level = state.purchases[card.key] || 0;               // current level
+      const next = Math.min(level+1, 12);
+      const data = card.levels[next-1] || {complete:true};
+
+      // Build card DOM
+      const el = document.createElement('article');
+      el.className = 'card' + (level>=12 ? ' completed' : '');
+      el.dataset.key = card.key;
+
+      // name
+      const name = document.createElement('div');
+      name.className = 'card__name';
+      name.textContent = card.name;
+      el.appendChild(name);
+
+      // image
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'card__img';
+      const img = document.createElement('img');
+      img.alt = card.name;
+      img.src = IMG(card.img);
+      imgWrap.appendChild(img);
+
+      // requirement / completed ribbon
+      if (data.require){
+        const b = document.createElement('div');
+        b.className = 'card__badge';
+        b.textContent = `${data.require.card} level ${data.require.level} required`;
+        imgWrap.appendChild(b);
+        el.classList.add('disabled');
+      }
+      if (data.complete){
+        const b = document.createElement('div');
+        b.className = 'card__badge';
+        b.textContent = 'COMPLETED';
+        imgWrap.appendChild(b);
+      }
+      el.appendChild(imgWrap);
+
+      // price row (for next level)
+      const row1 = document.createElement('div');
+      row1.className = 'card__row';
+      const lab1 = document.createElement('div'); lab1.className='card__label'; lab1.textContent='price :';
+      const val1 = document.createElement('div'); val1.className='card__value';
+      val1.textContent = data.complete ? '—' : `${fmt(B(data.p))} chads`;
+      row1.append(lab1,val1); el.appendChild(row1);
+
+      // gen/hr row
+      const row2 = document.createElement('div');
+      row2.className = 'card__row';
+      const lab2 = document.createElement('div'); lab2.className='card__label'; lab2.textContent='generation/h increased :';
+      const val2 = document.createElement('div'); val2.className='card__value';
+      val2.textContent = data.complete ? '—' : `${fmt(B(data.g))} chads`;
+      row2.append(lab2,val2); el.appendChild(row2);
+
+      // level capsule
+      const lvl = document.createElement('div');
+      lvl.className='card__level';
+      lvl.textContent = `level ${Math.min(level || 1, 12)}`;
+      el.appendChild(lvl);
+
+      // click-to-buy
+      const click = document.createElement('div');
+      click.className='card__buy';
+      if (!data.complete) {
+        click.addEventListener('click', ()=>tryBuy(card));
+      }
+      el.appendChild(click);
+
+      grid.appendChild(el);
+    }
+  }
+
+  function tryBuy(card){
+    ensureShopState();
+    const level = state.purchases[card.key] || 0;
+    if (level >= 12) return;
+
+    const next = level + 1;
+    const data = card.levels[next-1];
+
+    // prerequisite check
+    if (data.require){
+      const target = CARDS.find(c => c.name.toLowerCase() === data.require.card.toLowerCase());
+      const tLevel = state.purchases[target?.key || ''] || 0;
+      if (tLevel < data.require.level){
+        alert(`${data.require.card} level ${data.require.level} required`);
+        return;
+      }
+    }
+
+    // price check
+    const price = B(data.p);
+    if (state.chads < price){
+      alert(`Not enough chads. Need ${fmt(price)}.`);
+      return;
+    }
+
+    // confirm
+    const ok = confirm(`Are you sure you want to buy ${card.name} (level ${next}) for ${fmt(price)} chads?`);
+    if (!ok) return;
+
+    // purchase: pay, add generation/h, bump level, save
+    state.chads -= price;
+    state.gen += B(data.g);
+    state.purchases[card.key] = next;
+    saveStateLocal(state);
+
+    // simple toast (optional, replace with your toast if you have one)
+    try { if (typeof showToast === 'function') showToast(`+${fmt(B(data.g))} gen/hr`); } catch(e){}
+
+    // re-render current view
+    const active = document.querySelector('.shop__tab.is-active')?.dataset.view || 'buy';
+    render(active);
+  }
+
+  // ---------- events ----------
+  // Open from your existing buy button
+  const buyBtn = document.getElementById('buyBtn');
+  if (buyBtn) buyBtn.addEventListener('click', ()=> openShop('buy'));
+
+  // Close button
+  document.getElementById('shopCloseBtn').addEventListener('click', closeShop);
+
+  // Tabs
+  tabs.forEach(t => t.addEventListener('click', ()=>{
+    const view = t.dataset.view;
+    setActiveView(view);
+    render(view);
+  }));
+
+  // Bottom "limited offer" also switches view
+  limitedBtn.addEventListener('click', ()=>{
+    setActiveView('limited'); render('limited');
+  });
+
+  // ESC closes
+  window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && !overlay.classList.contains('hidden')) closeShop(); });
+})();
 
 /* ===== Grid helpers (Snake/Tetris) ===== */
 function buildGrid(container, cols, rows){
