@@ -7,219 +7,6 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-/* ========== THEME ========== */
-  :root {
-    --hs-bg: #0c0c0f;
-    --hs-bg-2: #121216;
-    --hs-panel: #15151b;
-    --hs-card: #1a1a22;
-    --hs-card-2: #20202a;
-    --hs-border: #2b2b38;
-    --hs-soft: #8b8b9a;
-    --hs-text: #ececf1;
-    --hs-sub: #b8b8c7;
-    --hs-accent: #9aa0ff;
-    --hs-good: #6ee7a0;
-    --hs-bad: #ff5858; /* red gating text */
-    --hs-shadow: rgba(0,0,0,.6);
-  }
-
-  /* ========== OVERLAY WINDOW ========== */
-  #history-shop-overlay {
-    position: fixed; inset: 0;
-    background: radial-gradient(1200px 1200px at 20% -10%, #1b1b22 0%, transparent 60%),
-                radial-gradient(1000px 800px at 110% 10%, #16161c 0%, transparent 50%),
-                var(--hs-bg);
-    display: grid; place-items: center;
-    z-index: 9999;
-  }
-  #history-shop-overlay.hs-hidden { display: none; }
-  .hs-window {
-    position: relative;
-    width: min(1120px, 100vw);
-    height: min(100vh, 100dvh);
-    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)) var(--hs-panel);
-    border: 1px solid var(--hs-border);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px var(--hs-shadow);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-  }
-
-  /* ========== HEADER ========== */
-  .hs-header {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 8px;
-    align-items: center;
-    padding: 16px 16px 6px;
-    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-    border-bottom: 1px solid var(--hs-border);
-  }
-  .hs-close {
-    justify-self: start;
-    font-size: 22px; line-height: 1;
-    width: 38px; height: 38px;
-    border-radius: 10px; border: 1px solid var(--hs-border);
-    background: var(--hs-card);
-    color: var(--hs-text);
-    cursor: pointer;
-  }
-  .hs-close:hover { filter: brightness(1.08); }
-  .hs-tabs {
-    display: grid;
-    grid-auto-flow: column;
-    gap: 10px; justify-content: center; align-items: center;
-  }
-  .hs-tab {
-    background: var(--hs-card);
-    border: 1px solid var(--hs-border);
-    padding: 10px 14px;
-    border-radius: 14px;
-    color: var(--hs-text);
-    cursor: pointer;
-    min-width: 160px;
-  }
-  .hs-tab .hs-tab-title { font-weight: 700; text-transform: lowercase; letter-spacing: .5px; }
-  .hs-tab .hs-tab-sub { color: var(--hs-sub); font-size: 12px; margin-top: 2px; }
-  .hs-tab.is-active { outline: 2px solid var(--hs-accent); }
-  .hs-nums {
-    justify-self: end; display: flex; gap: 16px; align-items: center;
-  }
-  .hs-num { background: var(--hs-card); border: 1px solid var(--hs-border); padding: 8px 12px; border-radius: 12px; }
-  .hs-num span { display: block; font-size: 12px; color: var(--hs-sub); }
-  .hs-num strong { font-size: 16px; color: var(--hs-text); }
-
-  /* ========== BODY / GRID ========== */
-  .hs-body { overflow: auto; padding: 18px; }
-  .hs-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)); /* like your mockup: 2 columns */
-    gap: 18px;
-    align-content: start;
-  }
-  @media (min-width: 1060px) {
-    .hs-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* grows nicely on desktop */
-  }
-
-  /* ========== CARD ========== */
-  .hs-card {
-    display: grid; grid-template-rows: auto auto auto auto auto; gap: 10px;
-    background: linear-gradient(180deg, var(--hs-card-2), var(--hs-card));
-    border: 1px solid var(--hs-border);
-    border-radius: 14px;
-    padding: 12px;
-    position: relative;
-    overflow: hidden;
-  }
-  .hs-card-title {
-    background: var(--hs-card);
-    border: 1px solid var(--hs-border);
-    border-radius: 10px;
-    padding: 8px 10px; text-align: center;
-    color: var(--hs-text); font-weight: 700;
-  }
-  .hs-img {
-    position: relative;
-    border: 1px solid var(--hs-border);
-    border-radius: 10px;
-    overflow: hidden;
-    background: #0f0f12;
-    /* 1:1 image area */
-    aspect-ratio: 1 / 1;  /* keeps perfect square */
-  }
-  .hs-img img {
-    width: 100%; height: 100%;
-    object-fit: cover;      /* fills square nicely */
-    display: block;
-  }
-  .hs-gate {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.55));
-    display: grid; place-items: center; text-align: center;
-    padding: 8px;
-  }
-  .hs-gate span {
-    color: var(--hs-bad);
-    font-weight: 800;
-    text-transform: lowercase;
-    text-shadow: 0 0 8px rgba(255,0,0,.35);
-    border: 1px dashed var(--hs-bad);
-    border-radius: 10px;
-    padding: 6px 10px;
-    background: rgba(32,0,0,.35);
-  }
-  .hs-price,
-  .hs-gen,
-  .hs-level {
-    background: var(--hs-card);
-    border: 1px solid var(--hs-border);
-    border-radius: 10px;
-    color: var(--hs-text);
-    padding: 8px 10px;
-    font-size: 14px;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .hs-level { justify-content: center; font-weight: 700; }
-  .hs-card.completed { filter: grayscale(100%); }
-  .hs-card.completed .hs-img::after {
-    content: "completed";
-    position: absolute; inset: 0; display: grid; place-items: center;
-    color: var(--hs-bad); font-weight: 900; text-transform: lowercase;
-    text-shadow: 0 0 8px rgba(255,0,0,.4);
-    background: linear-gradient(180deg, rgba(0,0,0,.2), rgba(0,0,0,.55));
-  }
-  .hs-card .hs-buy {
-    margin-top: 4px;
-    background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.06));
-    border: 1px solid var(--hs-border);
-    border-radius: 10px;
-    padding: 10px;
-    color: var(--hs-text);
-    cursor: pointer; width: 100%;
-  }
-  .hs-card .hs-buy:hover { filter: brightness(1.05); }
-  .hs-card .hs-buy[disabled] { opacity: .45; cursor: not-allowed; }
-
-  /* ========== LIMITED / TEXTURE ========== */
-  .hs-limited { display: grid; place-items: center; min-height: 50vh; }
-  .hs-limited-box {
-    border: 1px dashed var(--hs-border);
-    color: var(--hs-sub);
-    padding: 16px 20px; border-radius: 12px; background: var(--hs-card);
-  }
-  .hs-footer {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    padding: 12px; border-top: 1px solid var(--hs-border);
-    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.03));
-  }
-  .hs-texture {
-    grid-column: 1 / 2;
-    background:
-      radial-gradient(120px 80px at 15% 25%, rgba(255,255,255,.08), transparent 60%),
-      radial-gradient(160px 100px at 80% 40%, rgba(255,255,255,.05), transparent 60%),
-      repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 6px, rgba(0,0,0,0) 6px 12px);
-    border: 1px solid var(--hs-border);
-    border-radius: 12px;
-    color: var(--hs-sub);
-    display: grid; place-items: center;
-    padding: 16px;
-    text-transform: lowercase;
-  }
-
-  /* ========== CONFIRM DIALOG ========== */
-  #hs-confirm::backdrop { background: rgba(0,0,0,.6); }
-  .hs-confirm { padding: 16px; }
-  .hs-confirm-text { color: var(--hs-text); margin-bottom: 14px; }
-  .hs-confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
-  .hs-btn {
-    padding: 8px 14px; border-radius: 10px; border: 1px solid var(--hs-border);
-    background: var(--hs-card); color: var(--hs-text); cursor: pointer;
-  }
-  .hs-btn-ghost { background: transparent; }
-  .hs-hidden { display: none !important; }
-
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -899,8 +686,7 @@ canvas{ display:block }
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
         <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Level</div><div id="levelText" style="font-weight:900;font-size:18px">OFF</div></div></div>
-        <button onclick="HistoryShop.open()">Open shop</button>
-
+        <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
 
@@ -1005,68 +791,33 @@ canvas{ display:block }
       </div>
     </div>
 
+    <!-- BUY CARDS OVERLAY -->
+<div id="buyCardsOverlay" class="buy-overlay hidden" aria-hidden="true">
+  <header class="buy-header">
+    <div class="buy-title">Buy cards</div>
+    <nav class="buy-tabs">
+      <button class="tab active" data-view="buy">buy cards</button>
+      <button class="tab" data-view="completed">completed cards</button>
+      <button class="tab" data-view="limited">limited offers</button>
+    </nav>
+    <button id="closeBuyOverlay" class="close-btn" aria-label="Close">&times;</button>
+  </header>
 
-<!-- ======== BUY CARDS FULLSCREEN OVERLAY ======== -->
-<div id="history-shop-overlay" class="hs-hidden" aria-hidden="true">
-  <div class="hs-window">
-    <!-- Header / Tabs / Balances -->
-    <header class="hs-header">
-      <button class="hs-close" aria-label="Close" onclick="HistoryShop.close()">✕</button>
-
-      <nav class="hs-tabs">
-        <button class="hs-tab is-active" data-tab="shop" onclick="HistoryShop.switchTab('shop')">
-          <div class="hs-tab-title">buy cards</div>
-          <div class="hs-tab-sub">increase generation/hr</div>
-        </button>
-        <button class="hs-tab" data-tab="completed" onclick="HistoryShop.switchTab('completed')">
-          <div class="hs-tab-title">completed cards</div>
-        </button>
-        <button class="hs-tab" data-tab="limited" onclick="HistoryShop.switchTab('limited')">
-          <div class="hs-tab-title">limited offer</div>
-        </button>
-      </nav>
-
-      <div class="hs-nums">
-        <div class="hs-num"><span>Chads</span><strong id="hs-balance">0</strong></div>
-        <div class="hs-num"><span>Gen / hr</span><strong id="hs-gph">0</strong></div>
-      </div>
-    </header>
-
-    <!-- Content areas -->
-    <main class="hs-body">
-      <!-- BUYABLE -->
-      <section id="hs-grid-shop" class="hs-grid" aria-label="Buyable cards"></section>
-
-      <!-- COMPLETED -->
-      <section id="hs-grid-completed" class="hs-grid hs-hidden" aria-label="Completed cards"></section>
-
-      <!-- LIMITED (empty by request) -->
-      <section id="hs-grid-limited" class="hs-limited hs-hidden" aria-label="Limited offers">
-        <div class="hs-limited-box">No limited offers right now.</div>
-      </section>
-    </main>
-
-    <!-- Footer texture box -->
-    <footer class="hs-footer">
-      <div class="hs-texture" aria-hidden="true">texture</div>
-    </footer>
+  <div class="stats-bar">
+    <span>Chads: <b id="chadsBalanceLabel">0</b></span>
+    <span>•</span>
+    <span>Generation/hr: <b id="genPerHourLabel">0</b></span>
   </div>
 
-  <!-- Confirm dialog -->
-  <dialog id="hs-confirm">
-    <form method="dialog" class="hs-confirm">
-      <div class="hs-confirm-text" id="hs-confirm-text">
-        Are you sure?
-      </div>
-      <div class="hs-confirm-actions">
-        <button value="cancel" class="hs-btn hs-btn-ghost">No</button>
-        <button value="ok" class="hs-btn">Yes</button>
-      </div>
-    </form>
-  </dialog>
+  <main id="cardsGrid" class="cards-grid" aria-live="polite"></main>
+
+  <footer class="buy-footer">
+    <div class="texture" title="texture" aria-hidden="true"></div>
+    <button class="limited-jump" data-view="limited">limited offer</button>
+  </footer>
 </div>
 
-    
+
     <!-- USERNAME overlay (step 1) -->
     <div class="overlay" id="nameOverlay">
       <div class="panel">
@@ -1583,11 +1334,504 @@ document.getElementById('playBtn')?.addEventListener('click', ()=>{
   if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
   openOverlay('playOverlay');
 }, {passive:true});
-document.getElementById('buyBtn')?.addEventListener('click', ()=>{
-  if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
-  openOverlay('buyOverlay');
-}, {passive:true});
+
 document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Level is OFF for now ✨'), {passive:true});
+
+/* =========== INTEGRATION HOOKS ===========
+   If your app already tracks balance, expose it as:
+   window.CHAD = { getBalance:()=>Number, setBalance:(n)=>void }
+   Otherwise this module will store balance in localStorage.
+========================================== */
+
+(function(){
+  const IMG_DIR = "img/"; // path where loader.jpg lives in your repo
+
+  // ---------- helpers ----------
+  const $ = (sel, root=document)=>root.querySelector(sel);
+  const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+  const fmt = n => n.toLocaleString(undefined);
+
+  // storage
+  const LS_KEY = "chad.cards.v1";
+  const now = ()=> Date.now();
+
+  // balance proxy (uses app if provided)
+  function getBalance(){
+    if (window.CHAD && typeof CHAD.getBalance === 'function') return Number(CHAD.getBalance()||0);
+    const s = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    return Number(s.balance||0);
+  }
+  function setBalance(n){
+    if (window.CHAD && typeof CHAD.setBalance === 'function'){ CHAD.setBalance(n); return; }
+    const s = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    s.balance = Number(n)||0;
+    localStorage.setItem(LS_KEY, JSON.stringify(s));
+  }
+
+  // state
+  const state = {
+    view: 'buy',           // 'buy' | 'completed' | 'limited'
+    last: now(),           // offline calc
+    cards: {},             // { [id]: level } (0..12)
+  };
+
+  // ----- level templates to keep code shorter -----
+  // [price, gen/hr] for levels 1..11; reaching 12 completes automatically.
+  const TPL = {
+    // many cards share this
+    STANDARD: [
+      [200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],
+      [20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000],
+    ],
+    HUNDRED_START: [ // like Troy/GFOL/Ancient Egypt/… (100/50 start, 300/200 next)
+      [100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],
+      [20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000],
+    ]
+  };
+
+  // ----- cards data (45) -----
+  // Each card: id, name, image, levels (array of [price, gen]), locks: [{level, need:{card,level}, msg}]
+  const CARDS = [
+    { id:"american_civil_war", name:"American Civil War", image:"americancivilwar.png",
+      levels:[[500,150],[850,300],[1000,600],[1300,4000],[4000,8000],[10000,35000],[70000,110000],[200000,300000],[400000,450000],[500000,600000],[600000,650000]],
+      locks:[
+        {level:3, need:{card:"American Revolution", level:3}, msg:"american revolution level 3 required"},
+        {level:6, need:{card:"Great Depression", level:3}, msg:"level 3 great depression required"},
+        {level:10, need:{card:"George Washington", level:6}, msg:"george washington level 6 required"},
+      ]
+    },
+
+    { id:"troy", name:"Troy", image:"troy.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]],
+      locks:[
+        {level:3, need:{card:"Founding Of Rome", level:3}, msg:"Founding Of Rome level 3 required"},
+        {level:8, need:{card:"Marathon", level:6}, msg:"Marathon level 6 required"},
+      ]
+    },
+
+    { id:"charlie_choplin", name:"Charlie Choplin", image:"charliechoplin.png",
+      levels:[[400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]],
+      locks:[
+        {level:3, need:{card:"Great Fire Of London", level:3}, msg:"Great Fire Of London level 3 required"},
+        {level:8, need:{card:"Ifle Tower", level:6}, msg:"Ifle Tower level 6 required"},
+      ]
+    },
+
+    { id:"julius_ceasar", name:"julius ceasar", image:"juliusceasar.png",
+      levels:[[600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]],
+      locks:[
+        {level:3, need:{card:"Founding Of Rome", level:3}, msg:"Founding Of Rome level 3 required"},
+        {level:8, need:{card:"Mayan Empire", level:6}, msg:"Mayan Empire level 6 required"},
+      ]
+    },
+
+    { id:"napoleon", name:"Napoleon", image:"napoleon.png",
+      levels:[[4000,5000],[6000,8000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]],
+      locks:[
+        {level:3, need:{card:"Waterloo", level:3}, msg:"waterloo level 3 required"},
+        {level:8, need:{card:"Black Death", level:6}, msg:"Black Death level 6 required"},
+      ]
+    },
+
+    { id:"russia_revolution", name:"Russia Revolution", image:"russiarevolution.png",
+      levels:[[2000,4000],[4000,6000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]],
+      locks:[
+        {level:3, need:{card:"Cold War", level:3}, msg:"Cold War level 3 required"},
+        {level:8, need:{card:"Battle Of Stalingrad", level:6}, msg:"Battle Of Stalingrad level 6 required"},
+      ]
+    },
+
+    { id:"monalisa", name:"monalisa", image:"monalisa.png",
+      levels:[[1500,3000],[4000,6500],[9000,15000],[19000,28000],[30000,45000],[60000,80000],[100000,200000],[300000,400000],[400000,500000],[55000,666660],[700000,800000]],
+      locks:[
+        {level:3, need:{card:"Issac Newton", level:3}, msg:"Issac Newton level 3 required"},
+        {level:8, need:{card:"George Washington", level:6}, msg:"George Washington level 6 required"},
+      ]
+    },
+
+    { id:"great_fire_of_london", name:"Great Fire Of London", image:"greatfireoflondon.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]],
+      locks:[
+        {level:3, need:{card:"World War 2", level:3}, msg:"World War 2 level 3 required"},
+        {level:8, need:{card:"Marathon", level:6}, msg:"Marathon level 6 required"},
+      ]
+    },
+
+    { id:"french_revolution", name:"French Revolution", image:"frenchrevolution.png",
+      levels:[[300,150],[400,600],[500,800],[900,1700],[4000,10000],[13000,20000],[24000,36000],[45000,70000],[80000,90000],[100000,200000],[300000,500000]],
+      locks:[
+        {level:3, need:{card:"Birth Of Jesus", level:3}, msg:"Birth Of Jesus level 3 required"},
+        {level:8, need:{card:"Dark Ages", level:6}, msg:"Dark Ages level 6 required"},
+      ]
+    },
+
+    { id:"indian_independence", name:"Indian Independence", image:"indianindependence.png",
+      levels:[[400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]],
+      locks:[
+        {level:3, need:{card:"Great Fire Of London", level:3}, msg:"Great Fire Of London level 3 required"},
+        {level:8, need:{card:"Great Depression", level:6}, msg:"Great Depression level 6 required"},
+      ]
+    },
+
+    { id:"great_wall_of_china", name:"Great Wall Of China", image:"greatwallofchina.png",
+      levels:[[200,300],[400,600],[800,1000],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]],
+      locks:[
+        {level:3, need:{card:"Feudal Japan", level:3}, msg:"Feudal Japan level 3 required"},
+        {level:8, need:{card:"Ancient Egypt", level:6}, msg:"Ancient Egypt level 6 required"},
+      ]
+    },
+
+    { id:"ancient_egypt", name:"Ancient Egypt", image:"ancientegypt.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]],
+      locks:[
+        {level:3, need:{card:"Spartacus", level:3}, msg:"Spartacus level 3 required"},
+        {level:8, need:{card:"Stone Age", level:6}, msg:"Stone age level 6 required"},
+      ]
+    },
+
+    { id:"george_washington", name:"George Washington", image:"georgewashington.png",
+      levels:[[600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]],
+      locks:[
+        {level:8, need:{card:"Moon Landing", level:6}, msg:"Moon Landing level 6 required"},
+      ]
+    },
+
+    { id:"marathon", name:"Marathon", image:"marathon.png",
+      levels:[[100,100],[300,300],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]]
+    },
+
+    { id:"assassination_of_jfk", name:"Assassination Of JFK", image:"jfkassassination.png",
+      levels:[[400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]],
+      locks:[
+        {level:3, need:{card:"American Revolution", level:3}, msg:"American Revolution level 3 required"},
+        {level:8, need:{card:"Moon Landing", level:6}, msg:"Moon Landing level 6 required"},
+      ]
+    },
+
+    { id:"moon_landing", name:"Moon Landing", image:"moonlanding.png",
+      levels:[[300,200],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[450000,500000]]
+    },
+
+    { id:"american_revolution", name:"American Revolution", image:"americanrevolution.png",
+      levels:[[200,300],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,300000],[30000,450000]]
+    },
+
+    { id:"stone_age", name:"Stone Age", image:"stoneage.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]],
+      locks:[
+        {level:3, need:{card:"Ice Age", level:3}, msg:"Ice Age level 3 required"},
+        {level:8, need:{card:"Bronze Age", level:6}, msg:"Bronze Age level 6 required"},
+      ]
+    },
+
+    { id:"ice_age", name:"Ice Age", image:"iceage.png",
+      levels:[[300,150],[400,700],[700,1000],[2000,4000],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]]
+    },
+
+    { id:"renaicense", name:"Renaicense", image:"renaicense.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]],
+      locks:[
+        {level:3, need:{card:"Spartacus", level:3}, msg:"Spartacus level 3 required"},
+        {level:8, need:{card:"Vikings", level:6}, msg:"Vikings level 6 required"},
+      ]
+    },
+
+    { id:"spartacus", name:"Spartacus", image:"spartacus.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"bronze_age", name:"Bronze Age", image:"bronzeage.png",
+      levels:[[300,200],[600,700],[1000,2000],[3000,6000],[6000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,147000]]
+    },
+
+    { id:"fall_of_the_berlin_wall", name:"Fall Of The Berlin Wall", image:"falloftheberlinwall.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]],
+      locks:[
+        {level:3, need:{card:"Chernobyl Disaster", level:3}, msg:"Chernobyl Disaster level 3 required"},
+        {level:8, need:{card:"Statue Of Liberty", level:6}, msg:"Statue Of liberty level 6 required"},
+      ]
+    },
+
+    { id:"waterloo", name:"Waterloo", image:"waterloo.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"battle_of_stalingrad", name:"Battle Of Stalingrad", image:"battleofstalingrad.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"statue_of_liberty", name:"Statue Of Liberty", image:"statueofliberty.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"world_war_2", name:"World War 2", image:"worldwar2.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"issac_newton", name:"Issac Newton", image:"issacnewton.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"chernobyl_disaster", name:"Chernobyl Disaster", image:"chernobyldisaster.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"cold_war", name:"Cold War", image:"coldwar.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"birth_of_jesus", name:"Birth Of Jesus", image:"birthofjesus.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"feudal_japan", name:"Feudal Japan", image:"feudaljapan.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"founding_of_rome", name:"Founding Of Rome", image:"foundingofrome.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"ifle_tower", name:"Ifle Tower", image:"ifletower.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"great_depression", name:"Great Depression", image:"greatdepression.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"mayan_empire", name:"Mayan Empire", image:"mayanempire.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"black_death", name:"Black Death", image:"blackdeath.png",
+      levels:[[100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,250000]],
+      locks:[
+        {level:3, need:{card:"Dark Ages", level:3}, msg:"dark ages level 3 required"},
+        {level:8, need:{card:"Crusades", level:6}, msg:"crusades level 6 required"},
+      ]
+    },
+
+    { id:"crusades", name:"Crusades", image:"crusades.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"invention_of_telephone", name:"invention of telephone", image:"inventionoftelephone.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"dark_ages", name:"Dark Ages", image:"darkages.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"arabian_spring", name:"Arabian Spring", image:"arabianspring.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"babylon_tower", name:"Babylon Tower", image:"babylontower.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"charles_darwin", name:"Charles Darwin", image:"charlesdarwin.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"industrial_revolution", name:"Industrial Revolution", image:"industrialrevolution.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+
+    { id:"vikings", name:"Vikings", image:"vikings.png",
+      levels:[[200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]]
+    },
+  ];
+
+  // ---- index by name for lock lookups
+  const byName = Object.fromEntries(CARDS.map(c=>[c.name, c]));
+
+  // ---- persist / load cards state
+  function loadState(){
+    const raw = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    if (raw.cards) state.cards = raw.cards; else {
+      // init levels 0
+      CARDS.forEach(c=>state.cards[c.id]=0);
+    }
+    if (raw.last) state.last = raw.last;
+    if (typeof raw.balance === 'number' && !window.CHAD) setBalance(raw.balance);
+  }
+  function saveState(){
+    const raw = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    raw.cards = state.cards;
+    raw.last = state.last;
+    if (!window.CHAD) raw.balance = getBalance();
+    localStorage.setItem(LS_KEY, JSON.stringify(raw));
+  }
+
+  // ---- generation math
+  function totalPerHour(){
+    let sum = 0;
+    for (const card of CARDS){
+      const lv = state.cards[card.id]||0;
+      if (lv>0){
+        const [_, gen] = card.levels[Math.min(lv, card.levels.length)-1];
+        sum += gen;
+      }
+    }
+    return sum;
+  }
+  function tick(){
+    const t = now();
+    const dtMs = t - state.last;
+    state.last = t;
+    const perHour = totalPerHour();
+    const perMs = perHour/3600000;
+    const earned = perMs * dtMs;
+    if (earned>0) setBalance(getBalance()+earned);
+    updateStats();
+    saveState();
+  }
+  setInterval(tick, 1000); // live earnings
+  document.addEventListener("visibilitychange", ()=>{ state.last = now(); saveState(); });
+
+  // ---- UI rendering
+  const overlay = $("#buyCardsOverlay");
+  const grid = $("#cardsGrid");
+  const tabs = $$(".buy-tabs .tab");
+  tabs.forEach(btn=>btn.addEventListener("click", ()=>{
+    tabs.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.view = btn.dataset.view;
+    render();
+  }));
+  $$(".limited-jump").forEach(b=>b.addEventListener("click", ()=>{
+    tabs.forEach(t=>t.classList.remove("active"));
+    tabs.find(t=>t.dataset.view==="limited").classList.add("active");
+    state.view="limited"; render();
+  }));
+
+  function updateStats(){
+    $("#chadsBalanceLabel").textContent = fmt(Math.floor(getBalance()));
+    $("#genPerHourLabel").textContent = fmt(Math.floor(totalPerHour()));
+  }
+
+  function makeCardEl(card){
+    const lv = state.cards[card.id]||0;
+    const next = Math.min(lv+1, 12);
+    const isCompleted = lv>=12;
+    const nextInfo = card.levels[next-1]; // may be undefined when next===12 (completed)
+
+    // lock check applies to the *purchase of next level*
+    let lockMsg = null;
+    const lock = (card.locks||[]).find(L=>L.level===next);
+    if (lock){
+      const target = byName[lock.need.card];
+      if (target){
+        const targetLv = state.cards[target.id]||0;
+        if (targetLv < lock.need.level) lockMsg = lock.msg;
+      }
+    }
+
+    const article = document.createElement("article");
+    article.className = "card "+(isCompleted?"completed-filter ":"")+
+                        (lockMsg?"locked ":"")+(!isCompleted && !lockMsg ? "buyable":"");
+    article.dataset.id = card.id;
+
+    article.innerHTML = `
+      <div class="card-name">${card.name}</div>
+      <div class="img-frame">
+        <img class="img" src="${IMG_DIR}${card.image}" alt="${card.name}">
+        ${lockMsg?`<div class="lock-banner">${lockMsg}</div>`:""}
+        ${isCompleted?`<div class="completed-stamp">completed</div>`:""}
+      </div>
+      <div class="info">
+        <div class="row"><span class="label">price :</span><span class="value">${nextInfo?fmt(nextInfo[0]):"—"}</span></div>
+        <div class="row"><span class="label">generation/h increased :</span><span class="value">${nextInfo?fmt(nextInfo[1]):"—"}</span></div>
+        <div class="row"><span class="label">level</span><span class="value">${lv||0}</span></div>
+      </div>
+    `;
+
+    if (!isCompleted && !lockMsg && nextInfo){
+      article.addEventListener("click", ()=>attemptBuy(card));
+    }
+    return article;
+  }
+
+  function render(){
+    updateStats();
+    grid.innerHTML = "";
+
+    if (state.view==="limited"){
+      // no limited offers right now
+      const empty = document.createElement("div");
+      empty.style.color = "var(--muted)";
+      empty.textContent = "No limited offers available right now.";
+      grid.appendChild(empty);
+      return;
+    }
+
+    const list = (state.view==="completed")
+      ? CARDS.filter(c=> (state.cards[c.id]||0) >= 12)
+      : CARDS.filter(c=> (state.cards[c.id]||0) < 12);
+
+    list.forEach(c=> grid.appendChild(makeCardEl(c)));
+  }
+
+  // ---- buying logic
+  async function askConfirm(msg){
+    // Use Telegram WebApp confirm when available, fallback to window.confirm
+    try{
+      if (window.Telegram && Telegram.WebApp && Telegram.WebApp.showConfirm){
+        return await new Promise(res=> Telegram.WebApp.showConfirm(msg, res));
+      }
+    }catch(e){}
+    return window.confirm(msg);
+  }
+
+  async function attemptBuy(card){
+    const lv = state.cards[card.id]||0;
+    const next = lv+1;
+    const info = card.levels[next-1];
+    if (!info){ // reaching 12 -> complete (no extra cost)
+      state.cards[card.id] = 12;
+      saveState(); render(); return;
+    }
+    // lock?
+    const lock = (card.locks||[]).find(L=>L.level===next);
+    if (lock){
+      const target = byName[lock.need.card];
+      if (target){
+        const targetLv = state.cards[target.id]||0;
+        if (targetLv < lock.need.level){ render(); return; }
+      }
+    }
+
+    const price = info[0];
+    const gen = info[1];
+
+    const ok = await askConfirm("Are you sure you want to buy the card?");
+    if (!ok) return;
+
+    const bal = getBalance();
+    if (bal < price) { alert("Not enough chads."); return; }
+
+    setBalance(bal - price);
+    state.cards[card.id] = next;
+
+    // If we just bought level 11, immediately mark as completed (level 12)
+    if (next >= 11){ state.cards[card.id] = 12; }
+
+    saveState(); render();
+  }
+
+  // ---- open / close overlay
+  $("[data-open-buy-cards]")?.addEventListener("click", openOverlay);
+  function openOverlay(){ overlay.classList.remove("hidden"); overlay.setAttribute("aria-hidden","false"); render(); }
+  $("#closeBuyOverlay").addEventListener("click", ()=>{ overlay.classList.add("hidden"); overlay.setAttribute("aria-hidden","true"); });
+
+  // init
+  loadState();
+  // offline catch-up
+  tick(); // updates labels immediately
+})();
 
 /* ===== Name & Avatar ===== */
 function setUserPill(name, avatarIdx){
@@ -1636,11 +1880,64 @@ document.getElementById('avatarSelectBtn')?.addEventListener('click', ()=>{
 function showToast(html){ const wrap = document.getElementById('toastWrap'); if(!wrap) return; const t = document.createElement('div'); t.className='toast'; t.innerHTML = html; wrap.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(8px)'; t.style.transition='all .3s ease'; }, 2200); setTimeout(()=> t.remove(), 2600); }
 
-/* ===== Buy Cards ===== */
-function buyCard(name,cost,addGen){
-  if (state.chads < BigInt(cost)){ showToast('Not enough chads'); return; }
-  state.chads -= BigInt(cost); state.gen += BigInt(addGen); saveStateLocal(state); refreshUI(); showToast(`<b>${name}</b> purchased. +${addGen} gen/hr`);
+/* --- BUY CARDS OVERLAY THEME (black/gray) --- */
+:root{
+  --bg:#0f0f10; --panel:#1a1b1e; --panel-2:#121315; --ink:#eaeaea;
+  --muted:#a9abb3; --line:#35363b; --accent:#e53935; --btn:#2a2c31;
 }
+
+.buy-overlay{position:fixed;inset:0;background:var(--bg);color:var(--ink);
+  z-index:9999;display:flex;flex-direction:column;opacity:1;transition:opacity .2s}
+.buy-overlay.hidden{opacity:0;pointer-events:none}
+
+.buy-header{display:flex;align-items:center;gap:.75rem;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.buy-title{font-size:20px;font-weight:700;letter-spacing:.2px;flex:1}
+.buy-tabs{display:flex;gap:8px}
+.buy-tabs .tab{background:var(--btn);color:var(--ink);border:1px solid var(--line);
+  padding:6px 10px;border-radius:10px;text-transform:lowercase}
+.buy-tabs .tab.active{outline:2px solid var(--line)}
+.close-btn{background:transparent;color:var(--ink);border:none;font-size:28px;line-height:1;cursor:pointer}
+
+.stats-bar{display:flex;gap:8px;align-items:center;padding:10px 16px;color:var(--muted);border-bottom:1px solid var(--line)}
+
+.cards-grid{padding:14px;display:grid;grid-template-columns:1fr;gap:18px;overflow:auto}
+@media(min-width:700px){ .cards-grid{grid-template-columns:1fr 1fr} }
+
+.card{background:var(--panel);border:2px solid var(--ink);border-radius:12px; padding:10px;display:flex;flex-direction:column;gap:8px;position:relative}
+.card-name{font-weight:700;border:2px solid var(--ink);padding:8px;border-radius:8px;text-align:center}
+
+.img-frame{border:2px solid var(--ink);border-radius:8px;overflow:hidden;position:relative}
+.img-frame .img{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:1/1} /* square 1:1 */
+
+.lock-banner, .completed-banner{
+  position:absolute;left:10px;right:10px;top:50%;transform:translateY(-50%);
+  background:rgba(0,0,0,.6);border:2px solid var(--accent);border-radius:10px;
+  padding:8px;text-align:center;color:#ff6464;font-weight:800;text-transform:capitalize;
+}
+.completed-filter .img{filter:grayscale(1) contrast(1.05) brightness(.85)}
+.completed-stamp{
+  position:absolute;inset:auto 14px 14px auto;background:rgba(0,0,0,.75);
+  color:#ff4d4d;border:2px solid #ff4d4d;border-radius:8px;padding:4px 6px;font-weight:800;text-transform:uppercase
+}
+
+.info{display:grid;gap:6px}
+.info .row{display:flex;gap:8px;align-items:center}
+.label{font-weight:700}
+.value{flex:1;text-align:right}
+
+.buyable{cursor:pointer}
+.locked{cursor:not-allowed;opacity:.75}
+
+.buy-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:12px 16px;border-top:1px solid var(--line);background:var(--panel-2)}
+.texture{width:220px;height:64px;background:url('img/wall.jpg') center/cover no-repeat;
+  border:2px solid var(--ink);border-radius:10px;pointer-events:none}
+.limited-jump{margin-left:auto;background:var(--btn);color:var(--ink);border:1px solid var(--line);
+  padding:8px 12px;border-radius:12px;text-transform:lowercase}
+
+/* subtle focus */
+button:focus-visible{outline:2px solid #7aa2ff;outline-offset:2px}
+
 
 /* ===== Grid helpers (Snake/Tetris) ===== */
 function buildGrid(container, cols, rows){
@@ -4567,519 +4864,6 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
-/* ============================================================
-   History Cards Shop (vanilla JS — drop-in)
-   - Full-screen overlay with 3 tabs
-   - Uses existing app balance if provided; otherwise falls back
-     to Telegram CloudStorage or localStorage.
-   - Encodes all 45 cards & gates from your spec.
-   ============================================================ */
-
-const HistoryShop = (() => {
-  /* ---------- Image base path (change to match your repo) ---------- */
-  const IMG_BASE = "./"; // e.g. "./assets/" if your images live there
-
-  /* ---------- Balance & persistence adapter ---------- */
-  const Storage = {
-    // generic get/set small JSON blobs
-    async get(key, fallback = null) {
-      try {
-        // Prefer app-provided function
-        if (window.HS_get) return await window.HS_get(key, fallback);
-
-        // Telegram CloudStorage (Mini Apps API)
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.CloudStorage) {
-          return await new Promise((resolve) => {
-            Telegram.WebApp.CloudStorage.getItem(key, (err, val) => {
-              if (err || val === null || val === undefined) resolve(fallback);
-              else {
-                try { resolve(JSON.parse(val)); } catch { resolve(val); }
-              }
-            });
-          });
-        }
-      } catch {}
-      // Fallback: localStorage
-      try {
-        const val = localStorage.getItem(key);
-        return val ? JSON.parse(val) : fallback;
-      } catch { return fallback; }
-    },
-    async set(key, value) {
-      try {
-        if (window.HS_set) return await window.HS_set(key, value);
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.CloudStorage) {
-          return await new Promise((resolve) => {
-            Telegram.WebApp.CloudStorage.setItem(key, JSON.stringify(value), () => resolve());
-          });
-        }
-      } catch {}
-      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-    }
-  };
-
-  // Balance facade — prefers your app's own functions
-  const Balance = {
-    async get() {
-      if (typeof window.getChadBalance === "function") {
-        const v = await window.getChadBalance();
-        return Number(v) || 0;
-      }
-      const v = await Storage.get("hs_chads", 0);
-      return Number(v) || 0;
-    },
-    async set(n) {
-      if (typeof window.setChadBalance === "function") {
-        await window.setChadBalance(Number(n) || 0);
-        return;
-      }
-      await Storage.set("hs_chads", Number(n) || 0);
-    }
-  };
-
-  /* ---------- Helpers ---------- */
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-  const fmt = (n) => (Number(n)||0).toLocaleString();
-
-  // LEVEL helpers
-  const L = (...pairs) => pairs.map(p => ({ price: p[0], gen: p[1] })); // [price, gen]
-
-  // Common level patterns
-  const PATTERN_200_170 = L([200,170],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,154000]);
-  const PATTERN_100_50  = L([100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]);
-  const PATTERN_400_200 = L([400,200],[600,400],[800,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]);
-  const PATTERN_JULIUS  = L([600,800],[1000,2000],[4000,8000],[8000,15000],[20000,30000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]);
-  const PATTERN_NAPOLEON= L([4000,5000],[6000,8000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]);
-  const PATTERN_RUSSIA  = L([2000,4000],[4000,6000],[8000,11000],[12000,18000],[20000,40000],[40000,50000],[70000,100000],[100000,200000],[200000,400000],[400000,500000],[600000,800000]);
-  const PATTERN_MONA    = L([1500,3000],[4000,6500],[9000,15000],[19000,28000],[30000,45000],[60000,80000],[100000,200000],[300000,400000],[400000,500000],[55000,666660],[700000,800000]); // note: level10 price 55,000 per spec
-  const PATTERN_MARATHN = L([100,100],[300,300],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]);
-  const PATTERN_MOON    = L([300,200],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[450000,500000]);
-  const PATTERN_ICE     = L([300,150],[400,700],[700,1000],[2000,4000],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,300000]);
-  const PATTERN_BRONZE  = L([300,200],[600,700],[1000,2000],[3000,6000],[6000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,147000]);
-
-  /* ---------- Cards & Gates ---------- */
-  // Gate format: { level: 3, text: 'X level Y required', requires: [{card: 'Name', level: Y}] }
-  const CARDS = [
-    // 1) American Civil War (from your first prompt)
-    { id:'american_civil_war', img:'americancivilwar.png', name:'American Civil War',
-      levels: L([500,150],[850,300],[1000,600],[1300,4000],[4000,8000],[10000,35000],[70000,110000],[200000,300000],[400000,450000],[500000,600000],[600000,650000]),
-      gates: [
-        { level:3, text:'American Revolution level 3 required', requires:[{card:'American Revolution', level:3}] },
-        { level:6, text:'level 3 Great Depression required',   requires:[{card:'Great Depression', level:3}] },
-        { level:10,text:'George Washington level 6 required',  requires:[{card:'George Washington', level:6}] },
-      ]
-    },
-
-    // 2) Troy
-    { id:'troy', img:'troy.png', name:'Troy', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'Founding Of Rome level 3 required', requires:[{card:'Founding Of Rome', level:3}] },
-        { level:8, text:'Marathon level 6 required',         requires:[{card:'Marathon', level:6}] },
-      ]
-    },
-
-    // 3) Charlie Choplin
-    { id:'charlie_choplin', img:'charliechoplin.png', name:'Charlie Choplin', levels: PATTERN_400_200,
-      gates: [
-        { level:3, text:'Great Fire Of London level 3 required', requires:[{card:'Great Fire Of London', level:3}] },
-        { level:8, text:'Ifle Tower level 6 required',           requires:[{card:'Ifle Tower', level:6}] },
-      ]
-    },
-
-    // 4) Julius Ceasar
-    { id:'julius_ceasar', img:'juliusceasar.png', name:'julius ceasar', levels: PATTERN_JULIUS,
-      gates: [
-        { level:3, text:'Founding Of Rome level 3 required', requires:[{card:'Founding Of Rome', level:3}] },
-        { level:8, text:'Mayan Empire level 6 required',     requires:[{card:'Mayan Empire', level:6}] },
-      ]
-    },
-
-    // 5) Napoleon
-    { id:'napoleon', img:'napoleon.png', name:'Napoleon', levels: PATTERN_NAPOLEON,
-      gates: [
-        { level:3, text:'waterloo level 3 required', requires:[{card:'Waterloo', level:3}] },
-        { level:8, text:'Black Death level 6 required', requires:[{card:'Black Death', level:6}] },
-      ]
-    },
-
-    // 6) Russia Revolution
-    { id:'russia_revolution', img:'russiarevolution.png', name:'Russia Revolution', levels: PATTERN_RUSSIA,
-      gates: [
-        { level:3, text:'Cold War level 3 required', requires:[{card:'Cold War', level:3}] },
-        { level:8, text:'Battle Of Stalingrad level 6 required', requires:[{card:'Battle Of Stalingrad', level:6}] },
-      ]
-    },
-
-    // 7) monalisa
-    { id:'monalisa', img:'monalisa.png', name:'monalisa', levels: PATTERN_MONA,
-      gates: [
-        { level:3, text:'Issac Newton level 3 required', requires:[{card:'Issac Newton', level:3}] },
-        { level:8, text:'George Washington level 6 required', requires:[{card:'George Washington', level:6}] },
-      ]
-    },
-
-    // 8) Great Fire Of London
-    { id:'great_fire_of_london', img:'greatfireoflondon.png', name:'Great Fire Of London', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'World War 2 level 3 required', requires:[{card:'World War 2', level:3}] },
-        { level:8, text:'Marathon level 6 required',    requires:[{card:'Marathon', level:6}] },
-      ]
-    },
-
-    // 9) French Revolution
-    { id:'french_revolution', img:'frenchrevolution.png', name:'French Revolution',
-      levels: L([300,150],[400,600],[500,800],[900,1700],[4000,10000],[13000,20000],[24000,36000],[45000,70000],[80000,90000],[100000,200000],[300000,500000]),
-      gates: [
-        { level:3, text:'Birth Of Jesus level 3 required', requires:[{card:'Birth Of Jesus', level:3}] },
-        { level:8, text:'Dark Ages level 6 required',      requires:[{card:'Dark Ages', level:6}] },
-      ]
-    },
-
-    // 10) Indian Independence
-    { id:'indian_independence', img:'indianindependence.png', name:'Indian Independence', levels: PATTERN_400_200,
-      gates: [
-        { level:3, text:'Great Fire Of London level 3 required', requires:[{card:'Great Fire Of London', level:3}] },
-        { level:8, text:'Great Depression level 6 required',     requires:[{card:'Great Depression', level:6}] },
-      ]
-    },
-
-    // 11) Great Wall Of China
-    { id:'great_wall_of_china', img:'greatwallofchina.png', name:'Great Wall Of China',
-      levels: L([200,300],[400,600],[800,1000],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,400000],[400000,800000]),
-      gates: [
-        { level:3, text:'Feudal Japan level 3 required', requires:[{card:'Feudal Japan', level:3}] },
-        { level:8, text:'Ancient Egypt level 6 required', requires:[{card:'Ancient Egypt', level:6}] },
-      ]
-    },
-
-    // 12) Ancient Egypt (you wrote "name : Troy" but used image ancientegypt.png — I keep "Ancient Egypt")
-    { id:'ancient_egypt', img:'ancientegypt.png', name:'Ancient Egypt', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'Spartacus level 3 required', requires:[{card:'Spartacus', level:3}] },
-        { level:8, text:'Stone age level 6 required', requires:[{card:'Stone Age', level:6}] },
-      ]
-    },
-
-    // 13) George Washington
-    { id:'george_washington', img:'georgewashington.png', name:'George Washington', levels: PATTERN_JULIUS,
-      gates: [
-        { level:8, text:'Moon Landing level 6 required', requires:[{card:'Moon Landing', level:6}] },
-      ]
-    },
-
-    // 14) Marathon
-    { id:'marathon', img:'marathon.png', name:'Marathon', levels: PATTERN_MARATHN },
-
-    // 15) Assassination Of JFK
-    { id:'jfk', img:'jfkassassination.png', name:'Assassination Of JFK', levels: PATTERN_400_200,
-      gates: [
-        { level:3, text:'American Revolution level 3 required', requires:[{card:'American Revolution', level:3}] },
-        { level:8, text:'Moon Landing level 6 required', requires:[{card:'Moon Landing', level:6}] },
-      ]
-    },
-
-    // 16) Moon Landing
-    { id:'moon_landing', img:'moonlanding.png', name:'Moon Landing', levels: PATTERN_MOON },
-
-    // 17) American Revolution
-    { id:'american_revolution', img:'americanrevolution.png', name:'American Revolution',
-      levels: L([200,300],[300,400],[500,600],[2000,5000],[5000,10000],[20000,40000],[40000,60000],[80000,100000],[100000,200000],[200000,300000],[30000,450000]) // note: level11 price 30,000 per spec
-    },
-
-    // 18) Stone Age
-    { id:'stone_age', img:'stoneage.png', name:'Stone Age', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'Ice Age level 3 required', requires:[{card:'Ice Age', level:3}] },
-        { level:8, text:'Bronze Age level 6 required', requires:[{card:'Bronze Age', level:6}] },
-      ]
-    },
-
-    // 19) Ice Age
-    { id:'ice_age', img:'iceage.png', name:'Ice Age', levels: PATTERN_ICE },
-
-    // 20) Renaicense
-    { id:'renaicense', img:'renaicense.png', name:'Renaicense', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'Spartacus level 3 required', requires:[{card:'Spartacus', level:3}] },
-        // You referenced "Vikings level 6 required" (no Vikings card present).
-        // We'll show the text but ignore gating if card is missing.
-        { level:8, text:'Vikings level 6 required',    requires:[{card:'Vikings', level:6}] },
-      ]
-    },
-
-    // 21) Spartacus
-    { id:'spartacus', img:'spartacus.png', name:'Spartacus', levels: PATTERN_200_170 },
-
-    // 22) Bronze Age
-    { id:'bronze_age', img:'bronzeage.png', name:'Bronze Age', levels: PATTERN_BRONZE },
-
-    // 23) Fall Of The Berlin Wall
-    { id:'berlin_wall', img:'falloftheberlinwall.png', name:'Fall Of The Berlin Wall', levels: PATTERN_100_50,
-      gates: [
-        { level:3, text:'Cernobyl Disaster level 3 required', requires:[{card:'Chernobyl Disaster', level:3}] },
-        { level:8, text:'Statue Of liberty level 6 required', requires:[{card:'Statue Of Liberty', level:6}] },
-      ]
-    },
-
-    // 24..31..44 use the common 200/170 pattern with given names/images:
-    { id:'waterloo', img:'waterloo.png', name:'Waterloo', levels: PATTERN_200_170 },
-    { id:'stalingrad', img:'battleofstalingrad.png', name:'Battle Of Stalingrad', levels: PATTERN_200_170 },
-    { id:'statue_of_liberty', img:'statueofliberty.png', name:'Statue Of Liberty', levels: PATTERN_200_170 },
-    { id:'world_war_2', img:'worldwar2.png', name:'World War 2', levels: PATTERN_200_170 },
-    { id:'issac_newton', img:'issacnewton.png', name:'Issac Newton', levels: PATTERN_200_170 },
-    { id:'chernobyl', img:'chernobyldisaster.png', name:'Chernobyl Disaster', levels: PATTERN_200_170 },
-    { id:'cold_war', img:'coldwar.png', name:'Cold War', levels: PATTERN_200_170 },
-    { id:'birth_of_jesus', img:'birthofjesus.png', name:'Birth Of Jesus', levels: PATTERN_200_170 },
-    { id:'feudal_japan', img:'feudaljapan.png', name:'Feudal Japan', levels: PATTERN_200_170 },
-    { id:'founding_of_rome', img:'foundingofrome.png', name:'Founding Of Rome', levels: PATTERN_200_170 },
-
-    // 34) Ifle Tower
-    { id:'ifle_tower', img:'ifletower.png', name:'Ifle Tower', levels: PATTERN_200_170 },
-
-    // 35) Great Depression
-    { id:'great_depression', img:'greatdepression.png', name:'Great Depression', levels: PATTERN_200_170 },
-
-    // 36) Mayan Empire
-    { id:'mayan_empire', img:'mayanempire.png', name:'Mayan Empire', levels: PATTERN_200_170 },
-
-    // 37) Black Death (with custom gates)
-    { id:'black_death', img:'blackdeath.png', name:'Black Death',
-      levels: L([100,50],[300,200],[500,400],[700,800],[5000,10000],[10000,30000],[20000,40000],[40000,50000],[60000,70000],[70000,200000],[100000,250000]),
-      gates: [
-        { level:3, text:'dark ages level 3 required', requires:[{card:'Dark Ages', level:3}] },
-        { level:8, text:'crusades level 6 required',  requires:[{card:'Crusades', level:6}] },
-      ]
-    },
-
-    // 38) Crusades
-    { id:'crusades', img:'crusades.png', name:'Crusades', levels: PATTERN_200_170 },
-
-    // 39) invention of telephone
-    { id:'invention_of_telephone', img:'inventionoftelephone.png', name:'invention of telephone', levels: PATTERN_200_170 },
-
-    // 40) Dark Ages
-    { id:'dark_ages', img:'darkages.png', name:'Dark Ages', levels: PATTERN_200_170 },
-
-    // 41) Arabian Spring
-    { id:'arabian_spring', img:'arabianspring.png', name:'Arabian Spring', levels: PATTERN_200_170 },
-
-    // 42) Babylon Tower
-    { id:'babylon_tower', img:'babylontower.png', name:'Babylon Tower', levels: PATTERN_200_170 },
-
-    // 43) Charles Darwin
-    { id:'charles_darwin', img:'charlesdarwin.png', name:'Charles Darwin', levels: PATTERN_200_170 },
-
-    // 44) Industrial Revolution
-    { id:'industrial_revolution', img:'industrialrevolution.png', name:'Industrial Revolution', levels: PATTERN_200_170 },
-
-    // 45) Industrial Revolution (second entry with blank image name ".png" in your text)
-    { id:'industrial_revolution_2', img:'.png', name:'Industrial Revolution', levels: PATTERN_200_170 },
-  ];
-
-  // Fast lookup by name for gate checks
-  const CARD_BY_NAME = Object.fromEntries(CARDS.map(c => [c.name, c]));
-
-  /* ---------- Live state ---------- */
-  let levels = {}; // { id: currentLevelNumber (0..12) }
-  let totalGenPerHour = 0;
-
-  /* ---------- UI RENDER ---------- */
-  function renderAll() {
-    renderBalances();
-    renderGrids();
-  }
-
-  function renderBalances() {
-    $('#hs-gph').textContent = fmt(totalGenPerHour);
-    Balance.get().then(b => $('#hs-balance').textContent = fmt(b));
-  }
-
-  function renderGrids() {
-    const shopEl = $('#hs-grid-shop');
-    const completedEl = $('#hs-grid-completed');
-    shopEl.innerHTML = ''; completedEl.innerHTML = '';
-
-    for (const card of CARDS) {
-      const lvl = levels[card.id] || 0; // current purchased level (0..12)
-      const isCompleted = lvl >= 12;
-
-      const cardEl = document.createElement('div');
-      cardEl.className = 'hs-card' + (isCompleted ? ' completed' : '');
-
-      // Title
-      const title = document.createElement('div');
-      title.className = 'hs-card-title';
-      title.textContent = card.name;
-      cardEl.appendChild(title);
-
-      // Image (with 1:1 square)
-      const imgWrap = document.createElement('div'); imgWrap.className = 'hs-img';
-      const img = document.createElement('img');
-      img.src = IMG_BASE + (card.img || '');
-      img.alt = card.name;
-      img.onerror = () => { img.src = IMG_BASE + 'loader.png'; }; // fallback like your repo
-      imgWrap.appendChild(img);
-
-      // Gate overlay (if next level has unmet requirement)
-      const nextLevel = lvl + 1;
-      const gateText = gateMessage(card, nextLevel);
-      if (!isCompleted && gateText) {
-        const gate = document.createElement('div');
-        gate.className = 'hs-gate'; gate.innerHTML = `<span>${gateText}</span>`;
-        imgWrap.appendChild(gate);
-      }
-      cardEl.appendChild(imgWrap);
-
-      // Price / Gen for NEXT level
-      const priceBox = document.createElement('div'); priceBox.className = 'hs-price';
-      const genBox   = document.createElement('div'); genBox.className = 'hs-gen';
-      const levelBox = document.createElement('div'); levelBox.className = 'hs-level';
-
-      let price = '—', gen = '—';
-      if (!isCompleted && card.levels[nextLevel-1]) {
-        price = card.levels[nextLevel-1].price;
-        gen   = card.levels[nextLevel-1].gen;
-      }
-
-      priceBox.innerHTML = `<span>price :</span><strong>${fmt(price)}</strong>`;
-      genBox.innerHTML   = `<span>generation/h increased :</span><strong>${fmt(gen)}</strong>`;
-      levelBox.textContent = `level ${Math.min(lvl || 1, 12)}`;
-
-      cardEl.appendChild(priceBox);
-      cardEl.appendChild(genBox);
-      cardEl.appendChild(levelBox);
-
-      // Buy button
-      const buyBtn = document.createElement('button');
-      buyBtn.className = 'hs-buy';
-      buyBtn.textContent = isCompleted ? 'Completed' : `Buy level ${nextLevel}`;
-      buyBtn.disabled = isCompleted || !card.levels[nextLevel-1] || !!gateText;
-      buyBtn.onclick = () => tryBuy(card, nextLevel);
-      cardEl.appendChild(buyBtn);
-
-      // Sort into grid
-      (isCompleted ? completedEl : shopEl).appendChild(cardEl);
-    }
-  }
-
-  // Gate message if unmet; otherwise empty string
-  function gateMessage(card, targetLevel) {
-    const gates = (card.gates || []).filter(g => g.level === targetLevel);
-    if (gates.length === 0) return '';
-    for (const g of gates) {
-      for (const need of g.requires || []) {
-        const ref = CARD_BY_NAME[need.card];
-        if (!ref) {
-          // If referenced card doesn't exist, we show the text but DO NOT block purchase
-          return ''; // remove this line to block on missing card names
-        }
-        const current = levels[ref.id] || 0;
-        if (current < need.level) return g.text;
-      }
-    }
-    return '';
-  }
-
-  /* ---------- BUY FLOW ---------- */
-  async function tryBuy(card, nextLevel) {
-    const tier = card.levels[nextLevel-1];
-    if (!tier) return;
-    const gate = gateMessage(card, nextLevel);
-    if (gate) return; // still locked
-
-    const price = tier.price, gain = tier.gen;
-    const balance = await Balance.get();
-    if (balance < price) {
-      showConfirm(`Not enough chads. Need <b>${fmt(price)}</b>, you have <b>${fmt(balance)}</b>.`, false);
-      return;
-    }
-
-    const ok = await showConfirm(`Are you sure you want to buy <b>${card.name}</b> level <b>${nextLevel}</b> for <b>${fmt(price)}</b> chads?`);
-    if (!ok) return;
-
-    await Balance.set(balance - price);
-    levels[card.id] = Math.min(nextLevel, 12);
-    await Storage.set('hs_levels', levels);
-
-    // recalc gen/hr
-    totalGenPerHour = calcTotalGen();
-    await Storage.set('hs_gen', totalGenPerHour);
-
-    renderAll();
-  }
-
-  function calcTotalGen() {
-    let sum = 0;
-    for (const c of CARDS) {
-      const lvl = levels[c.id] || 0;
-      for (let i = 1; i <= Math.min(lvl, 12); i++) {
-        const t = c.levels[i-1];
-        if (t) sum += Number(t.gen) || 0;
-      }
-    }
-    return sum;
-  }
-
-  /* ---------- Confirm dialog (HTML <dialog>) ---------- */
-  function showConfirm(messageHtml, withButtons = true) {
-    return new Promise((resolve) => {
-      const dlg = $('#hs-confirm');
-      const text = $('#hs-confirm-text');
-      text.innerHTML = messageHtml;
-
-      if (!withButtons) {
-        // Only "OK"
-        text.innerHTML += '<div style="margin-top:8px; font-size:12px; color:var(--hs-sub)">Press ESC or click outside to close.</div>';
-        dlg.onclick = () => { dlg.close('cancel'); };
-      } else {
-        dlg.onclick = null;
-      }
-
-      dlg.onclose = () => resolve(dlg.returnValue === 'ok');
-      dlg.showModal();
-    });
-  }
-
-  /* ---------- Public API ---------- */
-  async function open() {
-    // Telegram hint: expand the Mini App if present
-    try { if (Telegram && Telegram.WebApp) Telegram.WebApp.expand(); } catch {}
-    $('#history-shop-overlay').classList.remove('hs-hidden');
-
-    // Load state
-    const [savedLevels, savedGen] = await Promise.all([
-      Storage.get('hs_levels', {}),
-      Storage.get('hs_gen', 0),
-    ]);
-    levels = savedLevels || {};
-    totalGenPerHour = Number(savedGen) || calcTotalGen();
-
-    renderAll();
-  }
-
-  function close() {
-    $('#history-shop-overlay').classList.add('hs-hidden');
-    try { if (Telegram && Telegram.WebApp) Telegram.WebApp.close(); } catch {} // optional: closes Mini App if used alone
-  }
-
-  function switchTab(name) {
-    $$('.hs-tab').forEach(t => t.classList.remove('is-active'));
-    $(`.hs-tab[data-tab="${name}"]`).classList.add('is-active');
-
-    $('#hs-grid-shop').classList.toggle('hs-hidden', name !== 'shop');
-    $('#hs-grid-completed').classList.toggle('hs-hidden', name !== 'completed');
-    $('#hs-grid-limited').classList.toggle('hs-hidden', name !== 'limited');
-  }
-
-  // Expose
-  return { open, close, switchTab };
-})();
-
-// OPTIONAL: auto-expose on window for your button to call
-window.HistoryShop = HistoryShop;
-</script>
-<!-- ======== /BUY CARDS FULLSCREEN OVERLAY ======== -->
 </script>
 </body>
 </html>
