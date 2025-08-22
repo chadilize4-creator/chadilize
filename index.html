@@ -4373,7 +4373,7 @@ document.addEventListener('DOMContentLoaded', bootstrap);
    Otherwise this module will store balance in localStorage.
 ========================================== */
 
-(function(){
+(function openBuy(){
   const IMG_DIR = "img/"; // path where loader.jpg lives in your repo
 
   // ---------- helpers ----------
@@ -4861,6 +4861,8 @@ document.addEventListener('DOMContentLoaded', bootstrap);
   loadState();
   // offline catch-up
   tick(); // updates labels immediately
+const btn = document.getElementById('buyBtn');
+  btn.addEventListener('click', openBuy);
 })();
 
 /* expose */
