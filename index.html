@@ -1500,7 +1500,6 @@ document.getElementById('playBtn')?.addEventListener('click', ()=>{
 // REPLACE the existing buyBtn listener with this:
 document.getElementById('buyBtn')?.addEventListener('click', openShop, { passive: true });
 
-}, {passive:true});
 document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Level is OFF for now ✨'), {passive:true});
 
 /* ===== Name & Avatar ===== */
@@ -5124,6 +5123,9 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
+// Hide the splash after boot
+window.addEventListener('load', hideLoaderSoon);
+
 </script>
 </body>
 </html>
