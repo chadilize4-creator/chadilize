@@ -6,80 +6,122 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+    :root{
+      --bg:#0b0f16;
+      --glass:rgba(255,255,255,.06);
+      --stroke:rgba(255,255,255,.14);
+      --glow:#58e6ff;
+      --accent:#ffd166;
+      --txt:#e8f1ff;
+      --muted:#9fb1c7;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Outfit,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      color:var(--txt);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, #1a2444 0%, transparent 60%),
+        radial-gradient(1000px 700px at 120% 30%, #182a3a 0%, transparent 55%),
+        linear-gradient(180deg, #0b0f16, #0b0f16);
+      background-attachment: fixed;
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:24px 20px 80px}
+    .title{
+      display:flex;align-items:center;gap:14px;margin:8px 0 22px;
+      letter-spacing:.6px
+    }
+    .logo-burst{
+      width:44px;height:44px;border-radius:14px;position:relative;
+      background: radial-gradient(circle at 30% 30%, #6fffd2, #4bbcff 55%, #1f3bff 90%);
+      box-shadow:0 0 32px 6px rgba(72,190,255,.35), inset 0 0 2px rgba(255,255,255,.35);
+    }
+    .title h1{margin:0;font-size:32px;font-weight:800}
+    .subtitle{margin-top:-6px;color:var(--muted);font-size:14px}
 
- #userPill { position: relative; }
-  #userPill .pill-badge {
-    position:absolute; top:-6px; left:-6px; width:20px; height:20px;
-    background:#ff3b3b; color:#fff; border-radius:50%;
-    display:grid; place-items:center; font:700 12px/1 system-ui;
-    box-shadow:0 0 0 2px rgba(0,0,0,.6);
-  } #userPill { position: relative; }
-  #userPill .pill-badge {
-    position:absolute; top:-6px; left:-6px; width:20px; height:20px;
-    background:#ff3b3b; color:#fff; border-radius:50%;
-    display:grid; place-items:center; font:700 12px/1 system-ui;
-    box-shadow:0 0 0 2px rgba(0,0,0,.6);
-  }
+    .grid{
+      display:grid;gap:16px;
+      grid-template-columns: 1.1fr .9fr;
+    }
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
 
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border:1px solid var(--stroke);
+      border-radius:22px; padding:18px 18px 14px; position:relative;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .panel h2{
+      margin:0 0 12px; font-size:18px; letter-spacing:.4px; font-weight:700
+    }
 
-/* Overlay container (you already use .shop-overlay; reused for style parity) */
-.shop-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(3px); z-index:9999; }
-.panel.max-w{
-  width:min(720px, 100%); margin:0 auto; height:100%; overflow:auto;
-  background:linear-gradient(180deg,#0a0f14,#0b0f14 60%, #07090c);
-  border:1px solid rgba(255,255,255,.06); border-radius:16px;
-  box-shadow:0 40px 140px rgba(0,0,0,.75); color:#cfe7ff; padding:14px 14px 24px;
-}
+    /* Fancy button */
+    .btn{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:12px 16px;border-radius:14px;font-weight:700;
+      border:1px solid rgba(255,255,255,.18);
+      background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+      color:var(--txt); cursor:pointer; user-select:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), 0 0 0 0 rgba(88,230,255,0);
+      transition: transform .15s ease, box-shadow .25s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 24px 2px rgba(88,230,255,.25)}
+    .btn.primary{ background: linear-gradient(180deg, #63f5ff, #18a9e3); color:#00131c; border:0 }
 
-/* header */
-.overlay-top{display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:0;
-  background:linear-gradient(180deg, rgba(8,12,16,.9), rgba(8,12,16,.6)); padding:10px 6px; z-index:2; }
-.tabs{display:flex; gap:10px}
-.tab{background:#1a222a; color:#cde6ff; border:1px solid rgba(255,255,255,.06); padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer}
-.tab.active{background:linear-gradient(180deg,#72d4ff,#82a7ff); color:#06203a; box-shadow:0 8px 28px rgba(130,167,255,.35)}
-.close-x{background:#12171c; color:#a7b6c6; border:1px solid rgba(255,255,255,.06); width:42px; height:42px; border-radius:12px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
 
-/* common */
-.row{display:flex; gap:10px; align-items:center; margin:8px 4px 12px}
-.search{position:relative; flex:1}
-.search input{width:100%; background:#0f141a; border:1px solid rgba(255,255,255,.06); color:#e8f4ff;
-  border-radius:12px; padding:14px 46px 14px 14px; font-weight:600}
-.search button{position:absolute; right:6px; top:50%; transform:translateY(-50%); background:#1a222a; color:#9fb2c6;
-  border:1px solid rgba(255,255,255,.06); width:34px; height:34px; border-radius:10px}
-.msg-btn{background:#121a22; border:1px solid rgba(255,255,255,.06); color:#d7eaff; padding:12px 16px; border-radius:12px; font-weight:800}
-.cta{background:linear-gradient(180deg,#31f69d,#2aa3ff); color:#05121c; font-weight:900; border:none; border-radius:12px; padding:12px 16px}
+    /* ONLINE PLAYERS */
+    .players{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      border:1px solid var(--stroke);
+      border-radius:18px; padding:12px; display:flex; align-items:center; gap:12px;
+      position:relative; overflow:hidden;
+    }
+    .card .pulse{
+      position:absolute; inset:0; pointer-events:none;
+      background: radial-gradient(180px 80px at 0% 0%, rgba(88,230,255,.08), transparent 60%);
+    }
+    .avatar{
+      width:48px;height:48px;border-radius:14px;overflow:hidden;background:#0b1320;border:1px solid rgba(255,255,255,.12)
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .meta{display:flex;flex-direction:column}
+    .meta .name{font-weight:700; font-size:15px}
+    .meta .small{font-size:12px;color:var(--muted)}
+    .badge{
+      margin-left:auto; padding:6px 8px;border-radius:10px;font-size:12px;font-weight:700;
+      color:#0b1320;background:linear-gradient(180deg, #ffd166, #ffb84d)
+    }
 
-.list{display:grid; gap:14px}
+    /* TRIBES */
+    .tribes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .tribe{
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+      border:1px solid var(--stroke); border-radius:18px; padding:14px 12px;
+    }
+    .tribe h3{margin:0 0 6px; font-size:16px}
+    .tribe .members{font-size:12px;color:var(--muted)}
+    .tribe .join{margin-top:10px}
 
-/* Card for players & ranking */
-.card{background:#0c1116; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px}
-.card .head{display:flex; align-items:center; gap:12px}
-.card img.avatar{width:56px; height:56px; border-radius:14px; object-fit:cover; border:1px solid rgba(255,255,255,.08)}
-.card .name{font-size:18px; font-weight:900; letter-spacing:.2px}
-.card .meta{font-size:12px; color:#8fa8c2}
-.card .actions{display:flex; gap:10px; margin-top:12px}
-.btn{background:#121a22; color:#cfe7ff; border:1px solid rgba(255,255,255,.06); padding:10px 12px; border-radius:12px; font-weight:800}
-.btn.secondary{background:#0f141a}
-.btn.primary{background:linear-gradient(180deg,#b8d9ff,#87b7ff); color:#08203a}
-
-/* Ranking colors */
-.rank-1{border-color:rgba(255,210,80,.55); box-shadow:0 0 0 1px inset rgba(255,210,80,.35)}
-.rank-2{border-color:rgba(182,110,255,.55); box-shadow:0 0 0 1px inset rgba(182,110,255,.35)}
-.rank-3{border-color:rgba(110,250,150,.55); box-shadow:0 0 0 1px inset rgba(110,250,150,.35)}
-.rank-other{border-color:rgba(200,210,220,.25)}
-
-/* Simple modal */
-.modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6)}
-.modal .box{background:#0b1015; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; width:min(520px,92vw)}
-.modal .box h3{margin:0 0 10px}
-.modal .box .row{margin-top:6px}
-.modal input[type="number"], .modal input[type="text"], .modal textarea{
-  width:100%; background:#0f141a; border:1px solid rgba(255,255,255,.06); color:#e8f4ff;
-  border-radius:10px; padding:10px 12px; font-weight:600; resize:none
-}
-.err{color:#ff8b8b; font-size:12px; margin-top:6px}
-
-
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+      background:rgba(5,8,12,.72);backdrop-filter: blur(6px);z-index:1000;
+    }
+    .modal.open{display:flex}
+    .modal .box{
+      width:min(420px, 92vw); background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      border:1px solid var(--stroke); border-radius:20px; padding:18px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.6);
+    }
+    .field{display:flex;gap:10px;margin-top:8px}
+    .input{
+      flex:1; padding:12px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.25); color:var(--txt); outline:none; font-size:15px
+    }
+    .helper{font-size:12px;color:var(--muted);margin-top:6px}
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -832,45 +874,47 @@ canvas{ display:block }
 
 <div class="stage">
   <div class="phone" id="phone">
-<!-- ====== Social Overlay ====== -->
-<div id="socialOverlay" class="shop-overlay" style="display:none">
-  <div class="panel max-w" role="dialog" aria-modal="true">
-    <div class="overlay-top">
-      <div class="tabs">
-        <button class="tab active" data-tab="players">Players</button>
-        <button class="tab" data-tab="ranking">Ranking</button>
-        <button class="tab" data-tab="tribes">Tribes</button>
+ <div class="wrap">
+    <div class="title">
+      <div class="logo-burst"></div>
+      <div>
+        <h1>Realm Lobby</h1>
+        <div class="subtitle">Live players & tribes — auto-updates in real time</div>
       </div>
-      <button class="close-x" id="overlayClose">✕</button>
+      <button class="btn" id="changeNameBtn" style="margin-left:auto">Change name</button>
+      <button class="btn primary" id="createTribeBtn">+ Create Tribe</button>
     </div>
 
-    <!-- Players -->
-    <section id="tab-players" class="tabpane">
-      <div class="row">
-        <div class="search">
-          <input id="playerSearch" placeholder="Search username…" />
-          <button id="clearSearch">✕</button>
+    <div class="grid">
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Online now</h2>
+          <div class="subtitle" id="count">0 players</div>
         </div>
-        <button class="msg-btn" id="openInbox">Messages</button>
-      </div>
-      <div id="playersList" class="list"></div>
-    </section>
+        <div class="players" id="players"></div>
+      </section>
 
-    <!-- Ranking -->
-    <section id="tab-ranking" class="tabpane" hidden>
-      <div id="rankingList" class="list"></div>
-    </section>
-
-    <!-- Tribes -->
-    <section id="tab-tribes" class="tabpane" hidden>
-      <div class="tribe-head">
-        <button id="openYourTribe" class="msg-btn">Your Tribe</button>
-        <button id="createTribe" class="cta">Create Tribe</button>
-      </div>
-      <div id="tribesList" class="list"></div>
-    </section>
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Tribes</h2>
+        </div>
+        <div class="tribes" id="tribes"></div>
+      </section>
+    </div>
   </div>
-</div>
+
+  <!-- Create Tribe Modal -->
+  <div class="modal" id="modal">
+    <div class="box">
+      <h2 style="margin:0 0 8px">Create a Tribe</h2>
+      <div class="helper">Pick a short, punchy name (max 24 chars).</div>
+      <div class="field">
+        <input id="tribeName" class="input" placeholder="e.g., Night Watch">
+        <button class="btn primary" id="saveTribe">Create</button>
+      </div>
+      <div class="helper" id="tribeError" style="color:#ffb3b3;display:none"></div>
+    </div>
+  </div>
 
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
@@ -3229,280 +3273,100 @@ function openBreaker(){
   window.addEventListener('resize', resizeCanvas);
 })();
 
-(function(){
-  const tg = window.Telegram?.WebApp;         // Telegram Mini App context
-  const me = tg?.initDataUnsafe?.user || {};  // real user data
-  const ME_ID = me.id;
-  const ME_NAME = me.username || [me.first_name, me.last_name].filter(Boolean).join(' ') || 'Player';
-  const ME_AVATAR = me.photo_url || null;     // official WebAppUser.photo_url (Bot API 7.6+) 
 
-  const $ = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
-  const overlay = $('#socialOverlay');
+// ---- Client identity (stored locally for your other account/browser too)
+    const saved = JSON.parse(localStorage.getItem("realmUser")||"null") || {};
+    let username = saved.name || ("Player " + Math.floor(Math.random()*999));
+    let userId   = saved.id   || (Math.random().toString(36).slice(2,10));
+    localStorage.setItem("realmUser", JSON.stringify({ id:userId, name:username }));
 
-  // ----- One-time red badge on the wooden pill -----
-  const pill = document.getElementById('userPill');
-  if (pill && !localStorage.getItem('pillBadged')) {
-    const b = document.createElement('div');
-    b.className = 'pill-badge';
-    b.textContent = '1';
-    pill.appendChild(b);
-  }
-  if (pill) {
-    pill.style.visibility = 'visible';
-    pill.addEventListener('click', () => {
-      $('#socialOverlay').style.display = 'block';
-      const bad = pill.querySelector('.pill-badge');
-      if (bad) bad.remove();
-      localStorage.setItem('pillBadged', '1');
-      loadPlayers();
+    // ---- Connect to realtime server
+    const socket = io("/", { transports: ["websocket"] });
+    socket.emit("player:join", { id:userId, name:username }, (res) => {
+      if(!res?.ok) console.error("join failed", res);
     });
-  }
-  $('#overlayClose').addEventListener('click', () => overlay.style.display = 'none');
 
-  // ----- Tabs
-  $$('.tab').forEach(btn => btn.addEventListener('click', () => {
-    $$('.tab').forEach(b=>b.classList.toggle('active', b===btn));
-    $$('.tabpane').forEach(p=>p.hidden=true);
-    document.getElementById('tab-'+btn.dataset.tab).hidden=false;
-    if (btn.dataset.tab==='players') loadPlayers();
-    if (btn.dataset.tab==='ranking') loadRanking();
-    if (btn.dataset.tab==='tribes') loadTribes();
-  }));
+    // ---- UI helpers
+    const $ = (q) => document.querySelector(q);
+    const playersEl = $("#players");
+    const tribesEl  = $("#tribes");
+    const countEl   = $("#count");
+    const modal     = $("#modal");
+    const tribeName = $("#tribeName");
+    const tribeErr  = $("#tribeError");
 
-  // ----- Ensure user exists server-side
-  async function upsertMe(){
-    try{
-      await fetch('/api/upsert-user',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({user_id:ME_ID, name:ME_NAME, avatar_url:ME_AVATAR})});
-    }catch(e){ console.warn('upsert failed', e); }
-  }
-  upsertMe();
-
-  // ============ PLAYERS ============
-  const playersList = $('#playersList');
-  async function loadPlayers(q=''){
-    const res = await fetch(`/api/players?me=${ME_ID}&q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    playersList.innerHTML = '';
-    if (!data.players?.length){
-      playersList.innerHTML = `<div class="meta" style="padding:14px">No players found yet.</div>`;
-      return;
+    function renderPlayers(list){
+      countEl.textContent = `${list.length} player${list.length===1?"":"s"}`;
+      playersEl.innerHTML = list
+        .sort((a,b)=>b.joinedAt - a.joinedAt)
+        .map(p => `
+          <div class="card">
+            <div class="pulse"></div>
+            <div class="avatar"><img alt="" src="${p.avatar}"/></div>
+            <div class="meta">
+              <div class="name">${escapeHtml(p.name)}</div>
+              <div class="small">Lv ${p.level} • joined ${timeAgo(p.joinedAt)}</div>
+            </div>
+            <div class="badge">ONLINE</div>
+          </div>
+        `).join("");
     }
-    data.players.forEach(p => playersList.appendChild(playerCard(p)));
-  }
 
-  function playerCard(p){
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="head">
-        <img class="avatar" src="${p.avatar_url || '/img/default-avatar.png'}" alt="">
-        <div>
-          <div class="name">${escapeHtml(p.name)}</div>
-          <div class="meta">${p.chads ?? 0} CHADs</div>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn secondary js-msg">Send message</button>
-        <button class="btn primary js-chad">Send/Receive CHADs</button>
-      </div>`;
-    card.querySelector('.js-msg').onclick = ()=> openThread(p.user_id, p.name, p.avatar_url);
-    card.querySelector('.js-chad').onclick = ()=> openTransfer(p.user_id, p.name);
-    return card;
-  }
-
-  $('#playerSearch').addEventListener('input', e => loadPlayers(e.target.value));
-  $('#clearSearch').addEventListener('click', ()=> { $('#playerSearch').value=''; loadPlayers(''); });
-
-  // Inbox button
-  $('#openInbox').addEventListener('click', async () => {
-    const res = await fetch(`/api/messages?me=${ME_ID}`);
-    const data = await res.json();
-    playersList.innerHTML = '';
-    (data.inbox || []).forEach(row => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="head">
-          <img class="avatar" src="${row.avatar_url || '/img/default-avatar.png'}">
-          <div>
-            <div class="name">${escapeHtml(row.name)}</div>
-            <div class="meta">${escapeHtml(row.last_message || '')}</div>
+    function renderTribes(list){
+      tribesEl.innerHTML = list
+        .sort((a,b)=>b.createdAt - a.createdAt)
+        .map(t => `
+          <div class="tribe">
+            <h3>${escapeHtml(t.name)}</h3>
+            <div class="members">${t.members.length} member${t.members.length===1?"":"s"}</div>
+            <button class="btn join" data-id="${t.id}">Join</button>
           </div>
-        </div>`;
-      card.onclick = () => openThread(row.user_id, row.name, row.avatar_url);
-      playersList.appendChild(card);
-    });
-  });
-
-  // ============ RANKING ============
-  async function loadRanking(){
-    const res = await fetch('/api/ranking');
-    const { ranking } = await res.json();
-    const wrap = $('#rankingList');
-    wrap.innerHTML = '';
-    ranking.forEach(r => {
-      const card = document.createElement('div');
-      const cls = r.rank===1?'rank-1':r.rank===2?'rank-2':r.rank===3?'rank-3':'rank-other';
-      card.className = 'card '+cls;
-      card.innerHTML = `
-        <div class="head">
-          <img class="avatar" src="${r.avatar_url || '/img/default-avatar.png'}">
-          <div>
-            <div class="name">${escapeHtml(r.name)}</div>
-            <div class="meta">#${r.rank} place • ${r.chads} CHADs</div>
-          </div>
-        </div>`;
-      wrap.appendChild(card);
-    });
-  }
-
-  // ============ TRIBES ============
-  async function loadTribes(){
-    const res = await fetch('/api/tribes');
-    const data = await res.json();
-    const wrap = $('#tribesList');
-    wrap.innerHTML = '';
-    (data.tribes || []).forEach(t => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="name">${escapeHtml(t.name)}</div>
-        <div class="meta" style="margin-top:4px">${escapeHtml(t.description)}</div>
-        <div class="actions">
-          <button class="btn primary">${t.is_request_based ? 'Request to Join' : 'Join'}</button>
-        </div>`;
-      card.querySelector('.btn').onclick = async () => {
-        const r = await fetch('/api/tribes/join',{method:'POST', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ me:ME_ID, tribe_id:t.id })}).then(r=>r.json());
-        alert(r.joined ? 'Joined!' : 'Request sent!');
-      };
-      wrap.appendChild(card);
-    });
-  }
-
-  // Create tribe
-  $('#createTribe').addEventListener('click', () => openCreateTribe());
-  $('#openYourTribe').addEventListener('click', () => {
-    alert('Open your tribe room UI here (list of members + chat). To keep this answer concise, the endpoints are ready: /api/tribes/messages, /api/tribes/moderate.');
-  });
-
-  // ============ Dialogs ============
-  // Message thread
-  function openThread(peerId, peerName, avatar){
-    const modal = ensureModal();
-    modal.querySelector('.box').innerHTML = `
-      <h3>Chat with ${escapeHtml(peerName)}</h3>
-      <div class="thread" style="height:45vh; overflow:auto; display:flex; flex-direction:column; gap:8px; padding:8px; background:#0a0f14; border:1px solid rgba(255,255,255,.06); border-radius:10px"></div>
-      <div class="row">
-        <input id="msgInput" placeholder="Type a message..."/>
-        <button class="cta" id="sendBtn">Send</button>
-      </div>`;
-    modal.style.display='grid';
-
-    const threadEl = modal.querySelector('.thread');
-    const load = async ()=>{
-      const res = await fetch(`/api/messages/${peerId}?me=${ME_ID}`);
-      const data = await res.json();
-      threadEl.innerHTML = '';
-      (data.messages||[]).forEach(m=>{
-        const mine = Number(m.sender_id)===Number(ME_ID);
-        const item = document.createElement('div');
-        item.style.alignSelf = mine ? 'end':'start';
-        item.style.maxWidth='80%';
-        item.style.background = mine? '#14324b' : '#131a22';
-        item.style.border = '1px solid rgba(255,255,255,.06)';
-        item.style.padding = '8px 10px'; item.style.borderRadius='10px';
-        item.innerHTML = `<div style="font-size:12px; opacity:.7">${new Date(m.created_at).toLocaleString()}</div>
-                          <div>${escapeHtml(m.body)}</div>`;
-        threadEl.appendChild(item);
+        `).join("");
+      tribesEl.querySelectorAll(".join").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          socket.emit("tribe:join", btn.dataset.id, (res)=>{
+            if(!res?.ok) alert("Failed to join tribe");
+          });
+        });
       });
-      threadEl.scrollTop = threadEl.scrollHeight;
-    };
-    load();
-
-    modal.querySelector('#sendBtn').onclick = async ()=>{
-      const val = modal.querySelector('#msgInput').value.trim();
-      if(!val) return;
-      await fetch(`/api/messages/${peerId}?me=${ME_ID}`,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({body:val})});
-      modal.querySelector('#msgInput').value='';
-      load();
-    };
-  }
-
-  // CHAD transfer modal
-  function openTransfer(peerId, peerName){
-    const modal = ensureModal();
-    modal.querySelector('.box').innerHTML = `
-      <h3>Send/Request CHADs — ${escapeHtml(peerName)}</h3>
-      <div class="row">
-        <label style="display:flex; gap:8px; align-items:center">
-          <input type="radio" name="kind" value="send" checked> Send
-        </label>
-        <label style="display:flex; gap:8px; align-items:center">
-          <input type="radio" name="kind" value="request"> Request
-        </label>
-      </div>
-      <div class="row"><input id="amt" type="number" min="1" placeholder="Amount"></div>
-      <div class="err" id="err" style="display:none">Please choose an amount</div>
-      <div class="row"><button class="cta" id="go">Confirm</button></div>`;
-    modal.style.display='grid';
-
-    modal.querySelector('#go').onclick = async ()=>{
-      const amount = Number(modal.querySelector('#amt').value);
-      if(!amount){ $('#err',modal).style.display='block'; return; }
-      const kind = modal.querySelector('input[name="kind"]:checked').value;
-      const r = await fetch('/api/chads/transfer',{method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ me:ME_ID, peer:peerId, amount, kind })}).then(r=>r.json());
-      if(r.ok){ alert('Request sent to messages.'); modal.style.display='none'; }
-    };
-  }
-
-  // Create tribe modal
-  function openCreateTribe(){
-    const modal = ensureModal();
-    modal.querySelector('.box').innerHTML = `
-      <h3>Create Tribe</h3>
-      <div class="row"><input id="tname" maxlength="48" placeholder="Tribe name"/></div>
-      <div class="row"><textarea id="tdesc" maxlength="160" placeholder="Description (max 160 chars)"></textarea></div>
-      <div class="row">
-        <label style="display:flex; gap:8px; align-items:center"><input type="radio" name="mode" value="request" checked> Requested</label>
-        <label style="display:flex; gap:8px; align-items:center"><input type="radio" name="mode" value="public"> Free to public</label>
-      </div>
-      <div class="row"><button class="cta" id="create">Create</button></div>
-      <div class="err" id="terr" style="display:none"></div>`;
-    modal.style.display='grid';
-    modal.querySelector('#create').onclick = async ()=>{
-      const name = modal.querySelector('#tname').value.trim();
-      const description = modal.querySelector('#tdesc').value.trim();
-      const mode = modal.querySelector('input[name="mode"]:checked').value === 'public' ? 'public' : 'request';
-      if(!name || !description){ $('#terr',modal).textContent='Fill all fields'; $('#terr',modal).style.display='block'; return; }
-      const r = await fetch('/api/tribes',{method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ me:ME_ID, name, description, mode })}).then(r=>r.json());
-      if(r.ok){ alert('Tribe created!'); modal.style.display='none'; loadTribes(); }
-      else { $('#terr',modal).textContent=r.error || 'Error'; $('#terr',modal).style.display='block'; }
-    };
-  }
-
-  // Utility modal
-  function ensureModal(){
-    let m = document.getElementById('modal');
-    if (!m){
-      m = document.createElement('div');
-      m.id='modal'; m.className='modal';
-      m.innerHTML = `<div class="box"></div>`;
-      m.addEventListener('click', (e)=>{ if(e.target===m) m.style.display='none'; });
-      document.body.appendChild(m);
     }
-    return m;
-  }
 
-  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    // Live updates from the server
+    socket.on("presence:list", renderPlayers);
+    socket.on("tribes:list", renderTribes);
 
-  // Tell Telegram we are ready (optional)
-  try { tg?.ready?.(); } catch {}
-})();
+    // Create Tribe flow
+    $("#createTribeBtn").addEventListener("click", ()=> {
+      tribeErr.style.display="none";
+      tribeName.value=""; modal.classList.add("open"); tribeName.focus();
+    });
+    modal.addEventListener("click", (e)=> { if(e.target===modal) modal.classList.remove("open"); });
+    $("#saveTribe").addEventListener("click", ()=>{
+      const name = tribeName.value.trim();
+      socket.emit("tribe:create", { name }, (res)=>{
+        if(!res?.ok){ tribeErr.textContent = res?.error || "Error"; tribeErr.style.display="block"; return; }
+        modal.classList.remove("open");
+      });
+    });
+
+    // Change name
+    $("#changeNameBtn").addEventListener("click", ()=>{
+      const nv = prompt("New display name:", username);
+      if(!nv) return;
+      username = nv.slice(0,24);
+      localStorage.setItem("realmUser", JSON.stringify({ id:userId, name:username }));
+      // Re-announce to server (simple demo approach)
+      socket.emit("player:join", { id:userId, name:username }, ()=>{});
+    });
+
+    // Small utils
+    function timeAgo(ts){
+      const s = Math.max(1, Math.floor((Date.now()-ts)/1000));
+      if(s<60) return `${s}s ago`;
+      const m = Math.floor(s/60); if(m<60) return `${m}m ago`;
+      const h = Math.floor(m/60); return `${h}h ago`;
+    }
+    function escapeHtml(str){ return str.replace(/[&<>"']/g, (m)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])) }
 
 
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
