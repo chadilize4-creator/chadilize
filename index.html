@@ -7,15 +7,13 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-
-/* ===== Social Overlay ===== */
+/* overlay */
 .social-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px);
   display:none;align-items:center;justify-content:center;z-index:100}
 .social-overlay.show{display:flex}
 .social-panel{width:min(820px,94vw);max-height:86vh;overflow:hidden;
   background:linear-gradient(180deg,#0b0f14,#0d1219);border:1px solid rgba(255,255,255,.06);
   border-radius:22px;box-shadow:0 40px 120px rgba(0,0,0,.7);padding:14px}
-
 .social-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .tabs{display:flex;gap:8px}
 .tab{padding:10px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.08);
@@ -29,6 +27,7 @@
 .search input{width:100%;padding:12px 40px 12px 14px;border-radius:14px;background:#0f1720;
   border:1px solid rgba(255,255,255,.06);color:#eaf0f6}
 .search .ico{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+
 .btn{padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);font-weight:800}
 .btn.sky{background:linear-gradient(180deg,#60a5fa,#3b82f6);color:#07131b}
 .btn.gold{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#1b0f01}
@@ -38,24 +37,21 @@
 
 .tabview{display:none}
 .tabview.show{display:block}
-
 .list{display:grid;gap:12px;padding:6px;max-height:62vh;overflow:auto}
 .card{background:#0f1720;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:14px}
 .card.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .left{display:flex;align-items:center;gap:12px}
 .meta .name{font-weight:900}
 .meta .sub{font-size:12px;color:#9aa3ab;margin-top:4px}
-
 .avatar{width:56px;height:56px;border-radius:999px;display:grid;place-items:center;font-weight:900;
   background:radial-gradient(circle at 30% 30%, #ffd77e, #a1781a);color:#1b0f01;border:1px solid rgba(255,255,255,.06)}
 .right{display:flex;gap:10px;align-items:center}
-
 .badge.gold{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#1b0f01}
 .badge.amethyst{background:linear-gradient(180deg,#b993f9,#7c3aed)}
 .badge.emerald{background:linear-gradient(180deg,#6ee7b7,#10b981)}
 .badge.silver{background:linear-gradient(180deg,#e5e7eb,#9ca3af);color:#111}
 
-/* ===== Create Tribe Modal ===== */
+/* modal */
 .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);z-index:110}
 .modal.show{display:grid}
 .panel.tribe{width:min(560px,92vw);background:linear-gradient(180deg,#0b0f14,#0d1219);
@@ -63,21 +59,18 @@
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .panel-head h3{font-size:18px;font-weight:800;margin:0}
 .icon.close{background:#1a2430;border:1px solid rgba(255,255,255,.08);width:36px;height:36px;border-radius:12px}
-
 .lbl{font-size:12px;color:#9aa3ab;margin-top:8px;margin-bottom:6px;display:block}
 .input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.06);
   background:#0f1720;color:#eaf0f6;outline:none;box-shadow:inset 0 0 1px rgba(255,255,255,.05)}
 textarea.input{resize:vertical}
 .row.space{display:flex;align-items:center;justify-content:space-between}
 #descCount{color:#6e7680;font-size:12px}
-
 .segmented{display:flex;gap:10px;margin:14px 0 16px}
 .seg{position:relative}
 .seg input{position:absolute;opacity:0;pointer-events:none}
 .seg span{display:inline-block;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.08);
   background:#101822;min-width:160px;text-align:center}
 .seg input:checked + span{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#0b0f14;font-weight:800}
-
 .tribe-row{display:flex;justify-content:flex-end;margin:6px}
 @media (max-width:420px){ .seg span{min-width:unset} }
 
@@ -836,23 +829,7 @@ canvas{ display:block }
 <div class="stage">
   <div class="phone" id="phone">
 
-
-    <!-- TOP BAR -->
-    <div class="topbar" id="topbar">
-      <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
-        <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
-        <div class="name" id="userName">Player</div>
-      </div>
-      <div class="stat">
-        <div class="label">chad</div>
-        <div class="value"><span id="chadCount">0</span></div>
-        <div class="small">generation / hr: <span id="genRate">0</span></div>
-      </div>
-    </div>
-
-<!-- USER PILL already exists (wood) with id="userPill" -->
-
-<!-- SOCIAL OVERLAY -->
+<!-- Social Overlay -->
 <div id="socialOverlay" class="social-overlay" aria-hidden="true">
   <div class="social-panel">
     <div class="social-head">
@@ -864,7 +841,6 @@ canvas{ display:block }
       <button class="close-x" id="socialClose">✕</button>
     </div>
 
-    <!-- Search + Messages -->
     <div class="bar bar-players">
       <div class="search">
         <input id="playerSearch" placeholder="Search username…" />
@@ -875,28 +851,23 @@ canvas{ display:block }
       </button>
     </div>
 
-    <!-- PLAYERS LIST -->
     <section id="tab-players" class="tabview show">
       <div id="playersList" class="list"></div>
     </section>
 
-    <!-- RANKING LIST -->
     <section id="tab-ranking" class="tabview">
       <div id="rankingList" class="list"></div>
     </section>
 
-    <!-- TRIBES -->
     <section id="tab-tribes" class="tabview">
       <div class="tribe-row">
         <button class="btn gold" id="openCreateTribe">Create Tribe</button>
       </div>
-      <div id="tribesDiscover" class="list">
-        <!-- (optional) discover tribes list can be added later -->
-      </div>
+      <div id="tribesDiscover" class="list"></div>
     </section>
   </div>
 
-  <!-- CREATE TRIBE MODAL -->
+  <!-- modal -->
   <div id="createTribeModal" class="modal">
     <div class="panel tribe">
       <div class="panel-head">
@@ -910,7 +881,7 @@ canvas{ display:block }
       <div class="row space">
         <label class="lbl">Description <span id="descCount">0/160</span></label>
       </div>
-      <textarea id="tribeDesc" class="input" maxlength="160" rows="3" placeholder="Add a short description… (max 160, emojis ok)"></textarea>
+      <textarea id="tribeDesc" class="input" maxlength="160" rows="3" placeholder="Add a short description… (max 160)"></textarea>
 
       <div class="segmented">
         <label class="seg"><input type="radio" name="joinMode" value="requested" checked><span>requested</span></label>
@@ -922,6 +893,20 @@ canvas{ display:block }
   </div>
 </div>
 
+
+
+    <!-- TOP BAR -->
+    <div class="topbar" id="topbar">
+      <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
+        <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
+        <div class="name" id="userName">Player</div>
+      </div>
+      <div class="stat">
+        <div class="label">chad</div>
+        <div class="value"><span id="chadCount">0</span></div>
+        <div class="small">generation / hr: <span id="genRate">0</span></div>
+      </div>
+    </div>
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -2186,177 +2171,6 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup(); S=null; closeOverlay('snakeModal'); });
 window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal'); };
 
-
-/* ========= Helpers ========= */
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-function fmt(n){ return Number(n||0).toLocaleString(); }
-function toast(msg){ try{tg?.showAlert?.(msg)}catch{ alert(msg); } }
-
-const API = '/api';
-const UID  = (typeof UID_HINT !== 'undefined' && UID_HINT) ? UID_HINT : 'guest';
-let state  = null;
-
-/* Use your existing load/save if present. Here’s a safe fallback: */
-function loadStateLocal(){
-  try{
-    const raw = localStorage.getItem('chad_state_'+(UID||'guest'));
-    if (!raw) return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null };
-    const o = JSON.parse(raw);
-    return { chads: BigInt(o.chads||"0"), gen: BigInt(o.gen||"0"), acc: BigInt(o.acc||"0"),
-             name:o.name||null, avatarIdx: typeof o.avatarIdx==='number' ? o.avatarIdx : null };
-  }catch(e){ return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null }; }
-}
-state = loadStateLocal();
-
-/* ========= REAL API ========= */
-async function apiHeartbeat(){
-  const body = {
-    id: UID,
-    username: state.name,
-    avatarIdx: state.avatarIdx,
-    chads: Number(state.chads||0n),
-    gen:   Number(state.gen||0n),
-    acc:   Number(state.acc||0n)
-  };
-  try{
-    await fetch(`${API}/heartbeat`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  }catch(e){ /* ignore offline */ }
-}
-async function apiFetchPlayers(q=''){
-  const r = await fetch(`${API}/players?q=${encodeURIComponent(q)}`); return r.json();
-}
-async function apiFetchRanking(){
-  const r = await fetch(`${API}/ranking`); return r.json();
-}
-async function apiCreateTribe(payload){
-  const r = await fetch(`${API}/tribes/create`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-  return r.json();
-}
-
-/* ========= Overlay open/close ========= */
-const overlay = $('#socialOverlay');
-$('#userPill')?.addEventListener('click', () => {
-  overlay.classList.add('show');
-  overlay.setAttribute('aria-hidden','false');
-  switchTab('players');              // default
-  renderPlayers();
-});
-$('#socialClose').addEventListener('click', () => {
-  overlay.classList.remove('show');
-  overlay.setAttribute('aria-hidden','true');
-});
-
-/* ========= Tabs ========= */
-$$('.tab').forEach(btn=>{
-  btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
-});
-function switchTab(name){
-  $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
-  $$('.tabview').forEach(v=>v.classList.remove('show'));
-  $('#tab-'+name).classList.add('show');
-  $('.bar').style.display = (name==='players') ? 'flex' : 'none';
-  if (name==='ranking') renderRanking();
-}
-
-/* ========= Players ========= */
-const playersList = $('#playersList');
-async function renderPlayers(q=''){
-  const { players=[] } = await apiFetchPlayers(q);
-  playersList.innerHTML = '';
-  if (!players.length){
-    playersList.innerHTML = `<div class="card">No players found.</div>`;
-    return;
-  }
-  for (const p of players){
-    const placeHTML = `
-      <div class="card row">
-        <div class="left">
-          <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
-          <div class="meta">
-            <div class="name">${p.username}</div>
-            <div class="sub">chads: ${fmt(p.chads)}</div>
-          </div>
-        </div>
-        <div class="right">
-          <button class="btn sky">send message</button>
-          <button class="btn sky">send/receive chads</button>
-        </div>
-      </div>`;
-    playersList.insertAdjacentHTML('beforeend', placeHTML);
-  }
-}
-
-/* search */
-const searchInput = $('#playerSearch');
-searchInput.addEventListener('input', e => {
-  const q = e.target.value.trim();
-  renderPlayers(q);
-});
-
-/* ========= Ranking ========= */
-const rankingList = $('#rankingList');
-async function renderRanking(){
-  const { ranking=[] } = await apiFetchRanking();
-  rankingList.innerHTML = '';
-  if (!ranking.length){
-    rankingList.innerHTML = `<div class="card">No players yet.</div>`;
-    return;
-  }
-  ranking.forEach((p, i)=>{
-    const place = i+1;
-    const badgeClass = place===1 ? 'gold' : place===2 ? 'amethyst' : place===3 ? 'emerald' : 'silver';
-    const item = `
-      <div class="card row">
-        <div class="left">
-          <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
-          <div class="meta">
-            <div class="name">${p.username}</div>
-            <div class="sub">tribe: ${p.tribe} · chads: ${fmt(p.chads)}</div>
-          </div>
-        </div>
-        <div class="right">
-          <span class="badge ${badgeClass}">#${place} place</span>
-        </div>
-      </div>`;
-    rankingList.insertAdjacentHTML('beforeend', item);
-  });
-}
-
-/* ========= Tribes: Create ========= */
-const tribeModal = $('#createTribeModal');
-$('#openCreateTribe').addEventListener('click', ()=>{
-  tribeModal.classList.add('show');
-  $('#descCount').textContent = `${$('#tribeDesc').value.length}/160`;
-});
-$('#closeTribeModal').addEventListener('click', ()=> tribeModal.classList.remove('show'));
-$('#tribeDesc').addEventListener('input', e=>{
-  $('#descCount').textContent = `${e.target.value.length}/160`;
-});
-$('#createTribeBtn').addEventListener('click', async ()=>{
-  const name = $('#tribeName').value.trim();
-  const description = $('#tribeDesc').value.trim();
-  const mode = document.querySelector('input[name="joinMode"]:checked').value;
-  if (!name) return toast('Please enter a tribe name');
-  const { ok, reason, error } = await apiCreateTribe({
-    founderId: UID, name, description, isRequestBased: mode==='requested'
-  });
-  if (!ok) return toast(reason||error||'Failed to create tribe');
-  tribeModal.classList.remove('show');
-  toast('Tribe created!');
-});
-
-/* ========= Messages badge (hook up later to your messages API) ========= */
-const msgBadge = $('#msgBadge');
-function setUnread(n){ msgBadge.textContent = String(n||0); }
-setUnread(0);
-
-/* ========= Keep the player discoverable (real list) ========= */
-apiHeartbeat();                 // on load
-setInterval(apiHeartbeat, 60000);   // every 60s
-
-
-
 /* ===== Tetris ===== */
 (function(){
   const gridEl = document.getElementById('tetrisGrid');
@@ -2997,6 +2811,175 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
+
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+function fmt(n){ return Number(n||0).toLocaleString(); }
+function toast(m){ try{ tg?.showAlert?.(m) } catch { alert(m) } }
+
+const API = '/api';
+const UID  = (typeof UID_HINT!=='undefined' && UID_HINT) ? UID_HINT : 'guest';
+let state  = null;
+
+function loadStateLocal(){
+  try{
+    const key = 'chad_state_'+(UID||'guest');
+    const raw = localStorage.getItem(key);
+    if (!raw) return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null };
+    const o = JSON.parse(raw);
+    return {
+      chads: BigInt(o.chads||"0"),
+      gen: BigInt(o.gen||"0"),
+      acc: BigInt(o.acc||"0"),
+      name:o.name||null,
+      avatarIdx: typeof o.avatarIdx==='number' ? o.avatarIdx : null
+    };
+  }catch(e){ return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null }; }
+}
+state = loadStateLocal();
+
+/* ---------- Real API ---------- */
+async function apiHeartbeat(){
+  const body = {
+    id: UID,
+    username: state.name,
+    avatarIdx: state.avatarIdx,
+    chads: Number(state.chads||0n),
+    gen:   Number(state.gen||0n),
+    acc:   Number(state.acc||0n)
+  };
+  const r = await fetch(`${API}/heartbeat`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  if(!r.ok){ const t = await r.text(); throw new Error(t); }
+}
+
+async function apiFetchPlayers(q=''){
+  const r = await fetch(`${API}/players?q=${encodeURIComponent(q)}`);
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error||'players failed');
+  return j.players || [];
+}
+async function apiFetchRanking(){
+  const r = await fetch(`${API}/ranking`);
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error||'ranking failed');
+  return j.ranking || [];
+}
+async function apiCreateTribe(payload){
+  const r = await fetch(`${API}/tribes/create`,{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.reason||j.error||'create tribe failed');
+  return j.tribe;
+}
+
+/* ---------- Overlay ---------- */
+const overlay = $('#socialOverlay');
+$('#userPill')?.addEventListener('click', async () => {
+  overlay.classList.add('show'); overlay.setAttribute('aria-hidden','false');
+  try{ await apiHeartbeat(); }catch(e){ console.warn(e); toast('Server not configured (DATABASE_URL).'); }
+  switchTab('players'); renderPlayers();
+});
+$('#socialClose').addEventListener('click', closeOverlay);
+function closeOverlay(){ overlay.classList.remove('show'); overlay.setAttribute('aria-hidden','true'); }
+
+/* ---------- Tabs ---------- */
+$$('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+function switchTab(name){
+  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
+  $$('.tabview').forEach(v => v.classList.remove('show'));
+  $('#tab-'+name).classList.add('show');
+  $('.bar').style.display = name==='players' ? 'flex':'none';
+  if (name==='ranking') renderRanking();
+}
+
+/* ---------- Players ---------- */
+const playersList = $('#playersList');
+async function renderPlayers(q=''){
+  playersList.innerHTML = `<div class="card">Loading…</div>`;
+  try{
+    const players = await apiFetchPlayers(q);
+    if (!players.length) { playersList.innerHTML = `<div class="card">No players found.</div>`; return; }
+    playersList.innerHTML = players.map(p => `
+      <div class="card row">
+        <div class="left">
+          <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
+          <div class="meta">
+            <div class="name">${p.username}</div>
+            <div class="sub">chads: ${fmt(p.chads)}</div>
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn sky" data-uid="${p.id}" data-act="dm">send message</button>
+          <button class="btn sky" data-uid="${p.id}" data-act="xfer">send/receive chads</button>
+        </div>
+      </div>
+    `).join('');
+  }catch(e){
+    playersList.innerHTML = `<div class="card"⚠️ ${e.message}</div>`;
+  }
+}
+$('#playerSearch').addEventListener('input', e => renderPlayers(e.target.value.trim()));
+
+/* ---------- Ranking ---------- */
+const rankingList = $('#rankingList');
+async function renderRanking(){
+  rankingList.innerHTML = `<div class="card">Loading…</div>`;
+  try{
+    const data = await apiFetchRanking();
+    rankingList.innerHTML = data.map((p, i) => {
+      const place = i+1;
+      const cls = place===1 ? 'gold' : place===2 ? 'amethyst' : place===3 ? 'emerald' : 'silver';
+      return `
+        <div class="card row">
+          <div class="left">
+            <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
+            <div class="meta">
+              <div class="name">${p.username}</div>
+              <div class="sub">tribe: ${p.tribe} · chads: ${fmt(p.chads)}</div>
+            </div>
+          </div>
+          <div class="right"><span class="badge ${cls}">#${place} place</span></div>
+        </div>`;
+    }).join('');
+  }catch(e){
+    rankingList.innerHTML = `<div class="card">⚠️ ${e.message}</div>`;
+  }
+}
+
+/* ---------- Tribes: Create ---------- */
+const tribeModal = $('#createTribeModal');
+$('#openCreateTribe').addEventListener('click', ()=>{
+  tribeModal.classList.add('show');
+  $('#descCount').textContent = `${$('#tribeDesc').value.length}/160`;
+});
+$('#closeTribeModal').addEventListener('click', ()=> tribeModal.classList.remove('show'));
+$('#tribeDesc').addEventListener('input', e => $('#descCount').textContent = `${e.target.value.length}/160`);
+$('#createTribeBtn').addEventListener('click', async ()=>{
+  const name = $('#tribeName').value.trim();
+  const description = $('#tribeDesc').value.trim();
+  const mode = document.querySelector('input[name="joinMode"]:checked').value;
+  if (!name) return toast('Please enter a tribe name');
+  if (description.length > 160) return toast('Description is too long');
+  try{
+    await apiCreateTribe({ founderId: UID, name, description, isRequestBased: mode==='requested' });
+    tribeModal.classList.remove('show'); toast('Tribe created!');
+  }catch(e){ toast(e.message); }
+});
+
+/* ---------- Messages badge (placeholder: set to 0) ---------- */
+const msgBadge = $('#msgBadge'); msgBadge.textContent = '0';
+
+/* Keep your presence up to date (real players list) */
+(async ()=>{
+  try{ await apiHeartbeat(); }catch{}
+  setInterval(()=>apiHeartbeat().catch(()=>{}), 60000);
+})();
+
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
