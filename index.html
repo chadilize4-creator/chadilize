@@ -6,122 +6,7 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-    :root{
-      --bg:#0b0f16;
-      --glass:rgba(255,255,255,.06);
-      --stroke:rgba(255,255,255,.14);
-      --glow:#58e6ff;
-      --accent:#ffd166;
-      --txt:#e8f1ff;
-      --muted:#9fb1c7;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:Outfit,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      color:var(--txt);
-      background:
-        radial-gradient(1200px 600px at 20% -10%, #1a2444 0%, transparent 60%),
-        radial-gradient(1000px 700px at 120% 30%, #182a3a 0%, transparent 55%),
-        linear-gradient(180deg, #0b0f16, #0b0f16);
-      background-attachment: fixed;
-    }
-    .wrap{max-width:1200px;margin:0 auto;padding:24px 20px 80px}
-    .title{
-      display:flex;align-items:center;gap:14px;margin:8px 0 22px;
-      letter-spacing:.6px
-    }
-    .logo-burst{
-      width:44px;height:44px;border-radius:14px;position:relative;
-      background: radial-gradient(circle at 30% 30%, #6fffd2, #4bbcff 55%, #1f3bff 90%);
-      box-shadow:0 0 32px 6px rgba(72,190,255,.35), inset 0 0 2px rgba(255,255,255,.35);
-    }
-    .title h1{margin:0;font-size:32px;font-weight:800}
-    .subtitle{margin-top:-6px;color:var(--muted);font-size:14px}
 
-    .grid{
-      display:grid;gap:16px;
-      grid-template-columns: 1.1fr .9fr;
-    }
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-
-    .panel{
-      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-      border:1px solid var(--stroke);
-      border-radius:22px; padding:18px 18px 14px; position:relative;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 20px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
-    }
-    .panel h2{
-      margin:0 0 12px; font-size:18px; letter-spacing:.4px; font-weight:700
-    }
-
-    /* Fancy button */
-    .btn{
-      display:inline-flex;align-items:center;gap:10px;
-      padding:12px 16px;border-radius:14px;font-weight:700;
-      border:1px solid rgba(255,255,255,.18);
-      background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
-      color:var(--txt); cursor:pointer; user-select:none;
-      box-shadow: 0 10px 30px rgba(0,0,0,.35), 0 0 0 0 rgba(88,230,255,0);
-      transition: transform .15s ease, box-shadow .25s ease;
-    }
-    .btn:hover{ transform: translateY(-1px); box-shadow: 0 16px 36px rgba(0,0,0,.45), 0 0 24px 2px rgba(88,230,255,.25)}
-    .btn.primary{ background: linear-gradient(180deg, #63f5ff, #18a9e3); color:#00131c; border:0 }
-
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
-
-    /* ONLINE PLAYERS */
-    .players{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
-      border:1px solid var(--stroke);
-      border-radius:18px; padding:12px; display:flex; align-items:center; gap:12px;
-      position:relative; overflow:hidden;
-    }
-    .card .pulse{
-      position:absolute; inset:0; pointer-events:none;
-      background: radial-gradient(180px 80px at 0% 0%, rgba(88,230,255,.08), transparent 60%);
-    }
-    .avatar{
-      width:48px;height:48px;border-radius:14px;overflow:hidden;background:#0b1320;border:1px solid rgba(255,255,255,.12)
-    }
-    .avatar img{width:100%;height:100%;object-fit:cover}
-    .meta{display:flex;flex-direction:column}
-    .meta .name{font-weight:700; font-size:15px}
-    .meta .small{font-size:12px;color:var(--muted)}
-    .badge{
-      margin-left:auto; padding:6px 8px;border-radius:10px;font-size:12px;font-weight:700;
-      color:#0b1320;background:linear-gradient(180deg, #ffd166, #ffb84d)
-    }
-
-    /* TRIBES */
-    .tribes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-    .tribe{
-      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
-      border:1px solid var(--stroke); border-radius:18px; padding:14px 12px;
-    }
-    .tribe h3{margin:0 0 6px; font-size:16px}
-    .tribe .members{font-size:12px;color:var(--muted)}
-    .tribe .join{margin-top:10px}
-
-    /* Modal */
-    .modal{
-      position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-      background:rgba(5,8,12,.72);backdrop-filter: blur(6px);z-index:1000;
-    }
-    .modal.open{display:flex}
-    .modal .box{
-      width:min(420px, 92vw); background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
-      border:1px solid var(--stroke); border-radius:20px; padding:18px;
-      box-shadow: 0 30px 80px rgba(0,0,0,.6);
-    }
-    .field{display:flex;gap:10px;margin-top:8px}
-    .input{
-      flex:1; padding:12px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
-      background:rgba(0,0,0,.25); color:var(--txt); outline:none; font-size:15px
-    }
-    .helper{font-size:12px;color:var(--muted);margin-top:6px}
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -667,7 +552,7 @@ body{
 /* Bottom */
 .bottom{ position:sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); left:12px; right:12px; z-index:90; margin-top:16px; }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
-.tile{ border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer; border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none padding-inline: 18px; }
+.tile{ border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer; border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none }
 .tile.play{
   /* 1) Texture + gradient layered together */
   background-image:
@@ -690,7 +575,7 @@ body{
 }
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
-.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6 }
+.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
 /* ===== Shop Overlay ===== */
 .shop-overlay {
   position: fixed; inset: 0;
@@ -874,47 +759,6 @@ canvas{ display:block }
 
 <div class="stage">
   <div class="phone" id="phone">
- <div class="wrap">
-    <div class="title">
-      <div class="logo-burst"></div>
-      <div>
-        <h1>Realm Lobby</h1>
-        <div class="subtitle">Live players & tribes — auto-updates in real time</div>
-      </div>
-      <button class="btn" id="changeNameBtn" style="margin-left:auto">Change name</button>
-      <button class="btn primary" id="createTribeBtn">+ Create Tribe</button>
-    </div>
-
-    <div class="grid">
-      <section class="panel">
-        <div class="toolbar">
-          <h2>Online now</h2>
-          <div class="subtitle" id="count">0 players</div>
-        </div>
-        <div class="players" id="players"></div>
-      </section>
-
-      <section class="panel">
-        <div class="toolbar">
-          <h2>Tribes</h2>
-        </div>
-        <div class="tribes" id="tribes"></div>
-      </section>
-    </div>
-  </div>
-
-  <!-- Create Tribe Modal -->
-  <div class="modal" id="modal">
-    <div class="box">
-      <h2 style="margin:0 0 8px">Create a Tribe</h2>
-      <div class="helper">Pick a short, punchy name (max 24 chars).</div>
-      <div class="field">
-        <input id="tribeName" class="input" placeholder="e.g., Night Watch">
-        <button class="btn primary" id="saveTribe">Create</button>
-      </div>
-      <div class="helper" id="tribeError" style="color:#ffb3b3;display:none"></div>
-    </div>
-  </div>
 
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
@@ -3272,101 +3116,6 @@ function openBreaker(){
 
   window.addEventListener('resize', resizeCanvas);
 })();
-
-
-// ---- Client identity (stored locally for your other account/browser too)
-    const saved = JSON.parse(localStorage.getItem("realmUser")||"null") || {};
-    let username = saved.name || ("Player " + Math.floor(Math.random()*999));
-    let userId   = saved.id   || (Math.random().toString(36).slice(2,10));
-    localStorage.setItem("realmUser", JSON.stringify({ id:userId, name:username }));
-
-    // ---- Connect to realtime server
-    const socket = io("/", { transports: ["websocket"] });
-    socket.emit("player:join", { id:userId, name:username }, (res) => {
-      if(!res?.ok) console.error("join failed", res);
-    });
-
-    // ---- UI helpers
-    const $ = (q) => document.querySelector(q);
-    const playersEl = $("#players");
-    const tribesEl  = $("#tribes");
-    const countEl   = $("#count");
-    const modal     = $("#modal");
-    const tribeName = $("#tribeName");
-    const tribeErr  = $("#tribeError");
-
-    function renderPlayers(list){
-      countEl.textContent = `${list.length} player${list.length===1?"":"s"}`;
-      playersEl.innerHTML = list
-        .sort((a,b)=>b.joinedAt - a.joinedAt)
-        .map(p => `
-          <div class="card">
-            <div class="pulse"></div>
-            <div class="avatar"><img alt="" src="${p.avatar}"/></div>
-            <div class="meta">
-              <div class="name">${escapeHtml(p.name)}</div>
-              <div class="small">Lv ${p.level} • joined ${timeAgo(p.joinedAt)}</div>
-            </div>
-            <div class="badge">ONLINE</div>
-          </div>
-        `).join("");
-    }
-
-    function renderTribes(list){
-      tribesEl.innerHTML = list
-        .sort((a,b)=>b.createdAt - a.createdAt)
-        .map(t => `
-          <div class="tribe">
-            <h3>${escapeHtml(t.name)}</h3>
-            <div class="members">${t.members.length} member${t.members.length===1?"":"s"}</div>
-            <button class="btn join" data-id="${t.id}">Join</button>
-          </div>
-        `).join("");
-      tribesEl.querySelectorAll(".join").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
-          socket.emit("tribe:join", btn.dataset.id, (res)=>{
-            if(!res?.ok) alert("Failed to join tribe");
-          });
-        });
-      });
-    }
-
-    // Live updates from the server
-    socket.on("presence:list", renderPlayers);
-    socket.on("tribes:list", renderTribes);
-
-    // Create Tribe flow
-    $("#createTribeBtn").addEventListener("click", ()=> {
-      tribeErr.style.display="none";
-      tribeName.value=""; modal.classList.add("open"); tribeName.focus();
-    });
-    modal.addEventListener("click", (e)=> { if(e.target===modal) modal.classList.remove("open"); });
-    $("#saveTribe").addEventListener("click", ()=>{
-      const name = tribeName.value.trim();
-      socket.emit("tribe:create", { name }, (res)=>{
-        if(!res?.ok){ tribeErr.textContent = res?.error || "Error"; tribeErr.style.display="block"; return; }
-        modal.classList.remove("open");
-      });
-    });
-
-    // Change name
-    $("#changeNameBtn").addEventListener("click", ()=>{
-      const nv = prompt("New display name:", username);
-      if(!nv) return;
-      username = nv.slice(0,24);
-      localStorage.setItem("realmUser", JSON.stringify({ id:userId, name:username }));
-      // Re-announce to server (simple demo approach)
-      socket.emit("player:join", { id:userId, name:username }, ()=>{});
-    });
-
-    // Small utils
-    function timeAgo(ts){
-      const s = Math.max(1, Math.floor((Date.now()-ts)/1000));
-      if(s<60) return `${s}s ago`;
-      const m = Math.floor(s/60); if(m<60) return `${m}m ago`;
-      const h = Math.floor(m/60); return `${h}h ago`;
-    }
-    function escapeHtml(str){ return str.replace(/[&<>"']/g, (m)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])) }
 
 
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
