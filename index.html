@@ -654,6 +654,15 @@ body{
 .card.disabled { opacity: .6; filter: grayscale(100%); }
 .card.disabled .card-badge { color: #ff3a3a; }
 
+#buyBtn{
+  animation: pulseGlow 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #22ff88, 0 0 10px #22ff88, 0 0 20px rgba(34,255,136,.8);
+}
+@keyframes pulseGlow{
+  50%{ box-shadow: 0 0 0 2px #22ff88, 0 0 18px #22ff88, 0 0 36px rgba(34,255,136,1); }
+}
+
+
 /* Bottom row */
 .shop-bottom {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 8px 12px 12px 12px;
