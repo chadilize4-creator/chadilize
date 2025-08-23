@@ -7,126 +7,125 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-/* ===== Social Overlay (fullscreen) ===== */
-.social-overlay{ position:fixed; inset:0; display:none; z-index:999;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(8px); /* MDN backdrop-filter */ }
-.social-overlay.open{ display:block; }
-
-.social-panel{ position:relative; margin:env(safe-area-inset-top) auto 0;
-  width:min(980px, 100%); height:calc(100% - env(safe-area-inset-top));
-  background: radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.06), transparent 40%),
-              linear-gradient(180deg,#0b0f14,#07131b 40%, #060a10);
-  border:1px solid rgba(255,255,255,.08); border-radius:18px 18px 0 0;
-  box-shadow: 0 40px 120px rgba(0,0,0,.7); overflow:hidden; color:#eaf0f6; }
-.so-close{ position:absolute; top:10px; right:12px; z-index:3; width:36px; height:36px;
-  border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.35);
-  color:#cfe4ff; font-size:18px; cursor:pointer; backdrop-filter:blur(2px) }
-
-.so-tabs{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; padding:16px;
-  border-bottom:1px solid rgba(255,255,255,.07); background:
-  linear-gradient(180deg, rgba(255,255,255,.06), transparent); }
-.so-tab{ font-weight:800; text-transform:lowercase; letter-spacing:.2px;
-  padding:12px 14px; border-radius:14px; cursor:pointer; border:1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, #152233, #0f1723);
-  color:#c6d1e3; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
-.so-tab.is-active{ color:#0a0e12; background:
-  linear-gradient(180deg,#f6d46e,#c69d2f 60%, #906d1b); /* gold-beam */
-  border-color:#fce39b; text-shadow:0 1px 0 rgba(255,255,255,.4); }
-
-.so-panel{ height:calc(100% - 74px); overflow:auto; padding:14px 14px 110px; }
-.so-row{ display:flex; gap:10px; align-items:center; margin:6px 0 12px; }
-.bottom-pad{ padding-bottom:30px; }
-
-.so-search{ flex:1; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.04); color:#e6f0ff; outline:none; }
-.so-search::placeholder{ color:#9fb1c9 }
-
-.so-msgs-btn{ position:relative; padding:12px 14px; border-radius:12px; font-weight:800;
-  border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg,#182434,#0f1624);
-  color:#cfe1ff; cursor:pointer; }
-.so-badge{ position:absolute; top:-8px; right:-8px; min-width:20px; padding:2px 6px; border-radius:12px;
-  background:#e63946; color:#fff; font-weight:900; font-size:12px; border:2px solid #0b0f14; }
-
-/* Lists & Cards */
-.so-list{ list-style:none; margin:0; padding:0; display:grid; gap:12px; }
-.so-list.compact{ gap:8px; }
-.so-item{ display:grid; grid-template-columns:auto 1fr auto; gap:12px;
-  align-items:center; padding:12px; border-radius:16px;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  border:1px solid rgba(255,255,255,.10); box-shadow:0 18px 60px rgba(0,0,0,.45); }
-.so-avatar{ width:54px; height:54px; border-radius:50%; overflow:hidden; display:grid; place-items:center;
-  border:2px solid rgba(255,255,255,.22); background:linear-gradient(180deg,#233244,#101825); font-weight:900 }
-.so-avatar img{ width:100%; height:100%; object-fit:cover }
-.so-name{ font-weight:800; font-size:16px; color:#e8f2ff }
-.so-sub{ font-size:12px; opacity:.75 }
-
-.btn-primary{ padding:10px 14px; border-radius:12px; font-weight:900; cursor:pointer;
-  border:1px solid #f9e39b; color:#0c0f14;
-  background:linear-gradient(180deg,#ffe79a,#e8c45b 60%, #b5892d); }
-.btn-ghost{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.15);
-  background:rgba(255,255,255,.05); color:#e6f0ff; font-weight:800; cursor:pointer; }
-.btn-ghost.small{ padding:6px 10px; font-size:12px }
-
-.btn-icon{ width:36px; height:36px; display:grid; place-items:center; border-radius:10px;
-  border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#cfe4ff; cursor:pointer; }
-
-.so-actions{ display:flex; gap:8px; flex-wrap:wrap }
-.so-note{ opacity:.7; font-size:12px; padding:10px }
-
-/* Ranking looks */
-.so-ranking .so-item{ grid-template-columns:auto 1fr auto; }
-.rank-n{ font-weight:900; font-size:16px; opacity:.85 }
-.rank-1{ background:linear-gradient(180deg,#ffefb0,#f4c85a 60%, #b9852b); border-color:#ffe39b }
-.rank-2{ background:linear-gradient(180deg,#e1d8ff,#b49bff 60%, #7b63d1); border-color:#c6b3ff }
-.rank-3{ background:linear-gradient(180deg,#d3f7c2,#8ed17f 60%, #5da85b); border-color:#b6efac }
-.rank-other{ background:linear-gradient(180deg,#dfe6f3,#bfc8d9 60%, #8f9bb2); color:#0d1320;
-  border-color:#d7deec; }
-.rank-other .so-name{ color:#0d1320 }
-
-/* Chat drawer */
-.chat-drawer{ position:absolute; left:0; right:0; bottom:0; height:70%;
-  background: linear-gradient(180deg,#0e141e,#0a0f17); border-top:1px solid rgba(255,255,255,.08);
-  box-shadow:0 -24px 100px rgba(0,0,0,.6); display:flex; flex-direction:column; }
-.chat-head{ display:flex; gap:10px; align-items:center; padding:10px; border-bottom:1px solid rgba(255,255,255,.07)}
-.chat-title{ display:flex; flex-direction:column; gap:2px }
-.chat-name{ font-weight:900 }
-.chat-sub{ font-size:12px; opacity:.7 }
-.chat-stream{ flex:1; overflow:auto; padding:10px; display:grid; gap:8px }
-.msg{ max-width:80%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.1); }
-.msg.me{ justify-self:end; background:linear-gradient(180deg,#ffe39b,#c9a453); color:#0d0f12 }
-.msg.them{ justify-self:start; background:rgba(255,255,255,.06) }
-.msg .small{ font-size:11px; opacity:.75; margin-top:4px }
-.msg .accepts{ display:flex; gap:8px; margin-top:8px }
-.msg .accepts .btn-primary{ padding:6px 10px }
-
-/* Mini dialogs (amount, members) */
-.mini-dialog{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.6) }
-.md-card{ width:min(520px,92%); background:linear-gradient(180deg,#0c121b,#0a1016);
-  border:1px solid rgba(255,255,255,.12); border-radius:16px; box-shadow:0 30px 120px rgba(0,0,0,.8) }
-.md-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08) }
-.md-title{ font-weight:900 }
-.md-body{ padding:14px; display:grid; gap:12px }
-.md-field{ display:grid; gap:6px }
-.md-field input, .md-field textarea{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.05); color:#eaf2ff; }
-.md-seg{ display:grid; grid-auto-flow:column; gap:10px; align-items:center; }
-.md-seg input{ accent-color:#e7c45e }
-.md-tabs{ display:grid; grid-auto-flow:column; gap:8px; padding:10px 14px 0 }
-.md-tab{ padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.05); color:#cfe1ff; font-weight:800; cursor:pointer }
-.md-tab.is-active{ background:linear-gradient(180deg,#ffe39b,#cfa04a); color:#0d1014 }
-.md-foot{ display:flex; justify-content:flex-end; padding:12px 14px; border-top:1px solid rgba(255,255,255,.08) }
-
-.err{ color:#ff8b8b; font-size:12px }
-
-/* Member list tiny */
-.member-actions{ display:flex; gap:6px }
-
-/* Responsive polish */
-@media (max-width:560px){
-  .so-item{ grid-template-columns:auto 1fr; grid-template-rows:auto auto; }
-  .so-actions{ grid-column:1 / -1 }
+/* ===== Base overlay ===== */
+.so-overlay[hidden], .so-modal[hidden] { display:none }
+.so-overlay, .so-modal {
+  position:fixed; inset:0; z-index:9999;
+  display:grid; place-items:center;
+  background: radial-gradient(1200px 800px at 50% -10%, rgba(255,255,255,.06), transparent 40%) ,
+              linear-gradient(180deg, rgba(0,0,0,.88), rgba(0,0,0,.92));
+  backdrop-filter: blur(6px);
 }
+.so-wrap{ width:min(900px, 94vw); height:min(88vh, 820px); background:rgba(13,17,23,.72);
+  border:1px solid rgba(255,255,255,.06); border-radius:22px; overflow:hidden;
+  box-shadow: 0 30px 100px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex; flex-direction:column;
+}
+.so-top{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px }
+.so-tabs{ display:grid; grid-auto-flow:column; gap:10px; background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06); padding:6px; border-radius:16px;
+}
+.so-tab{ appearance:none; border:0; padding:10px 16px; border-radius:12px; font-weight:800;
+  font-size:15px; color:#cbd5e1; background:transparent; cursor:pointer; text-transform:lowercase;
+}
+.so-tab.is-active{ color:#0b0f14; background:
+  radial-gradient(600px 200px at 50% 0%, rgba(255,255,255,.24), rgba(255,255,255,0) 70%),
+  linear-gradient(180deg,#ffe28a,#b8870a);
+  box-shadow: 0 10px 30px rgba(255,215,0,.14), inset 0 1px 0 rgba(255,255,255,.45);
+}
+.so-x{ appearance:none; border:0; background:rgba(255,255,255,.06); color:#e2e8f0;
+  width:38px; height:38px; border-radius:12px; cursor:pointer; font-size:20px;
+  border:1px solid rgba(255,255,255,.09);
+}
+.so-panel{ padding:12px 14px; overflow:auto; flex:1 }
+
+/* ===== Common bits ===== */
+.btn{ appearance:none; border:0; padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer;
+  background:linear-gradient(180deg,#ffe28a,#b8870a); color:#041017; box-shadow:0 8px 30px rgba(255,215,0,.18);
+}
+.btn-ghost{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); color:#d1d5db }
+.small{ font-size:12px; padding:6px 10px }
+.cta{ padding:12px 18px; border-radius:999px; font-weight:900; background:
+  radial-gradient(1200px 600px at 50% -40%, rgba(255,255,255,.35), transparent 60%),
+  linear-gradient(180deg,#ffe28a,#b8870a);
+}
+.wfull{ width:100% }
+.badge-host{ position:relative }
+.badge{ position:absolute; top:-8px; right:-8px; min-width:20px; height:20px; padding:0 6px;
+  display:grid; place-items:center; font-size:12px; border-radius:999px; color:#fff;
+  background:linear-gradient(180deg,#ff4747,#9b1111); box-shadow:0 8px 20px rgba(255,71,71,.35);
+}
+.err{ color:#ff8b8b; font-size:12px; margin-top:6px }
+
+/* Search bar */
+.players-bar{ display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; padding:4px }
+.search{ position:relative }
+.search input{ width:100%; padding:12px 36px 12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04); color:#f3f4f6 }
+.search .icon{ position:absolute; right:10px; top:50%; transform:translateY(-50%); opacity:.5 }
+
+/* List items */
+.list{ display:grid; gap:12px; padding:8px 2px 24px }
+.card{ background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.07); border-radius:18px; box-shadow:0 14px 40px rgba(0,0,0,.35);
+  padding:12px; display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center }
+.ava{ width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-weight:900;
+  color:#0a0f13; background:radial-gradient(ellipse farthest-corner at right bottom,#fedb37 0%,#fdb931 8%,#9f7928 30%,#8a6e2f 40%,transparent 80%) ,
+           radial-gradient(ellipse farthest-corner at left top,#ffffff 0%,#ffffac 8%,#d1b464 25%,transparent 60%); /* gold texture */
+  border:1px solid rgba(255,255,255,.25)
+}
+.meta{ line-height:1.2 }
+.meta .name{ font-weight:800; color:#e5e7eb }
+.meta .sub{ color:#9aa3af; font-size:12px }
+.actions{ display:grid; gap:8px }
+.actions .btn{ padding:8px 10px }
+
+/* Inbox / chat */
+.so-modal .modal-card{ width:min(820px, 94vw); background:rgba(13,17,23,.92); border:1px solid rgba(255,255,255,.07);
+  border-radius:20px; overflow:hidden; box-shadow:0 30px 100px rgba(0,0,0,.6) }
+.modal-top{ display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:12px 14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent) }
+.modal-top h3{ margin:0; text-transform:capitalize; color:#e5e7eb }
+.back{ appearance:none; border:0; background:rgba(255,255,255,.06); color:#e2e8f0; border-radius:10px; padding:8px 10px; cursor:pointer }
+.threads .thread{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center }
+.thread .preview{ color:#9aa3af; font-size:12px; margin-top:4px }
+.thread .count{ background:linear-gradient(180deg,#ff4747,#9b1111); color:#fff; border-radius:999px; padding:2px 8px; font-size:12px }
+
+.chat{ display:grid; grid-template-rows:auto 1fr auto }
+.chat-log{ padding:14px; display:grid; gap:10px; max-height:60vh; overflow:auto }
+.msg{ max-width:76%; padding:10px 12px; border-radius:14px; font-size:14px; line-height:1.3;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08) }
+.me{ justify-self:end; background:linear-gradient(180deg,#ffe28a,#b8870a); color:#041017; border:0 }
+.sys{ justify-self:center; font-size:12px; opacity:.8; background:transparent; border:0 }
+.chat-compose{ display:grid; grid-template-columns:1fr auto; gap:10px; padding:12px 14px; background:linear-gradient(180deg,transparent,rgba(255,255,255,.03)) }
+.chat-compose input{ padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:#f3f4f6 }
+
+/* Xfer */
+.xfer-body{ padding:12px 14px }
+.xfer-body .amount input{ width:140px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1); color:#f3f4f6 }
+
+/* Tribes */
+.tribe-head{ display:flex; justify-content:flex-end; padding:6px }
+.tribes .tribe{ grid-template-columns:1fr auto }
+.tribe .desc{ color:#9aa3af; font-size:12px; margin-top:4px }
+.create-wrap{ display:grid; place-items:center; padding:18px 0 }
+.sheet{ position:absolute; inset:auto 12px 12px 12px; background:rgba(13,17,23,.97);
+  border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px; box-shadow:0 30px 80px rgba(0,0,0,.7) }
+.sheet-head{ display:grid; grid-template-columns:1fr auto; align-items:center; margin-bottom:8px }
+.members .mrow{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center }
+
+/* Ranking medals */
+.ranking .card{ grid-template-columns:auto 1fr auto; align-items:center }
+.badge-rank{ font-weight:900; font-size:16px; padding:6px 10px; border-radius:12px; color:#0a0f13 }
+.rank-1 .badge-rank{ background:
+  radial-gradient(ellipse farthest-corner at right bottom,#fedb37 0%,#fdb931 8%,#9f7928 30%,#8a6e2f 40%,transparent 80%),
+  radial-gradient(ellipse farthest-corner at left top,#fff 0%,#ffffac 8%,#d1b464 25%,transparent 60%); }
+.rank-2 .badge-rank{ background: linear-gradient(140deg, #e9d5ff, #a78bfa 50%, #6d28d9); color:#0b0417 }
+.rank-3 .badge-rank{ background: linear-gradient(140deg, #bbf7d0, #34d399 60%, #065f46); color:#02130e }
+.rank-other .badge-rank{ background: linear-gradient(180deg,#e5e7eb,#9ca3af); color:#0a0f13 }
+.footnote{ opacity:.6; font-size:12px; text-align:center; padding:6px 0 }
+
 
 
 /* ===== Night Grid (stunning edition) ===== */
@@ -894,153 +893,152 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
-<!-- === SOCIAL OVERLAY =================================================== -->
-<div id="socialOverlay" class="social-overlay" aria-hidden="true">
-  <div class="social-panel" role="dialog" aria-modal="true" aria-labelledby="socialTabs">
-    <!-- Close -->
-    <button class="so-close" id="soClose" aria-label="Close">✕</button>
 
-    <!-- Tabs -->
-    <header id="socialTabs" class="so-tabs" role="tablist" aria-orientation="horizontal">
-      <button class="so-tab is-active" id="tab-players" role="tab" aria-selected="true"
-              aria-controls="panel-players">players</button>
-      <button class="so-tab" id="tab-ranking" role="tab" aria-selected="false"
-              aria-controls="panel-ranking">ranking</button>
-      <button class="so-tab" id="tab-tribes" role="tab" aria-selected="false"
-              aria-controls="panel-tribes">tribes</button>
+<!-- ===== SOCIAL OVERLAY =================================================== -->
+<div id="socialOverlay" class="so-overlay" role="dialog" aria-modal="true" hidden>
+  <div class="so-wrap">
+    <header class="so-top">
+      <div class="so-tabs" role="tablist" aria-label="Social sections">
+        <button class="so-tab is-active" role="tab" aria-selected="true"
+                aria-controls="panelPlayers" id="tabPlayers">players</button>
+        <button class="so-tab" role="tab" aria-selected="false"
+                aria-controls="panelRanking" id="tabRanking">ranking</button>
+        <button class="so-tab" role="tab" aria-selected="false"
+                aria-controls="panelTribes"  id="tabTribes">tribes</button>
+      </div>
+      <button class="so-x" id="socialClose" aria-label="Close">✕</button>
     </header>
 
-    <!-- Panels -->
-    <section class="so-panel" id="panel-players" role="tabpanel" aria-labelledby="tab-players">
-      <div class="so-row">
-        <input id="playerSearch" class="so-search" type="search" autocomplete="off"
-               placeholder="Search username…" aria-label="Search players">
-        <button class="so-msgs-btn" id="openMessages">
-          messages <span class="so-badge" id="messagesBadge" hidden>0</span>
+    <!-- PLAYERS ------------------------------------------------------------- -->
+    <section id="panelPlayers" class="so-panel" role="tabpanel" aria-labelledby="tabPlayers">
+      <div class="players-bar">
+        <div class="search">
+          <input id="playerSearch" type="text" placeholder="Search username…" autocomplete="off" />
+          <span class="icon">🔎</span>
+        </div>
+        <button id="openInbox" class="btn badge-host">
+          messages <span id="inboxBadge" class="badge" hidden>0</span>
         </button>
       </div>
-
-      <ul id="playersList" class="so-list" aria-live="polite" aria-busy="false"></ul>
+      <div id="playersList" class="list"></div>
     </section>
 
-    <section class="so-panel" id="panel-ranking" role="tabpanel" aria-labelledby="tab-ranking" hidden>
-      <ul id="rankingList" class="so-list so-ranking"></ul>
-      <div class="so-note">Ranking refreshes every 24h (local simulation).</div>
+    <!-- RANKING ------------------------------------------------------------- -->
+    <section id="panelRanking" class="so-panel" role="tabpanel" aria-labelledby="tabRanking" hidden>
+      <div id="rankingList" class="list ranking"></div>
+      <div class="footnote">* Ranking refreshes every 24h</div>
     </section>
 
-    <section class="so-panel" id="panel-tribes" role="tabpanel" aria-labelledby="tab-tribes" hidden>
-      <div class="so-row">
-        <button id="openYourTribe" class="btn-ghost">Your Tribe</button>
+    <!-- TRIBES -------------------------------------------------------------- -->
+    <section id="panelTribes" class="so-panel" role="tabpanel" aria-labelledby="tabTribes" hidden>
+      <div class="tribe-head">
+        <button id="yourTribeBtn" class="btn btn-ghost">Your Tribe</button>
       </div>
-
-      <ul id="tribesList" class="so-list"></ul>
-
-      <div class="so-row bottom-pad">
-        <button id="createTribeBtn" class="btn-primary">create tribe</button>
+      <div id="tribeList" class="list tribes"></div>
+      <div class="create-wrap">
+        <button id="createTribeBtn" class="cta">create tribe</button>
       </div>
     </section>
   </div>
+</div>
 
-  <!-- Chat Drawer -->
-  <div id="chatDrawer" class="chat-drawer" hidden>
-    <div class="chat-head">
-      <button id="chatBack" class="btn-icon" aria-label="Back">←</button>
-      <div class="chat-title">
-        <div class="chat-name" id="chatWith">Chat</div>
-        <div class="chat-sub" id="chatSub"></div>
-      </div>
-      <div style="width:40px"></div>
-    </div>
-    <div id="chatStream" class="chat-stream" aria-live="polite"></div>
-    <form id="chatForm" class="chat-input" autocomplete="off">
-      <input id="chatText" type="text" placeholder="Type a message…" maxlength="500" required />
-      <button class="btn-primary" type="submit">Send</button>
-    </form>
+<!-- ===== Inbox (threads) ================================================== -->
+<div id="inboxModal" class="so-modal" role="dialog" aria-modal="true" hidden>
+  <div class="modal-card">
+    <header class="modal-top">
+      <button class="back" id="inboxBack">←</button>
+      <h3>Messages</h3>
+      <button class="so-x" id="inboxClose" aria-label="Close">✕</button>
+    </header>
+    <div id="threadList" class="list threads"></div>
   </div>
+</div>
 
-  <!-- Send / Request Chads -->
-  <div id="chadDialog" class="mini-dialog" hidden>
-    <div class="md-card">
-      <div class="md-head">
-        <div class="md-title" id="chadDialogTitle">Chads</div>
-        <button id="mdClose" class="btn-icon" aria-label="Close">✕</button>
-      </div>
-      <div class="md-tabs">
-        <button class="md-tab is-active" data-mode="send">Send</button>
-        <button class="md-tab" data-mode="request">Request</button>
-      </div>
-      <div class="md-body">
-        <label class="md-field">
-          <span>Amount</span>
-          <input id="chadAmount" type="number" min="1" placeholder="0">
-        </label>
-        <p id="chadErr" class="err" hidden>Please choose an amount</p>
-      </div>
-      <div class="md-foot">
-        <button id="chadConfirm" class="btn-primary">Confirm</button>
-      </div>
-    </div>
+<!-- ===== Chat thread ====================================================== -->
+<div id="chatModal" class="so-modal" role="dialog" aria-modal="true" hidden>
+  <div class="modal-card chat">
+    <header class="modal-top">
+      <button class="back" id="chatBack">←</button>
+      <h3 id="chatTitle">Chat</h3>
+      <button class="so-x" id="chatClose" aria-label="Close">✕</button>
+    </header>
+    <div id="chatLog" class="chat-log"></div>
+    <footer class="chat-compose">
+      <input id="chatInput" type="text" placeholder="Type a message…" />
+      <button id="chatSend" class="btn">Send</button>
+    </footer>
   </div>
+</div>
 
-  <!-- Create Tribe -->
-  <div id="tribeDialog" class="mini-dialog" hidden>
-    <div class="md-card">
-      <div class="md-head">
-        <div class="md-title">Create Tribe</div>
-        <button id="tdClose" class="btn-icon" aria-label="Close">✕</button>
+<!-- ===== Send / Request chads ============================================ -->
+<div id="xferModal" class="so-modal" role="dialog" aria-modal="true" hidden>
+  <div class="modal-card">
+    <header class="modal-top">
+      <h3 id="xferTitle">Chads</h3>
+      <button class="so-x" id="xferClose" aria-label="Close">✕</button>
+    </header>
+    <div class="xfer-body">
+      <div class="amount">
+        <label>Amount</label>
+        <input id="xferAmount" type="number" min="1" placeholder="0" />
+        <div id="xferErr" class="err" hidden>please choose an amount</div>
       </div>
-      <div class="md-body">
-        <label class="md-field"><span>Name of the tribe</span>
-          <input id="tribeName" type="text" maxlength="32" placeholder="e.g., Dawnwalkers">
-        </label>
-        <label class="md-field"><span>Description (max 160)</span>
-          <textarea id="tribeDesc" rows="3" maxlength="160" placeholder="Write a short description…"></textarea>
-        </label>
-
-        <div class="md-seg">
-          <input type="radio" name="tribeMode" id="modeRequest" value="request" checked>
-          <label for="modeRequest">requested</label>
-          <input type="radio" name="tribeMode" id="modePublic" value="public">
-          <label for="modePublic">free to public</label>
-        </div>
-      </div>
-      <div class="md-foot">
-        <button id="tribeCreateConfirm" class="btn-primary">Create</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Your Tribe (group chat & members) -->
-  <div id="yourTribeView" class="chat-drawer" hidden>
-    <div class="chat-head">
-      <button id="ytBack" class="btn-icon" aria-label="Back">←</button>
-      <div class="chat-title">
-        <div class="chat-name" id="ytName">Your Tribe</div>
-        <div class="chat-sub" id="ytSub"></div>
-      </div>
-      <button id="ytMembers" class="btn-ghost small">See players</button>
-    </div>
-    <div id="ytStream" class="chat-stream"></div>
-    <form id="ytForm" class="chat-input" autocomplete="off">
-      <input id="ytText" type="text" placeholder="Message the tribe…" maxlength="500" required />
-      <button class="btn-primary" type="submit">Send</button>
-    </form>
-  </div>
-
-  <!-- Members sheet -->
-  <div id="membersSheet" class="mini-dialog" hidden>
-    <div class="md-card">
-      <div class="md-head">
-        <div class="md-title">Members</div>
-        <button id="msClose" class="btn-icon" aria-label="Close">✕</button>
-      </div>
-      <div class="md-body">
-        <ul id="membersList" class="so-list compact"></ul>
+      <div class="row">
+        <button id="btnSendChads" class="btn">Send</button>
+        <button id="btnReqChads" class="btn btn-ghost">Request</button>
       </div>
     </div>
   </div>
 </div>
-<!-- ===================================================================== -->
+
+<!-- ===== Create tribe ===================================================== -->
+<div id="tribeCreateModal" class="so-modal" role="dialog" aria-modal="true" hidden>
+  <div class="modal-card">
+    <header class="modal-top">
+      <h3>Create Tribe</h3>
+      <button class="so-x" id="tribeCreateClose" aria-label="Close">✕</button>
+    </header>
+    <div class="form">
+      <label>Name</label>
+      <input id="tribeName" maxlength="32" placeholder="Choose the name of the tribe…" />
+      <label>Description <small>(max 160)</small></label>
+      <textarea id="tribeDesc" maxlength="160" placeholder="Add a short description…"></textarea>
+      <div class="toggle">
+        <input type="radio" name="joinMode" id="modeRequest" checked>
+        <label for="modeRequest">requested</label>
+        <input type="radio" name="joinMode" id="modePublic">
+        <label for="modePublic">free to public</label>
+      </div>
+      <button id="tribeCreateGo" class="cta wfull">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tribe room ======================================================= -->
+<div id="tribeRoomModal" class="so-modal" role="dialog" aria-modal="true" hidden>
+  <div class="modal-card tribe-room">
+    <header class="modal-top">
+      <button class="back" id="tribeRoomBack">←</button>
+      <h3 id="tribeRoomTitle">Your Tribe</h3>
+      <button class="btn btn-ghost small" id="tribeSeeMembers">See players</button>
+      <button class="so-x" id="tribeRoomClose" aria-label="Close">✕</button>
+    </header>
+
+    <div id="tribeMembersSheet" class="sheet" hidden>
+      <div class="sheet-head">
+        <h4>Members</h4>
+        <button class="so-x" id="membersClose">✕</button>
+      </div>
+      <div id="membersList" class="list members"></div>
+    </div>
+
+    <div id="tribeChat" class="chat-log"></div>
+    <footer class="chat-compose">
+      <input id="tribeMsg" type="text" placeholder="Message the tribe…" />
+      <button id="tribeSend" class="btn">Send</button>
+    </footer>
+  </div>
+</div>
 
 
     <!-- MAIN -->
@@ -1678,568 +1676,6 @@ function markUsernameTaken(name){
   if (raw){ try{ const arr = JSON.parse(raw); if(Array.isArray(arr)) set = new Set(arr); }catch{} }
   set.add(name); localStorage.setItem(TAKEN_KEY, JSON.stringify(Array.from(set)));
 }
-
-
-/* ==============================================================
-   SOCIAL OVERLAY — Players • Ranking • Tribes
-   All data is localStorage-simulated; wire the "API" section
-   to your backend when you’re ready.
-================================================================= */
-
-(() => {
-  // ---------- Utilities ----------
-  const $ = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
-  const on = (el, ev, fn) => el.addEventListener(ev, fn);
-
-  // Storage helpers (MDN Storage API)
-  const LS = {
-    get(k, fallback=null){ try{ const v = localStorage.getItem(k); return v? JSON.parse(v): fallback }catch{ return fallback } },
-    set(k, v){ localStorage.setItem(k, JSON.stringify(v)) }
-  };
-
-  // Find "me" (name/avatar) using your DOM/state if available
-  function readMe(){
-    let name = (window.state && state.name) || ($("#userName")?.textContent?.trim()) || "Player";
-    let avatarIdx = (window.state && state.avatarIdx) ?? null;
-    return { id: "me", name, avatarIdx };
-  }
-
-  const ME = readMe();
-
-  // Keys
-  const K = {
-    players: "chad_players",
-    messages: "chad_messages",
-    tribes: "chad_tribes",
-    rankingAt: "chad_ranking_ts"
-  };
-
-  // Seed some local demo data if empty
-  function seed(){
-    if (!LS.get(K.players)){
-      const demo = Array.from({length:30}).map((_,i)=>({
-        id: "u"+(i+1),
-        name: i===0 ? ME.name : `player_${(i+1).toString().padStart(2,"0")}`,
-        avatarIdx: (i%16),
-        chads: Math.floor(Math.random()*50000)+100,
-        tribeId: null
-      }));
-      // ensure ME is included
-      if (!demo.find(p=>p.name===ME.name)) demo.unshift({id:"me", name:ME.name, avatarIdx:ME.avatarIdx, chads:42391, tribeId:null});
-      LS.set(K.players, demo);
-    }
-    if (!LS.get(K.messages)) LS.set(K.messages, {}); // threadId -> {ids:[a,b], msgs:[]}
-    if (!LS.get(K.tribes)) LS.set(K.tribes, []);
-  }
-  seed();
-
-  // Helpers
-  const playersAll = () => LS.get(K.players, []);
-  const savePlayers = (arr) => LS.set(K.players, arr);
-  const tribesAll = () => LS.get(K.tribes, []);
-  const saveTribes = (arr) => LS.set(K.tribes, arr);
-  const now = () => Date.now();
-
-  function getThreadId(a,b){ return [a,b].sort().join("::"); }
-  function pushMsg(toName, payload){
-    const id = getThreadId(ME.name, toName);
-    const all = LS.get(K.messages, {});
-    if (!all[id]) all[id] = { ids:[ME.name, toName], msgs:[] };
-    all[id].msgs.push(payload);
-    LS.set(K.messages, all);
-  }
-  function loadThread(other){
-    const id = getThreadId(ME.name, other);
-    return LS.get(K.messages,{})[id] || { ids:[ME.name, other], msgs:[] };
-  }
-  function unseenCount(){
-    const all = LS.get(K.messages,{});
-    let c = 0;
-    Object.values(all).forEach(t=>{
-      t.msgs.forEach(m=>{ if (m.to===ME.name && !m.seen) c++; });
-    });
-    return c;
-  }
-
-  // Format
-  const fmt = (n) => new Intl.NumberFormat().format(n);
-
-  // ---------- Overlay open/close ----------
-  const overlay = $("#socialOverlay");
-  const userPill = $("#userPill");
-  const soClose = $("#soClose");
-
-  if (userPill){
-    on(userPill, "click", () => openOverlay());
-    userPill.style.visibility = "visible";
-  }
-
-  function openOverlay(){
-    overlay.classList.add("open");
-    overlay.setAttribute("aria-hidden","false");
-    renderPlayers();
-    renderRanking();
-    renderTribes();
-    badge();
-  }
-  function closeOverlay(){
-    overlay.classList.remove("open");
-    overlay.setAttribute("aria-hidden","true");
-    closeChat();
-    hide($("#chadDialog"));
-    hide($("#tribeDialog"));
-    hide($("#yourTribeView"));
-    hide($("#membersSheet"));
-  }
-  on(soClose, "click", closeOverlay);
-  on(overlay, "keydown", (e)=>{ if(e.key==="Escape") closeOverlay(); });
-
-  // ---------- Tabs (WAI-ARIA pattern) ----------
-  const tabs = $$(".so-tab");
-  const panels = $$(".so-panel");
-  tabs.forEach(tab=>{
-    on(tab, "click", () => {
-      tabs.forEach(t=>{ t.classList.toggle("is-active", t===tab); t.setAttribute("aria-selected", t===tab) });
-      panels.forEach(p=> p.hidden = (p.id !== tab.getAttribute("aria-controls")));
-    });
-  });
-
-  // ---------- Players ----------
-  const playersList = $("#playersList");
-  const playerSearch = $("#playerSearch");
-  const openMessages = $("#openMessages");
-  const messagesBadge = $("#messagesBadge");
-
-  on(playerSearch, "input", renderPlayers);
-  on(openMessages, "click", () => openChatList());
-
-  function renderPlayers(){
-    const term = (playerSearch.value||"").toLowerCase();
-    const arr = playersAll()
-      .filter(p=>p.name && p.name.toLowerCase().includes(term))
-      .sort((a,b)=> a.name.localeCompare(b.name));
-    playersList.innerHTML = "";
-    arr.forEach(p=>{
-      if (p.name === ME.name) return; // don’t show me in list
-      const li = document.createElement("li"); li.className="so-item";
-      li.innerHTML = `
-        <div class="so-avatar">${avatarHTML(p)}</div>
-        <div>
-          <div class="so-name">${esc(p.name)}</div>
-          <div class="so-sub">chads: ${fmt(p.chads || 0)}</div>
-        </div>
-        <div class="so-actions">
-          <button class="btn-ghost sm send-msg">send message</button>
-          <button class="btn-primary sm chad-tx">send/receive chads</button>
-        </div>
-      `;
-      $(".send-msg", li).onclick = () => openChat(p.name);
-      $(".chad-tx", li).onclick = () => openChadDialog(p.name);
-      playersList.appendChild(li);
-    });
-  }
-
-  function avatarHTML(p){
-    // Use initials if you don't have actual image
-    const initials = (p.name||"?").split(" ").map(s=>s[0]).join("").slice(0,2).toUpperCase();
-    return `<span>${esc(initials)}</span>`;
-  }
-  function esc(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])) }
-
-  function badge(){
-    const c = unseenCount();
-    if (c>0){ messagesBadge.hidden=false; messagesBadge.textContent = c; }
-    else { messagesBadge.hidden=true; }
-  }
-
-  // ---------- Chat ----------
-  const chatDrawer = $("#chatDrawer");
-  const chatBack = $("#chatBack");
-  const chatStream = $("#chatStream");
-  const chatForm = $("#chatForm");
-  const chatText = $("#chatText");
-  const chatWith = $("#chatWith");
-  const chatSub = $("#chatSub");
-  let currentChatUser = null;
-
-  function openChatList(){
-    // Open a threaded list with all people who have messaged ME
-    const all = LS.get(K.messages,{});
-    const names = new Set();
-    Object.values(all).forEach(t=> t.ids.forEach(n=>{ if (n!==ME.name) names.add(n) }));
-    // If none, fall back to players
-    if (!names.size){ renderPlayers(); return; }
-
-    // Build a fake "chat list" in the players pane
-    playersList.innerHTML = "";
-    Array.from(names).sort().forEach(name=>{
-      const t = loadThread(name);
-      const last = t.msgs[t.msgs.length-1];
-      const unread = t.msgs.filter(m=> m.to===ME.name && !m.seen).length;
-      const li = document.createElement("li"); li.className="so-item";
-      li.innerHTML = `
-        <div class="so-avatar"><span>${esc(name[0]||"?").toUpperCase()}</span></div>
-        <div>
-          <div class="so-name">${esc(name)}</div>
-          <div class="so-sub">${last ? esc(preview(last)) : "No messages yet"}</div>
-        </div>
-        <div class="so-actions">
-          <button class="btn-primary">open chat ${unread?`<span class="so-badge" style="position:static">${unread}</span>`:""}</button>
-        </div>`;
-      $(".btn-primary", li).onclick = () => openChat(name);
-      playersList.appendChild(li);
-    });
-  }
-  function preview(m){
-    if (m.kind==="chad-request") return `${m.dir==="send"?"Requested":"Asked you for"} ${fmt(m.amount)} chads`;
-    if (m.kind==="chad-transfer") return `${m.dir==="send"?"Sent":"Received"} ${fmt(m.amount)} chads`;
-    return m.text?.slice(0,64);
-  }
-
-  function openChat(name){
-    currentChatUser = name;
-    chatWith.textContent = name;
-    chatSub.textContent = "Direct messages";
-    chatStream.innerHTML = "";
-    chatDrawer.hidden = false;
-
-    const t = loadThread(name);
-    t.msgs.forEach(renderMsg);
-    // mark seen
-    const all = LS.get(K.messages,{});
-    const id = getThreadId(ME.name, name);
-    all[id]?.msgs?.forEach(m=>{ if (m.to===ME.name) m.seen = true; });
-    LS.set(K.messages, all);
-    badge();
-    setTimeout(()=> chatStream.scrollTop = 1e6, 0);
-  }
-  function closeChat(){
-    chatDrawer.hidden = true;
-    currentChatUser = null;
-  }
-  on(chatBack, "click", closeChat);
-
-  function renderMsg(m){
-    const el = document.createElement("div");
-    el.className = "msg " + (m.from===ME.name ? "me":"them");
-    if (m.kind==="text"){
-      el.innerHTML = `<div>${esc(m.text)}</div><div class="small">${new Date(m.ts).toLocaleString()}</div>`;
-    }else if (m.kind==="chad-request"){
-      const action = (m.dir==="send") ? "requested you to send" : "requested to receive";
-      el.innerHTML = `
-        <div><strong>${esc(m.from)}</strong> ${action} <strong>${fmt(m.amount)}</strong> chads.</div>
-        <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
-      if (m.to===ME.name && m.status==="pending"){
-        const wrap = document.createElement("div");
-        wrap.className = "accepts";
-        const ok = document.createElement("button"); ok.className="btn-primary"; ok.textContent="Accept";
-        const no = document.createElement("button"); no.className="btn-ghost"; no.textContent="Decline";
-        ok.onclick = () => acceptRequest(m);
-        no.onclick = () => declineRequest(m);
-        wrap.appendChild(ok); wrap.appendChild(no);
-        el.appendChild(wrap);
-      }else{
-        el.innerHTML += `<div class="small">Status: ${m.status}</div>`;
-      }
-    }else if (m.kind==="chad-transfer"){
-      el.innerHTML = `<div><strong>${m.dir==="send"?"You sent":"You received"}</strong> ${fmt(m.amount)} chads.</div>
-                      <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
-    }
-    chatStream.appendChild(el);
-  }
-
-  on(chatForm, "submit", e=>{
-    e.preventDefault();
-    if (!currentChatUser) return;
-    const text = chatText.value.trim();
-    if (!text) return;
-    const payload = { kind:"text", text, from:ME.name, to:currentChatUser, ts:now(), seen:false };
-    pushMsg(currentChatUser, payload);
-    renderMsg(payload);
-    chatText.value = "";
-    setTimeout(()=> chatStream.scrollTop = 1e6, 0);
-  });
-
-  // ---------- Send / Request chads ----------
-  const chadDialog = $("#chadDialog");
-  const chadAmount = $("#chadAmount");
-  const chadErr = $("#chadErr");
-  const chadConfirm = $("#chadConfirm");
-  const mdClose = $("#mdClose");
-  let chadMode = "send";
-  let chadTarget = null;
-
-  $$(".md-tab", chadDialog).forEach(t=> on(t, "click", ()=>{
-    $$(".md-tab", chadDialog).forEach(x=>x.classList.remove("is-active"));
-    t.classList.add("is-active");
-    chadMode = t.dataset.mode;
-  }));
-
-  function openChadDialog(name){
-    chadTarget = name;
-    $("#chadDialogTitle").textContent = `Chads with ${name}`;
-    chadAmount.value = "";
-    chadErr.hidden = true;
-    show(chadDialog);
-  }
-  on(mdClose, "click", ()=> hide(chadDialog));
-  on(chadConfirm, "click", ()=>{
-    const amt = Number(chadAmount.value);
-    if (!amt || amt<=0){ chadErr.hidden=false; return; }
-    chadErr.hidden = true;
-    // Create a request message
-    const payload = {
-      kind:"chad-request",
-      from:ME.name, to:chadTarget, amount:amt, dir: chadMode==="send" ? "send" : "receive",
-      status:"pending", ts:now(), seen:false
-    };
-    pushMsg(chadTarget, payload);
-    hide(chadDialog);
-    openChat(chadTarget);
-    renderMsg(payload);
-    badge();
-  });
-
-  function acceptRequest(m){
-    m.status = "accepted";
-    // Balance effects (local simulation)
-    const plist = playersAll();
-    const me = plist.find(p=>p.name===ME.name);
-    const other = plist.find(p=>p.name===currentChatUser);
-    if (m.dir==="send"){
-      // They asked you to send -> you lose
-      me.chads = Math.max(0, (me.chads||0) - m.amount);
-      other.chads = (other.chads||0) + m.amount;
-      pushMsg(currentChatUser, { kind:"chad-transfer", from:ME.name, to:currentChatUser, dir:"send", amount:m.amount, ts:now(), seen:false });
-    }else{
-      // They asked to receive from you (i.e., you receive)
-      me.chads = (me.chads||0) + m.amount;
-      other.chads = Math.max(0, (other.chads||0) - m.amount);
-      pushMsg(currentChatUser, { kind:"chad-transfer", from:ME.name, to:currentChatUser, dir:"receive", amount:m.amount, ts:now(), seen:false });
-    }
-    savePlayers(plist);
-    renderPlayers();
-    openChat(currentChatUser);
-  }
-  function declineRequest(m){
-    m.status = "declined";
-    openChat(currentChatUser);
-  }
-
-  // ---------- Ranking (top 100) ----------
-  const rankingList = $("#rankingList");
-  function renderRanking(){
-    const arr = playersAll().slice().sort((a,b)=> (b.chads||0)-(a.chads||0)).slice(0,100);
-    rankingList.innerHTML = "";
-    arr.forEach((p,idx)=>{
-      const li = document.createElement("li"); li.className = "so-item rank-item";
-      const place = idx+1;
-      const rankClass = place===1?"rank-1": place===2?"rank-2": place===3?"rank-3":"rank-other";
-      li.classList.add(rankClass);
-      li.innerHTML = `
-        <div class="so-avatar">${avatarHTML(p)}</div>
-        <div>
-          <div class="so-name">${esc(p.name)}</div>
-          <div class="so-sub">tribe: ${p.tribeId ? esc(tribeNameById(p.tribeId)) : "-"}</div>
-        </div>
-        <div class="rank-n">#${place} place</div>
-      `;
-      rankingList.appendChild(li);
-    });
-  }
-
-  // ---------- Tribes ----------
-  const openYourTribe = $("#openYourTribe");
-  const tribesList = $("#tribesList");
-  const createTribeBtn = $("#createTribeBtn");
-
-  const tribeDialog = $("#tribeDialog");
-  const tribeName = $("#tribeName");
-  const tribeDesc = $("#tribeDesc");
-  const tribeCreateConfirm = $("#tribeCreateConfirm");
-  const tdClose = $("#tdClose");
-
-  on(openYourTribe, "click", openYourTribeView);
-  on(createTribeBtn, "click", () => show(tribeDialog));
-  on(tdClose, "click", ()=> hide(tribeDialog));
-  on(tribeCreateConfirm, "click", ()=>{
-    const name = tribeName.value.trim();
-    if (!name) return;
-    const desc = tribeDesc.value.trim().slice(0,160);
-    const mode = document.querySelector('input[name="tribeMode"]:checked')?.value || "request";
-
-    const ts = now();
-    const t = { id:"t"+ts, name, desc, mode, founder:ME.name, members:[ME.name], banned:[] };
-    const tsAll = tribesAll(); tsAll.push(t); saveTribes(tsAll);
-
-    // update my profile membership
-    const plist = playersAll();
-    const me = plist.find(p=>p.name===ME.name); if(me) me.tribeId = t.id; savePlayers(plist);
-
-    hide(tribeDialog);
-    openYourTribeView();
-    renderTribes();
-  });
-
-  function renderTribes(){
-    const all = tribesAll();
-    tribesList.innerHTML = "";
-    all.forEach(t=>{
-      const li = document.createElement("li"); li.className="so-item";
-      const mine = isMember(ME.name, t);
-      const pending = isRequested(ME.name, t);
-      li.innerHTML = `
-        <div style="grid-column:1 / -1">
-          <div class="so-name">${esc(t.name)}</div>
-          <div class="so-sub">${esc(t.desc||"")}</div>
-        </div>
-        <div class="so-actions" style="grid-column:1 / -1; justify-self:end">
-          ${mine ? `<span class="so-sub">joined</span>` :
-          t.mode==="request" ?
-            (pending ? `<span class="so-sub">request sent</span>` :
-              `<button class="btn-ghost join-req">request</button>`)
-            :
-            `<button class="btn-primary join-free">join</button>`
-          }
-        </div>
-      `;
-      $(".join-req", li)?.addEventListener("click", ()=>{
-        sendTribeJoinRequest(t);
-        renderTribes();
-      });
-      $(".join-free", li)?.addEventListener("click", ()=>{
-        joinTribe(t);
-        renderTribes();
-      });
-      tribesList.appendChild(li);
-    });
-  }
-  function isMember(name, tribe){ return (tribe.members||[]).includes(name); }
-  function isRequested(name, tribe){
-    // store requests in tribe.requests=[{from:name}]
-    return (tribe.requests||[]).some(r=>r.from===name);
-  }
-  function tribeNameById(id){ return tribesAll().find(t=>t.id===id)?.name || ""; }
-
-  function sendTribeJoinRequest(tribe){
-    tribe.requests = tribe.requests || [];
-    if (!isRequested(ME.name, tribe)){
-      tribe.requests.push({from:ME.name, ts:now()});
-      pushMsg(tribe.founder, { kind:"text", from:ME.name, to:tribe.founder,
-        text:`${ME.name} wants to join tribe "${tribe.name}"`, ts:now(), seen:false });
-      saveTribes(tribesAll().map(t=> t.id===tribe.id? tribe : t));
-      badge();
-    }
-  }
-  function joinTribe(tribe){
-    if (!isMember(ME.name, tribe)){
-      tribe.members.push(ME.name);
-      saveTribes(tribesAll().map(t=> t.id===tribe.id? tribe : t));
-      const plist = playersAll(); const me = plist.find(p=>p.name===ME.name);
-      if (me){ me.tribeId = tribe.id; savePlayers(plist); }
-    }
-  }
-
-  // ---- Your Tribe view (group chat + members management) ----
-  const yourTribeView = $("#yourTribeView");
-  const ytBack = $("#ytBack");
-  const ytMembers = $("#ytMembers");
-  const ytStream = $("#ytStream");
-  const ytForm = $("#ytForm");
-  const ytText = $("#ytText");
-  const ytName = $("#ytName");
-  const ytSub = $("#ytSub");
-  const membersSheet = $("#membersSheet");
-  const membersList = $("#membersList");
-  const msClose = $("#msClose");
-  on(msClose, "click", ()=> hide(membersSheet));
-
-  function findMyTribe(){
-    const me = playersAll().find(p=>p.name===ME.name);
-    if (!me || !me.tribeId) return null;
-    return tribesAll().find(t=>t.id===me.tribeId) || null;
-  }
-
-  function openYourTribeView(){
-    const t = findMyTribe();
-    if (!t){ alert("No tribe yet."); return; }
-    ytName.textContent = t.name;
-    ytSub.textContent = `${t.members.length} member(s)`;
-    ytStream.innerHTML = "";
-    yourTribeView.hidden = false;
-    // load msgs (reuse same storage under threadId: Tribe::<id>)
-    const id = "Tribe::"+t.id;
-    const all = LS.get(K.messages,{});
-    const thr = all[id] || { ids:[id], msgs:[] };
-    thr.msgs.forEach(m=> renderTribeMsg(m));
-    setTimeout(()=> ytStream.scrollTop = 1e6, 0);
-
-    on(ytForm, "submit", function handler(e){
-      e.preventDefault();
-      const text = ytText.value.trim(); if(!text) return;
-      const payload = { kind:"text", text, from:ME.name, to:id, ts:now() };
-      const all2 = LS.get(K.messages,{});
-      if (!all2[id]) all2[id] = { ids:[id], msgs:[] };
-      all2[id].msgs.push(payload);
-      LS.set(K.messages, all2);
-      renderTribeMsg(payload);
-      ytText.value = "";
-      setTimeout(()=> ytStream.scrollTop = 1e6, 0);
-    }, { once:true }); // (re-bind safely next open)
-  }
-  function renderTribeMsg(m){
-    const el = document.createElement("div");
-    el.className = "msg " + (m.from===ME.name ? "me":"them");
-    el.innerHTML = `<div><strong>${esc(m.from)}:</strong> ${esc(m.text)}</div>
-                    <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
-    ytStream.appendChild(el);
-  }
-  on(ytBack, "click", ()=> { yourTribeView.hidden = true; });
-
-  on(ytMembers, "click", ()=>{
-    const t = findMyTribe(); if (!t) return;
-    membersList.innerHTML = "";
-    t.members.forEach(n=>{
-      const li = document.createElement("li"); li.className="so-item";
-      const founder = (n===t.founder);
-      li.innerHTML = `
-        <div class="so-avatar"><span>${esc(n[0]||"?").toUpperCase()}</span></div>
-        <div>
-          <div class="so-name">${esc(n)}</div>
-          <div class="so-sub">${founder? "Founder" : ""}</div>
-        </div>
-        <div class="member-actions">
-          ${ (t.founder===ME.name && !founder) ? `
-            <button class="btn-ghost kick">Kick</button>
-            <button class="btn-ghost ban">Ban</button>` : "" }
-        </div>`;
-      $(".kick", li)?.addEventListener("click", ()=> { t.members = t.members.filter(x=>x!==n); saveTribes(tribesAll().map(tt=>tt.id===t.id?t:tt)); renderTribes(); openYourTribeView(); });
-      $(".ban", li)?.addEventListener("click", ()=> { t.members = t.members.filter(x=>x!==n); t.banned.push(n); saveTribes(tribesAll().map(tt=>tt.id===t.id?t:tt)); openYourTribeView(); });
-      membersList.appendChild(li);
-    });
-    show(membersSheet);
-  });
-
-  // ---------- Ranking refresh every 24h (local sim) ----------
-  function maybeRefreshRanking(){
-    const ts = Number(localStorage.getItem(K.rankingAt)||0);
-    const day = 24*60*60*1000;
-    if (now()-ts > day){
-      // simple perturbation to simulate change
-      const ps = playersAll();
-      ps.forEach(p=> p.chads = Math.max(0, (p.chads||0) + Math.floor((Math.random()-.5)*300)));
-      savePlayers(ps);
-      localStorage.setItem(K.rankingAt, String(now()));
-    }
-  }
-  maybeRefreshRanking();
-
-  // ---------- Tiny helpers ----------
-  function show(el){ el.hidden=false; }
-  function hide(el){ el.hidden=true; }
-})();
-
 
 /* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
@@ -5044,6 +4480,453 @@ updateHUD();
     o.connect(g).connect(master); o.start(t); o.stop(t+dur+0.01);
   }
   function tickTone(){ ensureAudio(); beep(520,0.05); }
+
+
+(()=>{
+  /* ================================================================
+     Utilities & local state
+  ================================================================= */
+  const params = new URLSearchParams(location.search);
+  const UID_HINT = params.get('token') || params.get('user_id') || 'guest';
+  const STORAGE_KEY = `chad_state_${UID_HINT}`;
+  const SOCIAL_KEY  = `chad_social_${UID_HINT}`;
+
+  // Read your existing chad state (kept compatible with your code)
+  function readChadState(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return { chads: 0n, name: null, avatarIdx: null };
+    try{
+      const o = JSON.parse(raw);
+      return {
+        chads: BigInt(o.chads || "0"),
+        name: o.name || null,
+        avatarIdx: (typeof o.avatarIdx==='number') ? o.avatarIdx : null
+      };
+    }catch{ return { chads: 0n, name: null, avatarIdx: null }; }
+  }
+  function saveChadState(s){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const o = raw ? JSON.parse(raw) : {};
+      o.chads = s.chads.toString();
+      if(s.name!==undefined) o.name = s.name;
+      if(s.avatarIdx!==undefined) o.avatarIdx = s.avatarIdx;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(o));
+      // Update UI if your #chadCount exists
+      const cc = document.getElementById('chadCount');
+      if(cc) cc.textContent = Number(s.chads).toLocaleString();
+    }catch{}
+  }
+
+  // Social persistent store
+  function initSocial(){
+    let s = null;
+    try{ s = JSON.parse(localStorage.getItem(SOCIAL_KEY)||'null'); }catch{}
+    if(!s){
+      const me = ensureMePlayer();
+      s = seedSocial(me);
+      persistSocial(s);
+    }
+    return s;
+  }
+  function persistSocial(s){ localStorage.setItem(SOCIAL_KEY, JSON.stringify(s)); }
+  function ensureMePlayer(){
+    const base = readChadState();
+    const name = base.name || 'Player';
+    const me = { id: `me:${UID_HINT}`, name, avatarIdx: base.avatarIdx ?? 0, chads: base.chads.toString(), tribeId: null };
+    return me;
+  }
+  function seedSocial(me){
+    // create players demo if empty
+    const players = [ me ];
+    for(let i=1;i<=36;i++){
+      const n = String(i).padStart(2,'0');
+      players.push({
+        id: `p${n}`,
+        name: `player_${n}`,
+        avatarIdx: (i%20),
+        chads: String( Math.floor(Math.random()*80000 + 100) ),
+        tribeId: null
+      });
+    }
+    const tribes = []; // initially none
+    const mailbox = {}; // messages by peerId
+    const inboxUnread = {}; // counts
+    const rankMeta = { last: 0, top: [] };
+    return { players, tribes, mailbox, unread: inboxUnread, meId: me.id, rankMeta };
+  }
+  function social(){ return JSON.parse(localStorage.getItem(SOCIAL_KEY)); }
+
+  // Helpers
+  const $ = (q,root=document)=>root.querySelector(q);
+  const $$ = (q,root=document)=>Array.from(root.querySelectorAll(q));
+  function el(tag, cls, txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt) e.textContent=txt; return e; }
+  const fmt = n => Number(n).toLocaleString();
+  const now = ()=> Date.now();
+
+  /* ================================================================
+     Mount trigger on the wood pill
+  ================================================================= */
+  const pill = document.getElementById('userPill');
+  if(pill){ pill.style.visibility = 'visible'; pill.addEventListener('click', openOverlay); }
+
+  // Panels, modals
+  const overlay = document.getElementById('socialOverlay');
+  const inboxModal = document.getElementById('inboxModal');
+  const chatModal  = document.getElementById('chatModal');
+  const xferModal  = document.getElementById('xferModal');
+  const tribeCreateModal = document.getElementById('tribeCreateModal');
+  const tribeRoomModal   = document.getElementById('tribeRoomModal');
+
+  let S = initSocial();
+  let ME = S.players.find(p=>p.id===S.meId);
+
+  function openOverlay(){
+    S = social(); ME=S.players.find(p=>p.id===S.meId);
+    renderPlayers(); renderRanking(); renderTribes(); updateInboxBadge();
+    overlay.hidden = false;
+    selectTab('Players');
+  }
+  $('#socialClose').addEventListener('click', ()=> overlay.hidden=true);
+
+  /* ================================================================
+     Tabs (ARIA-compliant)
+  ================================================================= */
+  function selectTab(name){
+    $$('.so-tab').forEach(t=>{
+      const on = t.id === 'tab'+name;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', on?'true':'false');
+    });
+    $$('.so-panel').forEach(p=> p.hidden = (p.id !== 'panel'+name));
+  }
+  $('#tabPlayers').addEventListener('click', ()=> selectTab('Players'));
+  $('#tabRanking').addEventListener('click', ()=> selectTab('Ranking'));
+  $('#tabTribes').addEventListener('click',  ()=> selectTab('Tribes'));
+
+  /* ================================================================
+     PLAYERS
+  ================================================================= */
+  const playersList = document.getElementById('playersList');
+  const playerSearch = document.getElementById('playerSearch');
+
+  $('#openInbox').addEventListener('click', openInbox);
+  function updateInboxBadge(){
+    const count = Object.values(S.unread||{}).reduce((a,b)=>a+(b||0),0);
+    const b=$('#inboxBadge');
+    if(count>0){ b.textContent = count; b.hidden=false; } else b.hidden=true;
+  }
+
+  playerSearch.addEventListener('input', ()=> renderPlayers());
+  function renderPlayers(){
+    const q = (playerSearch.value||'').toLowerCase().trim();
+    playersList.innerHTML='';
+    S.players
+      .filter(p=>p.id!==ME.id)
+      .filter(p=>!q || p.name.toLowerCase().includes(q))
+      .forEach(p=>{
+        const card = el('div','card');
+        const ava = el('div','ava'); ava.textContent = (p.name[0]||'P').toUpperCase();
+        const meta = el('div','meta');
+        meta.innerHTML = `<div class="name">${p.name}</div>
+                          <div class="sub">chads: ${fmt(p.chads)} ${p.tribeId?`· tribe: ${tribeName(p.tribeId)}`:''}</div>`;
+        const actions = el('div','actions');
+        const btnMsg = el('button','btn btn-ghost','send message');
+        const btnXf  = el('button','btn btn-ghost','send/receive chads');
+        btnMsg.addEventListener('click', ()=> openChatWith(p.id));
+        btnXf.addEventListener('click', ()=> openXfer(p.id));
+        actions.append(btnMsg, btnXf);
+        card.append(ava, meta, actions);
+        playersList.append(card);
+      });
+  }
+
+  /* Inbox & Chat */
+  function openInbox(){
+    renderThreads();
+    inboxModal.hidden = false;
+  }
+  $('#inboxClose').addEventListener('click', ()=> inboxModal.hidden=true);
+  $('#inboxBack').addEventListener('click', ()=> inboxModal.hidden=true);
+
+  function renderThreads(){
+    const tl = $('#threadList'); tl.innerHTML='';
+    const mailbox = S.mailbox || {};
+    const peers = Object.keys(mailbox);
+    if(peers.length===0){ tl.append( el('div','sys msg','No conversations yet') ); return; }
+    peers.forEach(pid=>{
+      const p = S.players.find(x=>x.id===pid);
+      if(!p) return;
+      const row = el('div','card thread');
+      const ava = el('div','ava'); ava.textContent = (p.name[0]||'P').toUpperCase();
+      const meta = el('div','meta');
+      const msgs = mailbox[pid];
+      const last = msgs[msgs.length-1];
+      const preview = last ? (last.type==='text' ? last.text :
+                       last.type==='xfer-req' ? `${last.dir==='send'?'requested to send':'requested to receive'} ${fmt(last.amount)} chads` :
+                       last.type==='xfer-done' ? `${last.dir==='send'?'sent':'received'} ${fmt(last.amount)} chads` :
+                       last.text||'') : '';
+      meta.innerHTML = `<div class="name">${p.name}</div><div class="preview">${preview}</div>`;
+      const cnt = (S.unread && S.unread[pid]) || 0;
+      const badge = cnt>0 ? `<span class="count">${cnt}</span>` : '';
+      const right = el('div','actions'); right.innerHTML = badge;
+      row.append(ava, meta, right);
+      row.addEventListener('click', ()=> openChatWith(pid));
+      tl.append(row);
+    });
+  }
+
+  let currentPeer = null;
+  function openChatWith(peerId){
+    inboxModal.hidden = true; overlay.hidden = true;
+    currentPeer = peerId;
+    markRead(peerId);
+    const p = S.players.find(x=>x.id===peerId);
+    $('#chatTitle').textContent = p ? p.name : 'Chat';
+    renderChat();
+    chatModal.hidden = false;
+  }
+  function markRead(pid){
+    if(!S.unread) S.unread={};
+    S.unread[pid]=0; persistSocial(S); updateInboxBadge();
+  }
+  $('#chatClose').addEventListener('click', ()=> { chatModal.hidden=true; overlay.hidden=false; openOverlay(); });
+  $('#chatBack').addEventListener('click', ()=> { chatModal.hidden=true; openInbox(); });
+
+  $('#chatSend').addEventListener('click', ()=>{
+    const box = $('#chatInput'); const txt = box.value.trim(); if(!txt) return;
+    pushMsg(currentPeer, { type:'text', from:S.meId, text:txt, ts: now() });
+    box.value=''; renderChat();
+  });
+
+  function renderChat(){
+    const log = $('#chatLog'); log.innerHTML='';
+    const msgs = (S.mailbox && S.mailbox[currentPeer]) || [];
+    if(msgs.length===0) log.append( el('div','sys msg','Say hi!') );
+    msgs.forEach(m=>{
+      const cls = m.type==='sys' ? 'sys' : (m.from===S.meId?'me':'');
+      const bubble = el('div', 'msg ' + cls);
+      if(m.type==='xfer-req'){
+        bubble.innerHTML = `${m.userName} ${m.dir==='send'?'wants to send you':'requests'} <b>${fmt(m.amount)}</b> chads.`;
+        if(m.status!=='done' && m.from!==S.meId){
+          const row = el('div','actions'); 
+          const ok = el('button','btn small','Accept');
+          const no = el('button','btn-ghost small','Decline');
+          ok.addEventListener('click', ()=> acceptXfer(currentPeer, m));
+          no.addEventListener('click', ()=> declineXfer(currentPeer, m));
+          row.style.marginTop='8px'; row.append(ok,no); bubble.append(row);
+        }else if(m.status==='declined'){
+          bubble.append( el('div','sub', 'declined') );
+        }
+      }else if(m.type==='xfer-done'){
+        bubble.textContent = `${m.dir==='send'?'Sent':'Received'} ${fmt(m.amount)} chads.`;
+      }else{
+        bubble.textContent = m.text;
+      }
+      log.append(bubble);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function pushMsg(peerId, msg){
+    if(!S.mailbox) S.mailbox={};
+    if(!S.mailbox[peerId]) S.mailbox[peerId]=[];
+    S.mailbox[peerId].push(msg);
+    // unread for the other side (local demo: we also increment ours if message from peer)
+    if(msg.from===S.meId){
+      // simulate delivery on peer by increasing their unread on our device (demo only)
+      // for us, nothing to do
+    }else{
+      if(!S.unread) S.unread={};
+      S.unread[peerId]=(S.unread[peerId]||0)+1;
+    }
+    persistSocial(S); updateInboxBadge(); renderThreads();
+  }
+
+  // Open send/request modal
+  let xferPeer = null;
+  function openXfer(peerId){
+    xferPeer = peerId;
+    const p = S.players.find(x=>x.id===peerId);
+    $('#xferTitle').textContent = `Chads · ${p.name}`;
+    $('#xferAmount').value = '';
+    $('#xferErr').hidden = true;
+    xferModal.hidden = false;
+  }
+  $('#xferClose').addEventListener('click', ()=> xferModal.hidden=true);
+  $('#btnSendChads').addEventListener('click', ()=> xferCommit('send'));
+  $('#btnReqChads').addEventListener('click', ()=> xferCommit('request'));
+  function xferCommit(dir){
+    const n = Number($('#xferAmount').value);
+    if(!n || n<=0){ $('#xferErr').hidden=false; return; }
+    $('#xferErr').hidden=true; xferModal.hidden=true;
+    const peer = S.players.find(p=>p.id===xferPeer);
+    pushMsg(xferPeer, { type:'xfer-req', from:S.meId, userName: ME.name||'Player',
+                        dir, amount: n, status:'pending', ts: now() });
+    // Also show a system receipt for us
+    pushMsg(xferPeer, { type:'sys', text: `${dir==='send'?'You offered to send':'You requested'} ${fmt(n)} chads.`, ts: now() });
+  }
+
+  function acceptXfer(peerId, req){
+    if(req.status==='done') return;
+    const n = BigInt(req.amount);
+    if(req.dir==='send'){
+      // sender -> receiver (sender loses)
+      const sender = req.from; // peer
+      if(sender===S.meId){ return; } // shouldn't happen (we don't accept our own)
+      // receiver is ME: ME gains
+      const me = readChadState(); me.chads += n; saveChadState(me);
+    }else{
+      // dir=request -> recipient sends to requester; ME (recipient) loses
+      const me = readChadState(); if(me.chads < n){ alert('Not enough chads'); return; }
+      me.chads -= n; saveChadState(me);
+    }
+    req.status='done';
+    pushMsg(peerId, { type:'xfer-done', from:S.meId, dir:req.dir==='send'?'receive':'send', amount:req.amount, ts: now() });
+    renderChat();
+  }
+  function declineXfer(peerId, req){
+    req.status='declined'; persistSocial(S); renderChat();
+  }
+
+  /* ================================================================
+     RANKING (Top 100 with shiny badges)
+  ================================================================= */
+  function computeRanking(){
+    const meta = S.rankMeta || { last:0, top:[] };
+    const day = 24*60*60*1000;
+    if(!meta.last || (now()-meta.last)>day){
+      // recalc: take all players (including me with live chads)
+      ME = ensureMePlayer(); // get updated chads
+      const merged = S.players.map(p=> p.id===S.meId ? { ...p, chads: readChadState().chads.toString() } : p);
+      const top = [...merged].sort((a,b)=> Number(b.chads)-Number(a.chads)).slice(0,100).map(p=>p.id);
+      S.rankMeta = { last: now(), top }; persistSocial(S);
+    }
+  }
+  function renderRanking(){
+    computeRanking();
+    const list = $('#rankingList'); list.innerHTML='';
+    S.rankMeta.top.forEach((pid, i)=>{
+      const p = S.players.find(x=>x.id===pid) || (pid===S.meId?ME:null);
+      if(!p) return;
+      const row = el('div','card rank-'+(i+1<=3?i+1:'other'));
+      const ava = el('div','ava'); ava.textContent = (p.name[0]||'P').toUpperCase();
+      const meta = el('div','meta');
+      meta.innerHTML = `<div class="name">${p.name}</div><div class="sub">tribe: ${p.tribeId?tribeName(p.tribeId):'-'} · chads: ${fmt(p.chads)}</div>`;
+      const place = el('div','badge-rank','#'+(i+1)+' place');
+      row.append(ava, meta, place); list.append(row);
+    });
+  }
+
+  /* ================================================================
+     TRIBES
+  ================================================================= */
+  const tribeList = document.getElementById('tribeList');
+  document.getElementById('createTribeBtn').addEventListener('click', ()=> tribeCreateModal.hidden=false);
+  document.getElementById('tribeCreateClose').addEventListener('click', ()=> tribeCreateModal.hidden=true);
+
+  document.getElementById('tribeCreateGo').addEventListener('click', ()=>{
+    const name = $('#tribeName').value.trim(); if(!name) return;
+    const desc = $('#tribeDesc').value.trim();
+    const pub  = $('#modePublic').checked;
+    const id   = 't'+Math.random().toString(36).slice(2,8);
+    const tribe = { id, name, desc, public: pub, founderId: S.meId, bans:[], requests:[], members:[S.meId], chat:[] };
+    S.tribes.push(tribe); // you join as founder
+    const meIdx = S.players.findIndex(p=>p.id===S.meId); S.players[meIdx].tribeId = id;
+    persistSocial(S); tribeCreateModal.hidden=true; renderTribes(); openYourTribe();
+  });
+
+  function renderTribes(){
+    tribeList.innerHTML='';
+    S.tribes.forEach(t=>{
+      const row = el('div','card tribe');
+      const meta = el('div','meta'); meta.innerHTML = `<div class="name">${t.name}</div><div class="desc">${t.desc||''}</div>`;
+      const right = el('div','actions');
+      const already = t.members.includes(S.meId);
+      if(already){
+        const btn = el('button','btn-ghost','Joined'); btn.disabled=true; right.append(btn);
+      }else if(t.public){
+        const btn = el('button','btn','Join'); btn.addEventListener('click', ()=> joinTribe(t.id)); right.append(btn);
+      }else{
+        const btn = el('button','btn','Request'); btn.addEventListener('click', ()=> requestJoin(t.id)); right.append(btn);
+      }
+      row.append(meta, right); tribeList.append(row);
+    });
+  }
+  function requestJoin(tid){
+    const t = S.tribes.find(x=>x.id===tid); if(!t) return;
+    if(!t.requests.includes(S.meId)){ t.requests.push(S.meId); t.chat.push({type:'sys', text:`${ME.name} wants to join`, ts:now()}); }
+    persistSocial(S); renderTribes(); alert('Request sent to the tribe founder.');
+  }
+  function joinTribe(tid){
+    const t = S.tribes.find(x=>x.id===tid); if(!t) return;
+    if(!t.members.includes(S.meId)) t.members.push(S.meId);
+    const meIdx = S.players.findIndex(p=>p.id===S.meId); S.players[meIdx].tribeId = tid;
+    t.chat.push({type:'sys', text:`${ME.name} joined the tribe`, ts: now()});
+    persistSocial(S); renderTribes(); openYourTribe();
+  }
+
+  $('#yourTribeBtn').addEventListener('click', openYourTribe);
+  function openYourTribe(){
+    const tid = S.players.find(p=>p.id===S.meId).tribeId;
+    if(!tid){ alert('no tribe'); return; }
+    const t = S.tribes.find(x=>x.id===tid);
+    $('#tribeRoomTitle').textContent = t.name;
+    renderTribeChat(t); tribeRoomModal.hidden=false;
+  }
+  $('#tribeRoomClose').addEventListener('click', ()=> tribeRoomModal.hidden=true);
+  $('#tribeRoomBack').addEventListener('click', ()=> tribeRoomModal.hidden=true);
+
+  $('#tribeSeeMembers').addEventListener('click', ()=>{
+    $('#membersList').innerHTML='';
+    const tid = S.players.find(p=>p.id===S.meId).tribeId; if(!tid) return;
+    const t = S.tribes.find(x=>x.id===tid);
+    t.members.forEach(pid=>{
+      const p = S.players.find(x=>x.id===pid);
+      const row = el('div','mrow');
+      const ava = el('div','ava'); ava.style.width=40; ava.style.height=40; ava.textContent=(p.name[0]||'P').toUpperCase();
+      const meta= el('div','meta'); meta.innerHTML = `<div class="name">${p.name}</div><div class="sub">${pid===t.founderId?'Founder':''}</div>`;
+      const right = el('div','actions');
+      if(S.meId===t.founderId && pid!==t.founderId){
+        const kick = el('button','btn-ghost small','Kick');
+        const ban  = el('button','btn-ghost small', t.bans.includes(pid)?'Unban':'Ban');
+        kick.addEventListener('click', ()=> { t.members = t.members.filter(x=>x!==pid); persistSocial(S); $('#tribeSeeMembers').click(); });
+        ban.addEventListener('click', ()=>{
+          if(t.bans.includes(pid)) t.bans = t.bans.filter(x=>x!==pid); else t.bans.push(pid);
+          persistSocial(S); $('#tribeSeeMembers').click();
+        });
+        right.append(kick,ban);
+      }
+      row.append(ava, meta, right); $('#membersList').append(row);
+    });
+    $('#tribeMembersSheet').hidden=false;
+  });
+  $('#membersClose').addEventListener('click', ()=> $('#tribeMembersSheet').hidden=true);
+
+  $('#tribeSend').addEventListener('click', ()=>{
+    const tid = S.players.find(p=>p.id===S.meId).tribeId; if(!tid) return;
+    const t = S.tribes.find(x=>x.id===tid);
+    const box = $('#tribeMsg'); const txt = box.value.trim(); if(!txt) return;
+    t.chat.push({ type:'text', from:S.meId, text:txt, ts: now() });
+    box.value=''; persistSocial(S); renderTribeChat(t);
+  });
+
+  function renderTribeChat(t){
+    const log = $('#tribeChat'); log.innerHTML='';
+    t.chat.forEach(m=>{
+      const cls = m.type==='sys' ? 'sys' : (m.from===S.meId?'me':'');
+      const bubble = el('div','msg '+cls);
+      bubble.textContent = m.type==='sys' ? m.text : (m.text || '');
+      log.append(bubble);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function tribeName(id){ const t=S.tribes.find(x=>x.id===id); return t?t.name:'-'; }
+
+})();
+
+
 
   /* === HUD / lifecycle === */
   function updateHUD(){
