@@ -7,72 +7,119 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-/* overlay */
-.social-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px);
-  display:none;align-items:center;justify-content:center;z-index:100}
-.social-overlay.show{display:flex}
-.social-panel{width:min(820px,94vw);max-height:86vh;overflow:hidden;
-  background:linear-gradient(180deg,#0b0f14,#0d1219);border:1px solid rgba(255,255,255,.06);
-  border-radius:22px;box-shadow:0 40px 120px rgba(0,0,0,.7);padding:14px}
-.social-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.tabs{display:flex;gap:8px}
-.tab{padding:10px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.08);
-  background:#111a24;color:#c7ced6;font-weight:800}
-.tab.active{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#0c0a05}
-.close-x{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#1a2430}
+/* ---------- Wooden user pill: one-time red "1" badge ---------- */
+#userPill.badge-1::after{
+  content:"1";
+  position:absolute; top:-6px; right:-6px;
+  width:22px; height:22px; display:grid; place-items:center;
+  font:700 12px/1 system-ui,Segoe UI,Roboto,Arial; color:#fff;
+  background:#ff2d55; border:2px solid #1b0f09; border-radius:12px;
+  box-shadow:0 6px 14px rgba(0,0,0,.5), 0 0 14px rgba(255,45,85,.6);
+  z-index:3;
+}
 
-.bar{display:flex;gap:12px;align-items:center;margin:10px 2px 6px}
-.bar-players{display:flex}
-.search{position:relative;flex:1}
-.search input{width:100%;padding:12px 40px 12px 14px;border-radius:14px;background:#0f1720;
-  border:1px solid rgba(255,255,255,.06);color:#eaf0f6}
-.search .ico{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+/* ---------- Social overlay ---------- */
+.social{ position:fixed; inset:0; z-index:500; display:flex; flex-direction:column }
+.social.hidden{ display:none }
+.social__glass{ position:absolute; inset:0;
+  backdrop-filter:blur(8px) saturate(1.1);
+  background:radial-gradient(1200px 800px at 50% -20%,rgba(255,255,255,.06),transparent 60%),
+             linear-gradient(180deg, rgba(10,12,20,.96), rgba(5,8,18,.96));
+}
+.social__header{ position:relative; display:flex; align-items:center; gap:8px; padding:12px 14px; z-index:1 }
+.tabs{ display:flex; gap:8px; background:rgba(255,255,255,.04); padding:6px; border:1px solid rgba(255,255,255,.05); border-radius:14px }
+.tab{ appearance:none; border:0; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:800; color:#c6d5ff;
+  background:linear-gradient(180deg,#252b45,#121526); box-shadow:inset 0 1px 0 rgba(255,255,255,.08) }
+.tab.is-active{ color:#08131b; background:linear-gradient(180deg,#7ae0ff,#41b2ff); text-shadow:0 1px 0 rgba(255,255,255,.7) }
+.social__close{ margin-left:auto; width:38px; height:38px; border-radius:10px; background:#10131f; color:#9db4ff; border:1px solid rgba(255,255,255,.06); cursor:pointer }
 
-.btn{padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);font-weight:800}
-.btn.sky{background:linear-gradient(180deg,#60a5fa,#3b82f6);color:#07131b}
-.btn.gold{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#1b0f01}
-.btn.block{width:100%}
+.panel{ position:relative; z-index:1; display:none; height:calc(100dvh - 64px); padding:10px 14px; overflow:auto }
+.panel.is-active{ display:block }
+.panel__bar{ display:flex; align-items:center; gap:10px; margin-bottom:10px }
+.panel .spacer{ flex:1 }
+.hint{ color:#8aa9d6; font-size:12px; opacity:.9 }
+.btn-primary{ padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,.4); background:linear-gradient(180deg,#41ffbe,#09d2d2); color:#051022; font-weight:900; cursor:pointer }
+.btn-ghost{ padding:9px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.10); color:#cde6ff; background:rgba(255,255,255,.03); cursor:pointer }
 
-.badge{margin-left:8px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#d23434;color:#fff;display:inline-grid;place-items:center;font-size:12px}
+/* Search + inbox */
+.search{ position:relative; flex:1; display:flex }
+.search input{ flex:1; padding:12px 36px 12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#e8f8ff }
+.search input::placeholder{ color:#8fb0c4 }
+.search #clearSearch{ position:absolute; right:6px; top:6px; width:30px; height:30px; border-radius:8px; border:0; background:transparent; color:#8fb0c4; cursor:pointer }
+.inboxbtn{ display:flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.1); padding:8px 12px; border-radius:12px; color:#d9f3ff; cursor:pointer; user-select:none; }
+.badge{ background:#ff2d55; color:#fff; border-radius:10px; padding:0 6px; font-weight:800; box-shadow:0 0 18px rgba(255,45,85,.4) }
 
-.tabview{display:none}
-.tabview.show{display:block}
-.list{display:grid;gap:12px;padding:6px;max-height:62vh;overflow:auto}
-.card{background:#0f1720;border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:14px}
-.card.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.left{display:flex;align-items:center;gap:12px}
-.meta .name{font-weight:900}
-.meta .sub{font-size:12px;color:#9aa3ab;margin-top:4px}
-.avatar{width:56px;height:56px;border-radius:999px;display:grid;place-items:center;font-weight:900;
-  background:radial-gradient(circle at 30% 30%, #ffd77e, #a1781a);color:#1b0f01;border:1px solid rgba(255,255,255,.06)}
-.right{display:flex;gap:10px;align-items:center}
-.badge.gold{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#1b0f01}
-.badge.amethyst{background:linear-gradient(180deg,#b993f9,#7c3aed)}
-.badge.emerald{background:linear-gradient(180deg,#6ee7b7,#10b981)}
-.badge.silver{background:linear-gradient(180deg,#e5e7eb,#9ca3af);color:#111}
+/* Lists */
+.list{ list-style:none; padding:0; margin:0; display:grid; gap:10px }
+.row{ display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02)); border-radius:16px; box-shadow:0 10px 50px rgba(0,0,0,.35) }
+.row .meta .name{ font-weight:900; color:#eaf0ff; letter-spacing:.3px }
+.row .meta .sub{ margin-top:6px; display:flex; gap:8px; flex-wrap:wrap }
+.avatar{ width:42px; aspect-ratio:1/1; border-radius:50%; overflow:hidden; border:1px solid rgba(255,255,255,.10); box-shadow:inset 0 0 0 2px rgba(0,0,0,.25) }
+.avatar.huge{ width:62px }
+.avatar img{ width:100%; height:100%; object-fit:cover }
 
-/* modal */
-.modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.55);z-index:110}
-.modal.show{display:grid}
-.panel.tribe{width:min(560px,92vw);background:linear-gradient(180deg,#0b0f14,#0d1219);
-  border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:16px 16px 18px;box-shadow:0 24px 90px rgba(0,0,0,.7)}
-.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.panel-head h3{font-size:18px;font-weight:800;margin:0}
-.icon.close{background:#1a2430;border:1px solid rgba(255,255,255,.08);width:36px;height:36px;border-radius:12px}
-.lbl{font-size:12px;color:#9aa3ab;margin-top:8px;margin-bottom:6px;display:block}
-.input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.06);
-  background:#0f1720;color:#eaf0f6;outline:none;box-shadow:inset 0 0 1px rgba(255,255,255,.05)}
-textarea.input{resize:vertical}
-.row.space{display:flex;align-items:center;justify-content:space-between}
-#descCount{color:#6e7680;font-size:12px}
-.segmented{display:flex;gap:10px;margin:14px 0 16px}
-.seg{position:relative}
-.seg input{position:absolute;opacity:0;pointer-events:none}
-.seg span{display:inline-block;padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.08);
-  background:#101822;min-width:160px;text-align:center}
-.seg input:checked + span{background:linear-gradient(180deg,#f6d77a,#b6841d);color:#0b0f14;font-weight:800}
-.tribe-row{display:flex;justify-content:flex-end;margin:6px}
-@media (max-width:420px){ .seg span{min-width:unset} }
+/* Ranking colors */
+.rankitem .place{ font-weight:900; color:#cfe8ff }
+.rankitem:nth-child(1){ background:
+  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
+  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
+  linear-gradient(180deg,#f9e79f,#f1c40f); border-color:#f8de74; }
+.rankitem:nth-child(2){ background:
+  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
+  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
+  linear-gradient(180deg,#caa6ff,#8e44ad); border-color:#b784f0; }
+.rankitem:nth-child(3){ background:
+  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
+  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
+  linear-gradient(180deg,#b9ffb1,#13ce66); border-color:#93f28d; }
+.rankitem:nth-child(n+4){ background:
+  linear-gradient(180deg, rgba(255,255,255,.05),rgba(255,255,255,.02)),
+  linear-gradient(180deg,#e9eef6,#d5dee7); color:#0b1320; border-color:#d9e4ee }
+
+/* Tribes */
+.tribeitem .name{ font-weight:900; color:#e9f4ff }
+.tribeitem .desc{ color:#a7c3de; font-size:13px; margin-top:6px }
+
+/* Drawer (DMs) */
+.drawer{ position:fixed; right:0; top:64px; bottom:0; width:min(720px,100%); transform:translateX(100%);
+  background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.6)); border-left:1px solid rgba(255,255,255,.06); z-index:2; transition:transform .28s ease }
+.drawer.open{ transform:translateX(0) }
+.drawer__head{ display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid rgba(255,255,255,.06) }
+.drawer__title{ font-weight:900; color:#dff5ff }
+.drawer__close{ margin-left:auto; border:0; background:transparent; color:#9db4ff; font-size:18px; cursor:pointer }
+.drawer__body{ height:calc(100% - 48px); display:grid; grid-template-columns:280px 1fr; overflow:hidden }
+@media (max-width:820px){ .drawer__body{ grid-template-columns:1fr } .room[hidden]{ display:none } }
+.threads{ border-right:1px solid rgba(255,255,255,.06); overflow:auto }
+.room{ display:flex; flex-direction:column; overflow:hidden }
+.msgs{ flex:1; overflow:auto; padding:12px }
+.msg{ max-width:80%; margin:6px 0; padding:10px 12px; border-radius:14px; }
+.msg.me{ margin-left:auto; background:#2bd4ff22; border:1px solid #2bd4ff55; color:#dffbff }
+.msg.them{ background:#ffffff10; border:1px solid #ffffff22; color:#eaf2ff }
+.msg.sys{ max-width:100%; text-align:center; color:#a5c7ff; font-size:12px; background:transparent; border:0 }
+.chatform{ display:flex; gap:8px; padding:10px; border-top:1px solid rgba(255,255,255,.06); background:rgba(0,0,0,.25) }
+.chatform input{ flex:1; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#eaf8ff }
+
+/* Modals */
+.modal{ border:0; padding:0; background:transparent }
+.modal::backdrop{ backdrop-filter:blur(4px); background:rgba(0,0,0,.55) }
+.modal__card{ width:min(520px,92vw); border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); }
+.modal__head, .modal__foot{ padding:12px; display:flex; align-items:center; gap:8px }
+.modal__title{ font-weight:900; color:#eaf6ff }
+.modal__x{ margin-left:auto; border:0; background:transparent; color:#9db4ff; cursor:pointer }
+.modal__body{ padding:12px; display:grid; gap:10px }
+.toggle{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; user-select:none }
+.toggle input{ display:none }
+.toggle label{ padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#cde6ff; cursor:pointer; text-align:center }
+.toggle input:checked + label{ color:#08131b; background:linear-gradient(180deg,#7ae0ff,#41b2ff) }
+.amount{ display:grid; gap:6px }
+.amount input{ padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#eaf6ff }
+.err{ color:#ff8b8b; font-size:12px }
+
+/* Small helpers */
+.row .actions{ display:flex; gap:8px; align-items:center }
+.btn-slim{ padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10); color:#cde6ff; background:rgba(255,255,255,.03); cursor:pointer }
 
 
 
@@ -829,70 +876,176 @@ canvas{ display:block }
 <div class="stage">
   <div class="phone" id="phone">
 
-<!-- Social Overlay -->
-<div id="socialOverlay" class="social-overlay" aria-hidden="true">
-  <div class="social-panel">
-    <div class="social-head">
-      <div class="tabs">
-        <button class="tab active" data-tab="players">players</button>
-        <button class="tab" data-tab="ranking">ranking</button>
-        <button class="tab" data-tab="tribes">tribes</button>
-      </div>
-      <button class="close-x" id="socialClose">✕</button>
+<!-- ========= Social Overlay ========= -->
+<div id="socialOverlay" class="social hidden" aria-hidden="true">
+  <div class="social__glass"></div>
+
+  <header class="social__header">
+    <div class="tabs" role="tablist" aria-label="Social sections">
+      <button class="tab is-active" role="tab" aria-selected="true" data-tab="players">Players</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="ranking">Ranking</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="tribes">Tribes</button>
     </div>
 
-    <div class="bar bar-players">
+    <button class="social__close" id="socialClose" aria-label="Close (Esc)">✕</button>
+  </header>
+
+  <!-- Players -->
+  <section class="panel is-active" id="panel-players" role="tabpanel" aria-labelledby="tab-players">
+    <div class="panel__bar">
       <div class="search">
-        <input id="playerSearch" placeholder="Search username…" />
-        <span class="ico">🔎</span>
+        <input id="playerSearch" placeholder="Search username…" autocomplete="off" />
+        <button id="clearSearch" title="Clear">×</button>
       </div>
-      <button id="messagesBtn" class="btn sky">
-        messages <span id="msgBadge" class="badge">0</span>
-      </button>
+      <div class="inboxbtn" id="openInboxBtn">
+        <span>Messages</span>
+        <span class="badge" id="inboxBadge" hidden>0</span>
+      </div>
     </div>
 
-    <section id="tab-players" class="tabview show">
-      <div id="playersList" class="list"></div>
-    </section>
+    <ul class="list" id="playerList" aria-live="polite"></ul>
+  </section>
 
-    <section id="tab-ranking" class="tabview">
-      <div id="rankingList" class="list"></div>
-    </section>
-
-    <section id="tab-tribes" class="tabview">
-      <div class="tribe-row">
-        <button class="btn gold" id="openCreateTribe">Create Tribe</button>
-      </div>
-      <div id="tribesDiscover" class="list"></div>
-    </section>
-  </div>
-
-  <!-- modal -->
-  <div id="createTribeModal" class="modal">
-    <div class="panel tribe">
-      <div class="panel-head">
-        <h3>Create Tribe</h3>
-        <button class="icon close" id="closeTribeModal">✕</button>
-      </div>
-
-      <label class="lbl">Name</label>
-      <input id="tribeName" class="input" maxlength="40" placeholder="Choose the name of the tribe…" />
-
-      <div class="row space">
-        <label class="lbl">Description <span id="descCount">0/160</span></label>
-      </div>
-      <textarea id="tribeDesc" class="input" maxlength="160" rows="3" placeholder="Add a short description… (max 160)"></textarea>
-
-      <div class="segmented">
-        <label class="seg"><input type="radio" name="joinMode" value="requested" checked><span>requested</span></label>
-        <label class="seg"><input type="radio" name="joinMode" value="public"><span>free to public</span></label>
-      </div>
-
-      <button class="btn gold block" id="createTribeBtn">Create</button>
+  <!-- Ranking -->
+  <section class="panel" id="panel-ranking" role="tabpanel" aria-labelledby="tab-ranking">
+    <div class="panel__bar">
+      <div class="hint">Top 100 holders — refreshes every 24h</div>
+      <button id="refreshRanking" class="btn-ghost">Refresh</button>
     </div>
-  </div>
+    <ol class="list rank" id="rankingList" start="1" aria-live="polite"></ol>
+  </section>
+
+  <!-- Tribes -->
+  <section class="panel" id="panel-tribes" role="tabpanel" aria-labelledby="tab-tribes">
+    <div class="panel__bar">
+      <button id="yourTribeBtn" class="btn-ghost">Your Tribe</button>
+      <div class="spacer"></div>
+      <button id="createTribeBtn" class="btn-primary">Create Tribe</button>
+    </div>
+
+    <ul class="list tribes" id="tribeList" aria-live="polite"></ul>
+  </section>
+
+  <!-- Chat drawer -->
+  <aside class="drawer" id="chatDrawer" aria-hidden="true">
+    <header class="drawer__head">
+      <button id="backToThreads" class="btn-ghost">‹ Back</button>
+      <div class="drawer__title" id="chatTitle">Messages</div>
+      <button class="drawer__close" id="chatClose">✕</button>
+    </header>
+
+    <div class="drawer__body">
+      <div class="threads" id="threadList"></div>
+      <div class="room" id="chatRoom" hidden>
+        <div class="msgs" id="chatMsgs"></div>
+        <form id="chatForm" class="chatform" autocomplete="off">
+          <input id="chatInput" placeholder="Type a message…" maxlength="500" />
+          <button class="btn-primary">Send</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Send/Request CHADs modal -->
+  <dialog id="transferDlg" class="modal">
+    <form method="dialog" class="modal__card" id="transferForm">
+      <header class="modal__head">
+        <div class="modal__title">Send / Request CHADs</div>
+        <button value="cancel" class="modal__x" aria-label="Close">✕</button>
+      </header>
+
+      <div class="modal__body">
+        <div class="toggle">
+          <input type="radio" id="modeSend" name="mode" value="send" checked>
+          <label for="modeSend">Send</label>
+          <input type="radio" id="modeRequest" name="mode" value="request">
+          <label for="modeRequest">Request</label>
+        </div>
+
+        <div class="amount">
+          <label for="transferAmount">Amount</label>
+          <input id="transferAmount" type="number" min="1" step="1" placeholder="0">
+        </div>
+
+        <div id="transferError" class="err" hidden>Please choose an amount.</div>
+      </div>
+
+      <footer class="modal__foot">
+        <button value="cancel" class="btn-ghost">Cancel</button>
+        <button id="confirmTransfer" class="btn-primary" value="default">Confirm</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Create tribe modal -->
+  <dialog id="tribeDlg" class="modal">
+    <form method="dialog" class="modal__card" id="tribeForm" novalidate>
+      <header class="modal__head">
+        <div class="modal__title">Create Tribe</div>
+        <button value="cancel" class="modal__x" aria-label="Close">✕</button>
+      </header>
+
+      <div class="modal__body">
+        <label>Tribe name
+          <input id="tribeName" maxlength="40" placeholder="e.g., Wolf Pack">
+        </label>
+
+        <label>Description (≤160, emojis allowed)
+          <textarea id="tribeDesc" maxlength="160" placeholder="What’s this tribe about?"></textarea>
+        </label>
+
+        <div class="toggle">
+          <input type="radio" id="tFree" name="tPrivacy" value="public" checked>
+          <label for="tFree">Free to public</label>
+          <input type="radio" id="tReq" name="tPrivacy" value="request">
+          <label for="tReq">Requested</label>
+        </div>
+
+        <div id="tribeErr" class="err" hidden></div>
+      </div>
+
+      <footer class="modal__foot">
+        <button value="cancel" class="btn-ghost">Cancel</button>
+        <button id="tribeCreateBtn" class="btn-primary" value="default">Create</button>
+      </footer>
+    </form>
+  </dialog>
 </div>
 
+<!-- Templates -->
+<template id="playerItemTpl">
+  <li class="row player">
+    <div class="avatar"><img alt="" /></div>
+    <div class="meta">
+      <div class="name"></div>
+      <div class="sub">
+        <button class="btn-ghost dm">Send message</button>
+        <button class="btn-ghost pay">Send/Receive CHADs</button>
+      </div>
+    </div>
+  </li>
+</template>
+
+<template id="rankItemTpl">
+  <li class="row rankitem">
+    <div class="avatar huge"><img alt="" /></div>
+    <div class="meta">
+      <div class="name"></div>
+      <div class="tribe"></div>
+    </div>
+    <div class="place"></div>
+  </li>
+</template>
+
+<template id="tribeItemTpl">
+  <li class="row tribeitem">
+    <div class="meta">
+      <div class="name"></div>
+      <div class="desc"></div>
+    </div>
+    <div class="actions"></div>
+  </li>
+</template>
 
 
     <!-- TOP BAR -->
@@ -2117,6 +2270,655 @@ function buildGrid(container, cols, rows){
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
 
+
+(function(){
+  // ====== CONFIG ======
+  // Optional Neon Data API (browser-safe path). If not set, we use localStorage data.
+  // Example endpoint: "https://<project-id>.neon.tech/sql"
+  // Provide a short-lived KEY/JWT (via server) and enable RLS for security.
+  const NEON_DATA_API_ENDPOINT = window.NEON_DATA_API_ENDPOINT || null;
+  const NEON_DATA_API_KEY = window.NEON_DATA_API_KEY || null;
+
+  // LocalStorage keys
+  const LS = {
+    PILL_SEEN: 'pill_seen_v1',
+    MSGS: 'chat_threads_v1',
+    PLAYERS: 'players_cache_v1',
+    RANKING: 'ranking_cache_v1',
+    RANK_TS: 'ranking_cached_at_v1',
+    TRIBES: 'tribes_v1',
+    USER: 'player_profile_v1'
+  };
+
+  // Util: safe text
+  const esc = (s='') => String(s)
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'","&#39;");
+
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  const userPill = $('#userPill');
+  const overlay = $('#socialOverlay');
+  const closeBtn = $('#socialClose');
+
+  // Drawer (inbox / room)
+  const drawer = $('#chatDrawer');
+  const threadsEl = $('#threadList');
+  const room = $('#chatRoom');
+  const msgsEl = $('#chatMsgs');
+  const chatForm = $('#chatForm');
+  const chatInput = $('#chatInput');
+  const chatTitle = $('#chatTitle');
+  const backToThreads = $('#backToThreads');
+  const chatClose = $('#chatClose');
+
+  // Players UI
+  const playerList = $('#playerList');
+  const playerSearch = $('#playerSearch');
+  const clearSearch = $('#clearSearch');
+  const inboxBtn = $('#openInboxBtn');
+  const inboxBadge = $('#inboxBadge');
+
+  // Ranking UI
+  const rankingList = $('#rankingList');
+  const refreshRanking = $('#refreshRanking');
+
+  // Tribes UI
+  const tribeList = $('#tribeList');
+  const yourTribeBtn = $('#yourTribeBtn');
+  const createTribeBtn = $('#createTribeBtn');
+
+  // Dialogs
+  const transferDlg = $('#transferDlg');
+  const transferForm = $('#transferForm');
+  const transferError = $('#transferError');
+  const transferAmount = $('#transferAmount');
+
+  const tribeDlg = $('#tribeDlg');
+  const tribeForm = $('#tribeForm');
+  const tribeErr = $('#tribeErr');
+  const tribeName = $('#tribeName');
+  const tribeDesc = $('#tribeDesc');
+
+  // Tabs
+  const tabs = $$('.tab');
+  const panels = $$('.panel');
+
+  // Templates
+  const playerTpl = $('#playerItemTpl');
+  const rankTpl = $('#rankItemTpl');
+  const tribeTpl = $('#tribeItemTpl');
+
+  // App state
+  let me = getOrCreateMe();
+  let players = [];
+  let tribes = [];
+  let currentThreadId = null;
+  let currentPeer = null;
+
+  // One-time badge for user pill
+  bootstrapPillBadge();
+
+  // Click to open overlay
+  userPill?.addEventListener('click', () => {
+    hidePillBadgeForever();
+    openOverlay();
+    setTimeout(() => playerSearch?.focus(), 20);
+  });
+
+  // Close overlay
+  closeBtn.addEventListener('click', closeOverlay);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (drawer.classList.contains('open')) closeDrawer();
+      else closeOverlay();
+    }
+  });
+
+  // Tabs
+  tabs.forEach(btn => btn.addEventListener('click', () => switchTab(btn)));
+
+  // Search
+  playerSearch.addEventListener('input', () => renderPlayers(playerSearch.value.trim()));
+  clearSearch.addEventListener('click', () => { playerSearch.value=''; renderPlayers(''); });
+
+  // Inbox
+  inboxBtn.addEventListener('click', () => openDrawerThreads());
+
+  // Drawer controls
+  backToThreads.addEventListener('click', () => openDrawerThreads());
+  chatClose.addEventListener('click', () => closeDrawer());
+  chatForm.addEventListener('submit', onSendChat);
+
+  // Ranking
+  refreshRanking.addEventListener('click', () => loadRanking(true));
+
+  // Tribes
+  yourTribeBtn.addEventListener('click', () => openYourTribe());
+  createTribeBtn.addEventListener('click', () => tribeDlg.showModal());
+  tribeForm.addEventListener('close', onCreateTribeClose);
+
+  // Transfer dialog
+  transferForm.addEventListener('close', onTransferClose);
+
+  // Initial data
+  init();
+
+  async function init(){
+    await loadPlayers();
+    await loadTribes();
+    await loadRanking(false);
+    updateInboxBadge();
+  }
+
+  /* ======================== DATA LAYER ======================== */
+
+  async function neonSql(sql, params = {}){
+    if (!NEON_DATA_API_ENDPOINT || !NEON_DATA_API_KEY) return null;
+    // Neon Data API: HTTPS SQL (secured via key/JWT). See docs.
+    const body = {
+      sql,
+      params
+    };
+    const res = await fetch(NEON_DATA_API_ENDPOINT, {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${NEON_DATA_API_KEY}`
+      },
+      body: JSON.stringify(body)
+    }).catch(()=>null);
+    if (!res || !res.ok) return null;
+    const json = await res.json().catch(()=>null);
+    return json;
+  }
+
+  async function loadPlayers(){
+    // Try Neon first
+    let rows = null;
+    const neon = await neonSql(`
+      SELECT id, username, avatar_url, chads, COALESCE(tribe_id, 0) AS tribe_id
+      FROM players
+      WHERE username IS NOT NULL
+      LIMIT 500
+    `);
+
+    if (neon?.results?.[0]?.rows?.length){
+      rows = neon.results[0].rows.map(r => ({
+        id: r[0], username: r[1], avatar: r[2], chads: Number(r[3] ?? 0), tribeId: Number(r[4] ?? 0)
+      }));
+      localStorage.setItem(LS.PLAYERS, JSON.stringify(rows));
+    }else{
+      // Fallback to local cache (or seed a couple if empty)
+      const cached = JSON.parse(localStorage.getItem(LS.PLAYERS) || '[]');
+      if (cached.length){
+        rows = cached;
+      }else{
+        rows = seedLocalPlayers();
+        localStorage.setItem(LS.PLAYERS, JSON.stringify(rows));
+      }
+    }
+    players = rows;
+    renderPlayers('');
+  }
+
+  async function loadRanking(force=false){
+    const DAY = 24*60*60*1000;
+    const ts = Number(localStorage.getItem(LS.RANK_TS)||0);
+    let list = null;
+
+    if (!force && Date.now()-ts < DAY){
+      list = JSON.parse(localStorage.getItem(LS.RANKING)||'[]');
+    }
+
+    if (!list || !list.length){
+      // Neon attempt
+      const neon = await neonSql(`
+        SELECT id, username, avatar_url, chads, tribe_name
+        FROM leaderboard_view
+        ORDER BY chads DESC
+        LIMIT 100
+      `);
+      if (neon?.results?.[0]?.rows?.length){
+        list = neon.results[0].rows.map(r => ({
+          id:r[0], username:r[1], avatar:r[2], chads:Number(r[3]||0), tribe:r[4]||''
+        }));
+      }else{
+        // Fallback: compute from players
+        list = players.slice().sort((a,b)=>b.chads-a.chads).slice(0,100).map(p=>({
+          id:p.id, username:p.username, avatar:p.avatar, chads:p.chads, tribe:''
+        }));
+      }
+      localStorage.setItem(LS.RANKING, JSON.stringify(list));
+      localStorage.setItem(LS.RANK_TS, String(Date.now()));
+    }
+
+    renderRanking(list);
+  }
+
+  async function loadTribes(){
+    // Try Neon
+    const neon = await neonSql(`
+      SELECT id, name, description, privacy FROM tribes ORDER BY id DESC LIMIT 200
+    `);
+    let list = null;
+    if (neon?.results?.[0]?.rows?.length){
+      list = neon.results[0].rows.map(r => ({
+        id:r[0], name:r[1], desc:r[2]||'', privacy:r[3]||'public'
+      }));
+      localStorage.setItem(LS.TRIBES, JSON.stringify(list));
+    }else{
+      list = JSON.parse(localStorage.getItem(LS.TRIBES) || '[]');
+      if (!list.length){
+        list = seedLocalTribes();
+        localStorage.setItem(LS.TRIBES, JSON.stringify(list));
+      }
+    }
+    tribes = list;
+    renderTribes(tribes);
+  }
+
+  function getOrCreateMe(){
+    const raw = localStorage.getItem(LS.USER);
+    if (raw) return JSON.parse(raw);
+    // default "me" uses existing username/avatar from your top bar if you populate them
+    const nameEl = document.getElementById('userName');
+    const avatarEl = document.getElementById('userAvatar');
+    const me = {
+      id: 1,                     // can be replaced by server id
+      username: nameEl ? (nameEl.textContent || 'Player') : 'Player',
+      avatar: avatarEl?.querySelector('img')?.src || '',
+      chads: getChads(),
+      tribeId: 0
+    };
+    localStorage.setItem(LS.USER, JSON.stringify(me));
+    return me;
+  }
+
+  function saveMe(){
+    localStorage.setItem(LS.USER, JSON.stringify(me));
+  }
+
+  function getChads(){
+    // Use your game's state if present; else fallback to stored
+    if (typeof window.state?.chads !== 'undefined'){
+      try { return Number(window.state.chads) } catch { }
+    }
+    const n = Number(localStorage.getItem('chad_count')||0);
+    return isFinite(n)? n: 0;
+  }
+  function setChads(n){
+    if (typeof window.state?.chads !== 'undefined'){
+      window.state.chads = n;
+      const el = document.getElementById('chadCount');
+      if (el) el.textContent = String(n);
+    }
+    localStorage.setItem('chad_count', String(n));
+  }
+
+  /* ======================== UI RENDER ======================== */
+
+  function renderPlayers(q){
+    const frag = document.createDocumentFragment();
+    const tpl = playerTpl.content;
+    const needle = (q||'').toLowerCase();
+    (players || []).filter(p => p.id !== me.id)
+      .filter(p => p.username.toLowerCase().includes(needle))
+      .forEach(p => {
+        const node = document.importNode(tpl, true);
+        const li = node.querySelector('li');
+        li.dataset.id = p.id;
+
+        const img = node.querySelector('img');
+        img.src = p.avatar || 'img/circle10.png'; // fallback in your repo
+        img.alt = `${p.username}'s avatar`;
+
+        node.querySelector('.name').textContent = `${p.username}`;
+
+        node.querySelector('.dm').addEventListener('click', () => openChatWith(p));
+        node.querySelector('.pay').addEventListener('click', () => openTransfer(p));
+
+        frag.appendChild(node);
+      });
+
+    playerList.innerHTML = '';
+    playerList.appendChild(frag);
+  }
+
+  function renderRanking(list){
+    const tpl = rankTpl.content;
+    const frag = document.createDocumentFragment();
+    list.forEach((p,i) => {
+      const node = document.importNode(tpl, true);
+      const li = node.querySelector('li');
+      const img = node.querySelector('img');
+      img.src = p.avatar || 'img/circle10.png';
+      img.alt = `${p.username}'s avatar`;
+      node.querySelector('.name').innerHTML = `${esc(p.username)} <span style="opacity:.6;font-weight:700">• ${p.chads.toLocaleString()} chad</span>`;
+      node.querySelector('.tribe').textContent = p.tribe ? `tribe: ${p.tribe}` : '';
+      node.querySelector('.place').textContent = `#${i+1} place`;
+      frag.appendChild(node);
+    });
+    rankingList.innerHTML = '';
+    rankingList.appendChild(frag);
+  }
+
+  function renderTribes(list){
+    const tpl = tribeTpl.content;
+    const frag = document.createDocumentFragment();
+    list.forEach(t => {
+      const node = document.importNode(tpl, true);
+      node.querySelector('.name').textContent = t.name;
+      node.querySelector('.desc').textContent = t.desc || '';
+      const actions = node.querySelector('.actions');
+      const inTribe = (me.tribeId === t.id);
+      if (inTribe){
+        const b = btn('btn-slim', 'Enter', () => enterTribe(t));
+        actions.appendChild(b);
+      }else{
+        if (t.privacy === 'public'){
+          actions.appendChild(btn('btn-slim', 'Join', () => joinTribe(t)));
+        }else{
+          actions.appendChild(btn('btn-slim', 'Request', () => requestTribe(t)));
+        }
+      }
+      frag.appendChild(node);
+    });
+    tribeList.innerHTML = '';
+    tribeList.appendChild(frag);
+  }
+
+  function btn(cls, text, fn){
+    const b = document.createElement('button');
+    b.className = cls; b.textContent = text; b.addEventListener('click', fn);
+    return b;
+  }
+
+  /* ======================== OVERLAY / TABS ======================== */
+
+  function openOverlay(){
+    overlay.classList.remove('hidden');
+    switchTab(tabs[0]);
+  }
+  function closeOverlay(){
+    overlay.classList.add('hidden');
+    closeDrawer();
+  }
+  function switchTab(btn){
+    tabs.forEach(b => b.classList.toggle('is-active', b===btn));
+    const id = btn.dataset.tab;
+    panels.forEach(p => p.classList.toggle('is-active', p.id === `panel-${id}`));
+    if (id==='ranking') loadRanking(false);
+    if (id==='tribes') renderTribes(tribes);
+  }
+
+  /* ======================== PILL BADGE ======================== */
+
+  function bootstrapPillBadge(){
+    if (!userPill) return;
+    const seen = localStorage.getItem(LS.PILL_SEEN) === '1';
+    if (!seen) userPill.classList.add('badge-1');
+  }
+  function hidePillBadgeForever(){
+    if (!userPill) return;
+    userPill.classList.remove('badge-1');
+    localStorage.setItem(LS.PILL_SEEN,'1');
+  }
+
+  /* ======================== MESSAGES / INBOX ======================== */
+
+  function getThreads(){
+    const raw = localStorage.getItem(LS.MSGS);
+    const obj = raw ? JSON.parse(raw) : { threads:{}, unread:{} };
+    if (!obj.threads) obj.threads = {};
+    if (!obj.unread) obj.unread = {};
+    return obj;
+  }
+  function saveThreads(obj){
+    localStorage.setItem(LS.MSGS, JSON.stringify(obj));
+    updateInboxBadge();
+  }
+  function threadIdFor(peerId){
+    const a = String(me.id), b = String(peerId);
+    return a < b ? `${a}_${b}` : `${b}_${a}`;
+  }
+  function openDrawerThreads(){
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden','false');
+    currentThreadId = null; currentPeer = null;
+    room.hidden = true;
+
+    const {threads, unread} = getThreads();
+    threadsEl.innerHTML = '';
+    const entries = Object.entries(threads).sort((a,b)=>{
+      const at = a[1].updated || 0, bt = b[1].updated || 0; return bt-at;
+    });
+    if (!entries.length){
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:14px;color:#9db4ff';
+      empty.textContent = 'No messages yet.';
+      threadsEl.appendChild(empty);
+      return;
+    }
+    entries.forEach(([tid, t])=>{
+      const otherId = t.a===me.id ? t.b : t.a;
+      const peer = players.find(p=>p.id===otherId) || {username:'Unknown', avatar:''};
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.cursor='pointer';
+      row.innerHTML = `
+        <div class="avatar"><img src="${esc(peer.avatar||'img/circle10.png')}" alt=""></div>
+        <div class="meta"><div class="name">${esc(peer.username)}</div>
+          <div class="sub" style="opacity:.8;font-size:12px">${esc(t.last || '')}</div></div>
+        <div class="actions">${unread[tid]?`<span class="badge">${unread[tid]}</span>`:''}</div>`;
+      row.addEventListener('click', ()=>openThread(tid, peer));
+      threadsEl.appendChild(row);
+    });
+  }
+  function closeDrawer(){
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden','true');
+  }
+  function openChatWith(peer){
+    const tid = threadIdFor(peer.id);
+    ensureThread(tid, peer.id);
+    openThread(tid, peer);
+    if (!drawer.classList.contains('open')) drawer.classList.add('open');
+  }
+  function openThread(tid, peer){
+    currentThreadId = tid; currentPeer = peer;
+    chatTitle.textContent = peer.username;
+    room.hidden = false;
+
+    const data = getThreads();
+    const t = data.threads[tid] || { a:me.id, b:peer.id, msgs:[] };
+    // mark read
+    data.unread[tid] = 0;
+    saveThreads(data);
+
+    // render
+    msgsEl.innerHTML = '';
+    t.msgs.forEach(m => appendMsg(m));
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  function appendMsg(m){
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.sys ? 'sys' : (m.from===me.id?'me':'them'));
+    div.innerHTML = m.sys ? esc(m.text) : esc(m.text);
+    msgsEl.appendChild(div);
+  }
+  function onSendChat(e){
+    e.preventDefault();
+    const txt = chatInput.value.trim();
+    if (!txt || !currentThreadId) return;
+    chatInput.value = '';
+    const now = Date.now();
+
+    const data = getThreads();
+    const t = data.threads[currentThreadId] || ensureThread(currentThreadId, currentPeer.id, data);
+    const m = { from: me.id, to: currentPeer.id, text: txt, ts: now };
+    t.msgs.push(m); t.updated = now; t.last = txt;
+    saveThreads(data);
+
+    appendMsg(m);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  function ensureThread(tid, peerId, data=null){
+    data = data || getThreads();
+    if (!data.threads[tid]) data.threads[tid] = { a:me.id, b:peerId, msgs:[], updated:0, last:'' };
+    saveThreads(data);
+    return data.threads[tid];
+  }
+  function systemMessage(peer, text){
+    const tid = threadIdFor(peer.id);
+    const now = Date.now();
+    const data = getThreads();
+    const t = data.threads[tid] || ensureThread(tid, peer.id, data);
+    const m = { sys:true, text, ts: now };
+    t.msgs.push(m); t.updated = now; t.last = text;
+    // increment recipient unread only if not me viewing
+    const isOpenWithPeer = (currentThreadId === tid && drawer.classList.contains('open'));
+    if (!isOpenWithPeer){
+      data.unread[tid] = (data.unread[tid]||0) + 1;
+    }
+    saveThreads(data);
+    if (currentThreadId === tid) appendMsg(m);
+  }
+  function updateInboxBadge(){
+    const {unread} = getThreads();
+    const sum = Object.values(unread).reduce((a,b)=>a+Number(b||0),0);
+    if (sum>0){ inboxBadge.hidden=false; inboxBadge.textContent=String(sum); }
+    else inboxBadge.hidden=true;
+  }
+
+  /* ======================== TRANSFERS ======================== */
+
+  let transferPeer = null;
+  function openTransfer(peer){
+    transferPeer = peer;
+    transferAmount.value = '';
+    transferError.hidden = true;
+    transferDlg.showModal();
+  }
+  function onTransferClose(ev){
+    // No-op, handled in 'Confirm' button
+  }
+  // Confirm transfer
+  $('#confirmTransfer').addEventListener('click', (e)=>{
+    e.preventDefault();
+    const mode = (document.getElementById('modeSend').checked ? 'send' : 'request');
+    const amt = Number(transferAmount.value);
+    if (!amt || amt <= 0){
+      transferError.textContent = 'Please choose an amount.';
+      transferError.hidden = false;
+      return;
+    }
+    transferDlg.close();
+
+    if (mode === 'send'){
+      if (me.chads < amt){
+        alert('Not enough CHADs');
+        return;
+      }
+      me.chads -= amt;
+      setChads(me.chads);
+      saveMe();
+
+      const rec = players.find(p=>p.id===transferPeer.id);
+      if (rec){ rec.chads = (rec.chads||0) + amt; persistPlayers(); }
+
+      systemMessage(transferPeer, `You sent ${amt.toLocaleString()} CHADs to ${transferPeer.username}.`);
+      // In a real Neon flow, run a transactional update for both players.
+    }else{
+      systemMessage(transferPeer, `${me.username} requested ${amt.toLocaleString()} CHADs from you. Tap "Accept" to approve.`);
+    }
+  });
+
+  function persistPlayers(){
+    localStorage.setItem(LS.PLAYERS, JSON.stringify(players));
+  }
+
+  /* ======================== TRIBES ======================== */
+
+  function onCreateTribeClose(){
+    if (tribeDlg.returnValue !== 'default') return;
+    // validate
+    const name = tribeName.value.trim();
+    const desc = tribeDesc.value.trim();
+    const privacy = document.querySelector('input[name="tPrivacy"]:checked')?.value || 'public';
+
+    if (!name){
+      tribeErr.textContent = 'Please enter a tribe name.';
+      tribeErr.hidden = false; return;
+    }
+    if (desc.length > 160){
+      tribeErr.textContent = 'Description must be 160 characters or less.';
+      tribeErr.hidden = false; return;
+    }
+    tribeErr.hidden = true;
+
+    const t = { id: Date.now(), name, desc, privacy, founderId: me.id, members:[me.id], bans:[] };
+    tribes.unshift(t);
+    localStorage.setItem(LS.TRIBES, JSON.stringify(tribes));
+    me.tribeId = t.id; saveMe();
+    renderTribes(tribes);
+  }
+
+  function openYourTribe(){
+    const t = tribes.find(x=>x.id===me.tribeId);
+    if (!t){ alert('No tribe yet.'); return; }
+
+    // Simple group chat inside drawer using threadId 'tribe_<id>'
+    const tid = `tribe_${t.id}`;
+    drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
+    room.hidden = false; threadsEl.innerHTML = '';
+    currentThreadId = tid; currentPeer = { id: tid, username: t.name };
+
+    chatTitle.textContent = `${t.name} (Tribe)`;
+    msgsEl.innerHTML = '';
+
+    const data = getThreads();
+    if (!data.threads[tid]) data.threads[tid] = { a:tid, b:tid, msgs:[], updated:0, last:'' };
+    saveThreads(data);
+
+    const th = getThreads().threads[tid];
+    th.msgs.forEach(m=>appendMsg(m));
+  }
+
+  function enterTribe(t){ openYourTribe(t); }
+  function joinTribe(t){
+    if (t.privacy === 'public'){ t.members = t.members || []; if (!t.members.includes(me.id)) t.members.push(me.id); me.tribeId = t.id; saveMe(); renderTribes(tribes); localStorage.setItem(LS.TRIBES, JSON.stringify(tribes)); }
+  }
+  function requestTribe(t){
+    systemMessage({id:-t.id, username:t.name}, `${me.username} requested to join ${t.name}.`);
+    alert('Request sent to the tribe founder.');
+  }
+
+  /* ======================== HELPERS / SEED ======================== */
+
+  function seedLocalPlayers(){
+    const base = [
+      { id:2, username:'Orion', avatar:'img/circle14.png', chads: 12000, tribeId:0 },
+      { id:3, username:'Nova', avatar:'img/circle13.png', chads: 7800, tribeId:0 },
+      { id:4, username:'Zephyr', avatar:'img/circle12.png', chads: 4200, tribeId:0 },
+      { id:5, username:'Valkyrie', avatar:'img/circle11.png', chads: 2200, tribeId:0 },
+      { id:6, username:'Echo', avatar:'img/circle10.png', chads: 900, tribeId:0 }
+    ];
+    return base;
+  }
+
+  function seedLocalTribes(){
+    return [
+      { id: 1001, name:'Sunset Riders', desc:'Chill & helpful players☀️', privacy:'public', founderId:2, members:[2], bans:[] },
+      { id: 1002, name:'Crystal Wolves', desc:'We hunt the top 100!', privacy:'request', founderId:3, members:[3], bans:[] }
+    ];
+  }
+
+})();
+
+
+
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
@@ -2811,175 +3613,6 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-
-
-/* ---------- Helpers ---------- */
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
-function fmt(n){ return Number(n||0).toLocaleString(); }
-function toast(m){ try{ tg?.showAlert?.(m) } catch { alert(m) } }
-
-const API = '/api';
-const UID  = (typeof UID_HINT!=='undefined' && UID_HINT) ? UID_HINT : 'guest';
-let state  = null;
-
-function loadStateLocal(){
-  try{
-    const key = 'chad_state_'+(UID||'guest');
-    const raw = localStorage.getItem(key);
-    if (!raw) return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null };
-    const o = JSON.parse(raw);
-    return {
-      chads: BigInt(o.chads||"0"),
-      gen: BigInt(o.gen||"0"),
-      acc: BigInt(o.acc||"0"),
-      name:o.name||null,
-      avatarIdx: typeof o.avatarIdx==='number' ? o.avatarIdx : null
-    };
-  }catch(e){ return { chads:0n, gen:0n, acc:0n, name:null, avatarIdx:null }; }
-}
-state = loadStateLocal();
-
-/* ---------- Real API ---------- */
-async function apiHeartbeat(){
-  const body = {
-    id: UID,
-    username: state.name,
-    avatarIdx: state.avatarIdx,
-    chads: Number(state.chads||0n),
-    gen:   Number(state.gen||0n),
-    acc:   Number(state.acc||0n)
-  };
-  const r = await fetch(`${API}/heartbeat`, {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-  });
-  if(!r.ok){ const t = await r.text(); throw new Error(t); }
-}
-
-async function apiFetchPlayers(q=''){
-  const r = await fetch(`${API}/players?q=${encodeURIComponent(q)}`);
-  const j = await r.json();
-  if(!j.ok) throw new Error(j.error||'players failed');
-  return j.players || [];
-}
-async function apiFetchRanking(){
-  const r = await fetch(`${API}/ranking`);
-  const j = await r.json();
-  if(!j.ok) throw new Error(j.error||'ranking failed');
-  return j.ranking || [];
-}
-async function apiCreateTribe(payload){
-  const r = await fetch(`${API}/tribes/create`,{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
-  });
-  const j = await r.json();
-  if(!j.ok) throw new Error(j.reason||j.error||'create tribe failed');
-  return j.tribe;
-}
-
-/* ---------- Overlay ---------- */
-const overlay = $('#socialOverlay');
-$('#userPill')?.addEventListener('click', async () => {
-  overlay.classList.add('show'); overlay.setAttribute('aria-hidden','false');
-  try{ await apiHeartbeat(); }catch(e){ console.warn(e); toast('Server not configured (DATABASE_URL).'); }
-  switchTab('players'); renderPlayers();
-});
-$('#socialClose').addEventListener('click', closeOverlay);
-function closeOverlay(){ overlay.classList.remove('show'); overlay.setAttribute('aria-hidden','true'); }
-
-/* ---------- Tabs ---------- */
-$$('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-function switchTab(name){
-  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
-  $$('.tabview').forEach(v => v.classList.remove('show'));
-  $('#tab-'+name).classList.add('show');
-  $('.bar').style.display = name==='players' ? 'flex':'none';
-  if (name==='ranking') renderRanking();
-}
-
-/* ---------- Players ---------- */
-const playersList = $('#playersList');
-async function renderPlayers(q=''){
-  playersList.innerHTML = `<div class="card">Loading…</div>`;
-  try{
-    const players = await apiFetchPlayers(q);
-    if (!players.length) { playersList.innerHTML = `<div class="card">No players found.</div>`; return; }
-    playersList.innerHTML = players.map(p => `
-      <div class="card row">
-        <div class="left">
-          <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
-          <div class="meta">
-            <div class="name">${p.username}</div>
-            <div class="sub">chads: ${fmt(p.chads)}</div>
-          </div>
-        </div>
-        <div class="right">
-          <button class="btn sky" data-uid="${p.id}" data-act="dm">send message</button>
-          <button class="btn sky" data-uid="${p.id}" data-act="xfer">send/receive chads</button>
-        </div>
-      </div>
-    `).join('');
-  }catch(e){
-    playersList.innerHTML = `<div class="card"⚠️ ${e.message}</div>`;
-  }
-}
-$('#playerSearch').addEventListener('input', e => renderPlayers(e.target.value.trim()));
-
-/* ---------- Ranking ---------- */
-const rankingList = $('#rankingList');
-async function renderRanking(){
-  rankingList.innerHTML = `<div class="card">Loading…</div>`;
-  try{
-    const data = await apiFetchRanking();
-    rankingList.innerHTML = data.map((p, i) => {
-      const place = i+1;
-      const cls = place===1 ? 'gold' : place===2 ? 'amethyst' : place===3 ? 'emerald' : 'silver';
-      return `
-        <div class="card row">
-          <div class="left">
-            <div class="avatar">${(p.username||'?')[0].toUpperCase()}</div>
-            <div class="meta">
-              <div class="name">${p.username}</div>
-              <div class="sub">tribe: ${p.tribe} · chads: ${fmt(p.chads)}</div>
-            </div>
-          </div>
-          <div class="right"><span class="badge ${cls}">#${place} place</span></div>
-        </div>`;
-    }).join('');
-  }catch(e){
-    rankingList.innerHTML = `<div class="card">⚠️ ${e.message}</div>`;
-  }
-}
-
-/* ---------- Tribes: Create ---------- */
-const tribeModal = $('#createTribeModal');
-$('#openCreateTribe').addEventListener('click', ()=>{
-  tribeModal.classList.add('show');
-  $('#descCount').textContent = `${$('#tribeDesc').value.length}/160`;
-});
-$('#closeTribeModal').addEventListener('click', ()=> tribeModal.classList.remove('show'));
-$('#tribeDesc').addEventListener('input', e => $('#descCount').textContent = `${e.target.value.length}/160`);
-$('#createTribeBtn').addEventListener('click', async ()=>{
-  const name = $('#tribeName').value.trim();
-  const description = $('#tribeDesc').value.trim();
-  const mode = document.querySelector('input[name="joinMode"]:checked').value;
-  if (!name) return toast('Please enter a tribe name');
-  if (description.length > 160) return toast('Description is too long');
-  try{
-    await apiCreateTribe({ founderId: UID, name, description, isRequestBased: mode==='requested' });
-    tribeModal.classList.remove('show'); toast('Tribe created!');
-  }catch(e){ toast(e.message); }
-});
-
-/* ---------- Messages badge (placeholder: set to 0) ---------- */
-const msgBadge = $('#msgBadge'); msgBadge.textContent = '0';
-
-/* Keep your presence up to date (real players list) */
-(async ()=>{
-  try{ await apiHeartbeat(); }catch{}
-  setInterval(()=>apiHeartbeat().catch(()=>{}), 60000);
-})();
-
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
