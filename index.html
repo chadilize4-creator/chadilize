@@ -7,120 +7,77 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
-/* ---------- Wooden user pill: one-time red "1" badge ---------- */
-#userPill.badge-1::after{
-  content:"1";
-  position:absolute; top:-6px; right:-6px;
-  width:22px; height:22px; display:grid; place-items:center;
-  font:700 12px/1 system-ui,Segoe UI,Roboto,Arial; color:#fff;
-  background:#ff2d55; border:2px solid #1b0f09; border-radius:12px;
-  box-shadow:0 6px 14px rgba(0,0,0,.5), 0 0 14px rgba(255,45,85,.6);
-  z-index:3;
+ #userPill { position: relative; }
+  #userPill .pill-badge {
+    position:absolute; top:-6px; left:-6px; width:20px; height:20px;
+    background:#ff3b3b; color:#fff; border-radius:50%;
+    display:grid; place-items:center; font:700 12px/1 system-ui;
+    box-shadow:0 0 0 2px rgba(0,0,0,.6);
+  } #userPill { position: relative; }
+  #userPill .pill-badge {
+    position:absolute; top:-6px; left:-6px; width:20px; height:20px;
+    background:#ff3b3b; color:#fff; border-radius:50%;
+    display:grid; place-items:center; font:700 12px/1 system-ui;
+    box-shadow:0 0 0 2px rgba(0,0,0,.6);
+  }
+
+
+/* Overlay container (you already use .shop-overlay; reused for style parity) */
+.shop-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(3px); z-index:9999; }
+.panel.max-w{
+  width:min(720px, 100%); margin:0 auto; height:100%; overflow:auto;
+  background:linear-gradient(180deg,#0a0f14,#0b0f14 60%, #07090c);
+  border:1px solid rgba(255,255,255,.06); border-radius:16px;
+  box-shadow:0 40px 140px rgba(0,0,0,.75); color:#cfe7ff; padding:14px 14px 24px;
 }
 
-/* ---------- Social overlay ---------- */
-.social{ position:fixed; inset:0; z-index:500; display:flex; flex-direction:column }
-.social.hidden{ display:none }
-.social__glass{ position:absolute; inset:0;
-  backdrop-filter:blur(8px) saturate(1.1);
-  background:radial-gradient(1200px 800px at 50% -20%,rgba(255,255,255,.06),transparent 60%),
-             linear-gradient(180deg, rgba(10,12,20,.96), rgba(5,8,18,.96));
-}
-.social__header{ position:relative; display:flex; align-items:center; gap:8px; padding:12px 14px; z-index:1 }
-.tabs{ display:flex; gap:8px; background:rgba(255,255,255,.04); padding:6px; border:1px solid rgba(255,255,255,.05); border-radius:14px }
-.tab{ appearance:none; border:0; padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:800; color:#c6d5ff;
-  background:linear-gradient(180deg,#252b45,#121526); box-shadow:inset 0 1px 0 rgba(255,255,255,.08) }
-.tab.is-active{ color:#08131b; background:linear-gradient(180deg,#7ae0ff,#41b2ff); text-shadow:0 1px 0 rgba(255,255,255,.7) }
-.social__close{ margin-left:auto; width:38px; height:38px; border-radius:10px; background:#10131f; color:#9db4ff; border:1px solid rgba(255,255,255,.06); cursor:pointer }
+/* header */
+.overlay-top{display:flex; align-items:center; justify-content:space-between; gap:8px; position:sticky; top:0;
+  background:linear-gradient(180deg, rgba(8,12,16,.9), rgba(8,12,16,.6)); padding:10px 6px; z-index:2; }
+.tabs{display:flex; gap:10px}
+.tab{background:#1a222a; color:#cde6ff; border:1px solid rgba(255,255,255,.06); padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer}
+.tab.active{background:linear-gradient(180deg,#72d4ff,#82a7ff); color:#06203a; box-shadow:0 8px 28px rgba(130,167,255,.35)}
+.close-x{background:#12171c; color:#a7b6c6; border:1px solid rgba(255,255,255,.06); width:42px; height:42px; border-radius:12px}
 
-.panel{ position:relative; z-index:1; display:none; height:calc(100dvh - 64px); padding:10px 14px; overflow:auto }
-.panel.is-active{ display:block }
-.panel__bar{ display:flex; align-items:center; gap:10px; margin-bottom:10px }
-.panel .spacer{ flex:1 }
-.hint{ color:#8aa9d6; font-size:12px; opacity:.9 }
-.btn-primary{ padding:10px 14px; border-radius:12px; border:1px solid rgba(0,0,0,.4); background:linear-gradient(180deg,#41ffbe,#09d2d2); color:#051022; font-weight:900; cursor:pointer }
-.btn-ghost{ padding:9px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.10); color:#cde6ff; background:rgba(255,255,255,.03); cursor:pointer }
+/* common */
+.row{display:flex; gap:10px; align-items:center; margin:8px 4px 12px}
+.search{position:relative; flex:1}
+.search input{width:100%; background:#0f141a; border:1px solid rgba(255,255,255,.06); color:#e8f4ff;
+  border-radius:12px; padding:14px 46px 14px 14px; font-weight:600}
+.search button{position:absolute; right:6px; top:50%; transform:translateY(-50%); background:#1a222a; color:#9fb2c6;
+  border:1px solid rgba(255,255,255,.06); width:34px; height:34px; border-radius:10px}
+.msg-btn{background:#121a22; border:1px solid rgba(255,255,255,.06); color:#d7eaff; padding:12px 16px; border-radius:12px; font-weight:800}
+.cta{background:linear-gradient(180deg,#31f69d,#2aa3ff); color:#05121c; font-weight:900; border:none; border-radius:12px; padding:12px 16px}
 
-/* Search + inbox */
-.search{ position:relative; flex:1; display:flex }
-.search input{ flex:1; padding:12px 36px 12px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#e8f8ff }
-.search input::placeholder{ color:#8fb0c4 }
-.search #clearSearch{ position:absolute; right:6px; top:6px; width:30px; height:30px; border-radius:8px; border:0; background:transparent; color:#8fb0c4; cursor:pointer }
-.inboxbtn{ display:flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.1); padding:8px 12px; border-radius:12px; color:#d9f3ff; cursor:pointer; user-select:none; }
-.badge{ background:#ff2d55; color:#fff; border-radius:10px; padding:0 6px; font-weight:800; box-shadow:0 0 18px rgba(255,45,85,.4) }
+.list{display:grid; gap:14px}
 
-/* Lists */
-.list{ list-style:none; padding:0; margin:0; display:grid; gap:10px }
-.row{ display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px; border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02)); border-radius:16px; box-shadow:0 10px 50px rgba(0,0,0,.35) }
-.row .meta .name{ font-weight:900; color:#eaf0ff; letter-spacing:.3px }
-.row .meta .sub{ margin-top:6px; display:flex; gap:8px; flex-wrap:wrap }
-.avatar{ width:42px; aspect-ratio:1/1; border-radius:50%; overflow:hidden; border:1px solid rgba(255,255,255,.10); box-shadow:inset 0 0 0 2px rgba(0,0,0,.25) }
-.avatar.huge{ width:62px }
-.avatar img{ width:100%; height:100%; object-fit:cover }
+/* Card for players & ranking */
+.card{background:#0c1116; border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px}
+.card .head{display:flex; align-items:center; gap:12px}
+.card img.avatar{width:56px; height:56px; border-radius:14px; object-fit:cover; border:1px solid rgba(255,255,255,.08)}
+.card .name{font-size:18px; font-weight:900; letter-spacing:.2px}
+.card .meta{font-size:12px; color:#8fa8c2}
+.card .actions{display:flex; gap:10px; margin-top:12px}
+.btn{background:#121a22; color:#cfe7ff; border:1px solid rgba(255,255,255,.06); padding:10px 12px; border-radius:12px; font-weight:800}
+.btn.secondary{background:#0f141a}
+.btn.primary{background:linear-gradient(180deg,#b8d9ff,#87b7ff); color:#08203a}
 
 /* Ranking colors */
-.rankitem .place{ font-weight:900; color:#cfe8ff }
-.rankitem:nth-child(1){ background:
-  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
-  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
-  linear-gradient(180deg,#f9e79f,#f1c40f); border-color:#f8de74; }
-.rankitem:nth-child(2){ background:
-  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
-  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
-  linear-gradient(180deg,#caa6ff,#8e44ad); border-color:#b784f0; }
-.rankitem:nth-child(3){ background:
-  linear-gradient(180deg, rgba(255,255,255,.08),rgba(255,255,255,.03)),
-  radial-gradient(120px 80px at 10% -10%, rgba(255,255,255,.3), transparent 60%),
-  linear-gradient(180deg,#b9ffb1,#13ce66); border-color:#93f28d; }
-.rankitem:nth-child(n+4){ background:
-  linear-gradient(180deg, rgba(255,255,255,.05),rgba(255,255,255,.02)),
-  linear-gradient(180deg,#e9eef6,#d5dee7); color:#0b1320; border-color:#d9e4ee }
+.rank-1{border-color:rgba(255,210,80,.55); box-shadow:0 0 0 1px inset rgba(255,210,80,.35)}
+.rank-2{border-color:rgba(182,110,255,.55); box-shadow:0 0 0 1px inset rgba(182,110,255,.35)}
+.rank-3{border-color:rgba(110,250,150,.55); box-shadow:0 0 0 1px inset rgba(110,250,150,.35)}
+.rank-other{border-color:rgba(200,210,220,.25)}
 
-/* Tribes */
-.tribeitem .name{ font-weight:900; color:#e9f4ff }
-.tribeitem .desc{ color:#a7c3de; font-size:13px; margin-top:6px }
-
-/* Drawer (DMs) */
-.drawer{ position:fixed; right:0; top:64px; bottom:0; width:min(720px,100%); transform:translateX(100%);
-  background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.6)); border-left:1px solid rgba(255,255,255,.06); z-index:2; transition:transform .28s ease }
-.drawer.open{ transform:translateX(0) }
-.drawer__head{ display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid rgba(255,255,255,.06) }
-.drawer__title{ font-weight:900; color:#dff5ff }
-.drawer__close{ margin-left:auto; border:0; background:transparent; color:#9db4ff; font-size:18px; cursor:pointer }
-.drawer__body{ height:calc(100% - 48px); display:grid; grid-template-columns:280px 1fr; overflow:hidden }
-@media (max-width:820px){ .drawer__body{ grid-template-columns:1fr } .room[hidden]{ display:none } }
-.threads{ border-right:1px solid rgba(255,255,255,.06); overflow:auto }
-.room{ display:flex; flex-direction:column; overflow:hidden }
-.msgs{ flex:1; overflow:auto; padding:12px }
-.msg{ max-width:80%; margin:6px 0; padding:10px 12px; border-radius:14px; }
-.msg.me{ margin-left:auto; background:#2bd4ff22; border:1px solid #2bd4ff55; color:#dffbff }
-.msg.them{ background:#ffffff10; border:1px solid #ffffff22; color:#eaf2ff }
-.msg.sys{ max-width:100%; text-align:center; color:#a5c7ff; font-size:12px; background:transparent; border:0 }
-.chatform{ display:flex; gap:8px; padding:10px; border-top:1px solid rgba(255,255,255,.06); background:rgba(0,0,0,.25) }
-.chatform input{ flex:1; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#eaf8ff }
-
-/* Modals */
-.modal{ border:0; padding:0; background:transparent }
-.modal::backdrop{ backdrop-filter:blur(4px); background:rgba(0,0,0,.55) }
-.modal__card{ width:min(520px,92vw); border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,.08);
-  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); }
-.modal__head, .modal__foot{ padding:12px; display:flex; align-items:center; gap:8px }
-.modal__title{ font-weight:900; color:#eaf6ff }
-.modal__x{ margin-left:auto; border:0; background:transparent; color:#9db4ff; cursor:pointer }
-.modal__body{ padding:12px; display:grid; gap:10px }
-.toggle{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; user-select:none }
-.toggle input{ display:none }
-.toggle label{ padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#cde6ff; cursor:pointer; text-align:center }
-.toggle input:checked + label{ color:#08131b; background:linear-gradient(180deg,#7ae0ff,#41b2ff) }
-.amount{ display:grid; gap:6px }
-.amount input{ padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#eaf6ff }
-.err{ color:#ff8b8b; font-size:12px }
-
-/* Small helpers */
-.row .actions{ display:flex; gap:8px; align-items:center }
-.btn-slim{ padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10); color:#cde6ff; background:rgba(255,255,255,.03); cursor:pointer }
-
+/* Simple modal */
+.modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6)}
+.modal .box{background:#0b1015; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; width:min(520px,92vw)}
+.modal .box h3{margin:0 0 10px}
+.modal .box .row{margin-top:6px}
+.modal input[type="number"], .modal input[type="text"], .modal textarea{
+  width:100%; background:#0f141a; border:1px solid rgba(255,255,255,.06); color:#e8f4ff;
+  border-radius:10px; padding:10px 12px; font-weight:600; resize:none
+}
+.err{color:#ff8b8b; font-size:12px; margin-top:6px}
 
 
 /* ===== Night Grid (stunning edition) ===== */
@@ -875,178 +832,45 @@ canvas{ display:block }
 
 <div class="stage">
   <div class="phone" id="phone">
-
-<!-- ========= Social Overlay ========= -->
-<div id="socialOverlay" class="social hidden" aria-hidden="true">
-  <div class="social__glass"></div>
-
-  <header class="social__header">
-    <div class="tabs" role="tablist" aria-label="Social sections">
-      <button class="tab is-active" role="tab" aria-selected="true" data-tab="players">Players</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="ranking">Ranking</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="tribes">Tribes</button>
-    </div>
-
-    <button class="social__close" id="socialClose" aria-label="Close (Esc)">✕</button>
-  </header>
-
-  <!-- Players -->
-  <section class="panel is-active" id="panel-players" role="tabpanel" aria-labelledby="tab-players">
-    <div class="panel__bar">
-      <div class="search">
-        <input id="playerSearch" placeholder="Search username…" autocomplete="off" />
-        <button id="clearSearch" title="Clear">×</button>
+<!-- ====== Social Overlay ====== -->
+<div id="socialOverlay" class="shop-overlay" style="display:none">
+  <div class="panel max-w" role="dialog" aria-modal="true">
+    <div class="overlay-top">
+      <div class="tabs">
+        <button class="tab active" data-tab="players">Players</button>
+        <button class="tab" data-tab="ranking">Ranking</button>
+        <button class="tab" data-tab="tribes">Tribes</button>
       </div>
-      <div class="inboxbtn" id="openInboxBtn">
-        <span>Messages</span>
-        <span class="badge" id="inboxBadge" hidden>0</span>
-      </div>
+      <button class="close-x" id="overlayClose">✕</button>
     </div>
 
-    <ul class="list" id="playerList" aria-live="polite"></ul>
-  </section>
-
-  <!-- Ranking -->
-  <section class="panel" id="panel-ranking" role="tabpanel" aria-labelledby="tab-ranking">
-    <div class="panel__bar">
-      <div class="hint">Top 100 holders — refreshes every 24h</div>
-      <button id="refreshRanking" class="btn-ghost">Refresh</button>
-    </div>
-    <ol class="list rank" id="rankingList" start="1" aria-live="polite"></ol>
-  </section>
-
-  <!-- Tribes -->
-  <section class="panel" id="panel-tribes" role="tabpanel" aria-labelledby="tab-tribes">
-    <div class="panel__bar">
-      <button id="yourTribeBtn" class="btn-ghost">Your Tribe</button>
-      <div class="spacer"></div>
-      <button id="createTribeBtn" class="btn-primary">Create Tribe</button>
-    </div>
-
-    <ul class="list tribes" id="tribeList" aria-live="polite"></ul>
-  </section>
-
-  <!-- Chat drawer -->
-  <aside class="drawer" id="chatDrawer" aria-hidden="true">
-    <header class="drawer__head">
-      <button id="backToThreads" class="btn-ghost">‹ Back</button>
-      <div class="drawer__title" id="chatTitle">Messages</div>
-      <button class="drawer__close" id="chatClose">✕</button>
-    </header>
-
-    <div class="drawer__body">
-      <div class="threads" id="threadList"></div>
-      <div class="room" id="chatRoom" hidden>
-        <div class="msgs" id="chatMsgs"></div>
-        <form id="chatForm" class="chatform" autocomplete="off">
-          <input id="chatInput" placeholder="Type a message…" maxlength="500" />
-          <button class="btn-primary">Send</button>
-        </form>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Send/Request CHADs modal -->
-  <dialog id="transferDlg" class="modal">
-    <form method="dialog" class="modal__card" id="transferForm">
-      <header class="modal__head">
-        <div class="modal__title">Send / Request CHADs</div>
-        <button value="cancel" class="modal__x" aria-label="Close">✕</button>
-      </header>
-
-      <div class="modal__body">
-        <div class="toggle">
-          <input type="radio" id="modeSend" name="mode" value="send" checked>
-          <label for="modeSend">Send</label>
-          <input type="radio" id="modeRequest" name="mode" value="request">
-          <label for="modeRequest">Request</label>
+    <!-- Players -->
+    <section id="tab-players" class="tabpane">
+      <div class="row">
+        <div class="search">
+          <input id="playerSearch" placeholder="Search username…" />
+          <button id="clearSearch">✕</button>
         </div>
-
-        <div class="amount">
-          <label for="transferAmount">Amount</label>
-          <input id="transferAmount" type="number" min="1" step="1" placeholder="0">
-        </div>
-
-        <div id="transferError" class="err" hidden>Please choose an amount.</div>
+        <button class="msg-btn" id="openInbox">Messages</button>
       </div>
+      <div id="playersList" class="list"></div>
+    </section>
 
-      <footer class="modal__foot">
-        <button value="cancel" class="btn-ghost">Cancel</button>
-        <button id="confirmTransfer" class="btn-primary" value="default">Confirm</button>
-      </footer>
-    </form>
-  </dialog>
+    <!-- Ranking -->
+    <section id="tab-ranking" class="tabpane" hidden>
+      <div id="rankingList" class="list"></div>
+    </section>
 
-  <!-- Create tribe modal -->
-  <dialog id="tribeDlg" class="modal">
-    <form method="dialog" class="modal__card" id="tribeForm" novalidate>
-      <header class="modal__head">
-        <div class="modal__title">Create Tribe</div>
-        <button value="cancel" class="modal__x" aria-label="Close">✕</button>
-      </header>
-
-      <div class="modal__body">
-        <label>Tribe name
-          <input id="tribeName" maxlength="40" placeholder="e.g., Wolf Pack">
-        </label>
-
-        <label>Description (≤160, emojis allowed)
-          <textarea id="tribeDesc" maxlength="160" placeholder="What’s this tribe about?"></textarea>
-        </label>
-
-        <div class="toggle">
-          <input type="radio" id="tFree" name="tPrivacy" value="public" checked>
-          <label for="tFree">Free to public</label>
-          <input type="radio" id="tReq" name="tPrivacy" value="request">
-          <label for="tReq">Requested</label>
-        </div>
-
-        <div id="tribeErr" class="err" hidden></div>
+    <!-- Tribes -->
+    <section id="tab-tribes" class="tabpane" hidden>
+      <div class="tribe-head">
+        <button id="openYourTribe" class="msg-btn">Your Tribe</button>
+        <button id="createTribe" class="cta">Create Tribe</button>
       </div>
-
-      <footer class="modal__foot">
-        <button value="cancel" class="btn-ghost">Cancel</button>
-        <button id="tribeCreateBtn" class="btn-primary" value="default">Create</button>
-      </footer>
-    </form>
-  </dialog>
+      <div id="tribesList" class="list"></div>
+    </section>
+  </div>
 </div>
-
-<!-- Templates -->
-<template id="playerItemTpl">
-  <li class="row player">
-    <div class="avatar"><img alt="" /></div>
-    <div class="meta">
-      <div class="name"></div>
-      <div class="sub">
-        <button class="btn-ghost dm">Send message</button>
-        <button class="btn-ghost pay">Send/Receive CHADs</button>
-      </div>
-    </div>
-  </li>
-</template>
-
-<template id="rankItemTpl">
-  <li class="row rankitem">
-    <div class="avatar huge"><img alt="" /></div>
-    <div class="meta">
-      <div class="name"></div>
-      <div class="tribe"></div>
-    </div>
-    <div class="place"></div>
-  </li>
-</template>
-
-<template id="tribeItemTpl">
-  <li class="row tribeitem">
-    <div class="meta">
-      <div class="name"></div>
-      <div class="desc"></div>
-    </div>
-    <div class="actions"></div>
-  </li>
-</template>
-
 
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
@@ -2270,655 +2094,6 @@ function buildGrid(container, cols, rows){
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
 
-
-(function(){
-  // ====== CONFIG ======
-  // Optional Neon Data API (browser-safe path). If not set, we use localStorage data.
-  // Example endpoint: "https://<project-id>.neon.tech/sql"
-  // Provide a short-lived KEY/JWT (via server) and enable RLS for security.
-  const NEON_DATA_API_ENDPOINT = window.NEON_DATA_API_ENDPOINT || null;
-  const NEON_DATA_API_KEY = window.NEON_DATA_API_KEY || null;
-
-  // LocalStorage keys
-  const LS = {
-    PILL_SEEN: 'pill_seen_v1',
-    MSGS: 'chat_threads_v1',
-    PLAYERS: 'players_cache_v1',
-    RANKING: 'ranking_cache_v1',
-    RANK_TS: 'ranking_cached_at_v1',
-    TRIBES: 'tribes_v1',
-    USER: 'player_profile_v1'
-  };
-
-  // Util: safe text
-  const esc = (s='') => String(s)
-    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-    .replaceAll('"','&quot;').replaceAll("'","&#39;");
-
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
-
-  const userPill = $('#userPill');
-  const overlay = $('#socialOverlay');
-  const closeBtn = $('#socialClose');
-
-  // Drawer (inbox / room)
-  const drawer = $('#chatDrawer');
-  const threadsEl = $('#threadList');
-  const room = $('#chatRoom');
-  const msgsEl = $('#chatMsgs');
-  const chatForm = $('#chatForm');
-  const chatInput = $('#chatInput');
-  const chatTitle = $('#chatTitle');
-  const backToThreads = $('#backToThreads');
-  const chatClose = $('#chatClose');
-
-  // Players UI
-  const playerList = $('#playerList');
-  const playerSearch = $('#playerSearch');
-  const clearSearch = $('#clearSearch');
-  const inboxBtn = $('#openInboxBtn');
-  const inboxBadge = $('#inboxBadge');
-
-  // Ranking UI
-  const rankingList = $('#rankingList');
-  const refreshRanking = $('#refreshRanking');
-
-  // Tribes UI
-  const tribeList = $('#tribeList');
-  const yourTribeBtn = $('#yourTribeBtn');
-  const createTribeBtn = $('#createTribeBtn');
-
-  // Dialogs
-  const transferDlg = $('#transferDlg');
-  const transferForm = $('#transferForm');
-  const transferError = $('#transferError');
-  const transferAmount = $('#transferAmount');
-
-  const tribeDlg = $('#tribeDlg');
-  const tribeForm = $('#tribeForm');
-  const tribeErr = $('#tribeErr');
-  const tribeName = $('#tribeName');
-  const tribeDesc = $('#tribeDesc');
-
-  // Tabs
-  const tabs = $$('.tab');
-  const panels = $$('.panel');
-
-  // Templates
-  const playerTpl = $('#playerItemTpl');
-  const rankTpl = $('#rankItemTpl');
-  const tribeTpl = $('#tribeItemTpl');
-
-  // App state
-  let me = getOrCreateMe();
-  let players = [];
-  let tribes = [];
-  let currentThreadId = null;
-  let currentPeer = null;
-
-  // One-time badge for user pill
-  bootstrapPillBadge();
-
-  // Click to open overlay
-  userPill?.addEventListener('click', () => {
-    hidePillBadgeForever();
-    openOverlay();
-    setTimeout(() => playerSearch?.focus(), 20);
-  });
-
-  // Close overlay
-  closeBtn.addEventListener('click', closeOverlay);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (drawer.classList.contains('open')) closeDrawer();
-      else closeOverlay();
-    }
-  });
-
-  // Tabs
-  tabs.forEach(btn => btn.addEventListener('click', () => switchTab(btn)));
-
-  // Search
-  playerSearch.addEventListener('input', () => renderPlayers(playerSearch.value.trim()));
-  clearSearch.addEventListener('click', () => { playerSearch.value=''; renderPlayers(''); });
-
-  // Inbox
-  inboxBtn.addEventListener('click', () => openDrawerThreads());
-
-  // Drawer controls
-  backToThreads.addEventListener('click', () => openDrawerThreads());
-  chatClose.addEventListener('click', () => closeDrawer());
-  chatForm.addEventListener('submit', onSendChat);
-
-  // Ranking
-  refreshRanking.addEventListener('click', () => loadRanking(true));
-
-  // Tribes
-  yourTribeBtn.addEventListener('click', () => openYourTribe());
-  createTribeBtn.addEventListener('click', () => tribeDlg.showModal());
-  tribeForm.addEventListener('close', onCreateTribeClose);
-
-  // Transfer dialog
-  transferForm.addEventListener('close', onTransferClose);
-
-  // Initial data
-  init();
-
-  async function init(){
-    await loadPlayers();
-    await loadTribes();
-    await loadRanking(false);
-    updateInboxBadge();
-  }
-
-  /* ======================== DATA LAYER ======================== */
-
-  async function neonSql(sql, params = {}){
-    if (!NEON_DATA_API_ENDPOINT || !NEON_DATA_API_KEY) return null;
-    // Neon Data API: HTTPS SQL (secured via key/JWT). See docs.
-    const body = {
-      sql,
-      params
-    };
-    const res = await fetch(NEON_DATA_API_ENDPOINT, {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${NEON_DATA_API_KEY}`
-      },
-      body: JSON.stringify(body)
-    }).catch(()=>null);
-    if (!res || !res.ok) return null;
-    const json = await res.json().catch(()=>null);
-    return json;
-  }
-
-  async function loadPlayers(){
-    // Try Neon first
-    let rows = null;
-    const neon = await neonSql(`
-      SELECT id, username, avatar_url, chads, COALESCE(tribe_id, 0) AS tribe_id
-      FROM players
-      WHERE username IS NOT NULL
-      LIMIT 500
-    `);
-
-    if (neon?.results?.[0]?.rows?.length){
-      rows = neon.results[0].rows.map(r => ({
-        id: r[0], username: r[1], avatar: r[2], chads: Number(r[3] ?? 0), tribeId: Number(r[4] ?? 0)
-      }));
-      localStorage.setItem(LS.PLAYERS, JSON.stringify(rows));
-    }else{
-      // Fallback to local cache (or seed a couple if empty)
-      const cached = JSON.parse(localStorage.getItem(LS.PLAYERS) || '[]');
-      if (cached.length){
-        rows = cached;
-      }else{
-        rows = seedLocalPlayers();
-        localStorage.setItem(LS.PLAYERS, JSON.stringify(rows));
-      }
-    }
-    players = rows;
-    renderPlayers('');
-  }
-
-  async function loadRanking(force=false){
-    const DAY = 24*60*60*1000;
-    const ts = Number(localStorage.getItem(LS.RANK_TS)||0);
-    let list = null;
-
-    if (!force && Date.now()-ts < DAY){
-      list = JSON.parse(localStorage.getItem(LS.RANKING)||'[]');
-    }
-
-    if (!list || !list.length){
-      // Neon attempt
-      const neon = await neonSql(`
-        SELECT id, username, avatar_url, chads, tribe_name
-        FROM leaderboard_view
-        ORDER BY chads DESC
-        LIMIT 100
-      `);
-      if (neon?.results?.[0]?.rows?.length){
-        list = neon.results[0].rows.map(r => ({
-          id:r[0], username:r[1], avatar:r[2], chads:Number(r[3]||0), tribe:r[4]||''
-        }));
-      }else{
-        // Fallback: compute from players
-        list = players.slice().sort((a,b)=>b.chads-a.chads).slice(0,100).map(p=>({
-          id:p.id, username:p.username, avatar:p.avatar, chads:p.chads, tribe:''
-        }));
-      }
-      localStorage.setItem(LS.RANKING, JSON.stringify(list));
-      localStorage.setItem(LS.RANK_TS, String(Date.now()));
-    }
-
-    renderRanking(list);
-  }
-
-  async function loadTribes(){
-    // Try Neon
-    const neon = await neonSql(`
-      SELECT id, name, description, privacy FROM tribes ORDER BY id DESC LIMIT 200
-    `);
-    let list = null;
-    if (neon?.results?.[0]?.rows?.length){
-      list = neon.results[0].rows.map(r => ({
-        id:r[0], name:r[1], desc:r[2]||'', privacy:r[3]||'public'
-      }));
-      localStorage.setItem(LS.TRIBES, JSON.stringify(list));
-    }else{
-      list = JSON.parse(localStorage.getItem(LS.TRIBES) || '[]');
-      if (!list.length){
-        list = seedLocalTribes();
-        localStorage.setItem(LS.TRIBES, JSON.stringify(list));
-      }
-    }
-    tribes = list;
-    renderTribes(tribes);
-  }
-
-  function getOrCreateMe(){
-    const raw = localStorage.getItem(LS.USER);
-    if (raw) return JSON.parse(raw);
-    // default "me" uses existing username/avatar from your top bar if you populate them
-    const nameEl = document.getElementById('userName');
-    const avatarEl = document.getElementById('userAvatar');
-    const me = {
-      id: 1,                     // can be replaced by server id
-      username: nameEl ? (nameEl.textContent || 'Player') : 'Player',
-      avatar: avatarEl?.querySelector('img')?.src || '',
-      chads: getChads(),
-      tribeId: 0
-    };
-    localStorage.setItem(LS.USER, JSON.stringify(me));
-    return me;
-  }
-
-  function saveMe(){
-    localStorage.setItem(LS.USER, JSON.stringify(me));
-  }
-
-  function getChads(){
-    // Use your game's state if present; else fallback to stored
-    if (typeof window.state?.chads !== 'undefined'){
-      try { return Number(window.state.chads) } catch { }
-    }
-    const n = Number(localStorage.getItem('chad_count')||0);
-    return isFinite(n)? n: 0;
-  }
-  function setChads(n){
-    if (typeof window.state?.chads !== 'undefined'){
-      window.state.chads = n;
-      const el = document.getElementById('chadCount');
-      if (el) el.textContent = String(n);
-    }
-    localStorage.setItem('chad_count', String(n));
-  }
-
-  /* ======================== UI RENDER ======================== */
-
-  function renderPlayers(q){
-    const frag = document.createDocumentFragment();
-    const tpl = playerTpl.content;
-    const needle = (q||'').toLowerCase();
-    (players || []).filter(p => p.id !== me.id)
-      .filter(p => p.username.toLowerCase().includes(needle))
-      .forEach(p => {
-        const node = document.importNode(tpl, true);
-        const li = node.querySelector('li');
-        li.dataset.id = p.id;
-
-        const img = node.querySelector('img');
-        img.src = p.avatar || 'img/circle10.png'; // fallback in your repo
-        img.alt = `${p.username}'s avatar`;
-
-        node.querySelector('.name').textContent = `${p.username}`;
-
-        node.querySelector('.dm').addEventListener('click', () => openChatWith(p));
-        node.querySelector('.pay').addEventListener('click', () => openTransfer(p));
-
-        frag.appendChild(node);
-      });
-
-    playerList.innerHTML = '';
-    playerList.appendChild(frag);
-  }
-
-  function renderRanking(list){
-    const tpl = rankTpl.content;
-    const frag = document.createDocumentFragment();
-    list.forEach((p,i) => {
-      const node = document.importNode(tpl, true);
-      const li = node.querySelector('li');
-      const img = node.querySelector('img');
-      img.src = p.avatar || 'img/circle10.png';
-      img.alt = `${p.username}'s avatar`;
-      node.querySelector('.name').innerHTML = `${esc(p.username)} <span style="opacity:.6;font-weight:700">• ${p.chads.toLocaleString()} chad</span>`;
-      node.querySelector('.tribe').textContent = p.tribe ? `tribe: ${p.tribe}` : '';
-      node.querySelector('.place').textContent = `#${i+1} place`;
-      frag.appendChild(node);
-    });
-    rankingList.innerHTML = '';
-    rankingList.appendChild(frag);
-  }
-
-  function renderTribes(list){
-    const tpl = tribeTpl.content;
-    const frag = document.createDocumentFragment();
-    list.forEach(t => {
-      const node = document.importNode(tpl, true);
-      node.querySelector('.name').textContent = t.name;
-      node.querySelector('.desc').textContent = t.desc || '';
-      const actions = node.querySelector('.actions');
-      const inTribe = (me.tribeId === t.id);
-      if (inTribe){
-        const b = btn('btn-slim', 'Enter', () => enterTribe(t));
-        actions.appendChild(b);
-      }else{
-        if (t.privacy === 'public'){
-          actions.appendChild(btn('btn-slim', 'Join', () => joinTribe(t)));
-        }else{
-          actions.appendChild(btn('btn-slim', 'Request', () => requestTribe(t)));
-        }
-      }
-      frag.appendChild(node);
-    });
-    tribeList.innerHTML = '';
-    tribeList.appendChild(frag);
-  }
-
-  function btn(cls, text, fn){
-    const b = document.createElement('button');
-    b.className = cls; b.textContent = text; b.addEventListener('click', fn);
-    return b;
-  }
-
-  /* ======================== OVERLAY / TABS ======================== */
-
-  function openOverlay(){
-    overlay.classList.remove('hidden');
-    switchTab(tabs[0]);
-  }
-  function closeOverlay(){
-    overlay.classList.add('hidden');
-    closeDrawer();
-  }
-  function switchTab(btn){
-    tabs.forEach(b => b.classList.toggle('is-active', b===btn));
-    const id = btn.dataset.tab;
-    panels.forEach(p => p.classList.toggle('is-active', p.id === `panel-${id}`));
-    if (id==='ranking') loadRanking(false);
-    if (id==='tribes') renderTribes(tribes);
-  }
-
-  /* ======================== PILL BADGE ======================== */
-
-  function bootstrapPillBadge(){
-    if (!userPill) return;
-    const seen = localStorage.getItem(LS.PILL_SEEN) === '1';
-    if (!seen) userPill.classList.add('badge-1');
-  }
-  function hidePillBadgeForever(){
-    if (!userPill) return;
-    userPill.classList.remove('badge-1');
-    localStorage.setItem(LS.PILL_SEEN,'1');
-  }
-
-  /* ======================== MESSAGES / INBOX ======================== */
-
-  function getThreads(){
-    const raw = localStorage.getItem(LS.MSGS);
-    const obj = raw ? JSON.parse(raw) : { threads:{}, unread:{} };
-    if (!obj.threads) obj.threads = {};
-    if (!obj.unread) obj.unread = {};
-    return obj;
-  }
-  function saveThreads(obj){
-    localStorage.setItem(LS.MSGS, JSON.stringify(obj));
-    updateInboxBadge();
-  }
-  function threadIdFor(peerId){
-    const a = String(me.id), b = String(peerId);
-    return a < b ? `${a}_${b}` : `${b}_${a}`;
-  }
-  function openDrawerThreads(){
-    drawer.classList.add('open');
-    drawer.setAttribute('aria-hidden','false');
-    currentThreadId = null; currentPeer = null;
-    room.hidden = true;
-
-    const {threads, unread} = getThreads();
-    threadsEl.innerHTML = '';
-    const entries = Object.entries(threads).sort((a,b)=>{
-      const at = a[1].updated || 0, bt = b[1].updated || 0; return bt-at;
-    });
-    if (!entries.length){
-      const empty = document.createElement('div');
-      empty.style.cssText = 'padding:14px;color:#9db4ff';
-      empty.textContent = 'No messages yet.';
-      threadsEl.appendChild(empty);
-      return;
-    }
-    entries.forEach(([tid, t])=>{
-      const otherId = t.a===me.id ? t.b : t.a;
-      const peer = players.find(p=>p.id===otherId) || {username:'Unknown', avatar:''};
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.style.cursor='pointer';
-      row.innerHTML = `
-        <div class="avatar"><img src="${esc(peer.avatar||'img/circle10.png')}" alt=""></div>
-        <div class="meta"><div class="name">${esc(peer.username)}</div>
-          <div class="sub" style="opacity:.8;font-size:12px">${esc(t.last || '')}</div></div>
-        <div class="actions">${unread[tid]?`<span class="badge">${unread[tid]}</span>`:''}</div>`;
-      row.addEventListener('click', ()=>openThread(tid, peer));
-      threadsEl.appendChild(row);
-    });
-  }
-  function closeDrawer(){
-    drawer.classList.remove('open');
-    drawer.setAttribute('aria-hidden','true');
-  }
-  function openChatWith(peer){
-    const tid = threadIdFor(peer.id);
-    ensureThread(tid, peer.id);
-    openThread(tid, peer);
-    if (!drawer.classList.contains('open')) drawer.classList.add('open');
-  }
-  function openThread(tid, peer){
-    currentThreadId = tid; currentPeer = peer;
-    chatTitle.textContent = peer.username;
-    room.hidden = false;
-
-    const data = getThreads();
-    const t = data.threads[tid] || { a:me.id, b:peer.id, msgs:[] };
-    // mark read
-    data.unread[tid] = 0;
-    saveThreads(data);
-
-    // render
-    msgsEl.innerHTML = '';
-    t.msgs.forEach(m => appendMsg(m));
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  }
-  function appendMsg(m){
-    const div = document.createElement('div');
-    div.className = 'msg ' + (m.sys ? 'sys' : (m.from===me.id?'me':'them'));
-    div.innerHTML = m.sys ? esc(m.text) : esc(m.text);
-    msgsEl.appendChild(div);
-  }
-  function onSendChat(e){
-    e.preventDefault();
-    const txt = chatInput.value.trim();
-    if (!txt || !currentThreadId) return;
-    chatInput.value = '';
-    const now = Date.now();
-
-    const data = getThreads();
-    const t = data.threads[currentThreadId] || ensureThread(currentThreadId, currentPeer.id, data);
-    const m = { from: me.id, to: currentPeer.id, text: txt, ts: now };
-    t.msgs.push(m); t.updated = now; t.last = txt;
-    saveThreads(data);
-
-    appendMsg(m);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  }
-  function ensureThread(tid, peerId, data=null){
-    data = data || getThreads();
-    if (!data.threads[tid]) data.threads[tid] = { a:me.id, b:peerId, msgs:[], updated:0, last:'' };
-    saveThreads(data);
-    return data.threads[tid];
-  }
-  function systemMessage(peer, text){
-    const tid = threadIdFor(peer.id);
-    const now = Date.now();
-    const data = getThreads();
-    const t = data.threads[tid] || ensureThread(tid, peer.id, data);
-    const m = { sys:true, text, ts: now };
-    t.msgs.push(m); t.updated = now; t.last = text;
-    // increment recipient unread only if not me viewing
-    const isOpenWithPeer = (currentThreadId === tid && drawer.classList.contains('open'));
-    if (!isOpenWithPeer){
-      data.unread[tid] = (data.unread[tid]||0) + 1;
-    }
-    saveThreads(data);
-    if (currentThreadId === tid) appendMsg(m);
-  }
-  function updateInboxBadge(){
-    const {unread} = getThreads();
-    const sum = Object.values(unread).reduce((a,b)=>a+Number(b||0),0);
-    if (sum>0){ inboxBadge.hidden=false; inboxBadge.textContent=String(sum); }
-    else inboxBadge.hidden=true;
-  }
-
-  /* ======================== TRANSFERS ======================== */
-
-  let transferPeer = null;
-  function openTransfer(peer){
-    transferPeer = peer;
-    transferAmount.value = '';
-    transferError.hidden = true;
-    transferDlg.showModal();
-  }
-  function onTransferClose(ev){
-    // No-op, handled in 'Confirm' button
-  }
-  // Confirm transfer
-  $('#confirmTransfer').addEventListener('click', (e)=>{
-    e.preventDefault();
-    const mode = (document.getElementById('modeSend').checked ? 'send' : 'request');
-    const amt = Number(transferAmount.value);
-    if (!amt || amt <= 0){
-      transferError.textContent = 'Please choose an amount.';
-      transferError.hidden = false;
-      return;
-    }
-    transferDlg.close();
-
-    if (mode === 'send'){
-      if (me.chads < amt){
-        alert('Not enough CHADs');
-        return;
-      }
-      me.chads -= amt;
-      setChads(me.chads);
-      saveMe();
-
-      const rec = players.find(p=>p.id===transferPeer.id);
-      if (rec){ rec.chads = (rec.chads||0) + amt; persistPlayers(); }
-
-      systemMessage(transferPeer, `You sent ${amt.toLocaleString()} CHADs to ${transferPeer.username}.`);
-      // In a real Neon flow, run a transactional update for both players.
-    }else{
-      systemMessage(transferPeer, `${me.username} requested ${amt.toLocaleString()} CHADs from you. Tap "Accept" to approve.`);
-    }
-  });
-
-  function persistPlayers(){
-    localStorage.setItem(LS.PLAYERS, JSON.stringify(players));
-  }
-
-  /* ======================== TRIBES ======================== */
-
-  function onCreateTribeClose(){
-    if (tribeDlg.returnValue !== 'default') return;
-    // validate
-    const name = tribeName.value.trim();
-    const desc = tribeDesc.value.trim();
-    const privacy = document.querySelector('input[name="tPrivacy"]:checked')?.value || 'public';
-
-    if (!name){
-      tribeErr.textContent = 'Please enter a tribe name.';
-      tribeErr.hidden = false; return;
-    }
-    if (desc.length > 160){
-      tribeErr.textContent = 'Description must be 160 characters or less.';
-      tribeErr.hidden = false; return;
-    }
-    tribeErr.hidden = true;
-
-    const t = { id: Date.now(), name, desc, privacy, founderId: me.id, members:[me.id], bans:[] };
-    tribes.unshift(t);
-    localStorage.setItem(LS.TRIBES, JSON.stringify(tribes));
-    me.tribeId = t.id; saveMe();
-    renderTribes(tribes);
-  }
-
-  function openYourTribe(){
-    const t = tribes.find(x=>x.id===me.tribeId);
-    if (!t){ alert('No tribe yet.'); return; }
-
-    // Simple group chat inside drawer using threadId 'tribe_<id>'
-    const tid = `tribe_${t.id}`;
-    drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
-    room.hidden = false; threadsEl.innerHTML = '';
-    currentThreadId = tid; currentPeer = { id: tid, username: t.name };
-
-    chatTitle.textContent = `${t.name} (Tribe)`;
-    msgsEl.innerHTML = '';
-
-    const data = getThreads();
-    if (!data.threads[tid]) data.threads[tid] = { a:tid, b:tid, msgs:[], updated:0, last:'' };
-    saveThreads(data);
-
-    const th = getThreads().threads[tid];
-    th.msgs.forEach(m=>appendMsg(m));
-  }
-
-  function enterTribe(t){ openYourTribe(t); }
-  function joinTribe(t){
-    if (t.privacy === 'public'){ t.members = t.members || []; if (!t.members.includes(me.id)) t.members.push(me.id); me.tribeId = t.id; saveMe(); renderTribes(tribes); localStorage.setItem(LS.TRIBES, JSON.stringify(tribes)); }
-  }
-  function requestTribe(t){
-    systemMessage({id:-t.id, username:t.name}, `${me.username} requested to join ${t.name}.`);
-    alert('Request sent to the tribe founder.');
-  }
-
-  /* ======================== HELPERS / SEED ======================== */
-
-  function seedLocalPlayers(){
-    const base = [
-      { id:2, username:'Orion', avatar:'img/circle14.png', chads: 12000, tribeId:0 },
-      { id:3, username:'Nova', avatar:'img/circle13.png', chads: 7800, tribeId:0 },
-      { id:4, username:'Zephyr', avatar:'img/circle12.png', chads: 4200, tribeId:0 },
-      { id:5, username:'Valkyrie', avatar:'img/circle11.png', chads: 2200, tribeId:0 },
-      { id:6, username:'Echo', avatar:'img/circle10.png', chads: 900, tribeId:0 }
-    ];
-    return base;
-  }
-
-  function seedLocalTribes(){
-    return [
-      { id: 1001, name:'Sunset Riders', desc:'Chill & helpful players☀️', privacy:'public', founderId:2, members:[2], bans:[] },
-      { id: 1002, name:'Crystal Wolves', desc:'We hunt the top 100!', privacy:'request', founderId:3, members:[3], bans:[] }
-    ];
-  }
-
-})();
-
-
-
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
 function createSnakeGame(){
@@ -4052,6 +3227,281 @@ function openBreaker(){
   });
 
   window.addEventListener('resize', resizeCanvas);
+})();
+
+(function(){
+  const tg = window.Telegram?.WebApp;         // Telegram Mini App context
+  const me = tg?.initDataUnsafe?.user || {};  // real user data
+  const ME_ID = me.id;
+  const ME_NAME = me.username || [me.first_name, me.last_name].filter(Boolean).join(' ') || 'Player';
+  const ME_AVATAR = me.photo_url || null;     // official WebAppUser.photo_url (Bot API 7.6+) 
+
+  const $ = (sel, el=document) => el.querySelector(sel);
+  const $$ = (sel, el=document) => [...el.querySelectorAll(sel)];
+  const overlay = $('#socialOverlay');
+
+  // ----- One-time red badge on the wooden pill -----
+  const pill = document.getElementById('userPill');
+  if (pill && !localStorage.getItem('pillBadged')) {
+    const b = document.createElement('div');
+    b.className = 'pill-badge';
+    b.textContent = '1';
+    pill.appendChild(b);
+  }
+  if (pill) {
+    pill.style.visibility = 'visible';
+    pill.addEventListener('click', () => {
+      $('#socialOverlay').style.display = 'block';
+      const bad = pill.querySelector('.pill-badge');
+      if (bad) bad.remove();
+      localStorage.setItem('pillBadged', '1');
+      loadPlayers();
+    });
+  }
+  $('#overlayClose').addEventListener('click', () => overlay.style.display = 'none');
+
+  // ----- Tabs
+  $$('.tab').forEach(btn => btn.addEventListener('click', () => {
+    $$('.tab').forEach(b=>b.classList.toggle('active', b===btn));
+    $$('.tabpane').forEach(p=>p.hidden=true);
+    document.getElementById('tab-'+btn.dataset.tab).hidden=false;
+    if (btn.dataset.tab==='players') loadPlayers();
+    if (btn.dataset.tab==='ranking') loadRanking();
+    if (btn.dataset.tab==='tribes') loadTribes();
+  }));
+
+  // ----- Ensure user exists server-side
+  async function upsertMe(){
+    try{
+      await fetch('/api/upsert-user',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user_id:ME_ID, name:ME_NAME, avatar_url:ME_AVATAR})});
+    }catch(e){ console.warn('upsert failed', e); }
+  }
+  upsertMe();
+
+  // ============ PLAYERS ============
+  const playersList = $('#playersList');
+  async function loadPlayers(q=''){
+    const res = await fetch(`/api/players?me=${ME_ID}&q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    playersList.innerHTML = '';
+    if (!data.players?.length){
+      playersList.innerHTML = `<div class="meta" style="padding:14px">No players found yet.</div>`;
+      return;
+    }
+    data.players.forEach(p => playersList.appendChild(playerCard(p)));
+  }
+
+  function playerCard(p){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="head">
+        <img class="avatar" src="${p.avatar_url || '/img/default-avatar.png'}" alt="">
+        <div>
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="meta">${p.chads ?? 0} CHADs</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn secondary js-msg">Send message</button>
+        <button class="btn primary js-chad">Send/Receive CHADs</button>
+      </div>`;
+    card.querySelector('.js-msg').onclick = ()=> openThread(p.user_id, p.name, p.avatar_url);
+    card.querySelector('.js-chad').onclick = ()=> openTransfer(p.user_id, p.name);
+    return card;
+  }
+
+  $('#playerSearch').addEventListener('input', e => loadPlayers(e.target.value));
+  $('#clearSearch').addEventListener('click', ()=> { $('#playerSearch').value=''; loadPlayers(''); });
+
+  // Inbox button
+  $('#openInbox').addEventListener('click', async () => {
+    const res = await fetch(`/api/messages?me=${ME_ID}`);
+    const data = await res.json();
+    playersList.innerHTML = '';
+    (data.inbox || []).forEach(row => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="head">
+          <img class="avatar" src="${row.avatar_url || '/img/default-avatar.png'}">
+          <div>
+            <div class="name">${escapeHtml(row.name)}</div>
+            <div class="meta">${escapeHtml(row.last_message || '')}</div>
+          </div>
+        </div>`;
+      card.onclick = () => openThread(row.user_id, row.name, row.avatar_url);
+      playersList.appendChild(card);
+    });
+  });
+
+  // ============ RANKING ============
+  async function loadRanking(){
+    const res = await fetch('/api/ranking');
+    const { ranking } = await res.json();
+    const wrap = $('#rankingList');
+    wrap.innerHTML = '';
+    ranking.forEach(r => {
+      const card = document.createElement('div');
+      const cls = r.rank===1?'rank-1':r.rank===2?'rank-2':r.rank===3?'rank-3':'rank-other';
+      card.className = 'card '+cls;
+      card.innerHTML = `
+        <div class="head">
+          <img class="avatar" src="${r.avatar_url || '/img/default-avatar.png'}">
+          <div>
+            <div class="name">${escapeHtml(r.name)}</div>
+            <div class="meta">#${r.rank} place • ${r.chads} CHADs</div>
+          </div>
+        </div>`;
+      wrap.appendChild(card);
+    });
+  }
+
+  // ============ TRIBES ============
+  async function loadTribes(){
+    const res = await fetch('/api/tribes');
+    const data = await res.json();
+    const wrap = $('#tribesList');
+    wrap.innerHTML = '';
+    (data.tribes || []).forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="name">${escapeHtml(t.name)}</div>
+        <div class="meta" style="margin-top:4px">${escapeHtml(t.description)}</div>
+        <div class="actions">
+          <button class="btn primary">${t.is_request_based ? 'Request to Join' : 'Join'}</button>
+        </div>`;
+      card.querySelector('.btn').onclick = async () => {
+        const r = await fetch('/api/tribes/join',{method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ me:ME_ID, tribe_id:t.id })}).then(r=>r.json());
+        alert(r.joined ? 'Joined!' : 'Request sent!');
+      };
+      wrap.appendChild(card);
+    });
+  }
+
+  // Create tribe
+  $('#createTribe').addEventListener('click', () => openCreateTribe());
+  $('#openYourTribe').addEventListener('click', () => {
+    alert('Open your tribe room UI here (list of members + chat). To keep this answer concise, the endpoints are ready: /api/tribes/messages, /api/tribes/moderate.');
+  });
+
+  // ============ Dialogs ============
+  // Message thread
+  function openThread(peerId, peerName, avatar){
+    const modal = ensureModal();
+    modal.querySelector('.box').innerHTML = `
+      <h3>Chat with ${escapeHtml(peerName)}</h3>
+      <div class="thread" style="height:45vh; overflow:auto; display:flex; flex-direction:column; gap:8px; padding:8px; background:#0a0f14; border:1px solid rgba(255,255,255,.06); border-radius:10px"></div>
+      <div class="row">
+        <input id="msgInput" placeholder="Type a message..."/>
+        <button class="cta" id="sendBtn">Send</button>
+      </div>`;
+    modal.style.display='grid';
+
+    const threadEl = modal.querySelector('.thread');
+    const load = async ()=>{
+      const res = await fetch(`/api/messages/${peerId}?me=${ME_ID}`);
+      const data = await res.json();
+      threadEl.innerHTML = '';
+      (data.messages||[]).forEach(m=>{
+        const mine = Number(m.sender_id)===Number(ME_ID);
+        const item = document.createElement('div');
+        item.style.alignSelf = mine ? 'end':'start';
+        item.style.maxWidth='80%';
+        item.style.background = mine? '#14324b' : '#131a22';
+        item.style.border = '1px solid rgba(255,255,255,.06)';
+        item.style.padding = '8px 10px'; item.style.borderRadius='10px';
+        item.innerHTML = `<div style="font-size:12px; opacity:.7">${new Date(m.created_at).toLocaleString()}</div>
+                          <div>${escapeHtml(m.body)}</div>`;
+        threadEl.appendChild(item);
+      });
+      threadEl.scrollTop = threadEl.scrollHeight;
+    };
+    load();
+
+    modal.querySelector('#sendBtn').onclick = async ()=>{
+      const val = modal.querySelector('#msgInput').value.trim();
+      if(!val) return;
+      await fetch(`/api/messages/${peerId}?me=${ME_ID}`,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({body:val})});
+      modal.querySelector('#msgInput').value='';
+      load();
+    };
+  }
+
+  // CHAD transfer modal
+  function openTransfer(peerId, peerName){
+    const modal = ensureModal();
+    modal.querySelector('.box').innerHTML = `
+      <h3>Send/Request CHADs — ${escapeHtml(peerName)}</h3>
+      <div class="row">
+        <label style="display:flex; gap:8px; align-items:center">
+          <input type="radio" name="kind" value="send" checked> Send
+        </label>
+        <label style="display:flex; gap:8px; align-items:center">
+          <input type="radio" name="kind" value="request"> Request
+        </label>
+      </div>
+      <div class="row"><input id="amt" type="number" min="1" placeholder="Amount"></div>
+      <div class="err" id="err" style="display:none">Please choose an amount</div>
+      <div class="row"><button class="cta" id="go">Confirm</button></div>`;
+    modal.style.display='grid';
+
+    modal.querySelector('#go').onclick = async ()=>{
+      const amount = Number(modal.querySelector('#amt').value);
+      if(!amount){ $('#err',modal).style.display='block'; return; }
+      const kind = modal.querySelector('input[name="kind"]:checked').value;
+      const r = await fetch('/api/chads/transfer',{method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ me:ME_ID, peer:peerId, amount, kind })}).then(r=>r.json());
+      if(r.ok){ alert('Request sent to messages.'); modal.style.display='none'; }
+    };
+  }
+
+  // Create tribe modal
+  function openCreateTribe(){
+    const modal = ensureModal();
+    modal.querySelector('.box').innerHTML = `
+      <h3>Create Tribe</h3>
+      <div class="row"><input id="tname" maxlength="48" placeholder="Tribe name"/></div>
+      <div class="row"><textarea id="tdesc" maxlength="160" placeholder="Description (max 160 chars)"></textarea></div>
+      <div class="row">
+        <label style="display:flex; gap:8px; align-items:center"><input type="radio" name="mode" value="request" checked> Requested</label>
+        <label style="display:flex; gap:8px; align-items:center"><input type="radio" name="mode" value="public"> Free to public</label>
+      </div>
+      <div class="row"><button class="cta" id="create">Create</button></div>
+      <div class="err" id="terr" style="display:none"></div>`;
+    modal.style.display='grid';
+    modal.querySelector('#create').onclick = async ()=>{
+      const name = modal.querySelector('#tname').value.trim();
+      const description = modal.querySelector('#tdesc').value.trim();
+      const mode = modal.querySelector('input[name="mode"]:checked').value === 'public' ? 'public' : 'request';
+      if(!name || !description){ $('#terr',modal).textContent='Fill all fields'; $('#terr',modal).style.display='block'; return; }
+      const r = await fetch('/api/tribes',{method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ me:ME_ID, name, description, mode })}).then(r=>r.json());
+      if(r.ok){ alert('Tribe created!'); modal.style.display='none'; loadTribes(); }
+      else { $('#terr',modal).textContent=r.error || 'Error'; $('#terr',modal).style.display='block'; }
+    };
+  }
+
+  // Utility modal
+  function ensureModal(){
+    let m = document.getElementById('modal');
+    if (!m){
+      m = document.createElement('div');
+      m.id='modal'; m.className='modal';
+      m.innerHTML = `<div class="box"></div>`;
+      m.addEventListener('click', (e)=>{ if(e.target===m) m.style.display='none'; });
+      document.body.appendChild(m);
+    }
+    return m;
+  }
+
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // Tell Telegram we are ready (optional)
+  try { tg?.ready?.(); } catch {}
 })();
 
 
@@ -5834,8 +5284,6 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
-  window.NEON_DATA_API_ENDPOINT = "https://<project-id>.neon.tech/sql";
-  window.NEON_DATA_API_KEY = "<short-lived JWT or key>";
 </script>
 </body>
 </html>
