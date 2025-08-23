@@ -7,6 +7,128 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
+/* ===== Social Overlay (fullscreen) ===== */
+.social-overlay{ position:fixed; inset:0; display:none; z-index:999;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(8px); /* MDN backdrop-filter */ }
+.social-overlay.open{ display:block; }
+
+.social-panel{ position:relative; margin:env(safe-area-inset-top) auto 0;
+  width:min(980px, 100%); height:calc(100% - env(safe-area-inset-top));
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(255,255,255,.06), transparent 40%),
+              linear-gradient(180deg,#0b0f14,#07131b 40%, #060a10);
+  border:1px solid rgba(255,255,255,.08); border-radius:18px 18px 0 0;
+  box-shadow: 0 40px 120px rgba(0,0,0,.7); overflow:hidden; color:#eaf0f6; }
+.so-close{ position:absolute; top:10px; right:12px; z-index:3; width:36px; height:36px;
+  border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.35);
+  color:#cfe4ff; font-size:18px; cursor:pointer; backdrop-filter:blur(2px) }
+
+.so-tabs{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; padding:16px;
+  border-bottom:1px solid rgba(255,255,255,.07); background:
+  linear-gradient(180deg, rgba(255,255,255,.06), transparent); }
+.so-tab{ font-weight:800; text-transform:lowercase; letter-spacing:.2px;
+  padding:12px 14px; border-radius:14px; cursor:pointer; border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, #152233, #0f1723);
+  color:#c6d1e3; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.so-tab.is-active{ color:#0a0e12; background:
+  linear-gradient(180deg,#f6d46e,#c69d2f 60%, #906d1b); /* gold-beam */
+  border-color:#fce39b; text-shadow:0 1px 0 rgba(255,255,255,.4); }
+
+.so-panel{ height:calc(100% - 74px); overflow:auto; padding:14px 14px 110px; }
+.so-row{ display:flex; gap:10px; align-items:center; margin:6px 0 12px; }
+.bottom-pad{ padding-bottom:30px; }
+
+.so-search{ flex:1; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04); color:#e6f0ff; outline:none; }
+.so-search::placeholder{ color:#9fb1c9 }
+
+.so-msgs-btn{ position:relative; padding:12px 14px; border-radius:12px; font-weight:800;
+  border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg,#182434,#0f1624);
+  color:#cfe1ff; cursor:pointer; }
+.so-badge{ position:absolute; top:-8px; right:-8px; min-width:20px; padding:2px 6px; border-radius:12px;
+  background:#e63946; color:#fff; font-weight:900; font-size:12px; border:2px solid #0b0f14; }
+
+/* Lists & Cards */
+.so-list{ list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.so-list.compact{ gap:8px; }
+.so-item{ display:grid; grid-template-columns:auto 1fr auto; gap:12px;
+  align-items:center; padding:12px; border-radius:16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.10); box-shadow:0 18px 60px rgba(0,0,0,.45); }
+.so-avatar{ width:54px; height:54px; border-radius:50%; overflow:hidden; display:grid; place-items:center;
+  border:2px solid rgba(255,255,255,.22); background:linear-gradient(180deg,#233244,#101825); font-weight:900 }
+.so-avatar img{ width:100%; height:100%; object-fit:cover }
+.so-name{ font-weight:800; font-size:16px; color:#e8f2ff }
+.so-sub{ font-size:12px; opacity:.75 }
+
+.btn-primary{ padding:10px 14px; border-radius:12px; font-weight:900; cursor:pointer;
+  border:1px solid #f9e39b; color:#0c0f14;
+  background:linear-gradient(180deg,#ffe79a,#e8c45b 60%, #b5892d); }
+.btn-ghost{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.05); color:#e6f0ff; font-weight:800; cursor:pointer; }
+.btn-ghost.small{ padding:6px 10px; font-size:12px }
+
+.btn-icon{ width:36px; height:36px; display:grid; place-items:center; border-radius:10px;
+  border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#cfe4ff; cursor:pointer; }
+
+.so-actions{ display:flex; gap:8px; flex-wrap:wrap }
+.so-note{ opacity:.7; font-size:12px; padding:10px }
+
+/* Ranking looks */
+.so-ranking .so-item{ grid-template-columns:auto 1fr auto; }
+.rank-n{ font-weight:900; font-size:16px; opacity:.85 }
+.rank-1{ background:linear-gradient(180deg,#ffefb0,#f4c85a 60%, #b9852b); border-color:#ffe39b }
+.rank-2{ background:linear-gradient(180deg,#e1d8ff,#b49bff 60%, #7b63d1); border-color:#c6b3ff }
+.rank-3{ background:linear-gradient(180deg,#d3f7c2,#8ed17f 60%, #5da85b); border-color:#b6efac }
+.rank-other{ background:linear-gradient(180deg,#dfe6f3,#bfc8d9 60%, #8f9bb2); color:#0d1320;
+  border-color:#d7deec; }
+.rank-other .so-name{ color:#0d1320 }
+
+/* Chat drawer */
+.chat-drawer{ position:absolute; left:0; right:0; bottom:0; height:70%;
+  background: linear-gradient(180deg,#0e141e,#0a0f17); border-top:1px solid rgba(255,255,255,.08);
+  box-shadow:0 -24px 100px rgba(0,0,0,.6); display:flex; flex-direction:column; }
+.chat-head{ display:flex; gap:10px; align-items:center; padding:10px; border-bottom:1px solid rgba(255,255,255,.07)}
+.chat-title{ display:flex; flex-direction:column; gap:2px }
+.chat-name{ font-weight:900 }
+.chat-sub{ font-size:12px; opacity:.7 }
+.chat-stream{ flex:1; overflow:auto; padding:10px; display:grid; gap:8px }
+.msg{ max-width:80%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.1); }
+.msg.me{ justify-self:end; background:linear-gradient(180deg,#ffe39b,#c9a453); color:#0d0f12 }
+.msg.them{ justify-self:start; background:rgba(255,255,255,.06) }
+.msg .small{ font-size:11px; opacity:.75; margin-top:4px }
+.msg .accepts{ display:flex; gap:8px; margin-top:8px }
+.msg .accepts .btn-primary{ padding:6px 10px }
+
+/* Mini dialogs (amount, members) */
+.mini-dialog{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,.6) }
+.md-card{ width:min(520px,92%); background:linear-gradient(180deg,#0c121b,#0a1016);
+  border:1px solid rgba(255,255,255,.12); border-radius:16px; box-shadow:0 30px 120px rgba(0,0,0,.8) }
+.md-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08) }
+.md-title{ font-weight:900 }
+.md-body{ padding:14px; display:grid; gap:12px }
+.md-field{ display:grid; gap:6px }
+.md-field input, .md-field textarea{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.05); color:#eaf2ff; }
+.md-seg{ display:grid; grid-auto-flow:column; gap:10px; align-items:center; }
+.md-seg input{ accent-color:#e7c45e }
+.md-tabs{ display:grid; grid-auto-flow:column; gap:8px; padding:10px 14px 0 }
+.md-tab{ padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.05); color:#cfe1ff; font-weight:800; cursor:pointer }
+.md-tab.is-active{ background:linear-gradient(180deg,#ffe39b,#cfa04a); color:#0d1014 }
+.md-foot{ display:flex; justify-content:flex-end; padding:12px 14px; border-top:1px solid rgba(255,255,255,.08) }
+
+.err{ color:#ff8b8b; font-size:12px }
+
+/* Member list tiny */
+.member-actions{ display:flex; gap:6px }
+
+/* Responsive polish */
+@media (max-width:560px){
+  .so-item{ grid-template-columns:auto 1fr; grid-template-rows:auto auto; }
+  .so-actions{ grid-column:1 / -1 }
+}
+
+
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -575,7 +697,7 @@ body{
 }
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
-.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6 padding-inline: 18px; }
+.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6 }
 /* ===== Shop Overlay ===== */
 .shop-overlay {
   position: fixed; inset: 0;
@@ -772,6 +894,154 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
+<!-- === SOCIAL OVERLAY =================================================== -->
+<div id="socialOverlay" class="social-overlay" aria-hidden="true">
+  <div class="social-panel" role="dialog" aria-modal="true" aria-labelledby="socialTabs">
+    <!-- Close -->
+    <button class="so-close" id="soClose" aria-label="Close">✕</button>
+
+    <!-- Tabs -->
+    <header id="socialTabs" class="so-tabs" role="tablist" aria-orientation="horizontal">
+      <button class="so-tab is-active" id="tab-players" role="tab" aria-selected="true"
+              aria-controls="panel-players">players</button>
+      <button class="so-tab" id="tab-ranking" role="tab" aria-selected="false"
+              aria-controls="panel-ranking">ranking</button>
+      <button class="so-tab" id="tab-tribes" role="tab" aria-selected="false"
+              aria-controls="panel-tribes">tribes</button>
+    </header>
+
+    <!-- Panels -->
+    <section class="so-panel" id="panel-players" role="tabpanel" aria-labelledby="tab-players">
+      <div class="so-row">
+        <input id="playerSearch" class="so-search" type="search" autocomplete="off"
+               placeholder="Search username…" aria-label="Search players">
+        <button class="so-msgs-btn" id="openMessages">
+          messages <span class="so-badge" id="messagesBadge" hidden>0</span>
+        </button>
+      </div>
+
+      <ul id="playersList" class="so-list" aria-live="polite" aria-busy="false"></ul>
+    </section>
+
+    <section class="so-panel" id="panel-ranking" role="tabpanel" aria-labelledby="tab-ranking" hidden>
+      <ul id="rankingList" class="so-list so-ranking"></ul>
+      <div class="so-note">Ranking refreshes every 24h (local simulation).</div>
+    </section>
+
+    <section class="so-panel" id="panel-tribes" role="tabpanel" aria-labelledby="tab-tribes" hidden>
+      <div class="so-row">
+        <button id="openYourTribe" class="btn-ghost">Your Tribe</button>
+      </div>
+
+      <ul id="tribesList" class="so-list"></ul>
+
+      <div class="so-row bottom-pad">
+        <button id="createTribeBtn" class="btn-primary">create tribe</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Chat Drawer -->
+  <div id="chatDrawer" class="chat-drawer" hidden>
+    <div class="chat-head">
+      <button id="chatBack" class="btn-icon" aria-label="Back">←</button>
+      <div class="chat-title">
+        <div class="chat-name" id="chatWith">Chat</div>
+        <div class="chat-sub" id="chatSub"></div>
+      </div>
+      <div style="width:40px"></div>
+    </div>
+    <div id="chatStream" class="chat-stream" aria-live="polite"></div>
+    <form id="chatForm" class="chat-input" autocomplete="off">
+      <input id="chatText" type="text" placeholder="Type a message…" maxlength="500" required />
+      <button class="btn-primary" type="submit">Send</button>
+    </form>
+  </div>
+
+  <!-- Send / Request Chads -->
+  <div id="chadDialog" class="mini-dialog" hidden>
+    <div class="md-card">
+      <div class="md-head">
+        <div class="md-title" id="chadDialogTitle">Chads</div>
+        <button id="mdClose" class="btn-icon" aria-label="Close">✕</button>
+      </div>
+      <div class="md-tabs">
+        <button class="md-tab is-active" data-mode="send">Send</button>
+        <button class="md-tab" data-mode="request">Request</button>
+      </div>
+      <div class="md-body">
+        <label class="md-field">
+          <span>Amount</span>
+          <input id="chadAmount" type="number" min="1" placeholder="0">
+        </label>
+        <p id="chadErr" class="err" hidden>Please choose an amount</p>
+      </div>
+      <div class="md-foot">
+        <button id="chadConfirm" class="btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Tribe -->
+  <div id="tribeDialog" class="mini-dialog" hidden>
+    <div class="md-card">
+      <div class="md-head">
+        <div class="md-title">Create Tribe</div>
+        <button id="tdClose" class="btn-icon" aria-label="Close">✕</button>
+      </div>
+      <div class="md-body">
+        <label class="md-field"><span>Name of the tribe</span>
+          <input id="tribeName" type="text" maxlength="32" placeholder="e.g., Dawnwalkers">
+        </label>
+        <label class="md-field"><span>Description (max 160)</span>
+          <textarea id="tribeDesc" rows="3" maxlength="160" placeholder="Write a short description…"></textarea>
+        </label>
+
+        <div class="md-seg">
+          <input type="radio" name="tribeMode" id="modeRequest" value="request" checked>
+          <label for="modeRequest">requested</label>
+          <input type="radio" name="tribeMode" id="modePublic" value="public">
+          <label for="modePublic">free to public</label>
+        </div>
+      </div>
+      <div class="md-foot">
+        <button id="tribeCreateConfirm" class="btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Your Tribe (group chat & members) -->
+  <div id="yourTribeView" class="chat-drawer" hidden>
+    <div class="chat-head">
+      <button id="ytBack" class="btn-icon" aria-label="Back">←</button>
+      <div class="chat-title">
+        <div class="chat-name" id="ytName">Your Tribe</div>
+        <div class="chat-sub" id="ytSub"></div>
+      </div>
+      <button id="ytMembers" class="btn-ghost small">See players</button>
+    </div>
+    <div id="ytStream" class="chat-stream"></div>
+    <form id="ytForm" class="chat-input" autocomplete="off">
+      <input id="ytText" type="text" placeholder="Message the tribe…" maxlength="500" required />
+      <button class="btn-primary" type="submit">Send</button>
+    </form>
+  </div>
+
+  <!-- Members sheet -->
+  <div id="membersSheet" class="mini-dialog" hidden>
+    <div class="md-card">
+      <div class="md-head">
+        <div class="md-title">Members</div>
+        <button id="msClose" class="btn-icon" aria-label="Close">✕</button>
+      </div>
+      <div class="md-body">
+        <ul id="membersList" class="so-list compact"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===================================================================== -->
+
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -1408,6 +1678,568 @@ function markUsernameTaken(name){
   if (raw){ try{ const arr = JSON.parse(raw); if(Array.isArray(arr)) set = new Set(arr); }catch{} }
   set.add(name); localStorage.setItem(TAKEN_KEY, JSON.stringify(Array.from(set)));
 }
+
+
+/* ==============================================================
+   SOCIAL OVERLAY — Players • Ranking • Tribes
+   All data is localStorage-simulated; wire the "API" section
+   to your backend when you’re ready.
+================================================================= */
+
+(() => {
+  // ---------- Utilities ----------
+  const $ = (sel, el=document) => el.querySelector(sel);
+  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+  const on = (el, ev, fn) => el.addEventListener(ev, fn);
+
+  // Storage helpers (MDN Storage API)
+  const LS = {
+    get(k, fallback=null){ try{ const v = localStorage.getItem(k); return v? JSON.parse(v): fallback }catch{ return fallback } },
+    set(k, v){ localStorage.setItem(k, JSON.stringify(v)) }
+  };
+
+  // Find "me" (name/avatar) using your DOM/state if available
+  function readMe(){
+    let name = (window.state && state.name) || ($("#userName")?.textContent?.trim()) || "Player";
+    let avatarIdx = (window.state && state.avatarIdx) ?? null;
+    return { id: "me", name, avatarIdx };
+  }
+
+  const ME = readMe();
+
+  // Keys
+  const K = {
+    players: "chad_players",
+    messages: "chad_messages",
+    tribes: "chad_tribes",
+    rankingAt: "chad_ranking_ts"
+  };
+
+  // Seed some local demo data if empty
+  function seed(){
+    if (!LS.get(K.players)){
+      const demo = Array.from({length:30}).map((_,i)=>({
+        id: "u"+(i+1),
+        name: i===0 ? ME.name : `player_${(i+1).toString().padStart(2,"0")}`,
+        avatarIdx: (i%16),
+        chads: Math.floor(Math.random()*50000)+100,
+        tribeId: null
+      }));
+      // ensure ME is included
+      if (!demo.find(p=>p.name===ME.name)) demo.unshift({id:"me", name:ME.name, avatarIdx:ME.avatarIdx, chads:42391, tribeId:null});
+      LS.set(K.players, demo);
+    }
+    if (!LS.get(K.messages)) LS.set(K.messages, {}); // threadId -> {ids:[a,b], msgs:[]}
+    if (!LS.get(K.tribes)) LS.set(K.tribes, []);
+  }
+  seed();
+
+  // Helpers
+  const playersAll = () => LS.get(K.players, []);
+  const savePlayers = (arr) => LS.set(K.players, arr);
+  const tribesAll = () => LS.get(K.tribes, []);
+  const saveTribes = (arr) => LS.set(K.tribes, arr);
+  const now = () => Date.now();
+
+  function getThreadId(a,b){ return [a,b].sort().join("::"); }
+  function pushMsg(toName, payload){
+    const id = getThreadId(ME.name, toName);
+    const all = LS.get(K.messages, {});
+    if (!all[id]) all[id] = { ids:[ME.name, toName], msgs:[] };
+    all[id].msgs.push(payload);
+    LS.set(K.messages, all);
+  }
+  function loadThread(other){
+    const id = getThreadId(ME.name, other);
+    return LS.get(K.messages,{})[id] || { ids:[ME.name, other], msgs:[] };
+  }
+  function unseenCount(){
+    const all = LS.get(K.messages,{});
+    let c = 0;
+    Object.values(all).forEach(t=>{
+      t.msgs.forEach(m=>{ if (m.to===ME.name && !m.seen) c++; });
+    });
+    return c;
+  }
+
+  // Format
+  const fmt = (n) => new Intl.NumberFormat().format(n);
+
+  // ---------- Overlay open/close ----------
+  const overlay = $("#socialOverlay");
+  const userPill = $("#userPill");
+  const soClose = $("#soClose");
+
+  if (userPill){
+    on(userPill, "click", () => openOverlay());
+    userPill.style.visibility = "visible";
+  }
+
+  function openOverlay(){
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden","false");
+    renderPlayers();
+    renderRanking();
+    renderTribes();
+    badge();
+  }
+  function closeOverlay(){
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden","true");
+    closeChat();
+    hide($("#chadDialog"));
+    hide($("#tribeDialog"));
+    hide($("#yourTribeView"));
+    hide($("#membersSheet"));
+  }
+  on(soClose, "click", closeOverlay);
+  on(overlay, "keydown", (e)=>{ if(e.key==="Escape") closeOverlay(); });
+
+  // ---------- Tabs (WAI-ARIA pattern) ----------
+  const tabs = $$(".so-tab");
+  const panels = $$(".so-panel");
+  tabs.forEach(tab=>{
+    on(tab, "click", () => {
+      tabs.forEach(t=>{ t.classList.toggle("is-active", t===tab); t.setAttribute("aria-selected", t===tab) });
+      panels.forEach(p=> p.hidden = (p.id !== tab.getAttribute("aria-controls")));
+    });
+  });
+
+  // ---------- Players ----------
+  const playersList = $("#playersList");
+  const playerSearch = $("#playerSearch");
+  const openMessages = $("#openMessages");
+  const messagesBadge = $("#messagesBadge");
+
+  on(playerSearch, "input", renderPlayers);
+  on(openMessages, "click", () => openChatList());
+
+  function renderPlayers(){
+    const term = (playerSearch.value||"").toLowerCase();
+    const arr = playersAll()
+      .filter(p=>p.name && p.name.toLowerCase().includes(term))
+      .sort((a,b)=> a.name.localeCompare(b.name));
+    playersList.innerHTML = "";
+    arr.forEach(p=>{
+      if (p.name === ME.name) return; // don’t show me in list
+      const li = document.createElement("li"); li.className="so-item";
+      li.innerHTML = `
+        <div class="so-avatar">${avatarHTML(p)}</div>
+        <div>
+          <div class="so-name">${esc(p.name)}</div>
+          <div class="so-sub">chads: ${fmt(p.chads || 0)}</div>
+        </div>
+        <div class="so-actions">
+          <button class="btn-ghost sm send-msg">send message</button>
+          <button class="btn-primary sm chad-tx">send/receive chads</button>
+        </div>
+      `;
+      $(".send-msg", li).onclick = () => openChat(p.name);
+      $(".chad-tx", li).onclick = () => openChadDialog(p.name);
+      playersList.appendChild(li);
+    });
+  }
+
+  function avatarHTML(p){
+    // Use initials if you don't have actual image
+    const initials = (p.name||"?").split(" ").map(s=>s[0]).join("").slice(0,2).toUpperCase();
+    return `<span>${esc(initials)}</span>`;
+  }
+  function esc(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])) }
+
+  function badge(){
+    const c = unseenCount();
+    if (c>0){ messagesBadge.hidden=false; messagesBadge.textContent = c; }
+    else { messagesBadge.hidden=true; }
+  }
+
+  // ---------- Chat ----------
+  const chatDrawer = $("#chatDrawer");
+  const chatBack = $("#chatBack");
+  const chatStream = $("#chatStream");
+  const chatForm = $("#chatForm");
+  const chatText = $("#chatText");
+  const chatWith = $("#chatWith");
+  const chatSub = $("#chatSub");
+  let currentChatUser = null;
+
+  function openChatList(){
+    // Open a threaded list with all people who have messaged ME
+    const all = LS.get(K.messages,{});
+    const names = new Set();
+    Object.values(all).forEach(t=> t.ids.forEach(n=>{ if (n!==ME.name) names.add(n) }));
+    // If none, fall back to players
+    if (!names.size){ renderPlayers(); return; }
+
+    // Build a fake "chat list" in the players pane
+    playersList.innerHTML = "";
+    Array.from(names).sort().forEach(name=>{
+      const t = loadThread(name);
+      const last = t.msgs[t.msgs.length-1];
+      const unread = t.msgs.filter(m=> m.to===ME.name && !m.seen).length;
+      const li = document.createElement("li"); li.className="so-item";
+      li.innerHTML = `
+        <div class="so-avatar"><span>${esc(name[0]||"?").toUpperCase()}</span></div>
+        <div>
+          <div class="so-name">${esc(name)}</div>
+          <div class="so-sub">${last ? esc(preview(last)) : "No messages yet"}</div>
+        </div>
+        <div class="so-actions">
+          <button class="btn-primary">open chat ${unread?`<span class="so-badge" style="position:static">${unread}</span>`:""}</button>
+        </div>`;
+      $(".btn-primary", li).onclick = () => openChat(name);
+      playersList.appendChild(li);
+    });
+  }
+  function preview(m){
+    if (m.kind==="chad-request") return `${m.dir==="send"?"Requested":"Asked you for"} ${fmt(m.amount)} chads`;
+    if (m.kind==="chad-transfer") return `${m.dir==="send"?"Sent":"Received"} ${fmt(m.amount)} chads`;
+    return m.text?.slice(0,64);
+  }
+
+  function openChat(name){
+    currentChatUser = name;
+    chatWith.textContent = name;
+    chatSub.textContent = "Direct messages";
+    chatStream.innerHTML = "";
+    chatDrawer.hidden = false;
+
+    const t = loadThread(name);
+    t.msgs.forEach(renderMsg);
+    // mark seen
+    const all = LS.get(K.messages,{});
+    const id = getThreadId(ME.name, name);
+    all[id]?.msgs?.forEach(m=>{ if (m.to===ME.name) m.seen = true; });
+    LS.set(K.messages, all);
+    badge();
+    setTimeout(()=> chatStream.scrollTop = 1e6, 0);
+  }
+  function closeChat(){
+    chatDrawer.hidden = true;
+    currentChatUser = null;
+  }
+  on(chatBack, "click", closeChat);
+
+  function renderMsg(m){
+    const el = document.createElement("div");
+    el.className = "msg " + (m.from===ME.name ? "me":"them");
+    if (m.kind==="text"){
+      el.innerHTML = `<div>${esc(m.text)}</div><div class="small">${new Date(m.ts).toLocaleString()}</div>`;
+    }else if (m.kind==="chad-request"){
+      const action = (m.dir==="send") ? "requested you to send" : "requested to receive";
+      el.innerHTML = `
+        <div><strong>${esc(m.from)}</strong> ${action} <strong>${fmt(m.amount)}</strong> chads.</div>
+        <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
+      if (m.to===ME.name && m.status==="pending"){
+        const wrap = document.createElement("div");
+        wrap.className = "accepts";
+        const ok = document.createElement("button"); ok.className="btn-primary"; ok.textContent="Accept";
+        const no = document.createElement("button"); no.className="btn-ghost"; no.textContent="Decline";
+        ok.onclick = () => acceptRequest(m);
+        no.onclick = () => declineRequest(m);
+        wrap.appendChild(ok); wrap.appendChild(no);
+        el.appendChild(wrap);
+      }else{
+        el.innerHTML += `<div class="small">Status: ${m.status}</div>`;
+      }
+    }else if (m.kind==="chad-transfer"){
+      el.innerHTML = `<div><strong>${m.dir==="send"?"You sent":"You received"}</strong> ${fmt(m.amount)} chads.</div>
+                      <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
+    }
+    chatStream.appendChild(el);
+  }
+
+  on(chatForm, "submit", e=>{
+    e.preventDefault();
+    if (!currentChatUser) return;
+    const text = chatText.value.trim();
+    if (!text) return;
+    const payload = { kind:"text", text, from:ME.name, to:currentChatUser, ts:now(), seen:false };
+    pushMsg(currentChatUser, payload);
+    renderMsg(payload);
+    chatText.value = "";
+    setTimeout(()=> chatStream.scrollTop = 1e6, 0);
+  });
+
+  // ---------- Send / Request chads ----------
+  const chadDialog = $("#chadDialog");
+  const chadAmount = $("#chadAmount");
+  const chadErr = $("#chadErr");
+  const chadConfirm = $("#chadConfirm");
+  const mdClose = $("#mdClose");
+  let chadMode = "send";
+  let chadTarget = null;
+
+  $$(".md-tab", chadDialog).forEach(t=> on(t, "click", ()=>{
+    $$(".md-tab", chadDialog).forEach(x=>x.classList.remove("is-active"));
+    t.classList.add("is-active");
+    chadMode = t.dataset.mode;
+  }));
+
+  function openChadDialog(name){
+    chadTarget = name;
+    $("#chadDialogTitle").textContent = `Chads with ${name}`;
+    chadAmount.value = "";
+    chadErr.hidden = true;
+    show(chadDialog);
+  }
+  on(mdClose, "click", ()=> hide(chadDialog));
+  on(chadConfirm, "click", ()=>{
+    const amt = Number(chadAmount.value);
+    if (!amt || amt<=0){ chadErr.hidden=false; return; }
+    chadErr.hidden = true;
+    // Create a request message
+    const payload = {
+      kind:"chad-request",
+      from:ME.name, to:chadTarget, amount:amt, dir: chadMode==="send" ? "send" : "receive",
+      status:"pending", ts:now(), seen:false
+    };
+    pushMsg(chadTarget, payload);
+    hide(chadDialog);
+    openChat(chadTarget);
+    renderMsg(payload);
+    badge();
+  });
+
+  function acceptRequest(m){
+    m.status = "accepted";
+    // Balance effects (local simulation)
+    const plist = playersAll();
+    const me = plist.find(p=>p.name===ME.name);
+    const other = plist.find(p=>p.name===currentChatUser);
+    if (m.dir==="send"){
+      // They asked you to send -> you lose
+      me.chads = Math.max(0, (me.chads||0) - m.amount);
+      other.chads = (other.chads||0) + m.amount;
+      pushMsg(currentChatUser, { kind:"chad-transfer", from:ME.name, to:currentChatUser, dir:"send", amount:m.amount, ts:now(), seen:false });
+    }else{
+      // They asked to receive from you (i.e., you receive)
+      me.chads = (me.chads||0) + m.amount;
+      other.chads = Math.max(0, (other.chads||0) - m.amount);
+      pushMsg(currentChatUser, { kind:"chad-transfer", from:ME.name, to:currentChatUser, dir:"receive", amount:m.amount, ts:now(), seen:false });
+    }
+    savePlayers(plist);
+    renderPlayers();
+    openChat(currentChatUser);
+  }
+  function declineRequest(m){
+    m.status = "declined";
+    openChat(currentChatUser);
+  }
+
+  // ---------- Ranking (top 100) ----------
+  const rankingList = $("#rankingList");
+  function renderRanking(){
+    const arr = playersAll().slice().sort((a,b)=> (b.chads||0)-(a.chads||0)).slice(0,100);
+    rankingList.innerHTML = "";
+    arr.forEach((p,idx)=>{
+      const li = document.createElement("li"); li.className = "so-item rank-item";
+      const place = idx+1;
+      const rankClass = place===1?"rank-1": place===2?"rank-2": place===3?"rank-3":"rank-other";
+      li.classList.add(rankClass);
+      li.innerHTML = `
+        <div class="so-avatar">${avatarHTML(p)}</div>
+        <div>
+          <div class="so-name">${esc(p.name)}</div>
+          <div class="so-sub">tribe: ${p.tribeId ? esc(tribeNameById(p.tribeId)) : "-"}</div>
+        </div>
+        <div class="rank-n">#${place} place</div>
+      `;
+      rankingList.appendChild(li);
+    });
+  }
+
+  // ---------- Tribes ----------
+  const openYourTribe = $("#openYourTribe");
+  const tribesList = $("#tribesList");
+  const createTribeBtn = $("#createTribeBtn");
+
+  const tribeDialog = $("#tribeDialog");
+  const tribeName = $("#tribeName");
+  const tribeDesc = $("#tribeDesc");
+  const tribeCreateConfirm = $("#tribeCreateConfirm");
+  const tdClose = $("#tdClose");
+
+  on(openYourTribe, "click", openYourTribeView);
+  on(createTribeBtn, "click", () => show(tribeDialog));
+  on(tdClose, "click", ()=> hide(tribeDialog));
+  on(tribeCreateConfirm, "click", ()=>{
+    const name = tribeName.value.trim();
+    if (!name) return;
+    const desc = tribeDesc.value.trim().slice(0,160);
+    const mode = document.querySelector('input[name="tribeMode"]:checked')?.value || "request";
+
+    const ts = now();
+    const t = { id:"t"+ts, name, desc, mode, founder:ME.name, members:[ME.name], banned:[] };
+    const tsAll = tribesAll(); tsAll.push(t); saveTribes(tsAll);
+
+    // update my profile membership
+    const plist = playersAll();
+    const me = plist.find(p=>p.name===ME.name); if(me) me.tribeId = t.id; savePlayers(plist);
+
+    hide(tribeDialog);
+    openYourTribeView();
+    renderTribes();
+  });
+
+  function renderTribes(){
+    const all = tribesAll();
+    tribesList.innerHTML = "";
+    all.forEach(t=>{
+      const li = document.createElement("li"); li.className="so-item";
+      const mine = isMember(ME.name, t);
+      const pending = isRequested(ME.name, t);
+      li.innerHTML = `
+        <div style="grid-column:1 / -1">
+          <div class="so-name">${esc(t.name)}</div>
+          <div class="so-sub">${esc(t.desc||"")}</div>
+        </div>
+        <div class="so-actions" style="grid-column:1 / -1; justify-self:end">
+          ${mine ? `<span class="so-sub">joined</span>` :
+          t.mode==="request" ?
+            (pending ? `<span class="so-sub">request sent</span>` :
+              `<button class="btn-ghost join-req">request</button>`)
+            :
+            `<button class="btn-primary join-free">join</button>`
+          }
+        </div>
+      `;
+      $(".join-req", li)?.addEventListener("click", ()=>{
+        sendTribeJoinRequest(t);
+        renderTribes();
+      });
+      $(".join-free", li)?.addEventListener("click", ()=>{
+        joinTribe(t);
+        renderTribes();
+      });
+      tribesList.appendChild(li);
+    });
+  }
+  function isMember(name, tribe){ return (tribe.members||[]).includes(name); }
+  function isRequested(name, tribe){
+    // store requests in tribe.requests=[{from:name}]
+    return (tribe.requests||[]).some(r=>r.from===name);
+  }
+  function tribeNameById(id){ return tribesAll().find(t=>t.id===id)?.name || ""; }
+
+  function sendTribeJoinRequest(tribe){
+    tribe.requests = tribe.requests || [];
+    if (!isRequested(ME.name, tribe)){
+      tribe.requests.push({from:ME.name, ts:now()});
+      pushMsg(tribe.founder, { kind:"text", from:ME.name, to:tribe.founder,
+        text:`${ME.name} wants to join tribe "${tribe.name}"`, ts:now(), seen:false });
+      saveTribes(tribesAll().map(t=> t.id===tribe.id? tribe : t));
+      badge();
+    }
+  }
+  function joinTribe(tribe){
+    if (!isMember(ME.name, tribe)){
+      tribe.members.push(ME.name);
+      saveTribes(tribesAll().map(t=> t.id===tribe.id? tribe : t));
+      const plist = playersAll(); const me = plist.find(p=>p.name===ME.name);
+      if (me){ me.tribeId = tribe.id; savePlayers(plist); }
+    }
+  }
+
+  // ---- Your Tribe view (group chat + members management) ----
+  const yourTribeView = $("#yourTribeView");
+  const ytBack = $("#ytBack");
+  const ytMembers = $("#ytMembers");
+  const ytStream = $("#ytStream");
+  const ytForm = $("#ytForm");
+  const ytText = $("#ytText");
+  const ytName = $("#ytName");
+  const ytSub = $("#ytSub");
+  const membersSheet = $("#membersSheet");
+  const membersList = $("#membersList");
+  const msClose = $("#msClose");
+  on(msClose, "click", ()=> hide(membersSheet));
+
+  function findMyTribe(){
+    const me = playersAll().find(p=>p.name===ME.name);
+    if (!me || !me.tribeId) return null;
+    return tribesAll().find(t=>t.id===me.tribeId) || null;
+  }
+
+  function openYourTribeView(){
+    const t = findMyTribe();
+    if (!t){ alert("No tribe yet."); return; }
+    ytName.textContent = t.name;
+    ytSub.textContent = `${t.members.length} member(s)`;
+    ytStream.innerHTML = "";
+    yourTribeView.hidden = false;
+    // load msgs (reuse same storage under threadId: Tribe::<id>)
+    const id = "Tribe::"+t.id;
+    const all = LS.get(K.messages,{});
+    const thr = all[id] || { ids:[id], msgs:[] };
+    thr.msgs.forEach(m=> renderTribeMsg(m));
+    setTimeout(()=> ytStream.scrollTop = 1e6, 0);
+
+    on(ytForm, "submit", function handler(e){
+      e.preventDefault();
+      const text = ytText.value.trim(); if(!text) return;
+      const payload = { kind:"text", text, from:ME.name, to:id, ts:now() };
+      const all2 = LS.get(K.messages,{});
+      if (!all2[id]) all2[id] = { ids:[id], msgs:[] };
+      all2[id].msgs.push(payload);
+      LS.set(K.messages, all2);
+      renderTribeMsg(payload);
+      ytText.value = "";
+      setTimeout(()=> ytStream.scrollTop = 1e6, 0);
+    }, { once:true }); // (re-bind safely next open)
+  }
+  function renderTribeMsg(m){
+    const el = document.createElement("div");
+    el.className = "msg " + (m.from===ME.name ? "me":"them");
+    el.innerHTML = `<div><strong>${esc(m.from)}:</strong> ${esc(m.text)}</div>
+                    <div class="small">${new Date(m.ts).toLocaleString()}</div>`;
+    ytStream.appendChild(el);
+  }
+  on(ytBack, "click", ()=> { yourTribeView.hidden = true; });
+
+  on(ytMembers, "click", ()=>{
+    const t = findMyTribe(); if (!t) return;
+    membersList.innerHTML = "";
+    t.members.forEach(n=>{
+      const li = document.createElement("li"); li.className="so-item";
+      const founder = (n===t.founder);
+      li.innerHTML = `
+        <div class="so-avatar"><span>${esc(n[0]||"?").toUpperCase()}</span></div>
+        <div>
+          <div class="so-name">${esc(n)}</div>
+          <div class="so-sub">${founder? "Founder" : ""}</div>
+        </div>
+        <div class="member-actions">
+          ${ (t.founder===ME.name && !founder) ? `
+            <button class="btn-ghost kick">Kick</button>
+            <button class="btn-ghost ban">Ban</button>` : "" }
+        </div>`;
+      $(".kick", li)?.addEventListener("click", ()=> { t.members = t.members.filter(x=>x!==n); saveTribes(tribesAll().map(tt=>tt.id===t.id?t:tt)); renderTribes(); openYourTribeView(); });
+      $(".ban", li)?.addEventListener("click", ()=> { t.members = t.members.filter(x=>x!==n); t.banned.push(n); saveTribes(tribesAll().map(tt=>tt.id===t.id?t:tt)); openYourTribeView(); });
+      membersList.appendChild(li);
+    });
+    show(membersSheet);
+  });
+
+  // ---------- Ranking refresh every 24h (local sim) ----------
+  function maybeRefreshRanking(){
+    const ts = Number(localStorage.getItem(K.rankingAt)||0);
+    const day = 24*60*60*1000;
+    if (now()-ts > day){
+      // simple perturbation to simulate change
+      const ps = playersAll();
+      ps.forEach(p=> p.chads = Math.max(0, (p.chads||0) + Math.floor((Math.random()-.5)*300)));
+      savePlayers(ps);
+      localStorage.setItem(K.rankingAt, String(now()));
+    }
+  }
+  maybeRefreshRanking();
+
+  // ---------- Tiny helpers ----------
+  function show(el){ el.hidden=false; }
+  function hide(el){ el.hidden=true; }
+})();
+
 
 /* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
