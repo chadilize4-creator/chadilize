@@ -6,7 +6,96 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ===== Social Hub look: dark + neon glass ===== */
+.social-tabs .tab{ background: linear-gradient(180deg,#0b0f14,#08131b); color:var(--ink); font-weight:800; letter-spacing:.5px;
+border:1px solid var(--glass); border-radius:14px; padding:12px 10px; cursor:pointer; text-transform:lowercase; }
+.social-tabs .tab.active{ outline:2px solid var(--glow); box-shadow:0 0 0 3px rgba(88,214,255,.18) inset }
 
+
+.tabpane{ display:none; height:100%; overflow:auto; }
+.tabpane.show{ display:block }
+
+
+.toolbar{ display:flex; gap:10px; margin-bottom:12px }
+.toolbar input[type="search"]{ flex:1; background:rgba(255,255,255,.06); color:var(--ink); border:1px solid var(--glass); border-radius:12px; padding:12px 14px }
+
+
+/* list cards */
+.cards{ display:grid; gap:10px }
+.cards .card{ display:grid; grid-template-columns: 56px 1fr auto; align-items:center; gap:12px; padding:12px; border-radius:16px;
+background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--glass); box-shadow: 0 10px 40px rgba(0,0,0,.45) }
+.avatar{ width:56px; aspect-ratio:1/1; border-radius:50%; overflow:hidden; display:grid; place-items:center; font-weight:900; color:#07131b;
+background: radial-gradient(100px 100px at 30% 20%, rgba(255,255,255,.35), transparent 40%), #f7d68b; border:1px solid rgba(255,255,255,.06) }
+.avatar img{ width:100%; height:100%; object-fit:cover }
+
+
+.card .meta{ line-height:1.2 }
+.card .name{ font-weight:800; font-size:16px }
+.card .sub{ color:var(--dim); font-size:12px; margin-top:4px }
+
+
+.btn{ border-radius:12px; padding:10px 12px; font-weight:800; cursor:pointer; border:1px solid var(--glass); background:linear-gradient(180deg,#0b0f14,#0a1017); color:var(--ink) }
+.btn.secondary{ background:linear-gradient(180deg,#0b0f14,#101c2a) }
+
+
+/* inbox link */
+.pill.inbox-btn{ margin-top:10px; width:max-content; display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:999px;
+background:linear-gradient(180deg,#0b0f14,#08131b); border:1px solid var(--glass); color:var(--ink); font-weight:800 }
+
+
+.badge{ display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#ff3b3b; color:white; font-size:12px; font-weight:800 }
+
+
+/* ranking styles */
+.cards.ranking .card{ grid-template-columns:56px 1fr auto }
+.place{ font-weight:900; font-size:20px }
+.card.gold{ outline:2px solid var(--gold); box-shadow:0 0 16px rgba(241,213,122,.25) }
+.card.amethyst{ outline:2px solid var(--amethyst); box-shadow:0 0 16px rgba(202,167,255,.25) }
+.card.emerald{ outline:2px solid var(--emerald); box-shadow:0 0 16px rgba(134,239,172,.25) }
+.card.silver{ outline:1px solid rgba(255,255,255,.15) }
+
+
+/* tribes */
+.tribe-head{ display:flex; justify-content:flex-end; margin-bottom:10px }
+.cta{ margin-top:12px; width:100%; padding:14px 18px; border-radius:16px; font-weight:900; letter-spacing:.5px; border:1px solid var(--glass);
+background:linear-gradient(180deg,#0a1017,#112133); color:var(--ink); cursor:pointer }
+
+
+/* modal + drawer */
+.modal, .drawer{ position:fixed; inset:0; display:none; place-items:center; z-index:1100; background:rgba(0,0,0,.6); backdrop-filter: blur(4px) }
+.modal.show, .drawer.show{ display:grid }
+.modal-card, .drawer-card{ width:min(560px, 92vw); background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)); border:1px solid var(--glass); border-radius:18px; box-shadow:0 18px 80px rgba(0,0,0,.6); color:var(--ink) }
+.modal-card header{ padding:14px 16px; font-weight:900; border-bottom:1px solid rgba(255,255,255,.08) }
+.modal-card .field{ display:grid; gap:6px; padding:12px 16px }
+.modal-card textarea, .modal-card input{ background:rgba(255,255,255,.06); border:1px solid var(--glass); border-radius:12px; padding:12px; color:var(--ink) }
+.modal-card .switcher{ display:flex; gap:8px; padding:0 16px 8px }
+.modal-card .seg{ flex:1; padding:10px; border-radius:12px; border:1px solid var(--glass); background:linear-gradient(180deg,#0b0f14,#08131b); color:var(--ink); font-weight:800; cursor:pointer }
+.modal-card .seg.active{ outline:2px solid var(--glow) }
+.modal-card .error{ color:#ff8b8b; font-size:12px }
+.modal-card footer{ display:flex; gap:10px; padding:14px 16px; justify-content:flex-end }
+.modal-card button{ padding:10px 14px; border-radius:12px; border:1px solid var(--glass); cursor:pointer; font-weight:800 }
+button.primary{ background:linear-gradient(180deg,#0b0f14,#0f1b27); color:var(--ink) }
+button.ghost{ background:transparent; color:var(--ink) }
+
+
+.drawer-card{ width:min(980px, 96vw); max-height:90vh; display:grid; grid-template-rows:auto 1fr; }
+.drawer-card header{ display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,.08) }
+.drawer-body{ display:grid; grid-template-columns: 280px 1fr; gap:0; min-height:360px }
+.threads{ border-right:1px solid rgba(255,255,255,.08); overflow:auto }
+.threads ul{ list-style:none; margin:0; padding:0 }
+.threads li{ display:flex; gap:10px; padding:10px 12px; cursor:pointer; align-items:center }
+.threads li.active{ background:rgba(255,255,255,.05) }
+.thread-view{ display:grid; grid-template-rows:auto 1fr auto }
+.thread-head{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08) }
+.thread-msgs{ padding:12px; overflow:auto; display:grid; gap:8px; align-content:start }
+.msg{ max-width:72%; padding:10px 12px; border-radius:14px; background:rgba(255,255,255,.08) }
+.msg.me{ justify-self:end; background:linear-gradient(180deg,#0b0f14,#08131b) }
+.thread-compose{ display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,.08) }
+
+
+/* Position the red badge over the wood user pill */
+#userPill{ position:relative }
+.pill-badge{ position:absolute; top:-6px; left:-6px; display:grid; place-items:center; width:22px; height:22px; border-radius:999px; background:#ff3b3b; color:#fff; font-weight:900; font-size:12px; transform:translate(-22%, -22%); z-index:200 }
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -772,6 +861,78 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
+
+<!-- ===== Social Hub ===== -->
+<div class="modal" id="dmModal" aria-hidden="true">
+<div class="modal-card">
+<header>Send message to <span id="dmTargetName"></span></header>
+<textarea id="dmText" rows="4" maxlength="800" placeholder="type your message…"></textarea>
+<footer>
+<button class="ghost" data-close>Cancel</button>
+<button class="primary" id="dmSendBtn">Send</button>
+</footer>
+</div>
+</div>
+
+
+<div class="modal" id="chadsModal" aria-hidden="true">
+<div class="modal-card">
+<header>Transfer chads with <span id="chadsTargetName"></span></header>
+<div class="switcher">
+<button class="seg active" data-mode="send">Send</button>
+<button class="seg" data-mode="request">Request</button>
+</div>
+<div class="field">
+<label>Amount</label>
+<input id="chadsAmount" type="number" min="1" step="1" placeholder="0" />
+<div class="error" id="chadsErr" hidden>Please choose an amount</div>
+</div>
+<footer>
+<button class="ghost" data-close>Cancel</button>
+<button class="primary" id="chadsSubmit">Confirm</button>
+</footer>
+</div>
+</div>
+
+
+<div class="drawer" id="inboxDrawer" aria-hidden="true">
+<div class="drawer-card">
+<header>
+<strong>Messages</strong>
+<button class="ghost" data-close>✕</button>
+</header>
+<div class="drawer-body">
+<aside class="threads">
+<ul id="threadList"></ul>
+</aside>
+<main class="thread-view">
+<div id="threadHeader" class="thread-head"></div>
+<div id="threadMsgs" class="thread-msgs"></div>
+<div class="thread-compose">
+<input id="threadInput" type="text" placeholder="type message…"/>
+<button id="threadSend" class="primary">Send</button>
+</div>
+</main>
+</div>
+</div>
+</div>
+
+
+<div class="modal" id="createTribeModal" aria-hidden="true">
+<div class="modal-card">
+<header>Create tribe</header>
+<div class="field"><label>Name</label><input id="tribeName" maxlength="40" placeholder="tribe name"/></div>
+<div class="field"><label>Description</label><textarea id="tribeDesc" rows="3" maxlength="160" placeholder="160 characters max…"></textarea></div>
+<div class="switcher">
+<button class="seg active" data-mode="requested">requested</button>
+<button class="seg" data-mode="public">free to public</button>
+</div>
+<footer>
+<button class="ghost" data-close>Cancel</button>
+<button class="primary" id="tribeCreateConfirm">Create</button>
+</footer>
+</div>
+</div>
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -4250,6 +4411,93 @@ updateHUD();
   // Responsive sizing
   new ResizeObserver(()=> measure()).observe(gridEl);
 })();
+
+
+// ===== Social Hub JS =====
+const meta = document.createElement('div'); meta.className='meta';
+meta.innerHTML = `<div class="name">${escapeHTML(t.name)}</div><div class="sub">${escapeHTML(t.description||'')}</div>`;
+const actions = document.createElement('div');
+const btn = button('btn', t.is_request_based?'request to join':'join', ()=> t.is_request_based?API.requestJoin(t.id).then(() => toast('Request sent')):API.joinTribe(t.id).then(()=> toast('Joined')));
+actions.append(btn); li.append(av,meta,actions); tribeList.append(li);
+});
+}
+qs('#createTribeBtn')?.addEventListener('click',()=> openModal('#createTribeModal'));
+qs('#tribeCreateConfirm')?.addEventListener('click', async()=>{
+const name = qs('#tribeName').value.trim(); const desc = qs('#tribeDesc').value.trim();
+const mode = qs('#createTribeModal .seg.active').dataset.mode; const is_request_based = (mode==='requested');
+if(!name) return toast('Name required'); if(desc.length>160) return toast('Description max 160 chars');
+await API.createTribe({name, description:desc, is_request_based});
+closeModal('#createTribeModal'); loadTribes();
+});
+qs('#createTribeModal .switcher')?.addEventListener('click',(e)=>{ const b=e.target.closest('.seg'); if(b){ qsa('#createTribeModal .seg').forEach(s=>s.classList.remove('active')); b.classList.add('active'); }});
+
+
+qs('#viewYourTribe')?.addEventListener('click', async()=>{
+const data = await API.yourTribe();
+if(!data.tribe) return toast('no tribe'); // UI minimal; hook to a full room if desired
+// quick members peek
+const members = await API.tribeMembers(data.tribe.id);
+const lines = members.members.map(m=>`• ${m.name}${m.role==='founder'?' — Founder':''}${m.status==='banned'?' (banned)':''}`).join('\n');
+alert(`${data.tribe.name}\n\n${lines}`);
+});
+
+
+// ===== Direct messages / inbox =====
+qs('#openInbox')?.addEventListener('click', async()=>{ await loadInbox(); openDrawer('#inboxDrawer'); });
+async function loadInbox(){
+const data = await API.inbox(); // { threads:[{user_id,name,unread}], messages?:[...] }
+// threads
+const tl = qs('#threadList'); tl.innerHTML='';
+data.threads.forEach(t=>{
+const li=document.createElement('li'); li.dataset.uid=t.user_id; li.innerHTML=`<div class="avatar">${initials(t.name)}</div><div>${escapeHTML(t.name)}</div>${t.unread?`<span class="badge">${t.unread}</span>`:''}`; tl.append(li);
+});
+tl.onclick = async(e)=>{ const li=e.target.closest('li'); if(!li) return; tl.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); openThread(Number(li.dataset.uid)); };
+// select first
+if(data.threads[0]) openThread(data.threads[0].user_id);
+// header badge
+const unread = data.threads.reduce((a,t)=>a+(t.unread||0),0); inboxBadge.hidden = unread<=0; inboxBadge.textContent = unread;
+}
+async function openThread(userId){
+const data = await (await fetch(`/api/social/messages?with=${userId}`)).json();
+qs('#threadHeader').textContent = data.peer.name;
+const box = qs('#threadMsgs'); box.innerHTML='';
+data.messages.forEach(m=>{
+const d = document.createElement('div'); d.className='msg'+(m.me?' me':''); d.textContent = m.body; box.append(d);
+});
+qs('#threadSend').onclick = async()=>{
+const text = qs('#threadInput').value.trim(); if(!text) return; await API.sendDM(userId, text); qs('#threadInput').value=''; openThread(userId);
+};
+}
+
+
+// ===== DM Compose popup from Players =====
+function openDM(p){ openModal('#dmModal'); qs('#dmTargetName').textContent = p.name; qs('#dmSendBtn').onclick = async()=>{
+const t = qs('#dmText').value.trim(); if(!t) return; await API.sendDM(p.user_id, t); closeModal('#dmModal'); toast('Message sent'); } }
+
+
+// ===== Chads modal =====
+let chadsMode = 'send', chadsTarget=null;
+function openChads(p){ chadsTarget = p; openModal('#chadsModal'); qs('#chadsTargetName').textContent=p.name; }
+qs('#chadsModal .switcher')?.addEventListener('click', (e)=>{ const b=e.target.closest('.seg'); if(!b) return; qsa('#chadsModal .seg').forEach(x=>x.classList.remove('active')); b.classList.add('active'); chadsMode=b.dataset.mode; });
+qs('#chadsSubmit')?.addEventListener('click', async()=>{
+const amt = Number(qs('#chadsAmount').value); if(!amt || amt<1){ qs('#chadsErr').hidden=false; return; } qs('#chadsErr').hidden=true;
+if(chadsMode==='send') await API.sendChads(chadsTarget.user_id, amt); else await API.requestChads(chadsTarget.user_id, amt);
+closeModal('#chadsModal'); toast(chadsMode==='send'?'Chads sent (pending)':'Request sent');
+});
+
+
+// ===== helpers =====
+function initials(n){ return (n||'?').split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase(); }
+function button(cls, txt, fn){ const b=document.createElement('button'); b.className=cls; b.textContent=txt; b.onclick=fn; return b; }
+function escapeHTML(s){ return s?.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+function openModal(sel){ const m=qs(sel); m.classList.add('show'); m.addEventListener('click',e=>{ if(e.target===m||e.target.hasAttribute('data-close')) m.classList.remove('show'); }, {once:true}); }
+function closeModal(sel){ qs(sel)?.classList.remove('show'); }
+function openDrawer(sel){ const d=qs(sel); d.classList.add('show'); d.addEventListener('click',e=>{ if(e.target===d||e.target.hasAttribute('data-close')) d.classList.remove('show'); }, {once:true}); }
+function toast(t){ console.log(t); }
+
+
+// ——— initial tab loader ———
+function loadTab(name){ if(name==='players') loadPlayers(); if(name==='ranking') loadRanking(); if(name==='tribes') loadTribes(); }
 
 
 
