@@ -6,110 +6,37 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== Social Hub look ===== */
-.social-overlay[hidden] { display:none }
-.social-overlay {
-  position:fixed; inset:0; z-index:1000;
-  display:grid; place-items:center;
-  background: radial-gradient(900px 400px at 10% 0, rgba(75,150,255,.08), transparent 40%),
-              linear-gradient(180deg,#08131b,#0a0f13);
-  backdrop-filter: blur(4px);
-}
-.social-wrap{
-  width:min(920px, 96vw); height:min(88vh, 860px);
-  display:grid; grid-template-rows:auto 1fr;
-  border-radius:18px; box-shadow:0 24px 90px rgba(0,0,0,.65);
-  background:linear-gradient(180deg,#0b0f14,#0b0f14 60%,#101a2a);
-  border:1px solid rgba(255,255,255,.06);
-  overflow:hidden;
-}
-.social-header{
-  display:grid; grid-template-columns: 1fr auto auto; align-items:center; gap:12px;
-  padding:14px 14px 10px 14px; border-bottom:1px solid rgba(255,255,255,.06)
-}
-.social-header .title{ font-size:18px; font-weight:800; color:#eaf0f6; letter-spacing:.4px }
-.tabs{ display:flex; gap:8px }
-.tab{
-  padding:10px 16px; border-radius:12px; font-weight:800; text-transform:lowercase;
-  background:linear-gradient(180deg,#0d1623,#0b0f14); border:1px solid rgba(255,255,255,.06);
-  color:#a5b5d6; cursor:pointer; user-select:none; outline:none
-}
-.tab.is-active{ color:#061a48; border-color:transparent;
-  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%,#1e55aa) }
-.tools{ margin-left:auto; display:flex; align-items:center; gap:8px }
-.tools .close{ font-size:26px; line-height:1; padding:.2rem .5rem; background:#122539; border:1px solid rgba(255,255,255,.09); border-radius:12px; color:#a7c0ea; cursor:pointer }
-.tools .close.small{ font-size:22px }
-.tools .ghost{ background:transparent; border:0; color:#9fb7d6; cursor:pointer }
-.search{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:4px;
-  background:#0e1622; border:1px solid rgba(255,255,255,.09); border-radius:12px; padding:6px 8px }
-.search input{ background:transparent; border:0; color:#e6f0ff; outline:none; min-width:240px }
-.search input::placeholder{ color:#7f97b2 }
-
-.panels{ position:relative; overflow:hidden }
-.panel{ height:100%; padding:12px; overflow:auto }
-.panel-footer{ display:flex; justify-content:center; padding:8px 0 2px }
-.hint{ opacity:.6; text-align:center; margin-top:8px }
-
-/* lists */
-.list{ display:grid; gap:10px; list-style:none; margin:0; padding:0 }
-.list .row{ display:grid; grid-template-columns: auto 1fr auto; align-items:center; gap:12px }
-.list .item{
-  background:linear-gradient(180deg,#0c121a,#0c1015);
-  border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:10px 12px;
-  box-shadow:inset 0 0 1px rgba(255,255,255,.05)
-}
-.btn-inline, .pill{
-  border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer; user-select:none;
-  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%,#1e55aa); color:#051022; border:0
-}
-.pill.ghost{ background:linear-gradient(180deg,#0f1925,#0c121a); color:#9fb7d6; border:1px solid rgba(255,255,255,.06) }
-.pill.primary{ background:linear-gradient(180deg,#64ffa4,#24d36b 60%,#0ea85a); color:#02130b }
-.badge{ display:inline-grid; place-items:center; min-width:22px; height:22px; padding:0 6px; border-radius:999px; font-weight:900; font-size:12px; background:#ff3b30; color:#fff }
-
-/* avatars */
-.ava{ width:44px; height:44px; border-radius:999px; background:#1a2230; display:grid; place-items:center;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.05) }
-.name{ font-weight:800; color:#e7f1ff }
-.sub{ font-size:12px; color:#9aa3ab }
-
-/* ranking colors */
-.rank-card{ position:relative }
-.place{ font-weight:900; opacity:.9 }
-.place-1{ background:conic-gradient(from 210deg, #ffe37a, #ffd24d 40%, #f4b600, #b38600 90%); -webkit-background-clip:text; background-clip:text; color:transparent }
-.place-2{ background:conic-gradient(from 210deg, #e4d7ff, #c9b6ff 40%, #a27cff, #7d59e6 90%); -webkit-background-clip:text; background-clip:text; color:transparent }
-.place-3{ background:conic-gradient(from 210deg, #b0ffce, #53ffa2 40%, #00d173, #0ea85a 90%); -webkit-background-clip:text; background-clip:text; color:transparent }
-.place-other{ color:#c6d2de }
-
-/* subdialogs */
-.subdialog[hidden]{ display:none }
-.subdialog{
-  position:fixed; inset:auto; z-index:1100; width:min(720px, 92vw); max-height:74vh;
-  left:50%; transform:translateX(-50%); bottom:24px;
-  background:linear-gradient(180deg,#0b0f14,#0c1015); border:1px solid rgba(255,255,255,.08);
-  border-radius:18px; box-shadow:0 24px 90px rgba(0,0,0,.65); overflow:hidden
-}
-.subdialog header{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06) }
-.subdialog .pad{ padding:12px }
-.subdialog .row{ display:flex; gap:8px; align-items:center; padding:8px 12px }
-.subdialog .row + .row{ padding-top:0 }
-.subdialog .scroll{ max-height: 48vh; overflow:auto; padding:10px 12px; display:grid; gap:8px }
-
-/* tribe room layout */
-.tribe-room{ display:grid; grid-template-columns:260px 1fr; gap:0; min-height:46vh }
-.tribe-room .members{ border-right:1px solid rgba(255,255,255,.06); padding-top:8px }
-.tribe-room .members .head{ padding:8px 12px; justify-content:space-between; color:#9fb7d6 }
-.tribe-room .chat{ display:grid; grid-template-rows: 1fr auto }
-
-/* errors */
-.err{ color:#ff8b8b; font-size:12px; margin:4px 12px }
-
-/* one-time badge on the wood user pill */
-.userpill-badge{
-  position:absolute; top:6px; left:calc(8px + 42px);  /* sits above avatar circle inside the wood pill */
-  transform:translate(-50%,-50%); z-index:900;
-  background:#ff3b30; color:#fff; font-weight:900; font-size:12px; width:20px; height:20px; border-radius:999px;
-  display:grid; place-items:center; box-shadow:0 6px 16px rgba(0,0,0,.35)
-}
+/* Overlay */
+.social-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center}
+.social-overlay.hidden{display:none}
+.social-wrap{width:min(900px,95vw);height:min(92vh,900px);background:radial-gradient(900px 400px at 10% 0%,rgba(255,255,255,.05),transparent 40%),linear-gradient(180deg,#0b0f14,#08131b);
+  border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 30px 100px rgba(0,0,0,.65);padding:14px;display:flex;flex-direction:column}
+.social-close{position:absolute;top:8px;right:12px;background:#0b0f14;border:1px solid rgba(255,255,255,.12);color:#eaf0f6;border-radius:12px;padding:6px 10px;cursor:pointer}
+.social-tabs{display:flex;gap:8px;align-items:center}
+.social-tabs .tab{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#102334,#0a1622);color:#eaf0f6;cursor:pointer}
+.social-tabs .tab.active{outline:2px solid #4aa3ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.social-tabs .spacer{flex:1}
+.social-tabs .search{border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0b0f14;color:#eaf0f6;padding:8px 10px;min-width:180px}
+.social-body{margin-top:10px;overflow:auto;flex:1}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.list{display:grid;gap:10px;margin:10px 0;padding:0;list-style:none}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0f2030,#0b1623)}
+.avatar{width:56px;height:56px;border-radius:50%;background:#07131b;border:1px solid rgba(255,255,255,.15);display:grid;place-items:center;overflow:hidden}
+.name{font-weight:700;color:#eaf0f6}
+.meta{font-size:12px;color:#9aa3ab}
+.btn{border-radius:10px;padding:8px 12px;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,#0b0f14,#0d1520);color:#eaf0f6}
+.badge{background:#ff384c;border-radius:40px;padding:2px 8px;margin-left:8px;color:white;font-size:12px}
+.badge.hidden{display:none}
+.cta{margin-top:8px}
+.ranking .item{position:relative}
+.ranking .item:nth-child(1){border-color:#ffd76a;box-shadow:0 0 18px rgba(255,215,106,.2)}
+.ranking .item:nth-child(2){border-color:#d2b4ff;box-shadow:0 0 18px rgba(210,180,255,.2)}
+.ranking .item:nth-child(3){border-color:#74ff92;box-shadow:0 0 18px rgba(116,255,146,.2)}
+.panel{margin-top:12px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;padding:12px}
+.dialog{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);z-index:10000}
+.dialog .box{background:#0c1117;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;min-width:280px}
+.err{color:#ff8b8b;font-size:12px;margin-top:8px}
 
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
@@ -1049,6 +976,43 @@ canvas{ display:block }
         </div>
       </div>
     </div>
+<!-- Social Overlay -->
+<div id="socialOverlay" class="social-overlay hidden">
+  <div class="social-wrap glass">
+    <button class="social-close" id="socialClose" aria-label="Close">✕</button>
+
+    <div class="social-tabs">
+      <button class="tab active" data-tab="players">players</button>
+      <button class="tab" data-tab="ranking">ranking</button>
+      <button class="tab" data-tab="tribes">tribes</button>
+      <div class="spacer"></div>
+      <input id="socialSearch" class="search" placeholder="search username..." />
+    </div>
+
+    <div class="social-body">
+      <section id="tab-players" class="tab-pane active">
+        <ul id="playersList" class="list"></ul>
+        <button id="openThreads" class="cta">messages <span id="inboxBadge" class="badge hidden">0</span></button>
+        <div id="threadsPanel" class="panel hidden">
+          <h3>Messages</h3>
+          <ul id="threadsList" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="tab-ranking" class="tab-pane">
+        <ul id="rankingList" class="list ranking"></ul>
+      </section>
+
+      <section id="tab-tribes" class="tab-pane">
+        <div id="myTribePanel" class="panel"></div>
+        <h3>All tribes</h3>
+        <ul id="tribesList" class="list"></ul>
+        <button id="createTribeBtn" class="cta">create tribe</button>
+      </section>
+    </div>
+  </div>
+</div>
+
 
     <!-- AVATAR overlay (step 2) -->
     <div class="overlay" id="avatarOverlay">
@@ -1425,163 +1389,6 @@ canvas{ display:block }
   </div>
 </div>
 
-<!-- ===== Social Hub (Players / Ranking / Tribes) ===== -->
-<div id="socialOverlay"
-     class="social-overlay"
-     role="dialog"
-     aria-modal="true"
-     aria-labelledby="socialTitle"
-     hidden>
-
-  <div class="social-wrap" tabindex="-1">
-    <header class="social-header">
-      <h2 id="socialTitle" class="title">Community</h2>
-
-      <nav class="tabs" role="tablist" aria-label="Social sections">
-        <button id="tabPlayersBtn" class="tab is-active"
-                role="tab" aria-selected="true" aria-controls="panelPlayers">players</button>
-        <button id="tabRankingBtn" class="tab"
-                role="tab" aria-selected="false" aria-controls="panelRanking">ranking</button>
-        <button id="tabTribesBtn" class="tab"
-                role="tab" aria-selected="false" aria-controls="panelTribes">tribes</button>
-      </nav>
-
-      <div class="tools">
-        <div class="search">
-          <input id="socialSearch" type="search" placeholder="search username or tribe…" autocomplete="off" />
-          <button id="clearSearch" class="ghost" aria-label="clear search">&times;</button>
-        </div>
-        <button id="closeSocial" class="close" aria-label="Close (Esc)">&times;</button>
-      </div>
-    </header>
-
-    <main class="panels">
-      <!-- ===== Players ===== -->
-      <section id="panelPlayers" class="panel" role="tabpanel" aria-labelledby="tabPlayersBtn">
-        <ul id="playersList" class="list"></ul>
-
-        <footer class="panel-footer">
-          <button id="openInbox" class="pill">
-            <span>messages</span>
-            <span id="inboxBadge" class="badge" hidden>0</span>
-          </button>
-        </footer>
-      </section>
-
-      <!-- ===== Ranking ===== -->
-      <section id="panelRanking" class="panel" role="tabpanel" aria-labelledby="tabRankingBtn" hidden>
-        <ol id="rankingList" class="list ranking"></ol>
-        <p class="hint">updates every 24h</p>
-      </section>
-
-      <!-- ===== Tribes ===== -->
-      <section id="panelTribes" class="panel" role="tabpanel" aria-labelledby="tabTribesBtn" hidden>
-        <div class="tribe-topbar">
-          <button id="btnYourTribe" class="pill ghost">Your Tribe</button>
-        </div>
-
-        <ul id="tribeList" class="list tribes"></ul>
-
-        <footer class="panel-footer">
-          <button id="btnCreateTribe" class="pill primary">create tribe</button>
-        </footer>
-      </section>
-    </main>
-  </div>
-
-  <!-- ===== Dialogs ===== -->
-  <!-- DM / Thread -->
-  <div id="dmDialog" class="subdialog" hidden role="dialog" aria-modal="true" aria-labelledby="dmTitle">
-    <header>
-      <h3 id="dmTitle">Chat</h3>
-      <button class="close small" data-close="#dmDialog" aria-label="close">&times;</button>
-    </header>
-    <div id="dmHistory" class="scroll"></div>
-    <form id="dmForm" class="row">
-      <input id="dmInput" type="text" placeholder="message…" maxlength="500" required />
-      <button id="dmSend" class="pill">send</button>
-      <button id="dmTransfer" type="button" class="pill ghost">send/receive chads</button>
-    </form>
-  </div>
-
-  <!-- Send/Request Chads -->
-  <div id="chadDialog" class="subdialog" hidden role="dialog" aria-modal="true" aria-labelledby="chadTitle">
-    <header>
-      <h3 id="chadTitle">Chads transfer</h3>
-      <button class="close small" data-close="#chadDialog" aria-label="close">&times;</button>
-    </header>
-    <div class="pad">
-      <label class="row">
-        <span>amount</span>
-        <input id="chadAmount" type="number" step="1" min="1" inputmode="numeric" placeholder="0" required />
-      </label>
-      <p id="chadErr" class="err" hidden>please choose an amount</p>
-      <div class="row">
-        <button id="btnSendChads" class="pill primary" type="button">send</button>
-        <button id="btnRequestChads" class="pill" type="button">request</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Inbox / Threads -->
-  <div id="inboxDialog" class="subdialog" hidden role="dialog" aria-modal="true" aria-labelledby="inboxTitle">
-    <header>
-      <h3 id="inboxTitle">Messages</h3>
-      <button class="close small" data-close="#inboxDialog" aria-label="close">&times;</button>
-    </header>
-    <ul id="threadList" class="scroll thread-list"></ul>
-  </div>
-
-  <!-- Your Tribe / Room -->
-  <div id="yourTribeDialog" class="subdialog" hidden role="dialog" aria-modal="true" aria-labelledby="yourTribeTitle">
-    <header>
-      <h3 id="yourTribeTitle">Your Tribe</h3>
-      <button class="close small" data-close="#yourTribeDialog" aria-label="close">&times;</button>
-    </header>
-
-    <div class="tribe-room">
-      <aside class="members">
-        <div class="row head">
-          <span>Players</span>
-          <span id="tribeMemberCount">0</span>
-        </div>
-        <ul id="tribeMembers"></ul>
-      </aside>
-      <section class="chat">
-        <div id="tribeStream" class="scroll"></div>
-        <form id="tribeForm" class="row">
-          <input id="tribeInput" type="text" placeholder="message…" maxlength="500" required />
-          <button class="pill">send</button>
-        </form>
-      </section>
-    </div>
-  </div>
-
-  <!-- Create Tribe -->
-  <div id="createTribeDialog" class="subdialog" hidden role="dialog" aria-modal="true" aria-labelledby="createTribeTitle">
-    <header>
-      <h3 id="createTribeTitle">Create tribe</h3>
-      <button class="close small" data-close="#createTribeDialog" aria-label="close">&times;</button>
-    </header>
-    <form id="createTribeForm" class="pad">
-      <label class="row"><span>Name</span><input id="tribeName" type="text" maxlength="40" required></label>
-      <label class="col">
-        <span>Description <small id="descCount">0/160</small></span>
-        <textarea id="tribeDesc" maxlength="160" rows="3" placeholder="160 characters, emojis allowed…"></textarea>
-      </label>
-      <div class="row">
-        <label class="switch"><input type="radio" name="tmode" value="request" checked><span>requested</span></label>
-        <label class="switch"><input type="radio" name="tmode" value="public"><span>free to public</span></label>
-      </div>
-      <div class="row">
-        <button class="pill primary">create</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- one-time badge on the wood user pill -->
-<span id="userPillBadge" class="userpill-badge" hidden>1</span>
 
 
     <!-- Toasts -->
@@ -2559,477 +2366,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
 
-/* ========= Social Hub ========= */
-
-(() => {
-  // elements
-  const overlay       = document.getElementById('socialOverlay');
-  const wrap          = overlay.querySelector('.social-wrap');
-  const btnClose      = document.getElementById('closeSocial');
-  const userPill      = document.getElementById('userPill');
-  const pillBadge     = document.getElementById('userPillBadge');
-
-  // tabs
-  const tabs = [
-    {btn:document.getElementById('tabPlayersBtn'), panel:document.getElementById('panelPlayers')},
-    {btn:document.getElementById('tabRankingBtn'), panel:document.getElementById('panelRanking')},
-    {btn:document.getElementById('tabTribesBtn'),  panel:document.getElementById('panelTribes')},
-  ];
-  const search   = document.getElementById('socialSearch');
-  const clearBtn = document.getElementById('clearSearch');
-
-  // panels
-  const playersList  = document.getElementById('playersList');
-  const inboxBtn     = document.getElementById('openInbox');
-  const inboxBadge   = document.getElementById('inboxBadge');
-  const rankingList  = document.getElementById('rankingList');
-  const tribeList    = document.getElementById('tribeList');
-  const btnCreateTribe = document.getElementById('btnCreateTribe');
-  const btnYourTribe   = document.getElementById('btnYourTribe');
-
-  // dialogs
-  const dmDialog   = document.getElementById('dmDialog');
-  const dmHistory  = document.getElementById('dmHistory');
-  const dmTitle    = document.getElementById('dmTitle');
-  const dmForm     = document.getElementById('dmForm');
-  const dmInput    = document.getElementById('dmInput');
-  const dmTransfer = document.getElementById('dmTransfer');
-
-  const chadDialog   = document.getElementById('chadDialog');
-  const chadAmount   = document.getElementById('chadAmount');
-  const chadErr      = document.getElementById('chadErr');
-  const btnSendChads = document.getElementById('btnSendChads');
-  const btnReqChads  = document.getElementById('btnRequestChads');
-
-  const inboxDialog  = document.getElementById('inboxDialog');
-  const threadList   = document.getElementById('threadList');
-
-  const yourTribeDialog = document.getElementById('yourTribeDialog');
-  const tribeMembers    = document.getElementById('tribeMembers');
-  const tribeMemberCount= document.getElementById('tribeMemberCount');
-  const tribeStream     = document.getElementById('tribeStream');
-  const tribeForm       = document.getElementById('tribeForm');
-  const tribeInput      = document.getElementById('tribeInput');
-
-  const createTribeDialog = document.getElementById('createTribeDialog');
-  const createTribeForm   = document.getElementById('createTribeForm');
-  const tribeNameEl       = document.getElementById('tribeName');
-  const tribeDescEl       = document.getElementById('tribeDesc');
-  const descCount         = document.getElementById('descCount');
-
-  // state
-  let me = null;
-  let currentChatUser = null;
-  let searchTerm = '';
-  let sseDM = null, sseTribe = null; // server-sent events streams if available (MDN EventSource) 
-
-  // ===== API thin wrapper (uses your existing /api endpoints) =====
-  const api = {
-    me:                () => fetchJSON('/api/profile'),
-    players:           (q) => fetchJSON('/api/players' + (q ? ('?q=' + encodeURIComponent(q)) : '')),
-    ranking:           () => fetchJSON('/api/ranking'),
-    // ----- messages -----
-    inbox:             () => fetchJSON('/api/messages/threads'),
-    thread:            (uid) => fetchJSON('/api/messages/thread?with=' + uid),
-    sendDM:            (uid, text) => postJSON('/api/messages/send', { to_user_id: uid, text }),
-    // transfer chads
-    requestChads:      (uid, amount) => postJSON('/api/messages/request_chads', { to_user_id: uid, amount }),
-    acceptChads:       (reqId) => postJSON('/api/messages/accept_chads', { request_id: reqId }),
-    // ----- tribes -----
-    tribes:            (q) => fetchJSON('/api/tribes/list' + (q ? ('?q=' + encodeURIComponent(q)) : '')),
-    createTribe:       (data) => postJSON('/api/tribes/create', data),
-    myTribe:           () => fetchJSON('/api/tribes/my'),
-    tribeMembers:      (tribeId) => fetchJSON(`/api/tribes/members?tribe_id=${tribeId}`),
-    tribeSend:         (tribeId, text) => postJSON('/api/tribes/send', { tribe_id: tribeId, text }),
-    joinTribe:         (tribeId) => postJSON('/api/tribes/join', { tribe_id: tribeId }),
-    requestJoinTribe:  (tribeId) => postJSON('/api/tribes/request_join', { tribe_id: tribeId }),
-    approveJoin:       (reqId, accept) => postJSON('/api/tribes/respond_request', { request_id: reqId, accept }),
-    kick:              (tribeId, userId) => postJSON('/api/tribes/kick', { tribe_id: tribeId, user_id: userId }),
-    ban:               (tribeId, userId) => postJSON('/api/tribes/ban', { tribe_id: tribeId, user_id: userId }),
-    unban:             (tribeId, userId) => postJSON('/api/tribes/unban', { tribe_id: tribeId, user_id: userId }),
-  };
-
-  // robust fetch with abort/timeout (AbortSignal) :contentReference[oaicite:2]{index=2}
-  async function fetchJSON(url, opts={}){
-    const signal = ('timeout' in AbortSignal) ? AbortSignal.timeout(15000) : undefined;
-    const res = await fetch(url, { ...opts, headers:{'content-type':'application/json'}, signal });
-    if (!res.ok) throw new Error(await res.text() || res.statusText);
-    return res.json();
-  }
-  async function postJSON(url, body){
-    return fetchJSON(url, { method:'POST', body: JSON.stringify(body) });
-  }
-
-  // ===== Open / Close overlay (with focus management per a11y dialog guidance) 
-  function openOverlay(tabIndex=0){
-    overlay.hidden = false;
-    document.body.style.overflow = 'hidden';
-    // focus trap
-    wrap.focus();
-    // one-time badge
-    if (!localStorage.getItem('socialBadgeSeen')) {
-      pillBadge.hidden = false;
-      setTimeout(() => { pillBadge.hidden = true; localStorage.setItem('socialBadgeSeen','1'); }, 1400);
-    }
-    // default tab
-    setActiveTab(tabIndex);
-    // initial loads
-    loadPlayers();
-    loadRanking();
-    loadTribes();
-  }
-  function closeOverlay(){
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-    stopStreams();
-  }
-  function stopStreams(){
-    if (sseDM) { sseDM.close?.(); sseDM=null; }
-    if (sseTribe) { sseTribe.close?.(); sseTribe=null; }
-  }
-
-  userPill?.addEventListener('click', () => openOverlay(0));
-  btnClose.addEventListener('click', closeOverlay);
-  overlay.addEventListener('click', (e)=>{ if (e.target === overlay) closeOverlay(); });
-  document.addEventListener('keydown', (e)=>{ if (!overlay.hidden && e.key === 'Escape') closeOverlay(); });
-
-  // ===== Tabs (per WAI-ARIA tabs pattern) 
-  tabs.forEach(({btn}, i) => {
-    btn.addEventListener('click', () => setActiveTab(i));
-    btn.addEventListener('keydown', (e)=>{
-      const k=e.key;
-      if (k==='ArrowRight' || k==='ArrowLeft') {
-        const dir = k==='ArrowRight' ? 1 : -1;
-        const ni = (i+dir+tabs.length)%tabs.length;
-        tabs[ni].btn.focus(); setActiveTab(ni);
-      }
-    });
-  });
-  function setActiveTab(i){
-    tabs.forEach(({btn,panel},ix)=>{
-      const on = ix===i;
-      btn.classList.toggle('is-active', on);
-      btn.setAttribute('aria-selected', on ? 'true':'false');
-      panel.hidden = !on;
-    });
-  }
-
-  // ===== Search (debounced) =====
-  const debounced = (fn, ms=300) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }; // simple debounce
-  search.addEventListener('input', debounced(()=>{
-    searchTerm = search.value.trim();
-    const active = tabs.find(t => t.btn.classList.contains('is-active'))?.panel?.id;
-    if (active === 'panelPlayers') loadPlayers();
-    if (active === 'panelTribes')  loadTribes();
-  }, 250));
-  clearBtn.addEventListener('click', ()=>{ search.value=''; search.dispatchEvent(new Event('input')); });
-
-  // ===== Players =====
-  async function loadPlayers(){
-    try{
-      const data = await api.players(searchTerm);
-      playersList.innerHTML = '';
-      (data.players || []).forEach(p => {
-        const li = document.createElement('li'); li.className='item';
-        li.innerHTML = `
-          <div class="row">
-            <div class="ava"><img alt="" src="${p.avatar_url || ''}" onerror="this.remove()"/></div>
-            <div>
-              <div class="name">${escapeHTML(p.name)}</div>
-              <div class="sub">${p.tribe_name ? 'tribe: '+escapeHTML(p.tribe_name) : ''}</div>
-            </div>
-            <div class="row" style="gap:6px">
-              <button class="pill ghost" data-uid="${p.user_id}" data-act="transfer">send/receive chads</button>
-              <button class="pill" data-uid="${p.user_id}" data-act="dm">send message</button>
-            </div>
-          </div>`;
-        playersList.appendChild(li);
-      });
-    }catch(err){ playersList.innerHTML = `<li class="sub">Failed to load players: ${escapeHTML(err.message)}</li>`; }
-  }
-
-  playersList.addEventListener('click', (e)=>{
-    const btn = e.target.closest('button[data-act]');
-    if (!btn) return;
-    const uid = btn.dataset.uid;
-    const act = btn.dataset.act;
-    const name = btn.closest('.item').querySelector('.name')?.textContent || 'Player';
-    if (act === 'dm'){ openThread(uid, name); }
-    if (act === 'transfer'){ openTransfer(uid, name); }
-  });
-
-  // ===== Messages / DM =====
-  inboxBtn.addEventListener('click', openInbox);
-  async function openInbox(){
-    try{
-      const data = await api.inbox();
-      threadList.innerHTML = '';
-      (data.threads || []).forEach(t=>{
-        const li = document.createElement('li');
-        li.className='item';
-        li.innerHTML = `
-          <div class="row">
-            <div class="ava"><img alt="" src="${t.avatar_url||''}" onerror="this.remove()"/></div>
-            <div>
-              <div class="name">${escapeHTML(t.name)}</div>
-              <div class="sub">${escapeHTML(t.last_preview || '')}</div>
-            </div>
-            <button class="pill" data-thread="${t.user_id}">open</button>
-          </div>`;
-        threadList.appendChild(li);
-      });
-      inboxDialog.hidden = false;
-    }catch(err){
-      threadList.innerHTML = `<li class="item sub">No messages.</li>`;
-      inboxDialog.hidden = false;
-    }
-  }
-  threadList.addEventListener('click', (e)=>{
-    const id = e.target?.dataset?.thread; if (!id) return;
-    const name = e.target.closest('.item').querySelector('.name')?.textContent || 'Player';
-    openThread(id, name); inboxDialog.hidden = true;
-  });
-
-  async function openThread(uid, name){
-    currentChatUser = { uid, name };
-    dmTitle.textContent = `Chat — ${name}`;
-    dmHistory.innerHTML = '<div class="sub">Loading…</div>';
-    dmDialog.hidden = false;
-
-    try{
-      const data = await api.thread(uid);
-      renderDM(data.messages || []);
-      // try to open SSE stream if server exposes it
-      if (!sseDM && data.sse_url){
-        sseDM = new EventSource(data.sse_url);     // MDN EventSource for live messages 
-        sseDM.onmessage = (ev)=>{ try{ const m = JSON.parse(ev.data); appendDM(m); }catch{} };
-      }
-    }catch(err){
-      dmHistory.innerHTML = `<div class="err">${escapeHTML(err.message)}</div>`;
-    }
-  }
-  function renderDM(msgs){ dmHistory.innerHTML = ''; msgs.forEach(appendDM); dmHistory.scrollTop = dmHistory.scrollHeight; }
-  function appendDM(m){
-    const div = document.createElement('div');
-    div.className = 'item';
-    if (m.type === 'chads_request'){
-      div.innerHTML = `
-        <div class="row">
-          <div><strong>${escapeHTML(m.from_name)}</strong> requested <strong>${m.amount}</strong> chads</div>
-          ${m.mine ? '' : `<button class="pill" data-accept="${m.request_id}">accept</button>`}
-        </div>`;
-    } else if (m.type === 'chads_sent'){
-      div.innerHTML = `<div class="sub"><strong>${m.amount}</strong> chads sent.</div>`;
-    } else {
-      div.innerHTML = `<div><strong>${escapeHTML(m.from_name)}:</strong> ${escapeHTML(m.text||'')}</div>`;
-    }
-    dmHistory.appendChild(div);
-    dmHistory.scrollTop = dmHistory.scrollHeight;
-  }
-  dmHistory.addEventListener('click', async (e)=>{
-    const id = e.target?.dataset?.accept;
-    if (!id) return;
-    try{ await api.acceptChads(id); e.target.replaceWith(el('span','sub','accepted')); }
-    catch(err){ alert(err.message); }
-  });
-
-  dmForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const txt = dmInput.value.trim(); if (!txt) return;
-    dmInput.value='';
-    try{
-      const res = await api.sendDM(currentChatUser.uid, txt);
-      appendDM({ from_name: me?.name || 'Me', text: txt });
-    }catch(err){ alert(err.message); }
-  });
-
-  function openTransfer(uid, name){
-    currentChatUser = { uid, name };
-    chadDialog.hidden = false; chadErr.hidden = true; chadAmount.value='';
-  }
-  function amountOrErr(){
-    const v = Number(chadAmount.value); if (!(v>0)){ chadErr.hidden=false; return null; }
-    chadErr.hidden=true; return Math.floor(v);
-  }
-  btnSendChads.addEventListener('click', async ()=>{
-    const amt = amountOrErr(); if (!amt) return;
-    try{ await api.requestChads(currentChatUser.uid, -amt); chadDialog.hidden = true; openThread(currentChatUser.uid, currentChatUser.name); }
-    catch(err){ alert(err.message); }
-  });
-  btnReqChads.addEventListener('click', async ()=>{
-    const amt = amountOrErr(); if (!amt) return;
-    try{ await api.requestChads(currentChatUser.uid, amt); chadDialog.hidden = true; openThread(currentChatUser.uid, currentChatUser.name); }
-    catch(err){ alert(err.message); }
-  });
-
-  // close any subdialog
-  overlay.querySelectorAll('[data-close]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ const sel = btn.getAttribute('data-close'); document.querySelector(sel).hidden = true; });
-  });
-
-  // ===== Ranking =====
-  async function loadRanking(){
-    try{
-      const data = await api.ranking();
-      rankingList.innerHTML = '';
-      (data.top || []).slice(0,100).forEach((p,i)=>{
-        const li = document.createElement('li'); li.className='item rank-card';
-        const place = i+1;
-        const placeClass = place===1 ? 'place-1' : place===2 ? 'place-2' : place===3 ? 'place-3' : 'place-other';
-        li.innerHTML = `
-          <div class="row">
-            <div class="ava"><img alt="" src="${p.avatar_url||''}" onerror="this.remove()"/></div>
-            <div>
-              <div class="name">${escapeHTML(p.name)}</div>
-              <div class="sub">tribe: ${escapeHTML(p.tribe_name || '—')}</div>
-            </div>
-            <div class="place ${placeClass}">#${place}</div>
-          </div>`;
-        rankingList.appendChild(li);
-      });
-    }catch(err){ rankingList.innerHTML = `<li class="sub">Failed to load ranking.</li>`; }
-  }
-  // (The conic-gradient badges use CSS gradients; ref: CSS conic-gradient docs.) 
-
-  // ===== Tribes =====
-  async function loadTribes(){
-    try{
-      const data = await api.tribes(searchTerm);
-      tribeList.innerHTML='';
-      (data.tribes || []).forEach(t=>{
-        const li = document.createElement('li'); li.className='item';
-        const desc = (t.description||'').slice(0,160);
-        const open = t.is_request_based ? 'request' : 'join';
-        li.innerHTML = `
-          <div class="row">
-            <div>
-              <div class="name">${escapeHTML(t.name)}</div>
-              <div class="sub">${escapeHTML(desc)}</div>
-            </div>
-            <div class="row" style="gap:6px">
-              <button class="pill" data-tribe="${t.id}" data-act="${open}">${open}</button>
-            </div>
-          </div>`;
-        tribeList.appendChild(li);
-      });
-    }catch(err){ tribeList.innerHTML = `<li class="sub">Failed to load tribes.</li>`; }
-  }
-  tribeList.addEventListener('click', async (e)=>{
-    const el = e.target.closest('button[data-tribe]'); if (!el) return;
-    const id = el.dataset.tribe, act = el.dataset.act;
-    try{
-      if (act === 'join') await api.joinTribe(id);
-      else await api.requestJoinTribe(id);
-      el.textContent = (act==='join' ? 'joined' : 'requested'); el.disabled = true;
-    }catch(err){ alert(err.message); }
-  });
-
-  btnCreateTribe.addEventListener('click', ()=>{ createTribeDialog.hidden=false; });
-  createTribeForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const mode = createTribeForm.querySelector('input[name="tmode"]:checked').value;
-    const body = {
-      name: tribeNameEl.value.trim(),
-      description: tribeDescEl.value.trim(),
-      is_request_based: (mode === 'request')
-    };
-    try{
-      await api.createTribe(body);
-      createTribeDialog.hidden = true;
-      loadTribes();
-    }catch(err){ alert(err.message); }
-  });
-  tribeDescEl.addEventListener('input',()=>{ descCount.textContent = `${tribeDescEl.value.length}/160`; });
-
-  btnYourTribe.addEventListener('click', openYourTribe);
-  async function openYourTribe(){
-    try{
-      const data = await api.myTribe();
-      if (!data || !data.tribe){ alert('no tribe'); return; }
-      const tribe = data.tribe;
-      tribeMembers.innerHTML='';
-      (data.members||[]).forEach(m=>{
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <div class="row">
-            <div class="ava"></div>
-            <div>
-              <div class="name">${escapeHTML(m.name)}</div>
-              <div class="sub">${m.role==='founder' ? 'Founder' : ''}</div>
-            </div>
-            ${tribe.is_founder ? `
-              <div class="row" style="gap:6px">
-                <button class="pill ghost" data-kick="${m.user_id}">kick</button>
-                <button class="pill ghost" data-ban="${m.user_id}">ban</button>
-              </div>` : ''}
-          </div>`;
-        tribeMembers.appendChild(li);
-      });
-      tribeMemberCount.textContent = (data.members||[]).length;
-      tribeStream.innerHTML = ''; // initial messages
-      (data.recent||[]).forEach(msg=>{
-        const d = document.createElement('div');
-        d.className='item'; d.innerHTML = `<div><strong>${escapeHTML(msg.name)}:</strong> ${escapeHTML(msg.text)}</div>`;
-        tribeStream.appendChild(d);
-      });
-      yourTribeDialog.hidden = false;
-
-      // optional SSE for tribe chat if provided
-      if (data.sse_url && !sseTribe){
-        sseTribe = new EventSource(data.sse_url);
-        sseTribe.onmessage = (ev)=>{ try{
-          const m = JSON.parse(ev.data);
-          const d = document.createElement('div');
-          d.className='item'; d.innerHTML = `<div><strong>${escapeHTML(m.name)}:</strong> ${escapeHTML(m.text)}</div>`;
-          tribeStream.appendChild(d); tribeStream.scrollTop = tribeStream.scrollHeight;
-        }catch{} };
-      }
-    }catch(err){ alert(err.message); }
-  }
-  tribeMembers.addEventListener('click', async (e)=>{
-    const kick = e.target?.dataset?.kick, ban = e.target?.dataset?.ban;
-    if (!kick && !ban) return;
-    const data = await api.myTribe(); const tribeId = data.tribe?.id;
-    try{
-      if (kick) await api.kick(tribeId, kick);
-      if (ban)  await api.ban(tribeId, ban);
-      openYourTribe();
-    }catch(err){ alert(err.message); }
-  });
-  tribeForm.addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const text = tribeInput.value.trim(); if (!text) return;
-    tribeInput.value='';
-    try{
-      const data = await api.myTribe(); const tribeId = data.tribe?.id;
-      await api.tribeSend(tribeId, text);
-    }catch(err){ alert(err.message); }
-  });
-
-  // ===== Inbox badge (new messages count) =====
-  async function refreshInboxBadge(){
-    try{
-      const data = await api.inbox();
-      const n = Number(data.unread || 0);
-      if (n>0){ inboxBadge.textContent = n; inboxBadge.hidden = false; }
-      else inboxBadge.hidden = true;
-    }catch{}
-  }
-
-  // ===== Utilities =====
-  function el(tag, cls, text){ const x=document.createElement(tag); if (cls) x.className=cls; if (text) x.textContent=text; return x; }
-  function escapeHTML(s){ return (s??'').toString().replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
-
-  // ===== Boot =====
-  (async function init(){
-    try{ me = await api.me(); }catch{}
-    // show badge initially if not seen
-    if (!localStorage.getItem('socialBadgeSeen')) pillBadge.hidden = false;
-    refreshInboxBadge();
-  })();
-
-})();
-
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
 
@@ -3408,6 +2744,284 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
+
+(() => {
+  const api = (p, opt={}) =>
+    fetch(`/api/social/${p}`, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt))
+      .then(r => r.json());
+
+  const pill = document.getElementById('userPill');
+  const overlay = document.getElementById('socialOverlay');
+  const closeBtn = document.getElementById('socialClose');
+
+  const badgeId = 'userPillOnceBadge';
+  // Show a red "1" the *first time* they open it, then never again
+  if (!localStorage.getItem('pillSeen')) {
+    const b = document.createElement('div');
+    b.id = badgeId;
+    b.textContent = '1';
+    b.style.cssText = 'position:absolute;top:-6px;left:-6px;background:#ff384c;color:#fff;border-radius:10px;padding:2px 6px;font-weight:700;font-size:12px';
+    pill.style.position = 'relative';
+    pill.appendChild(b);
+  }
+
+  pill.addEventListener('click', async () => {
+    overlay.classList.remove('hidden');
+    // dismiss one-time badge
+    localStorage.setItem('pillSeen','1');
+    const b = document.getElementById(badgeId);
+    if (b) b.remove();
+    // default loads
+    loadPlayers();
+    loadThreads();
+  });
+
+  closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
+
+  // Tabs
+  document.querySelectorAll('.social-tabs .tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.social-tabs .tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'players') loadPlayers();
+      if (btn.dataset.tab === 'ranking') loadRanking();
+      if (btn.dataset.tab === 'tribes') { loadMyTribe(); loadTribes(); }
+    });
+  });
+
+  // Search
+  const search = document.getElementById('socialSearch');
+  search.addEventListener('input', debounce(loadPlayers, 300));
+
+  // Panels & lists
+  const playersList = document.getElementById('playersList');
+  const threadsBtn = document.getElementById('openThreads');
+  const threadsPanel = document.getElementById('threadsPanel');
+  const threadsList = document.getElementById('threadsList');
+  const inboxBadge = document.getElementById('inboxBadge');
+  const rankingList = document.getElementById('rankingList');
+  const myTribePanel = document.getElementById('myTribePanel');
+  const tribesList = document.getElementById('tribesList');
+  const createTribeBtn = document.getElementById('createTribeBtn');
+
+  threadsBtn.addEventListener('click', () => {
+    threadsPanel.classList.toggle('hidden');
+  });
+
+  async function loadPlayers(){
+    const q = encodeURIComponent(search.value || '');
+    const data = await api('players' + (q ? `?search=${q}` : ''));
+    if (!data.ok) return;
+    playersList.innerHTML = '';
+    (data.players || []).forEach(p => {
+      const li = document.createElement('li'); li.className = 'item';
+      li.innerHTML = `
+        <div class="avatar">${p.avatar_url ? `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (p.name||'?')[0]}</div>
+        <div>
+          <div class="name">${escapeHtml(p.name || 'Player')}</div>
+          <div class="meta">${p.points ?? 0} chads • ${p.gen_per_hour}/hr • lvl ${p.level}</div>
+        </div>
+        <div>
+          <button class="btn js-dm">send message</button>
+          <div style="height:6px"></div>
+          <button class="btn js-chads">send/receive chads</button>
+        </div>`;
+      li.querySelector('.js-dm').onclick = () => composeMessage(p.user_id, p.name);
+      li.querySelector('.js-chads').onclick = () => openChadsDialog(p.user_id, p.name);
+      playersList.appendChild(li);
+    });
+  }
+
+  async function loadThreads(){
+    const data = await api('messages');
+    if (!data.ok) return;
+    threadsList.innerHTML = '';
+    let unreadSum = 0;
+    (data.threads || []).forEach(t => {
+      unreadSum += (t.unread||0);
+      const li = document.createElement('li'); li.className='item';
+      li.innerHTML = `
+        <div class="avatar">${(t.other_name || '?')[0]}</div>
+        <div>
+          <div class="name">${escapeHtml(t.other_name || 'Player')}</div>
+          <div class="meta">${escapeHtml(t.last_text || '')}</div>
+        </div>
+        <div>${t.unread ? `<span class="badge">${t.unread}</span>`:''}</div>`;
+      threadsList.appendChild(li);
+    });
+    inboxBadge.textContent = unreadSum;
+    inboxBadge.classList.toggle('hidden', unreadSum === 0);
+  }
+
+  async function loadRanking(){
+    const data = await api('ranking');
+    if (!data.ok) return;
+    rankingList.innerHTML = '';
+    (data.ranking || []).forEach((r,i) => {
+      const li = document.createElement('li'); li.className='item';
+      li.innerHTML = `
+        <div class="avatar">${(r.name||'?')[0]}</div>
+        <div>
+          <div class="name">${escapeHtml(r.name || 'Player')}</div>
+          <div class="meta">${escapeHtml(r.tribe_name || '')}</div>
+        </div>
+        <div>#${i+1} place<br>${r.points} chads</div>`;
+      rankingList.appendChild(li);
+    });
+  }
+
+  async function loadMyTribe(){
+    const r = await api('tribes/mine');
+    myTribePanel.innerHTML = '';
+    if (!r.ok || !r.tribe) {
+      myTribePanel.innerHTML = `<div class="meta">no tribe</div>`;
+      return;
+    }
+    const t = r.tribe;
+    const members = r.members || [];
+    myTribePanel.innerHTML = `
+      <h3>Your Tribe: ${escapeHtml(t.name)}</h3>
+      <div class="meta">${escapeHtml(t.description || '')}</div>
+      <div style="height:8px"></div>
+      <div class="meta">Members:</div>
+      <ul class="list">${members.map(m=>`<li class="item">
+        <div class="avatar">${(m.name||'?')[0]}</div>
+        <div><div class="name">${escapeHtml(m.name)}</div><div class="meta">${m.role}</div></div>
+        ${t.founder_id===m.user_id ? '' : '<div><button class="btn js-kick" data-id="'+m.user_id+'">kick</button> <button class="btn js-ban" data-id="'+m.user_id+'">ban</button></div>'}
+      </li>`).join('')}</ul>
+    `;
+    myTribePanel.querySelectorAll('.js-kick').forEach(b=>b.onclick=()=>tribeKick(t.id, b.dataset.id));
+    myTribePanel.querySelectorAll('.js-ban').forEach(b=>b.onclick=()=>tribeBan(t.id, b.dataset.id, true));
+  }
+
+  async function loadTribes(){
+    const r = await api('tribes');
+    tribesList.innerHTML = '';
+    if (!r.ok) return;
+    r.tribes.forEach(t=>{
+      const li = document.createElement('li'); li.className='item';
+      li.innerHTML = `
+        <div class="name">${escapeHtml(t.name)}</div>
+        <div class="meta">${escapeHtml(t.description||'')}</div>
+        <div>
+          <button class="btn js-join">${t.is_request_based ? 'request' : 'join'}</button>
+        </div>`;
+      li.querySelector('.js-join').onclick = () => joinTribe(t.id, t.is_request_based);
+      tribesList.appendChild(li);
+    });
+  }
+
+  createTribeBtn.onclick = () => openCreateTribeDialog();
+
+  // ---------- Dialogs ----------
+  function composeMessage(toId, name){
+    openDialog(`
+      <div class="box">
+        <h3>Message ${escapeHtml(name)}</h3>
+        <textarea id="msgText" rows="4" style="width:100%"></textarea>
+        <div class="err" id="msgErr"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="cancel">cancel</button>
+          <button class="btn" id="send">send</button>
+        </div>
+      </div>
+    `, (root, close) => {
+      root.querySelector('#cancel').onclick = close;
+      root.querySelector('#send').onclick = async () => {
+        const text = root.querySelector('#msgText').value.trim();
+        if (!text) { root.querySelector('#msgErr').textContent = 'please type a message'; return; }
+        const r = await api('messages/send', { method:'POST', body: JSON.stringify({ to_user_id: toId, text })});
+        if (!r.ok) { root.querySelector('#msgErr').textContent = r.error || 'failed'; return; }
+        close(); loadThreads();
+      };
+    });
+  }
+
+  function openChadsDialog(otherId, name){
+    openDialog(`
+      <div class="box">
+        <h3>Chads with ${escapeHtml(name)}</h3>
+        <input id="amt" type="number" min="1" placeholder="amount..." style="width:100%;padding:8px">
+        <div class="err" id="amtErr"></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px">
+          <button class="btn" id="req">request chads</button>
+          <button class="btn" id="send">send chads</button>
+        </div>
+      </div>
+    `, (root, close) => {
+      const getAmt = () => Number(root.querySelector('#amt').value);
+      const guard = () => {
+        const a = getAmt();
+        if (!a || a<=0) { root.querySelector('#amtErr').textContent = 'please choose an amount'; return null; }
+        return a;
+      };
+      root.querySelector('#req').onclick = async () => {
+        const a = guard(); if (!a) return;
+        const r = await api('chads/request', { method:'POST', body: JSON.stringify({ from_user_id: otherId, amount: a })});
+        if (!r.ok) { root.querySelector('#amtErr').textContent = r.error || 'failed'; return; }
+        close(); loadThreads(); // request arrives as a DM for them
+      };
+      root.querySelector('#send').onclick = async () => {
+        const a = guard(); if (!a) return;
+        const r = await api('chads/send', { method:'POST', body: JSON.stringify({ to_user_id: otherId, amount: a })});
+        if (!r.ok) { root.querySelector('#amtErr').textContent = r.error || 'failed'; return; }
+        close(); loadThreads();
+      };
+    });
+  }
+
+  function openCreateTribeDialog(){
+    openDialog(`
+      <div class="box">
+        <h3>Create Tribe</h3>
+        <input id="tname" maxlength="40" placeholder="name" style="width:100%;padding:8px">
+        <textarea id="tdesc" maxlength="160" rows="3" placeholder="description (≤160)" style="width:100%;margin-top:8px"></textarea>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input id="treq" type="checkbox" checked> request-based
+        </label>
+        <div class="err" id="terr"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" id="cancel">cancel</button>
+          <button class="btn" id="create">create</button>
+        </div>
+      </div>
+    `, (root, close) => {
+      root.querySelector('#cancel').onclick = close;
+      root.querySelector('#create').onclick = async () => {
+        const name = root.querySelector('#tname').value.trim();
+        const description = root.querySelector('#tdesc').value.trim();
+        const reqBased = root.querySelector('#treq').checked;
+        if (!name) { root.querySelector('#terr').textContent = 'name required'; return; }
+        const r = await api('tribes/create', { method:'POST', body: JSON.stringify({ name, description, is_request_based: reqBased })});
+        if (!r.ok) { root.querySelector('#terr').textContent = r.error || 'failed'; return; }
+        close(); loadMyTribe(); loadTribes();
+      };
+    });
+  }
+
+  async function joinTribe(id, reqBased){
+    const r = await api('tribes/join', { method:'POST', body: JSON.stringify({ tribe_id: id })});
+    if (r.ok) { loadMyTribe(); loadTribes(); }
+  }
+  async function tribeKick(tribeId, userId){ await api('tribes/kick', { method:'POST', body: JSON.stringify({ tribe_id: tribeId, member_id: Number(userId) })}); loadMyTribe(); }
+  async function tribeBan(tribeId, userId, on){ await api('tribes/ban', { method:'POST', body: JSON.stringify({ tribe_id: tribeId, member_id: Number(userId), banned: !!on })}); loadMyTribe(); }
+
+  // Mini dialog helper
+  function openDialog(html, onReady){
+    const root = document.createElement('div');
+    root.className='dialog';
+    root.innerHTML = html;
+    document.body.appendChild(root);
+    const close = () => { root.remove(); };
+    onReady(root, close);
+    root.addEventListener('click', e => { if (e.target===root) close(); });
+  }
+
+  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(null,a),ms); }; }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+})();
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
