@@ -6,37 +6,83 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Overlay */
-.social-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center}
-.social-overlay.hidden{display:none}
-.social-wrap{width:min(900px,95vw);height:min(92vh,900px);background:radial-gradient(900px 400px at 10% 0%,rgba(255,255,255,.05),transparent 40%),linear-gradient(180deg,#0b0f14,#08131b);
-  border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 30px 100px rgba(0,0,0,.65);padding:14px;display:flex;flex-direction:column}
-.social-close{position:absolute;top:8px;right:12px;background:#0b0f14;border:1px solid rgba(255,255,255,.12);color:#eaf0f6;border-radius:12px;padding:6px 10px;cursor:pointer}
-.social-tabs{display:flex;gap:8px;align-items:center}
-.social-tabs .tab{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#102334,#0a1622);color:#eaf0f6;cursor:pointer}
-.social-tabs .tab.active{outline:2px solid #4aa3ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-.social-tabs .spacer{flex:1}
-.social-tabs .search{border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#0b0f14;color:#eaf0f6;padding:8px 10px;min-width:180px}
-.social-body{margin-top:10px;overflow:auto;flex:1}
-.tab-pane{display:none}
-.tab-pane.active{display:block}
-.list{display:grid;gap:10px;margin:10px 0;padding:0;list-style:none}
-.item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0f2030,#0b1623)}
-.avatar{width:56px;height:56px;border-radius:50%;background:#07131b;border:1px solid rgba(255,255,255,.15);display:grid;place-items:center;overflow:hidden}
-.name{font-weight:700;color:#eaf0f6}
-.meta{font-size:12px;color:#9aa3ab}
-.btn{border-radius:10px;padding:8px 12px;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,#0b0f14,#0d1520);color:#eaf0f6}
-.badge{background:#ff384c;border-radius:40px;padding:2px 8px;margin-left:8px;color:white;font-size:12px}
-.badge.hidden{display:none}
-.cta{margin-top:8px}
-.ranking .item{position:relative}
-.ranking .item:nth-child(1){border-color:#ffd76a;box-shadow:0 0 18px rgba(255,215,106,.2)}
-.ranking .item:nth-child(2){border-color:#d2b4ff;box-shadow:0 0 18px rgba(210,180,255,.2)}
-.ranking .item:nth-child(3){border-color:#74ff92;box-shadow:0 0 18px rgba(116,255,146,.2)}
-.panel{margin-top:12px;border:1px dashed rgba(255,255,255,.15);border-radius:12px;padding:12px}
-.dialog{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.6);z-index:10000}
-.dialog .box{background:#0c1117;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;min-width:280px}
-.err{color:#ff8b8b;font-size:12px;margin-top:8px}
+
+
+/* ===== Social overlay ===== */
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,.65);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  display:flex; align-items:center; justify-content:center; z-index:999}
+.overlay.hidden{display:none}
+
+.social-panel{width:min(980px,96vw); height:min(84vh,880px);
+  border-radius:22px; overflow:hidden; position:relative;
+  background: linear-gradient(180deg,#07131b, #0a0f13 55%, #0c0f12);
+  box-shadow: 0 40px 120px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+  color:#eaf0f6; display:flex; flex-direction:column}
+
+.social-top{display:flex; align-items:center; gap:14px; padding:14px 16px;
+  background: radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,.10), transparent 40%), 
+              linear-gradient(180deg,#08131b, #0a0f13);
+  border-bottom:1px solid rgba(255,255,255,.06)}
+
+.tabs{display:flex; gap:10px}
+.tab{padding:10px 16px; font-weight:700; border-radius:14px; border:1px solid rgba(255,255,255,.08);
+  background:linear-gradient(180deg,#0b0f14,#0c1016); color:#c7ced6; cursor:pointer}
+.tab.active{color:#07131b; background:linear-gradient(180deg,#8ed2ff,#7ee7d7);}
+
+.right-tools{margin-left:auto; display:flex; align-items:center; gap:10px}
+.search{position:relative}
+.search input{width:min(42vw,240px); background:#0b0f14; border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:10px 34px 10px 12px; color:#dbe7ff; outline:none}
+.search .icon{position:absolute; right:10px; top:50%; transform:translateY(-50%); opacity:.6}
+.x-btn{width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
+  background:#0b0f14; color:#c7ced6; font-size:18px; cursor:pointer}
+
+.tabview{display:none; height:100%; overflow:auto}
+.tabview.active{display:block}
+.list{padding:12px 14px 18px; display:grid; gap:10px; align-content:start;
+  height:calc(100% - 0px); overflow:auto}
+
+/* player row */
+.row{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
+  padding:12px; border-radius:16px; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.0));
+  box-shadow: 0 6px 40px rgba(0,0,0,.35)}
+.ava{width:46px; height:46px; border-radius:50%; overflow:hidden; 
+  border:1px solid rgba(255,255,255,.08); display:grid; place-items:center; font-weight:800}
+.ava img{width:100%; height:100%; object-fit:cover}
+.meta .name{font-weight:800; letter-spacing:.2px}
+.meta .sub{font-size:12px; opacity:.6}
+.btn{padding:10px 12px; border-radius:12px; font-weight:800; cursor:pointer;
+  border:1px solid rgba(255,255,255,.08); background:linear-gradient(180deg,#0b0f14,#0c1016);
+  color:#c7ced6}
+.btn.primary{background:linear-gradient(180deg,#7fe4d9,#8bd2ff); color:#06111b}
+
+/* messages button bottom-left */
+.messages-btn{position:sticky; bottom:8px; left:8px; margin-top:auto; width:max-content;
+  padding:10px 14px; border-radius:14px; background:#f4f6ff; color:#07131b; font-weight:900}
+.badge{margin-left:8px; background:#ff3b3b; color:#fff; border-radius:999px;
+  padding:1px 8px; font-size:12px}
+.hidden{display:none}
+
+/* ranking colors */
+.rank{justify-self:end; font-weight:900}
+.rank-1{color:#ffd86a; text-shadow:0 0 14px rgba(255,215,0,.35)}
+.rank-2{color:#b189ff; text-shadow:0 0 16px rgba(177,137,255,.35)}
+.rank-3{color:#79ffa7; text-shadow:0 0 14px rgba(121,255,167,.35)}
+.rank-s{color:#c8d0d8}
+
+/* tribes */
+.cta{position:sticky; bottom:12px; margin-left:auto; margin-right:auto; 
+  padding:12px 16px; border-radius:16px; font-weight:900; 
+  background:linear-gradient(180deg,#7fe4d9,#8bd2ff); color:#07131b; border:none}
+
+/* pill one-time badge */
+.pill-badge{position:absolute; right:-6px; top:-6px; background:#ff3b3b; color:#fff;
+  width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+  font-weight:900; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.45)}
+
+
 
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
@@ -794,6 +840,7 @@ canvas{ display:block }
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
       <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
+       <span id="pillBadge" class="pill-badge hidden">1</span>
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
         <div class="name" id="userName">Player</div>
       </div>
@@ -976,42 +1023,6 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- Social Overlay -->
-<div id="socialOverlay" class="social-overlay hidden">
-  <div class="social-wrap glass">
-    <button class="social-close" id="socialClose" aria-label="Close">✕</button>
-
-    <div class="social-tabs">
-      <button class="tab active" data-tab="players">players</button>
-      <button class="tab" data-tab="ranking">ranking</button>
-      <button class="tab" data-tab="tribes">tribes</button>
-      <div class="spacer"></div>
-      <input id="socialSearch" class="search" placeholder="search username..." />
-    </div>
-
-    <div class="social-body">
-      <section id="tab-players" class="tab-pane active">
-        <ul id="playersList" class="list"></ul>
-        <button id="openThreads" class="cta">messages <span id="inboxBadge" class="badge hidden">0</span></button>
-        <div id="threadsPanel" class="panel hidden">
-          <h3>Messages</h3>
-          <ul id="threadsList" class="list"></ul>
-        </div>
-      </section>
-
-      <section id="tab-ranking" class="tab-pane">
-        <ul id="rankingList" class="list ranking"></ul>
-      </section>
-
-      <section id="tab-tribes" class="tab-pane">
-        <div id="myTribePanel" class="panel"></div>
-        <h3>All tribes</h3>
-        <ul id="tribesList" class="list"></ul>
-        <button id="createTribeBtn" class="cta">create tribe</button>
-      </section>
-    </div>
-  </div>
-</div>
 
 
     <!-- AVATAR overlay (step 2) -->
@@ -1026,6 +1037,46 @@ canvas{ display:block }
         </div>
       </div>
     </div>
+
+
+<!-- Social overlay -->
+<div id="socialOverlay" class="overlay hidden" aria-hidden="true">
+  <div class="social-panel">
+    <div class="social-top">
+      <div class="tabs">
+        <button class="tab active" data-tab="players">players</button>
+        <button class="tab" data-tab="ranking">ranking</button>
+        <button class="tab" data-tab="tribes">tribes</button>
+      </div>
+
+      <div class="right-tools">
+        <div class="search">
+          <input id="socialSearch" placeholder="search username..." maxlength="32" />
+          <span class="icon">&#128269;</span>
+        </div>
+        <button id="btnCloseSocial" class="x-btn" aria-label="close">✕</button>
+      </div>
+    </div>
+
+    <div id="tabPlayers" class="tabview active">
+      <div id="playersList" class="list"></div>
+      <button id="btnMessages" class="messages-btn">
+        messages <span id="msgBadge" class="badge hidden">0</span>
+      </button>
+    </div>
+
+    <div id="tabRanking" class="tabview">
+      <div id="rankingList" class="list"></div>
+    </div>
+
+    <div id="tabTribes" class="tabview">
+      <div id="tribesList" class="list"></div>
+      <button id="btnCreateTribe" class="cta">create tribe</button>
+    </div>
+  </div>
+</div>
+
+
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -2745,282 +2796,209 @@ function quitVJ(){
   closeOverlay('vjModal');
 }
 
+
 (() => {
-  const api = (p, opt={}) =>
-    fetch(`/api/social/${p}`, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt))
-      .then(r => r.json());
+  const tg = window.Telegram?.WebApp;
+  const INIT_DATA = tg?.initData || '';
+  const HEADERS = { 'telegram-init-data': INIT_DATA, 'content-type':'application/json' };
 
-  const pill = document.getElementById('userPill');
+  /* ---------- Open / Close overlay ---------- */
   const overlay = document.getElementById('socialOverlay');
-  const closeBtn = document.getElementById('socialClose');
+  const userPill = document.getElementById('userPill');
+  const pillBadge = document.getElementById('pillBadge');
 
-  const badgeId = 'userPillOnceBadge';
-  // Show a red "1" the *first time* they open it, then never again
-  if (!localStorage.getItem('pillSeen')) {
-    const b = document.createElement('div');
-    b.id = badgeId;
-    b.textContent = '1';
-    b.style.cssText = 'position:absolute;top:-6px;left:-6px;background:#ff384c;color:#fff;border-radius:10px;padding:2px 6px;font-weight:700;font-size:12px';
-    pill.style.position = 'relative';
-    pill.appendChild(b);
-  }
+  // one-time dot on wood pill
+  if (!localStorage.getItem('socialBadgeDismissed')) pillBadge.classList.remove('hidden');
 
-  pill.addEventListener('click', async () => {
-    overlay.classList.remove('hidden');
-    // dismiss one-time badge
-    localStorage.setItem('pillSeen','1');
-    const b = document.getElementById(badgeId);
-    if (b) b.remove();
-    // default loads
-    loadPlayers();
-    loadThreads();
-  });
-
-  closeBtn.addEventListener('click', () => overlay.classList.add('hidden'));
-
-  // Tabs
-  document.querySelectorAll('.social-tabs .tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.social-tabs .tab').forEach(x => x.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'players') loadPlayers();
-      if (btn.dataset.tab === 'ranking') loadRanking();
-      if (btn.dataset.tab === 'tribes') { loadMyTribe(); loadTribes(); }
-    });
-  });
-
-  // Search
-  const search = document.getElementById('socialSearch');
-  search.addEventListener('input', debounce(loadPlayers, 300));
-
-  // Panels & lists
-  const playersList = document.getElementById('playersList');
-  const threadsBtn = document.getElementById('openThreads');
-  const threadsPanel = document.getElementById('threadsPanel');
-  const threadsList = document.getElementById('threadsList');
-  const inboxBadge = document.getElementById('inboxBadge');
-  const rankingList = document.getElementById('rankingList');
-  const myTribePanel = document.getElementById('myTribePanel');
-  const tribesList = document.getElementById('tribesList');
-  const createTribeBtn = document.getElementById('createTribeBtn');
-
-  threadsBtn.addEventListener('click', () => {
-    threadsPanel.classList.toggle('hidden');
-  });
-
-  async function loadPlayers(){
-    const q = encodeURIComponent(search.value || '');
-    const data = await api('players' + (q ? `?search=${q}` : ''));
-    if (!data.ok) return;
-    playersList.innerHTML = '';
-    (data.players || []).forEach(p => {
-      const li = document.createElement('li'); li.className = 'item';
-      li.innerHTML = `
-        <div class="avatar">${p.avatar_url ? `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (p.name||'?')[0]}</div>
-        <div>
-          <div class="name">${escapeHtml(p.name || 'Player')}</div>
-          <div class="meta">${p.points ?? 0} chads • ${p.gen_per_hour}/hr • lvl ${p.level}</div>
-        </div>
-        <div>
-          <button class="btn js-dm">send message</button>
-          <div style="height:6px"></div>
-          <button class="btn js-chads">send/receive chads</button>
-        </div>`;
-      li.querySelector('.js-dm').onclick = () => composeMessage(p.user_id, p.name);
-      li.querySelector('.js-chads').onclick = () => openChadsDialog(p.user_id, p.name);
-      playersList.appendChild(li);
-    });
-  }
-
-  async function loadThreads(){
-    const data = await api('messages');
-    if (!data.ok) return;
-    threadsList.innerHTML = '';
-    let unreadSum = 0;
-    (data.threads || []).forEach(t => {
-      unreadSum += (t.unread||0);
-      const li = document.createElement('li'); li.className='item';
-      li.innerHTML = `
-        <div class="avatar">${(t.other_name || '?')[0]}</div>
-        <div>
-          <div class="name">${escapeHtml(t.other_name || 'Player')}</div>
-          <div class="meta">${escapeHtml(t.last_text || '')}</div>
-        </div>
-        <div>${t.unread ? `<span class="badge">${t.unread}</span>`:''}</div>`;
-      threadsList.appendChild(li);
-    });
-    inboxBadge.textContent = unreadSum;
-    inboxBadge.classList.toggle('hidden', unreadSum === 0);
-  }
-
-  async function loadRanking(){
-    const data = await api('ranking');
-    if (!data.ok) return;
-    rankingList.innerHTML = '';
-    (data.ranking || []).forEach((r,i) => {
-      const li = document.createElement('li'); li.className='item';
-      li.innerHTML = `
-        <div class="avatar">${(r.name||'?')[0]}</div>
-        <div>
-          <div class="name">${escapeHtml(r.name || 'Player')}</div>
-          <div class="meta">${escapeHtml(r.tribe_name || '')}</div>
-        </div>
-        <div>#${i+1} place<br>${r.points} chads</div>`;
-      rankingList.appendChild(li);
-    });
-  }
-
-  async function loadMyTribe(){
-    const r = await api('tribes/mine');
-    myTribePanel.innerHTML = '';
-    if (!r.ok || !r.tribe) {
-      myTribePanel.innerHTML = `<div class="meta">no tribe</div>`;
-      return;
+  userPill?.addEventListener('click', () => {
+    overlay?.classList.remove('hidden');
+    overlay?.setAttribute('aria-hidden','false');
+    if (!localStorage.getItem('socialBadgeDismissed')) {
+      localStorage.setItem('socialBadgeDismissed', '1');
+      pillBadge?.classList.add('hidden');
     }
-    const t = r.tribe;
-    const members = r.members || [];
-    myTribePanel.innerHTML = `
-      <h3>Your Tribe: ${escapeHtml(t.name)}</h3>
-      <div class="meta">${escapeHtml(t.description || '')}</div>
-      <div style="height:8px"></div>
-      <div class="meta">Members:</div>
-      <ul class="list">${members.map(m=>`<li class="item">
-        <div class="avatar">${(m.name||'?')[0]}</div>
-        <div><div class="name">${escapeHtml(m.name)}</div><div class="meta">${m.role}</div></div>
-        ${t.founder_id===m.user_id ? '' : '<div><button class="btn js-kick" data-id="'+m.user_id+'">kick</button> <button class="btn js-ban" data-id="'+m.user_id+'">ban</button></div>'}
-      </li>`).join('')}</ul>
-    `;
-    myTribePanel.querySelectorAll('.js-kick').forEach(b=>b.onclick=()=>tribeKick(t.id, b.dataset.id));
-    myTribePanel.querySelectorAll('.js-ban').forEach(b=>b.onclick=()=>tribeBan(t.id, b.dataset.id, true));
+    // default tab load
+    loadPlayers();
+  });
+
+  document.getElementById('btnCloseSocial').addEventListener('click', () => {
+    overlay?.classList.add('hidden');
+    overlay?.setAttribute('aria-hidden','true');
+  });
+
+  /* ---------- Tabs ---------- */
+  const tabs = [...document.querySelectorAll('.tab')];
+  const views = {
+    players: document.getElementById('tabPlayers'),
+    ranking: document.getElementById('tabRanking'),
+    tribes: document.getElementById('tabTribes'),
+  };
+
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    const id = t.dataset.tab;
+    views[id].classList.add('active');
+    if (id === 'players') loadPlayers();
+    if (id === 'ranking') loadRanking();
+    if (id === 'tribes') loadTribes();
+  }));
+
+  /* ---------- Search ---------- */
+  let allPlayers = [];
+  const search = document.getElementById('socialSearch');
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    renderPlayers(q ? allPlayers.filter(p => (p.name||'').toLowerCase().includes(q)) : allPlayers);
+  });
+
+  /* ---------- Players ---------- */
+  async function loadPlayers(){
+    const list = document.getElementById('playersList');
+    list.innerHTML = `<div class="row" style="justify-content:center">Loading players…</div>`;
+    try{
+      const r = await fetch('/api/users_list', { headers: HEADERS });
+      const data = await r.json();
+      allPlayers = (data.players || []).filter(p => !!p.name); // only users who set a name
+      renderPlayers(allPlayers);
+    }catch(e){
+      list.innerHTML = `<div class="row">Failed to load players.</div>`;
+      console.error(e);
+    }
   }
 
-  async function loadTribes(){
-    const r = await api('tribes');
-    tribesList.innerHTML = '';
-    if (!r.ok) return;
-    r.tribes.forEach(t=>{
-      const li = document.createElement('li'); li.className='item';
-      li.innerHTML = `
-        <div class="name">${escapeHtml(t.name)}</div>
-        <div class="meta">${escapeHtml(t.description||'')}</div>
-        <div>
-          <button class="btn js-join">${t.is_request_based ? 'request' : 'join'}</button>
+  function renderPlayers(arr){
+    const me = tg?.initDataUnsafe?.user?.id;
+    const list = document.getElementById('playersList');
+    if (!arr.length) { list.innerHTML = `<div class="row">No players found.</div>`; return; }
+    list.innerHTML = '';
+    arr.forEach(p => {
+      const row = document.createElement('div'); row.className = 'row';
+      row.innerHTML = `
+        <div class="ava">${p.avatar_url ? `<img src="${p.avatar_url}">` : (p.name ? p.name[0].toUpperCase() : '?')}</div>
+        <div class="meta">
+          <div class="name">${p.name || 'Player'}</div>
+          <div class="sub">chads: ${Number(p.points||0).toLocaleString()}</div>
+        </div>
+        <div class="actions" style="display:flex; gap:8px">
+          <button class="btn" data-action="message">send message</button>
+          <button class="btn primary" data-action="chads">send/receive chads</button>
         </div>`;
-      li.querySelector('.js-join').onclick = () => joinTribe(t.id, t.is_request_based);
-      tribesList.appendChild(li);
+
+      row.querySelector('[data-action="message"]').onclick = () => openDM(p.user_id, p.name);
+      row.querySelector('[data-action="chads"]').onclick = () => openChads(p.user_id, p.name);
+      if (String(p.user_id) === String(me)) row.style.opacity = .65; // faint self
+      list.appendChild(row);
     });
   }
 
-  createTribeBtn.onclick = () => openCreateTribeDialog();
-
-  // ---------- Dialogs ----------
-  function composeMessage(toId, name){
-    openDialog(`
-      <div class="box">
-        <h3>Message ${escapeHtml(name)}</h3>
-        <textarea id="msgText" rows="4" style="width:100%"></textarea>
-        <div class="err" id="msgErr"></div>
-        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn" id="cancel">cancel</button>
-          <button class="btn" id="send">send</button>
-        </div>
-      </div>
-    `, (root, close) => {
-      root.querySelector('#cancel').onclick = close;
-      root.querySelector('#send').onclick = async () => {
-        const text = root.querySelector('#msgText').value.trim();
-        if (!text) { root.querySelector('#msgErr').textContent = 'please type a message'; return; }
-        const r = await api('messages/send', { method:'POST', body: JSON.stringify({ to_user_id: toId, text })});
-        if (!r.ok) { root.querySelector('#msgErr').textContent = r.error || 'failed'; return; }
-        close(); loadThreads();
-      };
-    });
+  /* ---------- Ranking ---------- */
+  async function loadRanking(){
+    const list = document.getElementById('rankingList');
+    list.innerHTML = `<div class="row" style="justify-content:center">Loading ranking…</div>`;
+    try{
+      const r = await fetch('/api/ranking_top', { headers: HEADERS });
+      const data = await r.json();
+      list.innerHTML = '';
+      (data.players||[]).forEach((p, i) => {
+        const pos = p.rank || (i+1);
+        const cls = pos===1?'rank-1':pos===2?'rank-2':pos===3?'rank-3':'rank-s';
+        const row = document.createElement('div'); row.className='row';
+        row.innerHTML = `
+          <div class="ava">${p.avatar_url?`<img src="${p.avatar_url}">`:(p.name?p.name[0].toUpperCase():'?')}</div>
+          <div class="meta">
+            <div class="name">${p.name||'Player'}</div>
+            <div class="sub">tribe: ${p.tribe_name || '-'}</div>
+          </div>
+          <div class="rank ${cls}">#${pos} place</div>`;
+        list.appendChild(row);
+      });
+    }catch(e){
+      list.innerHTML = `<div class="row">Failed to load ranking.</div>`;
+      console.error(e);
+    }
   }
 
-  function openChadsDialog(otherId, name){
-    openDialog(`
-      <div class="box">
-        <h3>Chads with ${escapeHtml(name)}</h3>
-        <input id="amt" type="number" min="1" placeholder="amount..." style="width:100%;padding:8px">
-        <div class="err" id="amtErr"></div>
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:10px">
-          <button class="btn" id="req">request chads</button>
-          <button class="btn" id="send">send chads</button>
-        </div>
-      </div>
-    `, (root, close) => {
-      const getAmt = () => Number(root.querySelector('#amt').value);
-      const guard = () => {
-        const a = getAmt();
-        if (!a || a<=0) { root.querySelector('#amtErr').textContent = 'please choose an amount'; return null; }
-        return a;
-      };
-      root.querySelector('#req').onclick = async () => {
-        const a = guard(); if (!a) return;
-        const r = await api('chads/request', { method:'POST', body: JSON.stringify({ from_user_id: otherId, amount: a })});
-        if (!r.ok) { root.querySelector('#amtErr').textContent = r.error || 'failed'; return; }
-        close(); loadThreads(); // request arrives as a DM for them
-      };
-      root.querySelector('#send').onclick = async () => {
-        const a = guard(); if (!a) return;
-        const r = await api('chads/send', { method:'POST', body: JSON.stringify({ to_user_id: otherId, amount: a })});
-        if (!r.ok) { root.querySelector('#amtErr').textContent = r.error || 'failed'; return; }
-        close(); loadThreads();
-      };
-    });
+  /* ---------- Tribes ---------- */
+  async function loadTribes(){
+    const list = document.getElementById('tribesList');
+    list.innerHTML = `<div class="row" style="justify-content:center">Loading tribes…</div>`;
+    try{
+      const r = await fetch('/api/tribes?mode=list', { headers: HEADERS });
+      const data = await r.json();
+      list.innerHTML = '';
+      (data.tribes||[]).forEach(t => {
+        const row = document.createElement('div'); row.className='row';
+        row.innerHTML = `
+          <div class="ava">🏕️</div>
+          <div class="meta">
+            <div class="name">${t.title}</div>
+            <div class="sub">${t.description||''}</div>
+          </div>
+          <div class="actions" style="display:flex; gap:8px">
+            <button class="btn" data-join="${t.id}">${t.is_public ? 'join' : 'request'}</button>
+          </div>`;
+        row.querySelector('[data-join]').onclick = () => joinTribe(t.id);
+        list.appendChild(row);
+      });
+    }catch(e){
+      list.innerHTML = `<div class="row">Failed to load tribes.</div>`;
+    }
   }
 
-  function openCreateTribeDialog(){
-    openDialog(`
-      <div class="box">
-        <h3>Create Tribe</h3>
-        <input id="tname" maxlength="40" placeholder="name" style="width:100%;padding:8px">
-        <textarea id="tdesc" maxlength="160" rows="3" placeholder="description (≤160)" style="width:100%;margin-top:8px"></textarea>
-        <label style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <input id="treq" type="checkbox" checked> request-based
-        </label>
-        <div class="err" id="terr"></div>
-        <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn" id="cancel">cancel</button>
-          <button class="btn" id="create">create</button>
-        </div>
-      </div>
-    `, (root, close) => {
-      root.querySelector('#cancel').onclick = close;
-      root.querySelector('#create').onclick = async () => {
-        const name = root.querySelector('#tname').value.trim();
-        const description = root.querySelector('#tdesc').value.trim();
-        const reqBased = root.querySelector('#treq').checked;
-        if (!name) { root.querySelector('#terr').textContent = 'name required'; return; }
-        const r = await api('tribes/create', { method:'POST', body: JSON.stringify({ name, description, is_request_based: reqBased })});
-        if (!r.ok) { root.querySelector('#terr').textContent = r.error || 'failed'; return; }
-        close(); loadMyTribe(); loadTribes();
-      };
-    });
+  document.getElementById('btnCreateTribe').onclick = async () => {
+    const title = prompt('Choose the name of the tribe (max 24 chars):','');
+    if (!title) return;
+    const desc  = prompt('Description (<=160 chars, emojis OK):','') || '';
+    if (desc.length>160) return alert('Description must be ≤ 160 characters.');
+    const mode = confirm('OK = Free to public. Cancel = Requested') ? 'public' : 'request';
+    try{
+      const r = await fetch('/api/tribes', { method:'POST', headers:HEADERS, body:JSON.stringify({ action:'create', title, description:desc, mode }) });
+      const data = await r.json();
+      if (!data.ok) return alert(data.reason || 'failed');
+      alert('Tribe created!');
+      loadTribes();
+    }catch(e){ alert('failed'); }
+  };
+
+  async function joinTribe(id){
+    const r = await fetch('/api/tribes', { method:'POST', headers:HEADERS, body:JSON.stringify({ action:'join', id })});
+    const d = await r.json();
+    if (!d.ok) return alert(d.reason||'failed');
+    alert(d.mode==='public' ? 'Joined!' : 'Request sent to the founder.');
   }
 
-  async function joinTribe(id, reqBased){
-    const r = await api('tribes/join', { method:'POST', body: JSON.stringify({ tribe_id: id })});
-    if (r.ok) { loadMyTribe(); loadTribes(); }
-  }
-  async function tribeKick(tribeId, userId){ await api('tribes/kick', { method:'POST', body: JSON.stringify({ tribe_id: tribeId, member_id: Number(userId) })}); loadMyTribe(); }
-  async function tribeBan(tribeId, userId, on){ await api('tribes/ban', { method:'POST', body: JSON.stringify({ tribe_id: tribeId, member_id: Number(userId), banned: !!on })}); loadMyTribe(); }
-
-  // Mini dialog helper
-  function openDialog(html, onReady){
-    const root = document.createElement('div');
-    root.className='dialog';
-    root.innerHTML = html;
-    document.body.appendChild(root);
-    const close = () => { root.remove(); };
-    onReady(root, close);
-    root.addEventListener('click', e => { if (e.target===root) close(); });
+  /* ---------- Messages & Chads (lightweight modals via prompt/confirm) ---------- */
+  async function openDM(uid, name){
+    const text = prompt(`Send message to @${name || uid}:`, '');
+    if (!text) return;
+    const r = await fetch('/api/messages', { method:'POST', headers:HEADERS, body:JSON.stringify({ to:uid, text }) });
+    const d = await r.json(); if (!d.ok) alert('failed');
   }
 
-  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(null,a),ms); }; }
-  function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+  async function openChads(uid, name){
+    const send = confirm(`Send chads to @${name}? Press OK to SEND, Cancel to REQUEST.`);
+    const amt = Number(prompt('Amount of chads:', ''));
+    if (!amt || amt<=0) return alert('please choose an amount');
+    const r = await fetch('/api/chads', { method:'POST', headers:HEADERS, body:JSON.stringify({ to:uid, amount:amt, mode: send?'send':'request' })});
+    const d = await r.json(); if (!d.ok) alert(d.reason||'failed');
+    // a message will appear for the other party via /api/messages
+  }
+
+  // messages badge (unread count)
+  async function refreshBadge(){
+    try{
+      const r = await fetch('/api/messages?mode=unread', { headers: HEADERS });
+      const d = await r.json();
+      const badge = document.getElementById('msgBadge');
+      const n = Number(d.unread||0);
+      if (n>0){ badge.textContent = n; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    }catch{}
+  }
+  setInterval(refreshBadge, 15000);
+  refreshBadge();
 })();
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
