@@ -7,6 +7,93 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
+/* ===== Social UI ===== */
+.social-overlay { position:fixed; inset:0; display:grid; place-items:center; z-index:9999;
+  background: radial-gradient(900px 400px at 10% 0%, rgba(75,150,255,0.10), transparent 40%),
+              linear-gradient(180deg,#08131b,#0a0f13);
+  padding: 18px; }
+.social-overlay.hidden { display:none; }
+.social-frame { width:min(1000px, 100%); height:min(90vh, 100%); border-radius:22px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.06);
+  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  box-shadow: 0 30px 100px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.06);
+  display:flex; flex-direction:column; }
+
+.social-top { display:flex; align-items:center; gap:10px; padding:14px 16px; background:rgba(0,0,0,.25); }
+.tabs { display:flex; gap:10px; }
+.tab { padding:10px 16px; border-radius:14px; font-weight:800; color:#c7ced6; background:#0b0f14; border:1px solid rgba(255,255,255,.06);
+  box-shadow: 0 18px 60px rgba(0,0,0,.6); cursor:pointer; }
+.tab.is-active { outline:2px solid #4aa3ff; color:#eaf0f6; }
+.right-tools { display:flex; align-items:center; gap:10px; margin-left:auto; }
+.search { width:210px; padding:10px 12px; background:#0b0f14; color:#eaf0f6; border-radius:12px;
+  border:1px solid rgba(255,255,255,.08); }
+.close-x { width:40px; height:40px; border-radius:12px; background:#0b0f14; border:1px solid rgba(255,255,255,.08); color:#c7ced6; }
+.badge, .badge2 { min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#ff4757; color:#fff; font-weight:900;
+  display:grid; place-items:center; font-size:12px; }
+.badge2 { transform: translateY(-1px); }
+
+.social-body { flex:1; overflow:auto; padding:14px; }
+.tab-panel { display:none; }
+.tab-panel.is-active { display:block; }
+
+.list { display:grid; gap:10px; }
+.card { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px;
+  border-radius:16px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); }
+.card .avatar { width:46px; height:46px; border-radius:999px; overflow:hidden; display:grid; place-items:center;
+  background:conic-gradient(from 210deg,#8bd3ff,#6ce8ff,#a8e0ff); color:#07131b; font-weight:900; }
+.card .name { font-weight:800; color:#eaf0f6; }
+.card .sub { color:#9aa3ab; font-size:12px; }
+.btn { border-radius:12px; padding:10px 14px; font-weight:800; cursor:pointer; user-select:none; border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,#0b0f14,#0f1012); color:#eaf0f6; }
+.btn.primary { background:linear-gradient(180deg,#0d4df0,#0a35a8); border-color:#1951ff; }
+.btn.ghost { background:transparent; }
+.btn.warn { background:linear-gradient(180deg,#f00,#b30404); }
+
+.messages-btn { position:sticky; bottom:0; margin-top:16px; width:150px; padding:10px 14px; border-radius:12px; background:#fff;
+  color:#000; font-weight:900; border:none; }
+.messages-btn .badge2 { margin-left:6px; }
+
+.rank-1 { background: linear-gradient(180deg,#ffea9b,#b98a00); color:#051022; }
+.rank-2 { background: linear-gradient(180deg,#e7c9ff,#7c3aed); }
+.rank-3 { background: linear-gradient(180deg,#c7ffca,#25c25a); }
+.rank-n { background: linear-gradient(180deg,#bcc7d6,#6b7280); }
+.rank-label { font-weight:900; opacity:.95; }
+
+.create-tribe { margin-top:16px; display:grid; gap:10px; }
+.create-tribe .row { display:flex; gap:10px; }
+.create-tribe input, .create-tribe textarea, .create-tribe select {
+  background:#0b0f14; color:#eaf0f6; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px;
+}
+.your-tribe { margin-top:18px; padding:12px; border-radius:16px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); }
+.yt-header{ display:flex; align-items:center; justify-content:space-between; }
+.yt-body{ display:grid; grid-template-columns:180px 1fr; gap:10px; margin-top:10px; }
+.members { display:grid; gap:8px; }
+.member { padding:8px; border-radius:10px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); }
+
+.dm-drawer { position:fixed; right:18px; bottom:18px; width:min(900px, calc(100% - 36px)); height:min(70vh, 620px);
+  border-radius:18px; overflow:hidden; background:rgba(14,18,24,.98); border:1px solid rgba(255,255,255,.06); box-shadow:0 30px 100px rgba(0,0,0,.65); }
+.dm-drawer.hidden{ display:none; }
+.dm-head{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(255,255,255,.02); }
+.dm-body{ display:grid; grid-template-columns:260px 1fr; height:calc(100% - 48px); }
+.threads{ overflow:auto; border-right:1px solid rgba(255,255,255,.06); }
+.thread{ padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer; }
+.thread .meta{ display:flex; align-items:center; gap:8px; }
+.thread .unread{ margin-left:auto; }
+.dm-chat{ display:grid; grid-template-rows:1fr auto; }
+.log{ padding:12px; overflow:auto; }
+.msg{ margin:6px 0; }
+.msg.me{ text-align:right; }
+.dm-send{ display:flex; gap:8px; padding:8px; border-top:1px solid rgba(255,255,255,.06); }
+.dm-send input{ flex:1; padding:10px 12px; border-radius:12px; background:#0b0f14; color:#eaf0f6; border:1px solid rgba(255,255,255,.08); }
+
+/* little one-time badge on the wood user pill */
+#userPill .one-time-dot { position:absolute; right:-6px; top:-6px; width:20px; height:20px; border-radius:999px; display:grid; place-items:center;
+  background:#ff4757; color:#fff; font-weight:900; font-size:12px; box-shadow:0 6px 16px rgba(0,0,0,.45); }
+@media (max-width: 720px){
+  .yt-body{ grid-template-columns:1fr; }
+  .dm-body{ grid-template-columns:1fr; grid-template-rows:220px 1fr; }
+}
+
 
 /* ===== Social overlay ===== */
 .overlay{position:fixed; inset:0; background:rgba(0,0,0,.65);
@@ -1002,6 +1089,95 @@ canvas{ display:block }
   </div>
 </div>
 <!-- ===== /SHOP OVERLAY ===== -->
+
+<!-- ===== Social Overlay ===== -->
+<div id="socialOverlay" class="social-overlay hidden" aria-hidden="true">
+  <div class="social-frame">
+    <div class="social-top">
+      <div class="tabs">
+        <button class="tab is-active" data-tab="players">players</button>
+        <button class="tab" data-tab="ranking">ranking</button>
+        <button class="tab" data-tab="tribes">tribes</button>
+      </div>
+      <div class="right-tools">
+        <div class="badge" id="msgBadge" hidden>0</div>
+        <input id="searchUsers" class="search" maxlength="40" placeholder="search username..." />
+        <button class="close-x" id="socialClose" aria-label="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="social-body">
+      <!-- PLAYERS -->
+      <section id="tab-players" class="tab-panel is-active">
+        <div id="playersList" class="list"></div>
+        <button class="messages-btn" id="openMessages">
+          messages <span class="badge2" id="messagesUnread" hidden>0</span>
+        </button>
+      </section>
+
+      <!-- RANKING -->
+      <section id="tab-ranking" class="tab-panel">
+        <div id="rankingList" class="list"></div>
+      </section>
+
+      <!-- TRIBES -->
+      <section id="tab-tribes" class="tab-panel">
+        <div id="tribesList" class="list"></div>
+
+        <div class="create-tribe">
+          <div class="row">
+            <input id="tribeName" maxlength="40" placeholder="tribe name" />
+            <select id="tribeVis">
+              <option value="public">free to public</option>
+              <option value="requested">requested</option>
+            </select>
+          </div>
+          <textarea id="tribeDesc" maxlength="160" placeholder="description (max 160, emojis ok)"></textarea>
+          <button id="btnCreateTribe" class="primary">create tribe</button>
+        </div>
+
+        <div id="yourTribe" class="your-tribe" hidden>
+          <div class="yt-header">
+            <div class="left">
+              <strong id="ytName"></strong>
+              <small id="ytMeta"></small>
+            </div>
+            <button id="btnRefreshYT">refresh</button>
+          </div>
+          <div class="yt-body">
+            <aside class="members" id="ytMembers"></aside>
+            <div class="chat">
+              <div class="chatlog" id="ytChat"></div>
+              <div class="chatsend">
+                <input id="ytText" placeholder="type a message…" />
+                <button id="ytSend">send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Drawer for DMs -->
+  <div id="dmDrawer" class="dm-drawer hidden" aria-hidden="true">
+    <div class="dm-head">
+      <strong>messages</strong>
+      <button id="dmClose">✕</button>
+    </div>
+    <div class="dm-body">
+      <aside id="dmThreads" class="threads"></aside>
+      <div class="dm-chat">
+        <div id="dmLog" class="log"></div>
+        <div class="dm-send">
+          <input id="dmText" placeholder="message…" />
+          <button id="dmSend">send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /Social Overlay -->
 
 
     <!-- USERNAME overlay (step 1) -->
@@ -2100,6 +2276,334 @@ function buildGrid(container, cols, rows){
     clear(x,y){ const el=cells[idx(x,y)]; if(el){ el.className='cell'; } },
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
+
+
+// ===== Social Overlay logic =====
+const tg = window.Telegram?.WebApp;
+const INIT_HEADER = () => tg?.initData || '';
+
+const overlay = document.getElementById('socialOverlay');
+const userPill = document.getElementById('userPill');
+const closeBtn = document.getElementById('socialClose');
+
+const tabs = [...document.querySelectorAll('.tab')];
+const panels = {
+  players: document.getElementById('tab-players'),
+  ranking: document.getElementById('tab-ranking'),
+  tribes:  document.getElementById('tab-tribes'),
+};
+const searchUsers = document.getElementById('searchUsers');
+const playersList = document.getElementById('playersList');
+const rankingList = document.getElementById('rankingList');
+const tribesList = document.getElementById('tribesList');
+const msgBadge = document.getElementById('msgBadge');
+const messagesUnread = document.getElementById('messagesUnread');
+
+const dmDrawer = document.getElementById('dmDrawer');
+const dmThreads = document.getElementById('dmThreads');
+const dmLog = document.getElementById('dmLog');
+let dmPeer = null;
+
+function showOverlay(){
+  overlay.classList.remove('hidden');
+  if (!localStorage.getItem('social-seen')) {
+    localStorage.setItem('social-seen', '1');
+    // remove red '1' from wood pill if present
+    const dot = userPill?.querySelector('.one-time-dot'); if (dot) dot.remove();
+  }
+  loadPlayers();
+  loadRanking();
+  loadTribesList();
+  refreshUnread();
+}
+function hideOverlay(){ overlay.classList.add('hidden'); }
+userPill?.addEventListener('click', showOverlay);
+closeBtn?.addEventListener('click', hideOverlay);
+
+// one-time red “1” above the wood pill (first open only)
+(function ensureOneTimeDot(){
+  if (!userPill) return;
+  if (!localStorage.getItem('social-seen')) {
+    const dot = document.createElement('div');
+    dot.className = 'one-time-dot';
+    dot.textContent = '1';
+    userPill.style.position = 'relative';
+    userPill.appendChild(dot);
+  }
+})();
+
+tabs.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    tabs.forEach(b=>b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    const id = btn.dataset.tab;
+    Object.values(panels).forEach(p=>p.classList.remove('is-active'));
+    panels[id].classList.add('is-active');
+  });
+});
+
+searchUsers.addEventListener('input', debounce(()=> loadPlayers(searchUsers.value.trim()), 300));
+
+async function apiGet(url){
+  const r = await fetch(url, { headers: {'telegram-init-data': INIT_HEADER()} });
+  if (!r.ok) throw new Error(url+' '+r.status);
+  return r.json();
+}
+async function apiPost(url, data){
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'telegram-init-data': INIT_HEADER() },
+    body: JSON.stringify(data||{})
+  });
+  if (!r.ok) throw new Error(url+' '+r.status);
+  return r.json();
+}
+
+/* ------ PLAYERS ------ */
+async function loadPlayers(q=''){
+  playersList.innerHTML = '';
+  const data = await apiGet('/api/users_list'+(q? ('?q='+encodeURIComponent(q)):''));
+  if (!data.ok) return;
+  if (!data.players.length){
+    playersList.innerHTML = `<div class="sub" style="padding:10px 4px">No players yet.</div>`;
+    return;
+  }
+  for (const p of data.players){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const av = document.createElement('div');
+    av.className = 'avatar'; av.textContent = initials(p.name);
+    const mid = document.createElement('div');
+    mid.innerHTML = `<div class="name">${escapeHtml(p.name)}</div>
+                     <div class="sub">${Number(p.points||0).toLocaleString()} chad</div>`;
+
+    const actions = document.createElement('div');
+    actions.style.display = 'grid';
+    actions.style.gap = '8px';
+    const btnMsg = button('Message', ()=> openDM(p.user_id, p.name));
+    const btnChad = button('Send/Receive chads', ()=> openTransferDialog(p.user_id, p.name));
+    actions.append(btnMsg, btnChad);
+
+    card.append(av, mid, actions);
+    playersList.append(card);
+  }
+}
+function button(label, fn, kind=''){ const b=document.createElement('button'); b.className='btn '+kind; b.textContent=label; b.onclick=fn; return b; }
+function initials(name){ return (name||'?').split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+/* ------ RANKING ------ */
+async function loadRanking(){
+  rankingList.innerHTML='';
+  const data = await apiGet('/api/ranking_top');
+  if (!data.ok) return;
+  for (const r of data.ranking){
+    const card = document.createElement('div');
+    const rankClass = r.rnk===1?'rank-1': r.rnk===2?'rank-2': r.rnk===3?'rank-3':'rank-n';
+    card.className = 'card '+rankClass;
+
+    const av = document.createElement('div'); av.className='avatar'; av.textContent=initials(r.name);
+    const mid = document.createElement('div');
+    mid.innerHTML = `<div class="name">${escapeHtml(r.name)}</div>
+                     <div class="sub">tribe: ${escapeHtml(r.tribe_name||'—')}</div>`;
+    const right = document.createElement('div'); right.innerHTML = `<div class="rank-label">#${r.rnk} place</div>
+      <div class="sub" style="text-align:right">${Number(r.points||0).toLocaleString()} chad</div>`;
+    card.append(av, mid, right);
+    rankingList.append(card);
+  }
+}
+
+/* ------ TRIBES ------ */
+async function loadTribesList(){
+  tribesList.innerHTML='';
+  const data = await apiGet('/api/tribes?mode=list');
+  if (!data.ok) return;
+  for (const t of data.tribes){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const logo = document.createElement('div'); logo.className='avatar'; logo.textContent = initials(t.name);
+    const mid = document.createElement('div');
+    mid.innerHTML = `<div class="name">${escapeHtml(t.name)}</div>
+                     <div class="sub">${escapeHtml(t.description||'')}</div>`;
+    const actions = document.createElement('div');
+    actions.style.display='grid'; actions.style.gap='8px';
+    const joinLabel = t.is_public ? 'Join' : 'Request to join';
+    actions.append(button(joinLabel, ()=> joinTribe(t.id, t.is_public)));
+    card.append(logo, mid, actions);
+    tribesList.append(card);
+  }
+  // also try to load "your tribe"
+  refreshYourTribe();
+}
+async function joinTribe(id, isPublic){
+  const r = await apiPost('/api/tribes', { mode:'join', tribe_id:id });
+  if (r.ok && r.joined) { popup('Joined tribe!'); refreshYourTribe(); }
+  else if (r.ok && r.requested) { popup('Request sent to founder.'); }
+  else popup('Could not join.');
+}
+document.getElementById('btnCreateTribe').onclick = async ()=>{
+  const name = document.getElementById('tribeName').value.trim();
+  const description = document.getElementById('tribeDesc').value.trim();
+  const visibility = document.getElementById('tribeVis').value;
+  if (!name) return popup('Choose a tribe name.');
+  if (description.length > 160) return popup('Description too long.');
+  const r = await apiPost('/api/tribes', { mode:'create', name, description, visibility });
+  if (r.ok) { popup('Tribe created!'); document.getElementById('tribeName').value=''; document.getElementById('tribeDesc').value=''; loadTribesList(); }
+};
+async function refreshYourTribe(){
+  const box = document.getElementById('yourTribe');
+  const r = await apiGet('/api/tribes?mode=mine');
+  if (!r.ok || !r.tribe){ box.hidden = true; return; }
+  box.hidden = false;
+  document.getElementById('ytName').textContent = r.tribe.name;
+  document.getElementById('ytMeta').textContent = `${r.members.length} members`;
+  const mwrap = document.getElementById('ytMembers'); mwrap.innerHTML='';
+  for (const m of r.members){
+    const div = document.createElement('div');
+    div.className = 'member';
+    div.innerHTML = `<strong>${escapeHtml(m.name)}</strong><br/><small>${m.role}</small>`;
+    mwrap.append(div);
+  }
+  const chat = document.getElementById('ytChat'); chat.innerHTML='';
+  for (const m of r.messages){
+    const row = document.createElement('div'); row.className='msg';
+    row.innerHTML = `<strong>${escapeHtml(m.from_name)}:</strong> ${escapeHtml(m.body)}`;
+    chat.append(row);
+  }
+}
+document.getElementById('btnRefreshYT').onclick = refreshYourTribe;
+document.getElementById('ytSend').onclick = async ()=>{
+  const text = document.getElementById('ytText').value.trim();
+  if (!text) return;
+  const mine = await apiGet('/api/tribes?mode=mine'); if (!mine.ok || !mine.tribe) return;
+  const r = await apiPost('/api/tribes', { mode:'post_message', tribe_id: mine.tribe.id, text });
+  if (r.ok){ document.getElementById('ytText').value=''; refreshYourTribe(); }
+};
+
+/* ------ DMs ------ */
+document.getElementById('openMessages').onclick = ()=> openDM();
+document.getElementById('dmClose').onclick = ()=> dmDrawer.classList.add('hidden');
+document.getElementById('dmSend').onclick = sendDM;
+
+async function openDM(peerId=null, peerName=''){
+  dmDrawer.classList.remove('hidden');
+  await loadThreads();
+  if (peerId) { await openThread(peerId, peerName); }
+}
+async function loadThreads(){
+  dmThreads.innerHTML='';
+  const r = await apiGet('/api/messages?mode=threads');
+  if (!r.ok) return;
+  for (const t of r.threads){
+    const div = document.createElement('div');
+    div.className = 'thread';
+    div.onclick = ()=> openThread(t.peer_id, t.peer_name);
+    div.innerHTML = `<div class="meta"><div class="avatar" style="width:34px;height:34px">${initials(t.peer_name||'?')}</div>
+                     <div><div><strong>${escapeHtml(t.peer_name||'User')}</strong></div>
+                     <small class="sub">${escapeHtml(t.body.slice(0,80))}</small></div>
+                     <div class="unread">${t.unread? `<span class="badge2">${t.unread}</span>`:''}</div></div>`;
+    dmThreads.append(div);
+  }
+}
+async function openThread(peerId, peerName){
+  dmPeer = peerId; dmLog.innerHTML='';
+  const r = await apiGet('/api/messages?mode=history&peer='+encodeURIComponent(peerId));
+  if (!r.ok) return;
+  for (const m of r.history){
+    const div = document.createElement('div');
+    div.className = 'msg ' + (String(m.from_id)===tg?.initDataUnsafe?.user?.id ? 'me':'');
+    let text = m.kind === 'transfer_request'
+      ? renderTransferRequest(m)
+      : escapeHtml(m.body);
+    div.innerHTML = text;
+    dmLog.append(div);
+  }
+  refreshUnread();
+}
+function renderTransferRequest(m){
+  // body is JSON: { direction, amount }
+  let data = {};
+  try{ data = JSON.parse(m.body); }catch{}
+  const dir = data.direction==='send' ? 'send' : 'request';
+  const amt = Number(data.amount||0).toLocaleString();
+  return `<div><strong>Chads ${dir}</strong> — ${amt}
+          <div style="margin-top:6px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn primary" onclick="acceptTransfer(${m.transfer_id})">accept</button>
+            <button class="btn ghost" onclick="declineTransfer(${m.transfer_id})">decline</button>
+          </div></div>`;
+}
+async function sendDM(){
+  const text = document.getElementById('dmText').value.trim();
+  if (!text || !dmPeer) return;
+  const r = await apiPost('/api/messages', { to: dmPeer, text });
+  if (r.ok){ document.getElementById('dmText').value=''; openThread(dmPeer); }
+}
+async function acceptTransfer(id){
+  const r = await apiPost('/api/chads', { mode:'accept', transfer_id: id });
+  popup(r.ok ? 'Transfer accepted' : 'Could not accept'); openThread(dmPeer); refreshRankingAndPlayers();
+}
+async function declineTransfer(id){
+  const r = await apiPost('/api/chads', { mode:'decline', transfer_id: id });
+  popup(r.ok ? 'Declined' : 'Could not decline'); openThread(dmPeer);
+}
+async function refreshUnread(){
+  const r = await apiGet('/api/messages?mode=unread');
+  if (r.ok){
+    if (r.unread>0){ msgBadge.hidden=false; msgBadge.textContent=r.unread; messagesUnread.hidden=false; messagesUnread.textContent=r.unread; }
+    else { msgBadge.hidden=true; messagesUnread.hidden=true; }
+  }
+}
+
+/* ------ Send/Request Chads dialog ------ */
+async function openTransferDialog(userId, name){
+  const amt = await promptAmount(`Send / Request chads with ${name}`, 'Choose an amount…');
+  if (!amt) return;
+  const action = await promptChoice('Choose action', ['send','request']); // send => you pay; request => they pay
+  if (!action) return;
+
+  const r = await apiPost('/api/chads', { mode: action, to: userId, amount: amt });
+  if (r.ok) { popup('Request sent. They must accept.'); openDM(userId, name); }
+  else popup('Failed to create request');
+}
+function promptAmount(title, ph){
+  return new Promise(resolve=>{
+    const w = document.createElement('div');
+    Object.assign(w.style,{position:'fixed',inset:'0',display:'grid',placeItems:'center',background:'rgba(0,0,0,.5)',zIndex:10000});
+    w.innerHTML = `<div style="background:#0b0f14;border:1px solid rgba(255,255,255,.08);padding:16px;border-radius:14px;width:320px">
+      <div style="font-weight:900;margin-bottom:8px">${escapeHtml(title)}</div>
+      <input id="amt" type="number" min="1" placeholder="${escapeHtml(ph)}" style="width:100%;padding:10px;border-radius:10px;background:#0b0f14;color:#eaf0f6;border:1px solid rgba(255,255,255,.08)"/>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn ghost" id="c">cancel</button><button class="btn primary" id="ok">ok</button>
+      </div></div>`;
+    document.body.append(w);
+    w.querySelector('#c').onclick=()=>{ w.remove(); resolve(null); };
+    w.querySelector('#ok').onclick=()=>{ const v=Number(w.querySelector('#amt').value); w.remove(); resolve(v>0?v:null); };
+  });
+}
+function promptChoice(title, options){
+  return new Promise(resolve=>{
+    const w=document.createElement('div');
+    Object.assign(w.style,{position:'fixed',inset:'0',display:'grid',placeItems:'center',background:'rgba(0,0,0,.5)',zIndex:10000});
+    w.innerHTML=`<div style="background:#0b0f14;border:1px solid rgba(255,255,255,.08);padding:16px;border-radius:14px;width:320px">
+      <div style="font-weight:900;margin-bottom:8px">${escapeHtml(title)}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">${options.map(o=>`<button class="btn" data-v="${o}">${o}</button>`).join('')}</div>
+    </div>`;
+    document.body.append(w);
+    w.querySelectorAll('button[data-v]').forEach(b=> b.onclick=()=>{ const v=b.dataset.v; w.remove(); resolve(v); });
+  });
+}
+
+/* utils */
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+function popup(text){
+  const el = document.createElement('div');
+  Object.assign(el.style,{ position:'fixed', left:'50%', top:'20px', transform:'translateX(-50%)', zIndex:10001,
+    background:'#0b0f14', color:'#eaf0f6', padding:'10px 14px', borderRadius:'10px', border:'1px solid rgba(255,255,255,.08)'});
+  el.textContent = text; document.body.append(el); setTimeout(()=> el.remove(), 2200);
+}
+async function refreshRankingAndPlayers(){ loadRanking(); loadPlayers(searchUsers.value.trim()); }
+
+
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
