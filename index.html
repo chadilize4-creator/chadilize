@@ -7,158 +7,135 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
- /* Namespaced to #luckFeature to avoid bleeding styles */
-  #luckFeature { width:100%; display:flex; justify-content:center; margin:24px 0 6px; }
-  #luckFeature .tyl-wrap { text-align:center; }
+/* --- Floating FAB --- */
+.luck-fab{
+  position:fixed;
+  left:18px;                /* tweak if needed to sit above your "Play Games" */
+  bottom:110px;             /* tweak to keep it above your bottom bar */
+  z-index:1000;
+  width:86px;height:86px;
+  border-radius:18px;
+  background: radial-gradient(60% 60% at 50% 45%, #fff6, #0000),
+              linear-gradient(180deg,#e7b65a,#b8860b);
+  box-shadow: 0 0 0 0 rgba(255,215,0,0.7);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  overflow:hidden;
+  border:2px solid #ffd70055;
+  animation:pulseGlow 2.2s ease-in-out infinite;
+}
+.luck-fab img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.luck-fab[disabled]{ filter: grayscale(1) brightness(0.6); animation:none; cursor:not-allowed; }
+.luck-fab-timer{
+  position:absolute; bottom:-18px; left:50%; transform:translateX(-50%);
+  font:600 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background:#000c; color:#fff; padding:4px 8px; border-radius:999px;
+  box-shadow:0 6px 16px #0008;
+}
 
-  /* The image *is* the button — uses your PNG as the texture */
-  #luckFeature .tyl-btn {
-    -webkit-tap-highlight-color: transparent;
-    appearance: none; border:0; padding:0; background: transparent;
-    position: relative; display:inline-block;
-    width:min(62vw, 320px); /* responsive width */
-    aspect-ratio: 2.9 / 1;  /* keep the PNG’s shape (adjust if your image ratio differs) */
-    cursor: pointer; outline: none;
-    filter: drop-shadow(0 10px 22px rgba(0,0,0,.55));
-  }
-  /* Show the PNG itself */
-  #luckFeature .tyl-btn::before{
-    content:""; position:absolute; inset:0; border-radius:16px;
-    background: url("./img/testyourluck.png") center/contain no-repeat;
-  }
-  /* Glowing pulsing rim (gold) */
-  #luckFeature .tyl-btn::after{
-    content:""; position:absolute; inset:-10px; border-radius:20px;
-    box-shadow: 0 0 0 0 rgba(255,205,80,.75), 0 0 26px 8px rgba(255,180,0,.55) inset;
-    animation: tylGlow 1.6s ease-in-out infinite;
-    pointer-events:none;
-  }
-  @keyframes tylGlow{
-    0%,100%{ box-shadow: 0 0 0 0 rgba(255,205,80,.7), 0 0 24px 6px rgba(255,180,0,.5) inset; }
-    50%   { box-shadow: 0 0 36px 8px rgba(255,205,80,.95), 0 0 36px 10px rgba(255,140,0,.6) inset; }
-  }
+/* Glow */
+@keyframes pulseGlow{
+  0%   { box-shadow:0 0 0 0 rgba(255,215,0,0.75); }
+  70%  { box-shadow:0 0 24px 16px rgba(255,215,0,0.08); }
+  100% { box-shadow:0 0 0 0 rgba(255,215,0,0.0); }
+}
 
-  /* Disabled state during cooldown */
-  #luckFeature .tyl-btn.disabled { cursor:not-allowed; }
-  #luckFeature .tyl-btn.disabled::before{ filter: grayscale(1) brightness(.6); }
-  #luckFeature .tyl-btn.disabled::after{ animation:none; opacity:.25; }
+/* --- Modal --- */
+.luck-modal{
+  position:fixed; inset:0; z-index:1001;
+  display:none; align-items:center; justify-content:center;
+  background:radial-gradient(80% 80% at 50% 20%, #0008, #000e);
+  backdrop-filter: blur(4px);
+}
+.luck-modal.open{ display:flex; }
+.luck-card{
+  width:min(92vw, 720px);
+  height:min(88vh, 860px);
+  background:linear-gradient(180deg,#111,#0b0b0b);
+  border-radius:24px;
+  border:1px solid #ffffff10;
+  box-shadow:0 30px 120px #000c, inset 0 1px 0 #fff1;
+  padding:22px 22px 28px;
+  position:relative;
+}
+.luck-card.is-locked{ filter:grayscale(1) brightness(0.7); }
 
-  /* Cooldown text under the button */
-  #luckFeature .cooldown {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    color:#c9c9c9; font-size:14px; margin-top:8px; min-height:1.2em;
-    text-shadow: 0 1px 2px rgba(0,0,0,.5);
-  }
+/* Close */
+.luck-close{
+  position:absolute; top:14px; right:14px;
+  width:44px;height:44px;border-radius:12px;
+  border:none; background:linear-gradient(180deg,#7a1f1f,#4d0f0f);
+  color:#fff; font-size:20px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px #0008, inset 0 1px 0 #fff2;
+}
+.luck-close:hover{ filter:brightness(1.08); }
 
-  /* Modal overlay */
-  #luckModal.backdrop {
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background: radial-gradient(120% 100% at 50% 0%, rgba(0,0,0,.7), rgba(0,0,0,.9));
-    z-index:9999; padding:14px;
-  }
-  #luckModal.backdrop.open { display:flex; }
+/* Wheel */
+.wheel-wrap{
+  position:relative; margin:62px auto 18px; width:min(86vw, 560px); height:auto;
+}
+#wheelCanvas{
+  width:100%; height:auto; display:block; margin:0 auto;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,.5));
+  transition: transform 6.2s cubic-bezier(.15,.8,.15,1);
+  border-radius:50%;
+  background: radial-gradient(60% 60% at 50% 45%, #fff2, #0000);
+}
+.wheel-arrow{
+  position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+  width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
+  border-bottom:32px solid #ffb22f;
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,.45));
+}
 
-  /* The modal card (nearly fullscreen, slightly inset) */
-  #luckModal .card {
-    width:min(720px, 94vw);
-    height:min(86vh, 720px);
-    border-radius:22px; padding:18px 18px 22px;
-    background:
-      radial-gradient(120% 120% at 50% -10%, rgba(255,255,255,.08), rgba(255,255,255,.02)),
-      linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    box-shadow: 0 25px 60px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.06);
-    position:relative; display:flex; flex-direction:column; align-items:center; gap:14px;
-    backdrop-filter: blur(6px);
-  }
-  /* Close (red X) */
-  #luckModal .close {
-    position:absolute; top:14px; right:14px;
-    width:42px; height:42px; border-radius:12px;
-    background: linear-gradient(180deg, #ff6b6b, #b91c1c);
-    color:#fff; border:0; display:grid; place-items:center; font-size:22px;
-    box-shadow: 0 6px 22px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.25);
-    cursor:pointer;
-  }
+/* Spin button */
+.spin-btn{
+  display:block; margin:18px auto 8px;
+  padding:18px 28px; min-width:280px;
+  font:800 18px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  letter-spacing:.04em; text-transform:uppercase;
+  border:none; border-radius:16px; color:#1b1606;
+  box-shadow:0 16px 40px rgba(0,0,0,.45), inset 0 1px 0 #fff6;
+  cursor:pointer;
+  background:linear-gradient(180deg,#ff6262,#ffd54a);
+  animation:colorCycle 3s steps(3,end) infinite;
+}
+.spin-btn:active{ transform:translateY(1px); }
+.spin-btn[disabled]{ animation:none; cursor:not-allowed; background:#343434; color:#888; }
 
-  /* Wheel area */
-  #luckModal .wheelBox { position:relative; width:100%; display:flex; justify-content:center; margin-top:8px; }
-  #luckModal .ring {
-    width:min(84vw, 540px); aspect-ratio:1/1; border-radius:50%;
-    background:
-      radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.08), rgba(255,255,255,0) 70%),
-      radial-gradient(100% 100% at 50% 50%, rgba(255,220,120,.2), rgba(255,200,0,.08) 55%, rgba(0,0,0,.3) 56%),
-      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0));
-    box-shadow: 0 18px 50px rgba(0,0,0,.6), inset 0 0 0 3px rgba(255,255,255,.12), inset 0 0 0 14px rgba(0,0,0,.25);
-    position:relative; display:grid; place-items:center; overflow:hidden;
-  }
-  /* the rotating element that holds the canvas */
-  #luckModal .rotor { width:87%; aspect-ratio:1/1; border-radius:50%; transform:rotate(0deg); transition: transform 5.8s cubic-bezier(.12,.85,.12,1); }
-  #luckModal .wheelCanvas { width:100%; height:100%; display:block; }
-  /* bezel dots */
-  #luckModal .ring::after{
-    content:""; position:absolute; inset:12px;
-    border-radius:50%;
-    background:
-      radial-gradient(circle at 50% 2%, rgba(255,255,255,.45) 0 2px, transparent 3px),
-      radial-gradient(circle at 68% 16%, rgba(255,255,255,.45) 0 2px, transparent 3px),
-      radial-gradient(circle at 28% 14%, rgba(255,255,255,.45) 0 2px, transparent 3px),
-      radial-gradient(circle at 20% 70%, rgba(255,255,255,.45) 0 2px, transparent 3px),
-      radial-gradient(circle at 78% 68%, rgba(255,255,255,.45) 0 2px, transparent 3px);
-    filter: blur(.2px);
-    opacity:.45; pointer-events:none;
-  }
-  /* pointer arrow (top) */
-  #luckModal .pointer {
-    position:absolute; top:6px; left:50%; transform:translateX(-50%); width:0; height:0;
-    border-left: 18px solid transparent; border-right: 18px solid transparent;
-    border-bottom: 26px solid #ffd166;
-    filter: drop-shadow(0 10px 8px rgba(0,0,0,.5));
-  }
-  #luckModal .pointer::after{
-    content:""; position:absolute; top:18px; left:-7px; width:14px; height:14px; border-radius:50%;
-    background: radial-gradient(circle at 30% 30%, #fff, #ffd166 55%, #b58a00);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
-  }
+/* Color cycle: red -> yellow -> green */
+@keyframes colorCycle{
+  0%   { background:linear-gradient(180deg,#ff3b3b,#ffb04a); }
+  33%  { background:linear-gradient(180deg,#ffd54a,#ffe97a); }
+  66%  { background:linear-gradient(180deg,#2ecc71,#7bed9f); }
+  100% { background:linear-gradient(180deg,#ff3b3b,#ffb04a); }
+}
 
-  /* Spin button (color-cycling every 1s) */
-  #luckModal .spinBtn{
-    margin-top:6px;
-    width:min(460px, 86%); height:62px; border-radius:16px; border:0; cursor:pointer;
-    font: 700 20px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    letter-spacing:.6px; color:#111; text-shadow:0 1px 0 rgba(255,255,255,.25);
-    box-shadow: 0 12px 26px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25);
-    background: linear-gradient(180deg, #ff4747, #ffb84d);
-    animation: spinBtnCycle 3s steps(3, end) infinite;
-  }
-  @keyframes spinBtnCycle{
-    0%   { background: linear-gradient(180deg, #ff4d4d, #cc0000); color:#fff; }
-    33%  { background: linear-gradient(180deg, #ffe259, #ffa751); color:#2b2b2b; }
-    66%  { background: linear-gradient(180deg, #8ef77a, #2fd86d); color:#083b1b; }
-    100% { background: linear-gradient(180deg, #ff4d4d, #cc0000); color:#fff; }
-  }
-  #luckModal .spinBtn:disabled{
-    filter: grayscale(1) brightness(.7);
-    cursor:not-allowed;
-    animation: none;
-  }
+.cooldown-text{
+  text-align:center; color:#cfcfcf; font:600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  opacity:.9; margin-top:10px;
+}
 
-  /* Modal cooldown text */
-  #luckModal .next { color:#cfcfcf; font-size:14px; margin-top:8px; text-shadow: 0 1px 1px rgba(0,0,0,.6); }
+/* Toasts */
+.toast-stack{
+  position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+  z-index:1100; display:flex; flex-direction:column; gap:10px; pointer-events:none;
+}
+.toast{
+  background:linear-gradient(180deg,#222,#111);
+  border:1px solid #ffffff1a; color:#fff;
+  padding:12px 16px; border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 #fff2;
+  font:700 15px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  opacity:0; transform:translateY(8px);
+  animation:toastIn .3s ease-out forwards, toastOut .45s ease-in 2.6s forwards;
+}
+@keyframes toastIn{ to{ opacity:1; transform:translateY(0); } }
+@keyframes toastOut{ to{ opacity:0; transform:translateY(-14px); } }
 
-  /* Greys-out the whole wheel area when locked */
-  #luckModal.locked .ring, #luckModal.locked .spinBtn { filter: grayscale(1) brightness(.6); }
-  #luckModal.locked .ring::after { opacity:.15; }
-
-  /* Toast (on main page after closing modal) */
-  .tyl-toast{
-    position: fixed; left:50%; top:18px; transform: translateX(-50%) translateY(0);
-    z-index:10000; background: rgba(30,30,30,.92);
-    color:#fff; border-radius:14px; padding:12px 18px; font:600 15px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    box-shadow: 0 12px 30px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
-    opacity:0; pointer-events:none;
-    transition: transform .4s ease, opacity .4s ease;
-  }
-  .tyl-toast.show{ opacity:1; transform: translateX(-50%) translateY(10px); }
 
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
@@ -1479,32 +1456,32 @@ canvas{ display:block }
   </div>
 </div>
 
-<div id="luckFeature">
-  <div class="tyl-wrap">
-    <button id="tylBtn" class="tyl-btn" aria-label="Test your luck"></button>
-    <div id="tylCooldown" class="cooldown"></div>
-  </div>
+<!-- ===== Test Your Luck (Floating Button) ===== -->
+<div id="luckFab" class="luck-fab" aria-label="Test your luck" role="button">
+  <img id="luckFabImg" alt="Test your luck">
+  <div id="luckFabTimer" class="luck-fab-timer" hidden>00:00:00</div>
 </div>
 
-<!-- Modal -->
-<div id="luckModal" class="backdrop" aria-hidden="true">
-  <div class="card">
-    <button class="close" id="tylClose" aria-label="Close">✕</button>
+<!-- ===== Lucky Wheel Modal ===== -->
+<div id="luckModal" class="luck-modal" aria-hidden="true">
+  <div class="luck-card">
+    <button id="luckClose" class="luck-close" aria-label="Close">
+      <span>✕</span>
+    </button>
 
-    <div class="wheelBox">
-      <div class="pointer"></div>
-
-      <div class="ring">
-        <div id="wheelRotor" class="rotor">
-          <canvas id="wheelCanvas" class="wheelCanvas" width="1000" height="1000"></canvas>
-        </div>
-      </div>
+    <div class="wheel-wrap">
+      <div class="wheel-arrow"></div>
+      <canvas id="wheelCanvas" width="560" height="560"></canvas>
     </div>
 
-    <button id="spinBtn" class="spinBtn">SPIN THE WHEEL</button>
-    <div class="next" id="nextSpinText"></div>
+    <button id="spinBtn" class="spin-btn">SPIN THE WHEEL</button>
+    <div id="cooldownText" class="cooldown-text" hidden>Next spin in 24:00:00</div>
   </div>
 </div>
+
+<!-- Toasts -->
+<div id="toastStack" class="toast-stack"></div>
+
 
     <!-- Toasts -->
     <div class="toastWrap" id="toastWrap"></div>
@@ -2218,6 +2195,291 @@ document.getElementById('snakePause').addEventListener('click', ()=>{ if(!S) ret
 document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sessionEarned>0){ state.chads += BigInt(S.sessionEarned); refreshUI(); saveStateLocal(state); showToast(`<span class="accent">+${S.sessionEarned}</span> chads added to balance.`); }
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup(); S=null; closeOverlay('snakeModal'); });
 window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal'); };
+
+
+(() => {
+  /* ====== CONFIG ====== */
+  const LUCK_IMG = 'img/testyourluck.png'; // change if your path differs
+  const SPIN_DURATION = 6200;             // ms, must match CSS transition
+  const SEG_COUNT = 10;
+  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+  // Try to reuse your app's UID + storage helpers if they exist:
+  const USER_HINT = (typeof UID_HINT !== 'undefined' && UID_HINT) ? UID_HINT : 'guest';
+  const COOLDOWN_KEY = `chad_lucky_cd_${USER_HINT}`;
+  const LAST_RESULT_KEY = `chad_lucky_last_${USER_HINT}`;
+
+  // Rewards (order = wheel order, clockwise, starting at top arrow)
+  const REWARDS = [
+    {label:'600 chads',       emoji:'🪙', type:'chads', amount:600,    weight:16},
+    {label:'Nothing',         emoji:'❌', type:'none',  amount:0,      weight:16},
+    {label:'100 gen/hr',      emoji:'⚡', type:'gen',   amount:100,    weight:16},
+    {label:'10M chads',       emoji:'👑', type:'chads', amount:10_000_000, weight:2}, // 2%
+    {label:'1000 gen/hr',     emoji:'🚀', type:'gen',   amount:1000,   weight:12},
+    {label:'Nothing',         emoji:'🚫', type:'none',  amount:0,      weight:16},
+    {label:'500k chads',      emoji:'💰', type:'chads', amount:500_000, weight:8},
+    {label:'500k gen/hr',     emoji:'🌟', type:'gen',   amount:500_000, weight:8},
+    {label:'1M chads',        emoji:'💎', type:'chads', amount:1_000_000, weight:5}, // 5%
+    {label:'100 gen/hr',      emoji:'⚡', type:'gen',   amount:100,    weight:16},
+  ];
+
+  /* ====== DOM ====== */
+  const $ = (s, p=document) => p.querySelector(s);
+  const wheel = $('#wheelCanvas');
+  const fab = $('#luckFab');
+  const fabImg = $('#luckFabImg');
+  const fabTimer = $('#luckFabTimer');
+  const modal = $('#luckModal');
+  const card  = $('.luck-card', modal);
+  const closeBtn = $('#luckClose');
+  const spinBtn = $('#spinBtn');
+  const cooldownText = $('#cooldownText');
+  const toastStack = $('#toastStack');
+
+  // Load button image safely
+  fabImg.src = LUCK_IMG;
+  fabImg.addEventListener('error', () => {
+    fabImg.remove(); // fallback: just keep shiny box
+  });
+
+  /* ====== Canvas wheel drawing ====== */
+  const ctx = wheel.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+  const sizeCSS = parseInt(getComputedStyle(wheel).width); // current CSS width
+  // Make crisp on high-DPI
+  wheel.width  = Math.round(sizeCSS * DPR);
+  wheel.height = Math.round(sizeCSS * DPR);
+  const cx = wheel.width/2, cy = wheel.height/2, r = wheel.width*0.48;
+
+  function drawWheel() {
+    ctx.clearRect(0,0,wheel.width,wheel.height);
+    const segAngle = (Math.PI*2)/SEG_COUNT;
+
+    for (let i=0;i<SEG_COUNT;i++){
+      const a0 = -Math.PI/2 + i*segAngle;     // start at top
+      const a1 = a0 + segAngle;
+
+      // pretty alternating colors
+      const hue = (i*36) % 360;
+      const grad = ctx.createRadialGradient(cx,cy, r*0.15, cx,cy,r);
+      grad.addColorStop(0, `hsl(${hue}, 85%, 68%)`);
+      grad.addColorStop(1, `hsl(${hue}, 75%, 38%)`);
+
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,a0,a1,false);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = r*0.012;
+      ctx.strokeStyle = 'rgba(0,0,0,.35)';
+      ctx.stroke();
+
+      // label + emoji
+      const mid = (a0+a1)/2;
+      const rx = cx + Math.cos(mid) * r*0.68;
+      const ry = cy + Math.sin(mid) * r*0.68;
+      ctx.save();
+      ctx.translate(rx,ry);
+      ctx.rotate(mid + Math.PI/2);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `${Math.round(r*0.12)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+      ctx.fillStyle='#121212';
+      ctx.shadowColor='rgba(255,255,255,.5)';
+      ctx.shadowBlur=2;
+      ctx.fillText(REWARDS[i].emoji,0,-r*0.03);
+      ctx.font = `${Math.round(r*0.07)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#f7f7f7';
+      ctx.fillText(REWARDS[i].label,0,r*0.08);
+      ctx.restore();
+    }
+
+    // rim
+    ctx.lineWidth = r*0.035;
+    ctx.strokeStyle = 'rgba(255,220,120,.85)';
+    ctx.beginPath(); ctx.arc(cx,cy,r*1.005,0,Math.PI*2); ctx.stroke();
+  }
+  drawWheel();
+
+  /* ====== Spin logic ====== */
+  let currentRotation = 0;
+  let spinning = false;
+  let pendingToast = null;
+  function weightPick(){
+    const sum = REWARDS.reduce((s,r)=>s+r.weight,0);
+    let x = Math.random()*sum;
+    for(let i=0;i<REWARDS.length;i++){
+      x -= REWARDS[i].weight;
+      if (x<=0) return i;
+    }
+    return REWARDS.length-1;
+  }
+  function degToRad(d){ return d*Math.PI/180; }
+
+  function spin(){
+    if (spinning || isOnCooldown()) return;
+    spinning = true;
+    spinBtn.disabled = true;
+
+    const idx = weightPick();
+    const segDeg = 360/SEG_COUNT;
+    // Target the center of that segment at the arrow (top)
+    const segmentCenter = idx*segDeg + segDeg/2;
+    const extraTurns = 5 + Math.random()*2; // 5-7 turns
+    const target = 360*extraTurns + (360 - segmentCenter);
+
+    currentRotation = currentRotation % 360; // keep it tidy
+    const delta = target - currentRotation;
+    currentRotation += delta;
+
+    wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+    // After spin finishes -> reward
+    setTimeout(()=>{
+      giveReward(idx);
+      setCooldown(Date.now() + COOLDOWN_MS);
+      updateUIForCooldown();
+      spinning = false;
+    }, SPIN_DURATION + 50);
+  }
+
+  /* ====== Rewards & State integration ====== */
+  function withState(mutator){
+    // Use your app's local state helpers if available
+    if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function'){
+      const s = loadStateLocal();
+      mutator(s);
+      saveStateLocal(s);
+      if (typeof refreshUI === 'function') try{ refreshUI(); }catch{}
+    } else {
+      // fallback so it never crashes (doesn't know your exact schema)
+      const ch = BigInt(localStorage.getItem('fallback_chads')||'0');
+      const gn = BigInt(localStorage.getItem('fallback_gen')||'0');
+      const temp = { chads: ch, gen: gn };
+      mutator(temp);
+      localStorage.setItem('fallback_chads', temp.chads.toString());
+      localStorage.setItem('fallback_gen',   temp.gen.toString());
+    }
+  }
+
+  function giveReward(idx){
+    const r = REWARDS[idx];
+    let message = '';
+    if (r.type === 'chads'){
+      withState(s => { s.chads = (s.chads ?? 0n) + BigInt(r.amount); });
+      message = formatChadsMsg(r.amount);
+    } else if (r.type === 'gen'){
+      withState(s => { s.gen   = (s.gen   ?? 0n) + BigInt(r.amount); });
+      message = `${numFmt(r.amount)} gen/hr increased`;
+    } else { // none
+      message = `Sorry For That`;
+    }
+    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ idx, at: Date.now() }));
+    pendingToast = message;
+  }
+
+  function formatChadsMsg(amount){
+    if (amount === 10_000_000) return `Congragts , You Won 10 Million Chads`;
+    if (amount === 1_000_000)  return `1 Million chads added`;
+    return `${numFmt(amount)} chads added`;
+  }
+
+  const nf = new Intl.NumberFormat('en-US');
+  const numFmt = (n)=> nf.format(n);
+
+  /* ====== Cooldown ====== */
+  function setCooldown(ts){ localStorage.setItem(COOLDOWN_KEY, String(ts)); }
+  function getCooldown(){ const v = Number(localStorage.getItem(COOLDOWN_KEY)||'0'); return isFinite(v)? v : 0; }
+  function isOnCooldown(){ return Date.now() < getCooldown(); }
+  function msToHMS(ms){
+    const s = Math.max(0, Math.floor(ms/1000));
+    const h = String(Math.floor(s/3600)).padStart(2,'0');
+    const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const ss= String(s%60).padStart(2,'0');
+    return `${h}:${m}:${ss}`;
+  }
+
+  let timerId = null;
+  function startCooldownTicker(){
+    if (timerId) clearInterval(timerId);
+    timerId = setInterval(()=>{
+      const left = getCooldown() - Date.now();
+      const on = left > 0;
+      if (on){
+        cooldownText.hidden = false;
+        cooldownText.textContent = `Next spin in ${msToHMS(left)}`;
+        fabTimer.hidden = false;
+        fabTimer.textContent = msToHMS(left);
+      } else {
+        cooldownText.hidden = true;
+        fabTimer.hidden = true;
+        card.classList.remove('is-locked');
+        fab.removeAttribute('disabled');
+        spinBtn.disabled = false;
+        clearInterval(timerId); timerId = null;
+      }
+    }, 1000);
+  }
+
+  function updateUIForCooldown(){
+    const left = getCooldown() - Date.now();
+    const on = left > 0;
+    card.classList.toggle('is-locked', on);
+    fab.toggleAttribute('disabled', on);
+    spinBtn.disabled = on || spinning;
+    cooldownText.hidden = !on;
+    fabTimer.hidden = !on;
+    if (on){
+      cooldownText.textContent = `Next spin in ${msToHMS(left)}`;
+      fabTimer.textContent = msToHMS(left);
+      startCooldownTicker();
+    }
+  }
+
+  /* ====== Modal open/close ====== */
+  function openModal(){
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    updateUIForCooldown();
+  }
+  function closeModal(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    // show toast *after* closing
+    if (pendingToast){
+      pushToast(pendingToast);
+      pendingToast = null;
+    }
+  }
+
+  /* ====== Toasts ====== */
+  function pushToast(text){
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = text;
+    toastStack.appendChild(el);
+    setTimeout(()=>{ el.remove(); }, 3200);
+  }
+
+  /* ====== Events ====== */
+  fab.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  spinBtn.addEventListener('click', spin);
+
+  // Never auto-open on page load
+  updateUIForCooldown();
+
+  // make canvas redraw on resize for sharpness
+  window.addEventListener('resize', () => {
+    const sizeCSS = parseInt(getComputedStyle(wheel).width);
+    wheel.width  = Math.round(sizeCSS * DPR);
+    wheel.height = Math.round(sizeCSS * DPR);
+    drawWheel();
+  });
+})();
+
 
 /* ===== Tetris ===== */
 (function(){
@@ -4744,286 +5006,7 @@ updateHUD();
   window.openSimon = ()=>{ closeOverlay('playOverlay'); openOverlay('simonModal'); start(); };
 })();
 
-(function(){
-  /* ---------- Config ---------- */
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  const STORAGE_TIME = 'chad_luck_nextSpin';
-  const STORAGE_RESULT = 'chad_luck_lastResult'; // used for toast after closing
-  const IMG_PATH = './img/testyourluck.png'; // your repo asset
 
-  // Reward segments (10 parts)
-  const segments = [
-    { label:'600 chads',       emoji:'🪙',  type:'chads', amount:600,     weight:12 },
-    { label:'Nothing',         emoji:'❌',  type:'none',  amount:0,       weight:12 },
-    { label:'100 gen/hr',      emoji:'⚡',  type:'gen',   amount:100,     weight:12 },
-    { label:'10M chads',       emoji:'🎉',  type:'chads', amount:10_000_000, weight:2 },
-    { label:'1000 gen/hr',     emoji:'⚡',  type:'gen',   amount:1000,    weight:12 },
-    { label:'Nothing',         emoji:'🚫',  type:'none',  amount:0,       weight:12 },
-    { label:'500K chads',      emoji:'💰',  type:'chads', amount:500_000, weight:12 },
-    { label:'500K gen/hr',     emoji:'⚡💥',type:'gen',   amount:500_000, weight:9 },
-    { label:'1M chads',        emoji:'💎',  type:'chads', amount:1_000_000, weight:5 },
-    { label:'100 gen/hr',      emoji:'⚡',  type:'gen',   amount:100,     weight:12 },
-  ];
-  const wheelColors = [
-    '#FFE9A9', '#F6D1C1', '#D7EAD8', '#BED7FF', '#FFE4B5',
-    '#D6C1F0', '#C9F1E3', '#FFD6D1', '#CFE2FF', '#E6F4D5'
-  ];
-
-  /* ---------- Element refs ---------- */
-  const btn = document.getElementById('tylBtn');
-  const cooldownUnderBtn = document.getElementById('tylCooldown');
-  const modal = document.getElementById('luckModal');
-  const closeBtn = document.getElementById('tylClose');
-  const rotor = document.getElementById('wheelRotor');
-  const spinBtn = document.getElementById('spinBtn');
-  const nextSpinText = document.getElementById('nextSpinText');
-
-  /* ---------- Canvas wheel drawing (pretty!) ---------- */
-  const canvas = document.getElementById('wheelCanvas');
-  const ctx = canvas.getContext('2d');
-  function drawWheel(){
-    const N = segments.length;
-    const cx = canvas.width/2, cy = canvas.height/2, r = canvas.width/2;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // subtle radial base
-    const baseGrad = ctx.createRadialGradient(cx,cy, r*0.1, cx,cy, r*1.02);
-    baseGrad.addColorStop(0, 'rgba(255,255,255,.06)');
-    baseGrad.addColorStop(1, 'rgba(0,0,0,.12)');
-    ctx.fillStyle = baseGrad; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
-
-    const step = 2*Math.PI/N;
-    for(let i=0;i<N;i++){
-      const start = -Math.PI/2 + i*step;
-      const end = start + step;
-      // slice
-      const grad = ctx.createLinearGradient(
-        cx + Math.cos(start)*r, cy + Math.sin(start)*r,
-        cx + Math.cos(end)*r,   cy + Math.sin(end)*r
-      );
-      const c = wheelColors[i % wheelColors.length];
-      grad.addColorStop(0, shade(c, -12));
-      grad.addColorStop(1, shade(c, 8));
-      ctx.beginPath();
-      ctx.moveTo(cx,cy);
-      ctx.arc(cx,cy, r*0.94, start, end);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // separators
-      ctx.strokeStyle = 'rgba(0,0,0,.25)';
-      ctx.lineWidth = r*0.012;
-      ctx.beginPath();
-      ctx.arc(cx,cy, r*0.94, start, end);
-      ctx.stroke();
-
-      // emoji + label
-      ctx.save();
-      const mid = (start+end)/2;
-      const tx = cx + Math.cos(mid)*r*0.62;
-      const ty = cy + Math.sin(mid)*r*0.62;
-      ctx.translate(tx,ty);
-      ctx.rotate(mid + Math.PI/2);
-      ctx.textAlign = 'center';
-      // emoji
-      ctx.font = `${Math.round(r*0.07)}px "Apple Color Emoji","Segoe UI Emoji",system-ui`;
-      ctx.fillText(segments[i].emoji, 0, -r*0.02);
-      // label
-      ctx.font = `bold ${Math.round(r*0.045)}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
-      ctx.fillStyle = 'rgba(20,20,20,.85)';
-      ctx.strokeStyle = 'rgba(255,255,255,.8)';
-      ctx.lineWidth = 4; ctx.miterLimit=2;
-      ctx.strokeText(segments[i].label, 0, r*0.085);
-      ctx.fillText(segments[i].label, 0, r*0.085);
-      ctx.restore();
-    }
-
-    // center hub
-    const hubGrad = ctx.createRadialGradient(cx,cy, r*0.02, cx,cy, r*0.18);
-    hubGrad.addColorStop(0, '#fff'); hubGrad.addColorStop(1, '#d7b76a');
-    ctx.beginPath(); ctx.arc(cx,cy, r*0.18, 0, Math.PI*2); ctx.fillStyle = hubGrad; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx,cy, r*0.18, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=r*0.01; ctx.stroke();
-  }
-  function shade(hex, pct){
-    // quick hex shade helper
-    const m = hex.replace('#','');
-    const num = parseInt(m,16);
-    const r = Math.min(255, Math.max(0, (num>>16) + Math.round(255*pct/100)));
-    const g = Math.min(255, Math.max(0, ((num>>8)&255) + Math.round(255*pct/100)));
-    const b = Math.min(255, Math.max(0, (num&255) + Math.round(255*pct/100)));
-    return '#' + (1<<24 | r<<16 | g<<8 | b).toString(16).slice(1);
-  }
-  drawWheel();
-
-  /* ---------- Game state helpers (compatible with your app) ---------- */
-  function getState(){
-    try { if (typeof loadStateLocal === 'function') return loadStateLocal(); } catch(e){}
-    // fallback
-    const raw = localStorage.getItem('chad_state_guest');
-    if (raw) try { return JSON.parse(raw); } catch(e){}
-    return { chads: 0, gen: 0, acc: 0, last: Date.now()/1000|0, level:1, purchases:{} };
-  }
-  function saveState(state){
-    try { if (typeof saveStateLocal === 'function') return saveStateLocal(state); } catch(e){}
-    localStorage.setItem('chad_state_guest', JSON.stringify(state));
-  }
-  const isBig = (v)=> typeof v === 'bigint';
-  function addChads(st, n){
-    if (isBig(st.chads)) st.chads += BigInt(n);
-    else st.chads = (Number(st.chads)||0) + n;
-  }
-  function addGen(st, n){
-    if (isBig(st.gen)) st.gen += BigInt(n);
-    else st.gen = (Number(st.gen)||0) + n;
-  }
-
-  /* ---------- Cooldown + timers ---------- */
-  let tickTimer = null;
-  function getNextSpinMs(){ return Math.max(0, (parseInt(localStorage.getItem(STORAGE_TIME)||'0',10) || 0) - Date.now()); }
-  function setCooldown(ms){ localStorage.setItem(STORAGE_TIME, String(Date.now()+ms)); }
-  function fmtLeft(ms){
-    const s = Math.ceil(ms/1000);
-    const hh = String(Math.floor(s/3600)).padStart(2,'0');
-    const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
-    const ss = String(s%60).padStart(2,'0');
-    return `${hh}:${mm}:${ss}`;
-  }
-  function updateCooldownUI(){
-    const left = getNextSpinMs();
-    const isLocked = left > 0;
-
-    // main button state + text
-    btn.classList.toggle('disabled', isLocked);
-    cooldownUnderBtn.textContent = isLocked ? `Next spin in ${fmtLeft(left)}` : '';
-
-    // modal state + controls
-    modal.classList.toggle('locked', isLocked);
-    spinBtn.disabled = isLocked;
-    nextSpinText.textContent = isLocked ? `Next spin in ${fmtLeft(left)}` : '';
-
-    if (!tickTimer){
-      tickTimer = setInterval(()=>{
-        const l = getNextSpinMs();
-        if (l <= 0){
-          clearInterval(tickTimer); tickTimer = null;
-          updateCooldownUI();
-        }else{
-          cooldownUnderBtn.textContent = `Next spin in ${fmtLeft(l)}`;
-          nextSpinText.textContent    = `Next spin in ${fmtLeft(l)}`;
-        }
-      }, 1000);
-    }
-  }
-
-  /* ---------- Weighted pick + spin ---------- */
-  function pickIndexWeighted(){
-    const total = segments.reduce((a,s)=>a+s.weight,0);
-    let r = Math.random()*total;
-    for (let i=0;i<segments.length;i++){
-      if ((r -= segments[i].weight) <= 0) return i;
-    }
-    return segments.length-1;
-  }
-
-  let spinning = false;
-  function spin(){
-    if (spinning) return;
-    const lockLeft = getNextSpinMs();
-    if (lockLeft > 0) return;
-
-    spinning = true;
-    const N = segments.length;
-    const idx = pickIndexWeighted();
-
-    // Angle math: pointer is fixed at 0deg (top). We rotate wheel so selected center ends at 0deg.
-    const slice = 360/N;
-    const targetAngle = (idx*slice) + slice/2; // center of the slice from 0deg reference
-    const extraTurns = 5 + Math.floor(Math.random()*3); // 5..7 turns for drama
-    const final = (extraTurns*360) + (360 - targetAngle) + (Math.random()*6 - 3); // small jitter
-
-    rotor.style.transition = 'transform 5.8s cubic-bezier(.12,.85,.12,1)';
-    requestAnimationFrame(()=>{ rotor.style.transform = `rotate(${final}deg)`; });
-
-    // After spin ends
-    setTimeout(()=>{
-      spinning = false;
-
-      const reward = segments[idx];
-      applyReward(reward);              // update chads/gen + set cooldown
-      localStorage.setItem(STORAGE_RESULT, toastText(reward)); // for toast after close
-      updateCooldownUI();
-    }, 6000);
-  }
-
-  function toastText(rew){
-    if (rew.type === 'chads' && rew.amount === 600) return '600 chads added';
-    if (rew.type === 'none') return 'Sorry For That';
-    if (rew.type === 'gen' && rew.amount === 100) return '100 gen/hr increased';
-    if (rew.type === 'chads' && rew.amount === 10_000_000) return 'Congrats, You Won 10 Million Chads';
-    if (rew.type === 'gen' && rew.amount === 1000) return '1000 gen/hr increased';
-    if (rew.type === 'chads' && rew.amount === 500_000) return '500000 chads added';
-    if (rew.type === 'gen' && rew.amount === 500_000) return '500000 gen/hr increased';
-    if (rew.type === 'chads' && rew.amount === 1_000_000) return '1 Million chads added';
-    return (rew.type === 'gen') ? `${rew.amount} gen/hr increased` : `${rew.amount} chads added`;
-  }
-
-  function applyReward(rew){
-    // give the prize
-    const s = getState();
-    if (rew.type === 'chads') addChads(s, rew.amount);
-    else if (rew.type === 'gen') addGen(s, rew.amount);
-    saveState(s);
-
-    // lock for 24h
-    setCooldown(DAY_MS);
-  }
-
-  /* ---------- Toast (after closing) ---------- */
-  let pendingToast = null;
-  function showPendingToastIfAny(){
-    const msg = localStorage.getItem(STORAGE_RESULT);
-    if (!msg) return;
-    localStorage.removeItem(STORAGE_RESULT);
-    showToast(msg);
-  }
-  function showToast(msg){
-    if (pendingToast){ pendingToast.remove(); pendingToast=null; }
-    const t = document.createElement('div');
-    t.className='tyl-toast'; t.textContent = msg;
-    document.body.appendChild(t);
-    requestAnimationFrame(()=> t.classList.add('show'));
-    setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 450); }, 2400);
-    pendingToast = t;
-  }
-
-  /* ---------- Events ---------- */
-  btn.addEventListener('click', ()=>{
-    // open modal always; if locked, it shows grey + timer
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden','false');
-    updateCooldownUI();
-  });
-  closeBtn.addEventListener('click', ()=>{
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden','true');
-    showPendingToastIfAny();
-  });
-  modal.addEventListener('click', (e)=>{
-    if (e.target === modal){ // click outside card closes too
-      modal.classList.remove('open');
-      modal.setAttribute('aria-hidden','true');
-      showPendingToastIfAny();
-    }
-  });
-  spinBtn.addEventListener('click', spin, { passive:true });
-
-  /* ---------- Init ---------- */
-  // ensure PNG path is correct (also preload to avoid flicker)
-  const img = new Image(); img.src = IMG_PATH;
-
-  updateCooldownUI(); // sets initial states & timers
-})();
 
   /* ===== Hamster-style HEXAGON (drag, merge stacks, clear at threshold) ===== */
 (function(){
