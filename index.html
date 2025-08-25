@@ -7,6 +7,489 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
+/* ===== Entry button position – sits above your bottom bar near "Play Games" ===== */
+#luckEntryWrap {
+  position: fixed;
+  left: 16px;                 /* tweak to sit visually above your Play Games button */
+  bottom: 128px;              /* lift above your bottom nav */
+  z-index: 40;
+}
+
+#luckEntryBtn {
+  position: relative;
+  width: 132px;
+  height: 56px;
+  border: 0;
+  outline: none;
+  cursor: pointer;
+  border-radius: 14px;
+  padding: 0;
+  background: radial-gradient(ellipse at 50% 50%, #2b2b2b 0%, #191919 60%, #0d0d0d 100%);
+  box-shadow:
+    0 0 0 4px rgba(255, 215, 0, 0.6),
+    0 0 22px 6px rgba(255, 200, 0, 0.45),
+    inset 0 0 12px rgba(255,255,255,0.06);
+  animation: goldPulse 2.2s ease-in-out infinite;
+  overflow: hidden;
+}
+
+#luckEntryBtn:disabled {
+  filter: grayscale(0.9) brightness(0.7);
+  cursor: not-allowed;
+  animation: none;
+  box-shadow: 0 0 0 3px rgba(160,160,160,0.35), inset 0 0 10px rgba(0,0,0,0.4);
+}
+
+#luckEntryImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px;
+}
+
+.cooldown-timer {
+  position: absolute;
+  left: 0; right: 0; bottom: 6px;
+  font: 600 13px/1.2 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,.6);
+}
+
+/* glowing pulse ring */
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255,215,0,0.55), 0 0 18px 4px rgba(255,200,0,0.35), inset 0 0 12px rgba(255,255,255,0.05); }
+  50%      { box-shadow: 0 0 0 6px rgba(255,230,100,0.85), 0 0 34px 12px rgba(255,208,0,0.65), inset 0 0 14px rgba(255,255,255,0.12); }
+}
+
+/* ===== Modal ===== */
+#luckModal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+#luckModal.hidden { display: none; }
+
+.modal-frame {
+  position: relative;
+  width: min(94vw, 720px);
+  height: min(88vh, 880px);
+  background: radial-gradient(circle at 30% 20%, #0b0f1a, #06070c 60%, #030408);
+  border-radius: 22px;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.65),
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 0 60px rgba(24,120,255,0.08);
+  padding: 18px 18px 26px;
+}
+
+.close-x {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  border: 0;
+  background: linear-gradient(180deg, #ff3b3b, #a40000);
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(255,0,0,0.35), inset 0 0 12px rgba(255,255,255,0.15);
+  cursor: pointer;
+}
+
+.wheel-area {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 40px auto 18px auto;
+}
+
+.wheel {
+  width: min(78vw, 540px);
+  height: min(78vw, 540px);
+  border-radius: 50%;
+  border: 8px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 10px 28px rgba(0,0,0,0.55),
+    inset 0 0 0 3px rgba(255,255,255,0.07),
+    0 0 68px rgba(255,198,0,0.30);
+  position: relative;
+  transform: rotate(-90deg); /* align 0deg to the top for pointer */
+  overflow: hidden;
+}
+
+/* label chips around the wheel (injected by JS) */
+.wheel .slice-label {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform-origin: 0 0;
+  display: grid;
+  place-items: center;
+  width: 50%;
+  height: 0;
+  translate: 0 -1px;
+}
+
+.slice-label .chip {
+  transform: translateY(-58%) rotate(90deg); /* counter wheel rotate for readability */
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font: 600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  padding: 8px 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.08);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* pointer triangle at top */
+.pointer {
+  position: absolute;
+  top: -4px;
+  width: 0; height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 28px solid #ffd200;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.55));
+  z-index: 2;
+}
+
+/* Spin button with 1s color cycle (red -> yellow -> green) */
+.spin-btn {
+  display: block;
+  margin: 18px auto 6px;
+  padding: 14px 26px;
+  font: 800 18px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  text-transform: uppercase;
+  color: #111;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.12);
+  animation: spinBtnCycle 3s steps(3, jump-none) infinite;
+}
+
+@keyframes spinBtnCycle {
+  0%   { background: #ff3b3b; }
+  33%  { background: #ffd633; }
+  66%  { background: #2ee65f; }
+  100% { background: #ff3b3b; }
+}
+
+.spin-btn:disabled {
+  filter: grayscale(0.9) brightness(0.7);
+  cursor: not-allowed;
+  animation: none;
+}
+
+.modal-timer {
+  text-align: center;
+  color: #c9d3ff;
+  font: 600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  min-height: 18px;
+}
+
+/* Grey-out when on cooldown */
+.cooldown-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(128,128,128,0.35);
+  border-radius: 22px;
+  backdrop-filter: grayscale(0.8);
+  pointer-events: none;
+}
+.cooldown-mask.hidden { display: none; }
+
+/* ===== Toasts (messages fade up, then disappear) ===== */
+#toastContainer {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%);
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  margin: 8px 0;
+  background: rgba(20,20,20,0.9);
+  color: #fff;
+  font: 700 15px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.08);
+  animation: toastRise 2.6s ease forwards;
+}
+
+@keyframes toastRise {
+  0%   { opacity: 0; transform: translate(-50%, 12px); }
+  10%  { opacity: 1; transform: translate(-50%, 0); }
+  80%  { opacity: 1; transform: translate(-50%, -16px); }
+  100% { opacity: 0; transform: translate(-50%, -28px); }
+}
+
+/* ========= Config ========= */
+const LUCK_IMAGE_SRC = './img/testyourluck.png'; // adjust if your path differs
+const SPIN_COOLDOWN_MS = 24 * 60 * 60 * 1000;   // 24 hours
+// Prefer to scope cooldown to user, using same UID hint shape as your storage
+const LUCK_KEY = (() => {
+  const uid = (window.UID_HINT || 'guest');
+  return `chad_lucky_next_${uid}`;
+})();
+
+/* Rewards (10 slices) – labels, emoji, apply() and weights */
+const rewards = [
+  { label: '600 chads', emoji: '🪙', weight: 11.625, apply: () => grantChads(600n), toast: '600 chads added' },
+  { label: 'Nothing', emoji: '😔', weight: 11.625, apply: () => {}, toast: 'Sorry For That' },
+  { label: '100 gen/hr', emoji: '⚡', weight: 11.625, apply: () => grantGen(100n), toast: '100 gen/hr increased' },
+  { label: '10M chads', emoji: '🤑', weight: 2.0,    apply: () => grantChads(10000000n), toast: 'Congragts, You Won 10 Million Chads' },
+  { label: '1000 gen/hr', emoji: '🚀', weight: 11.625, apply: () => grantGen(1000n), toast: '1000 gen/hr increased' },
+  { label: 'Nothing', emoji: '😢', weight: 11.625, apply: () => {}, toast: 'Sorry For That' },
+  { label: '500k chads', emoji: '💵', weight: 11.625, apply: () => grantChads(500000n), toast: '500000 chads added' },
+  { label: '500k gen/hr', emoji: '⚡', weight: 11.625, apply: () => grantGen(500000n), toast: '500000 gen/hr increased' },
+  { label: '1M chads', emoji: '💎', weight: 5.0,    apply: () => grantChads(1000000n), toast: '1 Million chads added' },
+  { label: '100 gen/hr', emoji: '⚡', weight: 11.625, apply: () => grantGen(100n), toast: '100 gen/hr increased' },
+];
+// wheel colors (10)
+const wedgeColors = [
+  '#ffcc00','#5dc9ff','#ff6b6b','#7effb2','#a78bfa',
+  '#ffd166','#06d6a0','#f78c6b','#52b788','#e9a3ff'
+];
+
+/* ========= Shortcuts to (possibly) existing functions from your app ========= */
+function ensureState() {
+  // If your app already loads state globally, use that:
+  if (window.state) return window.state;
+  // Otherwise, try to load via your existing loader if present:
+  if (typeof loadStateLocal === 'function') {
+    window.state = loadStateLocal();
+    return window.state;
+  }
+  // Minimal fallback
+  window.state = { chads: 0n, gen: 0n };
+  return window.state;
+}
+
+function saveAndRefresh() {
+  if (typeof saveStateLocal === 'function') saveStateLocal(ensureState());
+  if (typeof refreshUI === 'function') refreshUI();
+}
+
+/* ========= Reward appliers ========= */
+function grantChads(amountBigInt) {
+  const s = ensureState();
+  s.chads = (s.chads ?? 0n) + amountBigInt;
+  saveAndRefresh();
+}
+function grantGen(amountBigInt) {
+  const s = ensureState();
+  s.gen = (s.gen ?? 0n) + amountBigInt;
+  saveAndRefresh();
+}
+
+/* ========= DOM hookup ========= */
+const $ = (sel) => document.querySelector(sel);
+const luckEntryBtn = $('#luckEntryBtn');
+const luckEntryImg = $('#luckEntryImg');
+const luckEntryTimer = $('#luckEntryTimer');
+const luckModal = $('#luckModal');
+const luckClose = $('#luckClose');
+const wheelEl = $('#wheel');
+const modalTimer = $('#modalCooldown');
+const modalMask = $('#modalCooldownMask');
+const spinBtn = $('#spinBtn');
+const toastContainer = $('#toastContainer');
+
+let spinInProgress = false;
+let currentRotation = 0; // degrees
+let pendingToast = null;
+
+// entry image
+luckEntryImg.src = LUCK_IMAGE_SRC;
+
+// build wheel background and labels
+(function buildWheel(){
+  // background pie using conic-gradient
+  const step = 360 / rewards.length;
+  const stops = rewards.map((_, i) => {
+    const a0 = i * step, a1 = (i+1)*step;
+    const col = wedgeColors[i % wedgeColors.length];
+    return `${col} ${a0}deg ${a1}deg`;
+  }).join(', ');
+  wheelEl.style.background = `conic-gradient(${stops})`;
+
+  // labels around the wheel
+  rewards.forEach((r, i) => {
+    const holder = document.createElement('div');
+    holder.className = 'slice-label';
+    const angle = (i * step) + step/2; // center of slice
+    holder.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+    holder.innerHTML = `<div class="chip">${r.emoji} ${r.label}</div>`;
+    wheelEl.appendChild(holder);
+  });
+})();
+
+/* ========= open/close ========= */
+luckEntryBtn.addEventListener('click', () => {
+  if (isOnCooldown()) {
+    // Still show modal (greyed) so user can see timer
+    showModal(true);
+  } else {
+    showModal(false);
+  }
+});
+luckClose.addEventListener('click', () => {
+  hideModal();
+  if (pendingToast) {
+    showToast(pendingToast);
+    pendingToast = null;
+  }
+});
+
+/* ========= Spin handling ========= */
+spinBtn.addEventListener('click', async () => {
+  if (spinInProgress || isOnCooldown()) return;
+  spinInProgress = true;
+  spinBtn.disabled = true;
+
+  const choiceIndex = weightedPick(rewards.map(r => r.weight));
+  const sliceAngle = 360 / rewards.length;
+
+  // Target angle to bring chosen slice's center to top (0deg pointer)
+  const sliceCenter = (choiceIndex * sliceAngle) + (sliceAngle / 2);
+  // Because wheel is pre-rotated -90deg in CSS to align 0deg to top,
+  // we compensate by subtracting 0 (already aligned).
+  const toAngle = 360 * 6 /* spins */ + (360 - sliceCenter); // make it land nicely
+  currentRotation = (currentRotation + toAngle) % 360;
+
+  // animate via CSS transition
+  wheelEl.style.transition = 'transform 4.2s cubic-bezier(.12,.65,.05,1)';
+  wheelEl.style.transform = `rotate(${toAngle - 90}deg)`; // keep initial -90deg offset
+
+  await waitMs(4300); // after animation finishes
+
+  // lock in final absolute rotation
+  wheelEl.style.transition = 'none';
+  wheelEl.style.transform = `rotate(${(toAngle - 90) % 360}deg)`;
+
+  // apply reward
+  const reward = rewards[choiceIndex];
+  reward.apply();
+
+  // start 24h cooldown
+  setNextAllowed(Date.now() + SPIN_COOLDOWN_MS);
+  updateCooldownUI();
+
+  // store toast to show when user closes the modal
+  pendingToast = reward.toast;
+
+  spinInProgress = false;
+});
+
+/* ========= Weighted random pick ========= */
+function weightedPick(weights){
+  const total = weights.reduce((a,b)=>a+b,0);
+  const r = Math.random() * total;
+  let acc = 0;
+  for (let i=0;i<weights.length;i++){
+    acc += weights[i];
+    if (r <= acc) return i;
+  }
+  return weights.length - 1;
+}
+
+/* ========= Cooldown storage & UI ========= */
+function setNextAllowed(ts){
+  try { localStorage.setItem(LUCK_KEY, String(ts)); } catch (e) {}
+}
+function getNextAllowed(){
+  const v = localStorage.getItem(LUCK_KEY);
+  return v ? Number(v) : 0;
+}
+function isOnCooldown(){
+  return Date.now() < getNextAllowed();
+}
+function msToHMS(ms){
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms/1000);
+  const hh = Math.floor(s/3600);
+  const mm = Math.floor((s%3600)/60);
+  const ss = s%60;
+  const pad = (n)=> String(n).padStart(2,'0');
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+}
+
+let cdTimer = null;
+function updateCooldownUI(){
+  const on = isOnCooldown();
+  const left = getNextAllowed() - Date.now();
+
+  // entry button
+  luckEntryBtn.disabled = on;
+  luckEntryTimer.textContent = on ? msToHMS(left) : '';
+
+  // modal grey-out + timer text
+  modalMask.classList.toggle('hidden', !on);
+  modalTimer.textContent = on ? `Next spin in ${msToHMS(left)}` : '';
+
+  // spin button
+  spinBtn.disabled = on || spinInProgress;
+
+  // interval
+  if (cdTimer) clearInterval(cdTimer);
+  if (on){
+    cdTimer = setInterval(()=>{
+      const l = getNextAllowed() - Date.now();
+      if (l <= 0){
+        clearInterval(cdTimer);
+        cdTimer = null;
+        updateCooldownUI(); // will clear timers + re-enable
+      } else {
+        luckEntryTimer.textContent = msToHMS(l);
+        modalTimer.textContent = `Next spin in ${msToHMS(l)}`;
+      }
+    }, 1000);
+  }
+}
+
+function showModal(grey){
+  luckModal.classList.remove('hidden');
+  luckModal.setAttribute('aria-hidden','false');
+  modalMask.classList.toggle('hidden', !grey);
+  updateCooldownUI();
+}
+function hideModal(){
+  luckModal.classList.add('hidden');
+  luckModal.setAttribute('aria-hidden','true');
+}
+
+/* ========= Toasts ========= */
+function showToast(text){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = text;
+  toastContainer.appendChild(el);
+  setTimeout(()=> {
+    el.remove();
+  }, 2600);
+}
+
+/* ========= Helpers ========= */
+function waitMs(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* ========= Boot ========= */
+(function boot(){
+  // If first time user (no key), do nothing. If past-due key exists, clear it.
+  const next = getNextAllowed();
+  if (next && next < Date.now()) setNextAllowed(0);
+  updateCooldownUI();
+})();
 
 
 /* ===== Night Grid (stunning edition) ===== */
@@ -901,6 +1384,40 @@ canvas{ display:block }
         </div>
       </div>
     </div>
+
+<!-- ===== Test Your Luck – main page button + toast container ===== -->
+<div id="luckEntryWrap">
+  <button id="luckEntryBtn" aria-label="Test Your Luck">
+    <img id="luckEntryImg" alt="Test your luck" />
+    <span class="cooldown-timer" id="luckEntryTimer"></span>
+  </button>
+</div>
+
+<!-- Floating toasts (messages that float up & fade out) -->
+<div id="toastContainer" aria-live="polite"></div>
+
+<!-- ===== Spinning Wheel Modal ===== -->
+<div id="luckModal" class="hidden" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-frame">
+    <button class="close-x" id="luckClose" aria-label="Close">✖</button>
+
+    <div class="wheel-area">
+      <div class="pointer" aria-hidden="true"></div>
+      <div id="wheel" class="wheel">
+        <!-- labels are inserted by JS -->
+      </div>
+    </div>
+
+    <button id="spinBtn" class="spin-btn" aria-live="polite">
+      <span>Spin the wheel</span>
+    </button>
+    <div id="modalCooldown" class="modal-timer"></div>
+
+    <!-- grey-out overlay when on cooldown -->
+    <div id="modalCooldownMask" class="cooldown-mask hidden"></div>
+  </div>
+</div>
+
 
     <!-- ===== SHOP OVERLAY ===== -->
 <div id="shopOverlay" class="shop-overlay" aria-hidden="true">
