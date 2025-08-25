@@ -7,200 +7,159 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 
- /* Container that scrolls naturally with the page */
-  .tyl-wrap{
-    display:inline-flex; flex-direction:column; align-items:center; gap:6px;
-    margin:10px 10px 4px 10px;
-  }
 
-  /* PNG-shaped button: use the image itself + a masked glow that follows transparency */
-  .tyl-btn{
-    position:relative; border:none; padding:0; background:transparent; cursor:pointer;
-    outline:none; transform:translateZ(0);
-  }
-  .tyl-btn:disabled{ cursor:not-allowed; }
+ /* Namespaced to #luckFeature to avoid bleeding styles */
+  #luckFeature { width:100%; display:flex; justify-content:center; margin:24px 0 6px; }
+  #luckFeature .tyl-wrap { text-align:center; }
 
-  .tyl-btn img{
-    width:132px; height:auto; display:block; pointer-events:none; user-select:none;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,.35));
-    transition: transform .2s ease;
+  /* The image *is* the button — uses your PNG as the texture */
+  #luckFeature .tyl-btn {
+    -webkit-tap-highlight-color: transparent;
+    appearance: none; border:0; padding:0; background: transparent;
+    position: relative; display:inline-block;
+    width:min(62vw, 320px); /* responsive width */
+    aspect-ratio: 2.9 / 1;  /* keep the PNG’s shape (adjust if your image ratio differs) */
+    cursor: pointer; outline: none;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.55));
   }
-  .tyl-btn:hover img{ transform:translateY(-2px) scale(1.02); }
-
-  /* Pulsing golden glow HUGGING the PNG edges (mask-image follows alpha) */
-  .tyl-btn::after{
-    content:""; position:absolute; inset:-10px; z-index:-1;
-    -webkit-mask-image: url('img/testyourluck.png'); mask-image: url('img/testyourluck.png');
-    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-    -webkit-mask-position:center; mask-position:center;
-    -webkit-mask-size: contain; mask-size: contain;
-    background: radial-gradient(40% 40% at 50% 50%, rgba(255,233,140,.9), rgba(255,200,30,.55) 45%, rgba(255,185,0,.25) 60%, transparent 70%);
-    filter: blur(8px);
-    animation: tylPulse 2.2s ease-in-out infinite;
+  /* Show the PNG itself */
+  #luckFeature .tyl-btn::before{
+    content:""; position:absolute; inset:0; border-radius:16px;
+    background: url("./img/testyourluck.png") center/contain no-repeat;
   }
-  @keyframes tylPulse{
-    0%,100%{ opacity:.35; transform:scale(.98); }
-    50%    { opacity:1;   transform:scale(1.05); }
-  }
-
-  /* Greyed state while on cooldown */
-  .tyl-btn.cooldown img{ filter:grayscale(.9) brightness(.7) drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
-  .tyl-btn.cooldown::after{ display:none; }
-
-  .tyl-timer{
-    font: 600 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    color:#f0e5b6; letter-spacing:.2px; text-shadow: 0 1px 0 rgba(0,0,0,.35);
-    opacity:.9;
-  }
-
-  /* Modal */
-  .tyl-modal{
-    position:fixed; inset:0; backdrop-filter: blur(3px);
-    background: radial-gradient(120% 100% at 50% 0%, rgba(0,0,0,.75), rgba(0,0,0,.9));
-    display:flex; align-items:center; justify-content:center; z-index:9999;
-  }
-  .tyl-dialog{
-    position:relative; width:min(92vw, 520px); padding:22px 16px 26px;
-    border-radius:22px; background:linear-gradient(180deg, #101214, #0b0d0e);
-    box-shadow: 0 24px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.06);
-  }
-  .tyl-close{
-    position:absolute; top:10px; right:10px; width:38px; height:38px; border-radius:12px;
-    border:none; background:linear-gradient(180deg, #562, #a33);
-    color:#fff; font-size:18px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
-  }
-
-  /* Stage holds lights, pointer, wheel */
-  .tyl-stage{ position:relative; margin:8px auto 16px; width:min(86vw, 420px); aspect-ratio:1; }
-
-  /* Rim lights */
-  .tyl-lights{ position:absolute; inset:0; display:grid; place-items:center; }
-  .tyl-lights i{
-    position:absolute; width:12px; height:12px; border-radius:50%;
-    background: radial-gradient(circle at 40% 40%, #fff, #ffe38d 50%, #ffb300 70%, #b46a00 90%);
-    box-shadow: 0 0 12px rgba(255,193,58,.75), 0 0 22px rgba(255,193,58,.4);
-    transform-origin: 50% calc(200px - 6px);
-    animation: bulb 2.4s linear infinite;
-  }
-  /* place 24 bulbs around */
-  .tyl-lights i:nth-child(n){ top:50%; left:50%; }
-  .tyl-lights i:nth-child(1) { transform: rotate(0deg)   translate(-50%, -50%); }
-  .tyl-lights i:nth-child(2) { transform: rotate(15deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(3) { transform: rotate(30deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(4) { transform: rotate(45deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(5) { transform: rotate(60deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(6) { transform: rotate(75deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(7) { transform: rotate(90deg)  translate(-50%, -50%); }
-  .tyl-lights i:nth-child(8) { transform: rotate(105deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(9) { transform: rotate(120deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(10){ transform: rotate(135deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(11){ transform: rotate(150deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(12){ transform: rotate(165deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(13){ transform: rotate(180deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(14){ transform: rotate(195deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(15){ transform: rotate(210deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(16){ transform: rotate(225deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(17){ transform: rotate(240deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(18){ transform: rotate(255deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(19){ transform: rotate(270deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(20){ transform: rotate(285deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(21){ transform: rotate(300deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(22){ transform: rotate(315deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(23){ transform: rotate(330deg) translate(-50%, -50%); }
-  .tyl-lights i:nth-child(24){ transform: rotate(345deg) translate(-50%, -50%); }
-  @keyframes bulb{ 0%,100%{opacity:.85} 50%{opacity:.45} }
-
-  /* Pointer */
-  .tyl-pointer{
-    position:absolute; top:-6px; left:50%; translate:-50% 0;
-    width:0; height:0; border-left:14px solid transparent; border-right:14px solid transparent;
-    border-bottom:26px solid #ffb300; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45));
-  }
-  .tyl-pointer::after{
-    content:""; position:absolute; top:19px; left:-13px; right:-13px; height:7px; border-radius:0 0 8px 8px;
-    background:#7a4f00;
-  }
-
-  /* Wheel base using conic-gradient, then overlays for glass/rim */
-  .tyl-wheel{
-    position:absolute; inset:0; border-radius:50%;
-    --rim: radial-gradient(closest-side, #fff0 92%, rgba(255,255,255,.2) 93%, rgba(255,255,255,.05) 94%, #fff0 95%),
-           radial-gradient(closest-side, #fff0 96%, rgba(0,0,0,.5) 97%, #000 100%);
-    background:
-       conic-gradient(
-         #ffd166 0deg 36deg,
-         #9ad5ff 36deg 72deg,
-         #fab1b1 72deg 108deg,
-         #c0e6a1 108deg 144deg,
-         #ffdf8e 144deg 180deg,
-         #e2b8ff 180deg 216deg,
-         #c6f6d5 216deg 252deg,
-         #ffc08e 252deg 288deg,
-         #b3e5fc 288deg 324deg,
-         #ffe8a3 324deg 360deg
-       ),
-       var(--rim);
-    box-shadow: inset 0 2px 10px rgba(0,0,0,.35), 0 12px 35px rgba(0,0,0,.45);
-    transition: transform 6s cubic-bezier(.15,.8,.1,1);
-  }
-  .tyl-wheel::after{
-    /* subtle glass sheen */
-    content:""; position:absolute; inset:4% 4% 45% 4%; border-radius:50%;
-    background: linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,0));
+  /* Glowing pulsing rim (gold) */
+  #luckFeature .tyl-btn::after{
+    content:""; position:absolute; inset:-10px; border-radius:20px;
+    box-shadow: 0 0 0 0 rgba(255,205,80,.75), 0 0 26px 8px rgba(255,180,0,.55) inset;
+    animation: tylGlow 1.6s ease-in-out infinite;
     pointer-events:none;
   }
-
-  /* Wedge labels (emoji + text) */
-  .tyl-wheel .wedge-label{
-    position:absolute; top:50%; left:50%; width:50%; transform-origin:0 0;
-    display:flex; align-items:center; gap:8px; translate:0 -50%;
-    font: 700 14px/1.1 ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color:#2c2c2c; text-shadow:0 1px 0 rgba(255,255,255,.4);
-  }
-  .wedge-emoji{ font-size:18px; }
-  .wedge-text{ white-space:nowrap; transform: rotate(-90deg); }
-
-  /* Spin button */
-  .tyl-spin{
-    display:block; width:86%; margin:8px auto 6px; padding:16px 18px;
-    border-radius:16px; border:1px solid rgba(255,255,255,.12);
-    background:linear-gradient(180deg, #d9caa3, #b9a780);
-    color:#1d1300; font: 900 16px/1 "Segoe UI", Roboto, system-ui, sans-serif;
-    letter-spacing:.6px; text-transform:uppercase;
-    box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.35);
-  }
-  .tyl-spin:disabled{ filter:grayscale(1) opacity(.6); cursor:not-allowed; }
-
-  /* cycles Red -> Yellow -> Green (every 1s) */
-  .gold-traffic{ animation: traffic 3s linear infinite; }
-  @keyframes traffic{
-    0%   { background:linear-gradient(180deg,#d24,#a00); color:#fff; }
-    33%  { background:linear-gradient(180deg,#ffd45a,#d7b33d); color:#251900; }
-    66%  { background:linear-gradient(180deg,#37c45b,#2d8d48); color:#061a0d; }
-    100% { background:linear-gradient(180deg,#d24,#a00); color:#fff; }
+  @keyframes tylGlow{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(255,205,80,.7), 0 0 24px 6px rgba(255,180,0,.5) inset; }
+    50%   { box-shadow: 0 0 36px 8px rgba(255,205,80,.95), 0 0 36px 10px rgba(255,140,0,.6) inset; }
   }
 
-  .tyl-cooldown{
-    margin-top:6px; text-align:center; color:#ddd; opacity:.9;
-    font: 600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Disabled state during cooldown */
+  #luckFeature .tyl-btn.disabled { cursor:not-allowed; }
+  #luckFeature .tyl-btn.disabled::before{ filter: grayscale(1) brightness(.6); }
+  #luckFeature .tyl-btn.disabled::after{ animation:none; opacity:.25; }
+
+  /* Cooldown text under the button */
+  #luckFeature .cooldown {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color:#c9c9c9; font-size:14px; margin-top:8px; min-height:1.2em;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5);
   }
 
-  /* Toasts floating up & fading */
-  .tyl-toasts{ position:fixed; bottom:18px; left:50%; translate:-50% 0; z-index:99999; pointer-events:none; }
+  /* Modal overlay */
+  #luckModal.backdrop {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background: radial-gradient(120% 100% at 50% 0%, rgba(0,0,0,.7), rgba(0,0,0,.9));
+    z-index:9999; padding:14px;
+  }
+  #luckModal.backdrop.open { display:flex; }
+
+  /* The modal card (nearly fullscreen, slightly inset) */
+  #luckModal .card {
+    width:min(720px, 94vw);
+    height:min(86vh, 720px);
+    border-radius:22px; padding:18px 18px 22px;
+    background:
+      radial-gradient(120% 120% at 50% -10%, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+      linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    box-shadow: 0 25px 60px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.06);
+    position:relative; display:flex; flex-direction:column; align-items:center; gap:14px;
+    backdrop-filter: blur(6px);
+  }
+  /* Close (red X) */
+  #luckModal .close {
+    position:absolute; top:14px; right:14px;
+    width:42px; height:42px; border-radius:12px;
+    background: linear-gradient(180deg, #ff6b6b, #b91c1c);
+    color:#fff; border:0; display:grid; place-items:center; font-size:22px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.25);
+    cursor:pointer;
+  }
+
+  /* Wheel area */
+  #luckModal .wheelBox { position:relative; width:100%; display:flex; justify-content:center; margin-top:8px; }
+  #luckModal .ring {
+    width:min(84vw, 540px); aspect-ratio:1/1; border-radius:50%;
+    background:
+      radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.08), rgba(255,255,255,0) 70%),
+      radial-gradient(100% 100% at 50% 50%, rgba(255,220,120,.2), rgba(255,200,0,.08) 55%, rgba(0,0,0,.3) 56%),
+      linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0));
+    box-shadow: 0 18px 50px rgba(0,0,0,.6), inset 0 0 0 3px rgba(255,255,255,.12), inset 0 0 0 14px rgba(0,0,0,.25);
+    position:relative; display:grid; place-items:center; overflow:hidden;
+  }
+  /* the rotating element that holds the canvas */
+  #luckModal .rotor { width:87%; aspect-ratio:1/1; border-radius:50%; transform:rotate(0deg); transition: transform 5.8s cubic-bezier(.12,.85,.12,1); }
+  #luckModal .wheelCanvas { width:100%; height:100%; display:block; }
+  /* bezel dots */
+  #luckModal .ring::after{
+    content:""; position:absolute; inset:12px;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 2%, rgba(255,255,255,.45) 0 2px, transparent 3px),
+      radial-gradient(circle at 68% 16%, rgba(255,255,255,.45) 0 2px, transparent 3px),
+      radial-gradient(circle at 28% 14%, rgba(255,255,255,.45) 0 2px, transparent 3px),
+      radial-gradient(circle at 20% 70%, rgba(255,255,255,.45) 0 2px, transparent 3px),
+      radial-gradient(circle at 78% 68%, rgba(255,255,255,.45) 0 2px, transparent 3px);
+    filter: blur(.2px);
+    opacity:.45; pointer-events:none;
+  }
+  /* pointer arrow (top) */
+  #luckModal .pointer {
+    position:absolute; top:6px; left:50%; transform:translateX(-50%); width:0; height:0;
+    border-left: 18px solid transparent; border-right: 18px solid transparent;
+    border-bottom: 26px solid #ffd166;
+    filter: drop-shadow(0 10px 8px rgba(0,0,0,.5));
+  }
+  #luckModal .pointer::after{
+    content:""; position:absolute; top:18px; left:-7px; width:14px; height:14px; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #fff, #ffd166 55%, #b58a00);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+  }
+
+  /* Spin button (color-cycling every 1s) */
+  #luckModal .spinBtn{
+    margin-top:6px;
+    width:min(460px, 86%); height:62px; border-radius:16px; border:0; cursor:pointer;
+    font: 700 20px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    letter-spacing:.6px; color:#111; text-shadow:0 1px 0 rgba(255,255,255,.25);
+    box-shadow: 0 12px 26px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25);
+    background: linear-gradient(180deg, #ff4747, #ffb84d);
+    animation: spinBtnCycle 3s steps(3, end) infinite;
+  }
+  @keyframes spinBtnCycle{
+    0%   { background: linear-gradient(180deg, #ff4d4d, #cc0000); color:#fff; }
+    33%  { background: linear-gradient(180deg, #ffe259, #ffa751); color:#2b2b2b; }
+    66%  { background: linear-gradient(180deg, #8ef77a, #2fd86d); color:#083b1b; }
+    100% { background: linear-gradient(180deg, #ff4d4d, #cc0000); color:#fff; }
+  }
+  #luckModal .spinBtn:disabled{
+    filter: grayscale(1) brightness(.7);
+    cursor:not-allowed;
+    animation: none;
+  }
+
+  /* Modal cooldown text */
+  #luckModal .next { color:#cfcfcf; font-size:14px; margin-top:8px; text-shadow: 0 1px 1px rgba(0,0,0,.6); }
+
+  /* Greys-out the whole wheel area when locked */
+  #luckModal.locked .ring, #luckModal.locked .spinBtn { filter: grayscale(1) brightness(.6); }
+  #luckModal.locked .ring::after { opacity:.15; }
+
+  /* Toast (on main page after closing modal) */
   .tyl-toast{
-    margin-top:10px; padding:10px 14px; border-radius:14px;
-    background:rgba(30,29,24,.95); color:#ffe9a3; border:1px solid rgba(255,218,109,.35);
-    box-shadow:0 8px 30px rgba(0,0,0,.4);
-    font:700 14px/1.1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    animation: toastUp 2.2s ease forwards;
+    position: fixed; left:50%; top:18px; transform: translateX(-50%) translateY(0);
+    z-index:10000; background: rgba(30,30,30,.92);
+    color:#fff; border-radius:14px; padding:12px 18px; font:600 15px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    box-shadow: 0 12px 30px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+    opacity:0; pointer-events:none;
+    transition: transform .4s ease, opacity .4s ease;
   }
-  @keyframes toastUp{
-    0%{ opacity:0; transform:translateY(12px); }
-    15%{ opacity:1; transform:translateY(0); }
-    85%{ opacity:1; transform:translateY(-12px); }
-    100%{ opacity:0; transform:translateY(-22px); }
-  }
+  .tyl-toast.show{ opacity:1; transform: translateX(-50%) translateY(10px); }
 
 
 /* ===== Night Grid (stunning edition) ===== */
@@ -1158,43 +1117,33 @@ canvas{ display:block }
     </div>
 
 
-<!-- ===== Test Your Luck (button + timer) ===== -->
-<div class="tyl-wrap">
-  <button id="tylBtn" class="tyl-btn" aria-label="Test your luck">
-    <img id="tylImg" src="img/testyourluck.png" alt="Test your luck">
-  </button>
-  <div id="tylTimer" class="tyl-timer" style="display:none;"></div>
-</div>
 
-<!-- ===== Spin Wheel Modal ===== -->
-<div id="tylModal" class="tyl-modal" aria-hidden="true" style="display:none;">
-  <div class="tyl-dialog">
-    <button id="tylClose" class="tyl-close" aria-label="Close">✕</button>
-
-    <div class="tyl-stage">
-      <!-- Rim lights -->
-      <div class="tyl-lights" aria-hidden="true">
-        <!-- 24 bulbs -->
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-
-      <!-- Pointer -->
-      <div class="tyl-pointer" aria-hidden="true"></div>
-
-      <!-- Wheel -->
-      <div id="tylWheel" class="tyl-wheel">
-        <!-- wedge labels injected by JS -->
-      </div>
-    </div>
-
-    <button id="tylSpin" class="tyl-spin gold-traffic">SPIN THE WHEEL</button>
-    <div id="tylCooldown" class="tyl-cooldown" style="display:none;">Next spin in —</div>
+<div id="luckFeature">
+  <div class="tyl-wrap">
+    <button id="tylBtn" class="tyl-btn" aria-label="Test your luck"></button>
+    <div id="tylCooldown" class="cooldown"></div>
   </div>
 </div>
 
-<!-- Toast (messages on main page after closing modal) -->
-<div id="tylToasts" class="tyl-toasts" aria-live="polite"></div>
+<!-- Modal -->
+<div id="luckModal" class="backdrop" aria-hidden="true">
+  <div class="card">
+    <button class="close" id="tylClose" aria-label="Close">✕</button>
+
+    <div class="wheelBox">
+      <div class="pointer"></div>
+
+      <div class="ring">
+        <div id="wheelRotor" class="rotor">
+          <canvas id="wheelCanvas" class="wheelCanvas" width="1000" height="1000"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <button id="spinBtn" class="spinBtn">SPIN THE WHEEL</button>
+    <div class="next" id="nextSpinText"></div>
+  </div>
+</div>
 
 
 
@@ -2220,219 +2169,6 @@ function buildGrid(container, cols, rows){
     clear(x,y){ const el=cells[idx(x,y)]; if(el){ el.className='cell'; } },
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
-
-
-(() => {
-  // ---- CONFIG ----
-  const IMG_PATH = 'img/testyourluck.png';   // change if your path is different
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000;   // 24 hours
-  // Weights must add up to 100 (percent)
-  const PRIZES = [
-    { label:'600 chads', emoji:'🪙', kind:'chads', amount: 600,   weight:16, message:'+600 chads added' },
-    { label:'Nothing',   emoji:'❌', kind:'none',  amount: 0,     weight:15, message:'Sorry for that' },
-    { label:'100 gen/hr',emoji:'⚡', kind:'gen',   amount: 100,   weight:10, message:'+100 gen/hr increased' },
-    { label:'10M chads', emoji:'🎉', kind:'chads', amount: 10_000_000, weight:2,  message:'Congrats! You won 10,000,000 chads' },
-    { label:'1000 gen/hr',emoji:'⚡',kind:'gen',   amount: 1000,  weight:8,  message:'+1000 gen/hr increased' },
-    { label:'Nothing',   emoji:'🚫', kind:'none',  amount: 0,     weight:15, message:'Sorry for that' },
-    { label:'500K chads',emoji:'💰', kind:'chads', amount: 500_000, weight:8, message:'+500,000 chads added' },
-    { label:'500K gen/hr',emoji:'🚀',kind:'gen',   amount: 500_000, weight:7, message:'+500,000 gen/hr increased' },
-    { label:'1M chads',  emoji:'🏆', kind:'chads', amount: 1_000_000, weight:5, message:'+1,000,000 chads added' },
-    { label:'100 gen/hr',emoji:'⚡', kind:'gen',   amount: 100,   weight:14, message:'+100 gen/hr increased' },
-  ];
-
-  // ---- Elements ----
-  const $ = sel => document.querySelector(sel);
-  const tylBtn = $('#tylBtn');
-  const tylImg = $('#tylImg');
-  const tylTimer = $('#tylTimer');
-  const modal = $('#tylModal');
-  const dlg = $('.tyl-dialog');
-  const wheel = $('#tylWheel');
-  const spinBtn = $('#tylSpin');
-  const cooldownText = $('#tylCooldown');
-  const closeBtn = $('#tylClose');
-  const toasts = $('#tylToasts');
-
-  // ensure image path (also for masked glow)
-  tylImg.src = IMG_PATH;
-  // sync CSS mask-image path for the glow pseudo-element:
-  // (this updates the <style> we injected at runtime to match IMG_PATH)
-  const styleBlob = document.createElement('style');
-  styleBlob.innerHTML = `.tyl-btn::after{ -webkit-mask-image:url('${IMG_PATH}'); mask-image:url('${IMG_PATH}'); }`;
-  document.head.appendChild(styleBlob);
-
-  // ---- LocalStorage keys (scoped to your game's STORAGE_KEY uid if present) ----
-  const uid = (window.tg?.initDataUnsafe?.user?.id) || 'guest';
-  const SPIN_KEY = `chad_spin_${uid}`;
-  const LAST_WIN_KEY = `chad_last_win_${uid}`;
-
-  // ---- Build wedge labels dynamically ----
-  const DEG_PER = 360 / PRIZES.length;
-  PRIZES.forEach((p, i) => {
-    const label = document.createElement('div');
-    label.className = 'wedge-label';
-    const deg = i * DEG_PER + DEG_PER / 2; // middle of wedge
-    label.style.transform = `rotate(${deg}deg) translate(0, -50%)`;
-    label.innerHTML = `<span class="wedge-emoji">${p.emoji}</span>
-                       <span class="wedge-text">${p.label}</span>`;
-    wheel.appendChild(label);
-  });
-
-  // ---- State helpers (integrate with your app if available) ----
-  function loadGameState(){
-    try { return window.loadStateLocal ? window.loadStateLocal() : { chads:0n, gen:0n, acc:0n, last:0, level:1, purchases:{} }; }
-    catch{ return { chads:0n, gen:0n, acc:0n, last:0, level:1, purchases:{} }; }
-  }
-  function saveGameState(s){
-    if (window.saveStateLocal) window.saveStateLocal(s);
-    if (typeof window.refreshUI === 'function') window.refreshUI();
-  }
-
-  // ---- UI open/close ----
-  tylBtn.addEventListener('click', () => {
-    if (tylBtn.disabled) return;
-    openModal();
-  });
-  closeBtn.addEventListener('click', () => {
-    closeModal();
-    // show last reward message (if any)
-    const msg = localStorage.getItem(LAST_WIN_KEY);
-    if (msg) toast(msg);
-    localStorage.removeItem(LAST_WIN_KEY);
-  });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeBtn.click();
-  });
-
-  function openModal(){
-    modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
-    updateCooldownUI();
-  }
-  function closeModal(){
-    modal.style.display = 'none';
-    modal.setAttribute('aria-hidden', 'true');
-  }
-
-  // ---- Weighted random pick (respect special odds) ----
-  function pickIndex(){
-    const total = PRIZES.reduce((a,p)=>a+p.weight,0);
-    let r = Math.random() * total;
-    for (let i=0;i<PRIZES.length;i++){
-      r -= PRIZES[i].weight;
-      if (r <= 0) return i;
-    }
-    return PRIZES.length-1;
-  }
-
-  // ---- Spin logic ----
-  let spinning = false;
-  let currentRotation = 0;
-  spinBtn.addEventListener('click', async () => {
-    if (spinning || spinBtn.disabled) return;
-    spinning = true;
-
-    // choose a prize by weight
-    const idx = pickIndex();
-
-    // compute final rotation so the selected wedge ends at the pointer (top)
-    const wedgeSize = 360 / PRIZES.length;
-    const min = idx*wedgeSize;
-    const max = min + wedgeSize;
-    // aim for the center of the wedge with a little randomness
-    const targetDeg = (min + max)/2 + (Math.random()*6 - 3);
-    // spins + adjust so pointer at 0deg hits target
-    const spins = 5 + Math.floor(Math.random()*3); // 5–7 spins
-    const final = 360*spins + (360 - targetDeg);
-
-    // animate
-    wheel.style.transition = 'transform 6.2s cubic-bezier(.15,.85,.05,1)';
-    currentRotation = (currentRotation + final) % 3600; // keep number small
-    wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-    // disable button during spin
-    spinBtn.disabled = true;
-
-    // wait for transition end
-    await new Promise(res => {
-      const onEnd = () => { wheel.removeEventListener('transitionend', onEnd); res(); };
-      wheel.addEventListener('transitionend', onEnd, { once:true });
-    });
-
-    const prize = PRIZES[idx];
-    awardPrize(prize);
-    setCooldown(Date.now() + COOLDOWN_MS);
-    updateCooldownUI();
-
-    spinning = false;
-  });
-
-  // ---- Award & message ----
-  function awardPrize(p){
-    const game = loadGameState();
-
-    if (p.kind === 'chads'){
-      try { game.chads = (BigInt(game.chads||0) + BigInt(p.amount)); } catch {}
-      saveGameState(game);
-      localStorage.setItem(LAST_WIN_KEY, p.message.replace('+','')); // message after closing
-    }else if (p.kind === 'gen'){
-      try { game.gen = (BigInt(game.gen||0) + BigInt(p.amount)); } catch {}
-      saveGameState(game);
-      localStorage.setItem(LAST_WIN_KEY, p.message.replace('+',''));
-    }else{
-      localStorage.setItem(LAST_WIN_KEY, 'Sorry for that');
-    }
-  }
-
-  // ---- Cooldown handling (shared between main button and modal) ----
-  function getCooldownUntil(){
-    const raw = localStorage.getItem(SPIN_KEY);
-    const n = raw ? parseInt(raw,10) : 0;
-    return isFinite(n) ? n : 0;
-  }
-  function setCooldown(ts){
-    localStorage.setItem(SPIN_KEY, String(ts));
-  }
-
-  function msToHMS(ms){
-    if (ms < 0) ms = 0;
-    const s = Math.floor(ms/1000);
-    const h = Math.floor(s/3600).toString().padStart(2,'0');
-    const m = Math.floor((s%3600)/60).toString().padStart(2,'0');
-    const sec = (s%60).toString().padStart(2,'0');
-    return `${h}:${m}:${sec}`;
-  }
-
-  function updateCooldownUI(){
-    const left = getCooldownUntil() - Date.now();
-    const onCd = left > 0;
-
-    // main button look
-    tylBtn.classList.toggle('cooldown', onCd);
-    tylBtn.disabled = onCd;
-    tylTimer.style.display = onCd ? 'block' : 'none';
-    if (onCd) tylTimer.textContent = `Next spin in ${msToHMS(left)}`;
-
-    // modal controls
-    spinBtn.disabled = onCd;
-    cooldownText.style.display = onCd ? 'block' : 'none';
-    if (onCd) cooldownText.textContent = `Next spin in ${msToHMS(left)}`;
-  }
-
-  // tick every second for timers
-  setInterval(updateCooldownUI, 1000);
-  updateCooldownUI(); // initial
-
-  // ---- Toast helper ----
-  function toast(text){
-    const el = document.createElement('div');
-    el.className = 'tyl-toast';
-    el.textContent = text;
-    toasts.appendChild(el);
-    setTimeout(()=>el.remove(), 2300);
-  }
-})();
-
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -3569,6 +3305,288 @@ function openBreaker(){
   });
 
   window.addEventListener('resize', resizeCanvas);
+})();
+
+
+(function(){
+  /* ---------- Config ---------- */
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const STORAGE_TIME = 'chad_luck_nextSpin';
+  const STORAGE_RESULT = 'chad_luck_lastResult'; // used for toast after closing
+  const IMG_PATH = './img/testyourluck.png'; // your repo asset
+
+  // Reward segments (10 parts)
+  const segments = [
+    { label:'600 chads',       emoji:'🪙',  type:'chads', amount:600,     weight:12 },
+    { label:'Nothing',         emoji:'❌',  type:'none',  amount:0,       weight:12 },
+    { label:'100 gen/hr',      emoji:'⚡',  type:'gen',   amount:100,     weight:12 },
+    { label:'10M chads',       emoji:'🎉',  type:'chads', amount:10_000_000, weight:2 },
+    { label:'1000 gen/hr',     emoji:'⚡',  type:'gen',   amount:1000,    weight:12 },
+    { label:'Nothing',         emoji:'🚫',  type:'none',  amount:0,       weight:12 },
+    { label:'500K chads',      emoji:'💰',  type:'chads', amount:500_000, weight:12 },
+    { label:'500K gen/hr',     emoji:'⚡💥',type:'gen',   amount:500_000, weight:9 },
+    { label:'1M chads',        emoji:'💎',  type:'chads', amount:1_000_000, weight:5 },
+    { label:'100 gen/hr',      emoji:'⚡',  type:'gen',   amount:100,     weight:12 },
+  ];
+  const wheelColors = [
+    '#FFE9A9', '#F6D1C1', '#D7EAD8', '#BED7FF', '#FFE4B5',
+    '#D6C1F0', '#C9F1E3', '#FFD6D1', '#CFE2FF', '#E6F4D5'
+  ];
+
+  /* ---------- Element refs ---------- */
+  const btn = document.getElementById('tylBtn');
+  const cooldownUnderBtn = document.getElementById('tylCooldown');
+  const modal = document.getElementById('luckModal');
+  const closeBtn = document.getElementById('tylClose');
+  const rotor = document.getElementById('wheelRotor');
+  const spinBtn = document.getElementById('spinBtn');
+  const nextSpinText = document.getElementById('nextSpinText');
+
+  /* ---------- Canvas wheel drawing (pretty!) ---------- */
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  function drawWheel(){
+    const N = segments.length;
+    const cx = canvas.width/2, cy = canvas.height/2, r = canvas.width/2;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // subtle radial base
+    const baseGrad = ctx.createRadialGradient(cx,cy, r*0.1, cx,cy, r*1.02);
+    baseGrad.addColorStop(0, 'rgba(255,255,255,.06)');
+    baseGrad.addColorStop(1, 'rgba(0,0,0,.12)');
+    ctx.fillStyle = baseGrad; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+
+    const step = 2*Math.PI/N;
+    for(let i=0;i<N;i++){
+      const start = -Math.PI/2 + i*step;
+      const end = start + step;
+      // slice
+      const grad = ctx.createLinearGradient(
+        cx + Math.cos(start)*r, cy + Math.sin(start)*r,
+        cx + Math.cos(end)*r,   cy + Math.sin(end)*r
+      );
+      const c = wheelColors[i % wheelColors.length];
+      grad.addColorStop(0, shade(c, -12));
+      grad.addColorStop(1, shade(c, 8));
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy, r*0.94, start, end);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // separators
+      ctx.strokeStyle = 'rgba(0,0,0,.25)';
+      ctx.lineWidth = r*0.012;
+      ctx.beginPath();
+      ctx.arc(cx,cy, r*0.94, start, end);
+      ctx.stroke();
+
+      // emoji + label
+      ctx.save();
+      const mid = (start+end)/2;
+      const tx = cx + Math.cos(mid)*r*0.62;
+      const ty = cy + Math.sin(mid)*r*0.62;
+      ctx.translate(tx,ty);
+      ctx.rotate(mid + Math.PI/2);
+      ctx.textAlign = 'center';
+      // emoji
+      ctx.font = `${Math.round(r*0.07)}px "Apple Color Emoji","Segoe UI Emoji",system-ui`;
+      ctx.fillText(segments[i].emoji, 0, -r*0.02);
+      // label
+      ctx.font = `bold ${Math.round(r*0.045)}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+      ctx.fillStyle = 'rgba(20,20,20,.85)';
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.lineWidth = 4; ctx.miterLimit=2;
+      ctx.strokeText(segments[i].label, 0, r*0.085);
+      ctx.fillText(segments[i].label, 0, r*0.085);
+      ctx.restore();
+    }
+
+    // center hub
+    const hubGrad = ctx.createRadialGradient(cx,cy, r*0.02, cx,cy, r*0.18);
+    hubGrad.addColorStop(0, '#fff'); hubGrad.addColorStop(1, '#d7b76a');
+    ctx.beginPath(); ctx.arc(cx,cy, r*0.18, 0, Math.PI*2); ctx.fillStyle = hubGrad; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy, r*0.18, 0, Math.PI*2); ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.lineWidth=r*0.01; ctx.stroke();
+  }
+  function shade(hex, pct){
+    // quick hex shade helper
+    const m = hex.replace('#','');
+    const num = parseInt(m,16);
+    const r = Math.min(255, Math.max(0, (num>>16) + Math.round(255*pct/100)));
+    const g = Math.min(255, Math.max(0, ((num>>8)&255) + Math.round(255*pct/100)));
+    const b = Math.min(255, Math.max(0, (num&255) + Math.round(255*pct/100)));
+    return '#' + (1<<24 | r<<16 | g<<8 | b).toString(16).slice(1);
+  }
+  drawWheel();
+
+  /* ---------- Game state helpers (compatible with your app) ---------- */
+  function getState(){
+    try { if (typeof loadStateLocal === 'function') return loadStateLocal(); } catch(e){}
+    // fallback
+    const raw = localStorage.getItem('chad_state_guest');
+    if (raw) try { return JSON.parse(raw); } catch(e){}
+    return { chads: 0, gen: 0, acc: 0, last: Date.now()/1000|0, level:1, purchases:{} };
+  }
+  function saveState(state){
+    try { if (typeof saveStateLocal === 'function') return saveStateLocal(state); } catch(e){}
+    localStorage.setItem('chad_state_guest', JSON.stringify(state));
+  }
+  const isBig = (v)=> typeof v === 'bigint';
+  function addChads(st, n){
+    if (isBig(st.chads)) st.chads += BigInt(n);
+    else st.chads = (Number(st.chads)||0) + n;
+  }
+  function addGen(st, n){
+    if (isBig(st.gen)) st.gen += BigInt(n);
+    else st.gen = (Number(st.gen)||0) + n;
+  }
+
+  /* ---------- Cooldown + timers ---------- */
+  let tickTimer = null;
+  function getNextSpinMs(){ return Math.max(0, (parseInt(localStorage.getItem(STORAGE_TIME)||'0',10) || 0) - Date.now()); }
+  function setCooldown(ms){ localStorage.setItem(STORAGE_TIME, String(Date.now()+ms)); }
+  function fmtLeft(ms){
+    const s = Math.ceil(ms/1000);
+    const hh = String(Math.floor(s/3600)).padStart(2,'0');
+    const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    return `${hh}:${mm}:${ss}`;
+  }
+  function updateCooldownUI(){
+    const left = getNextSpinMs();
+    const isLocked = left > 0;
+
+    // main button state + text
+    btn.classList.toggle('disabled', isLocked);
+    cooldownUnderBtn.textContent = isLocked ? `Next spin in ${fmtLeft(left)}` : '';
+
+    // modal state + controls
+    modal.classList.toggle('locked', isLocked);
+    spinBtn.disabled = isLocked;
+    nextSpinText.textContent = isLocked ? `Next spin in ${fmtLeft(left)}` : '';
+
+    if (!tickTimer){
+      tickTimer = setInterval(()=>{
+        const l = getNextSpinMs();
+        if (l <= 0){
+          clearInterval(tickTimer); tickTimer = null;
+          updateCooldownUI();
+        }else{
+          cooldownUnderBtn.textContent = `Next spin in ${fmtLeft(l)}`;
+          nextSpinText.textContent    = `Next spin in ${fmtLeft(l)}`;
+        }
+      }, 1000);
+    }
+  }
+
+  /* ---------- Weighted pick + spin ---------- */
+  function pickIndexWeighted(){
+    const total = segments.reduce((a,s)=>a+s.weight,0);
+    let r = Math.random()*total;
+    for (let i=0;i<segments.length;i++){
+      if ((r -= segments[i].weight) <= 0) return i;
+    }
+    return segments.length-1;
+  }
+
+  let spinning = false;
+  function spin(){
+    if (spinning) return;
+    const lockLeft = getNextSpinMs();
+    if (lockLeft > 0) return;
+
+    spinning = true;
+    const N = segments.length;
+    const idx = pickIndexWeighted();
+
+    // Angle math: pointer is fixed at 0deg (top). We rotate wheel so selected center ends at 0deg.
+    const slice = 360/N;
+    const targetAngle = (idx*slice) + slice/2; // center of the slice from 0deg reference
+    const extraTurns = 5 + Math.floor(Math.random()*3); // 5..7 turns for drama
+    const final = (extraTurns*360) + (360 - targetAngle) + (Math.random()*6 - 3); // small jitter
+
+    rotor.style.transition = 'transform 5.8s cubic-bezier(.12,.85,.12,1)';
+    requestAnimationFrame(()=>{ rotor.style.transform = `rotate(${final}deg)`; });
+
+    // After spin ends
+    setTimeout(()=>{
+      spinning = false;
+
+      const reward = segments[idx];
+      applyReward(reward);              // update chads/gen + set cooldown
+      localStorage.setItem(STORAGE_RESULT, toastText(reward)); // for toast after close
+      updateCooldownUI();
+    }, 6000);
+  }
+
+  function toastText(rew){
+    if (rew.type === 'chads' && rew.amount === 600) return '600 chads added';
+    if (rew.type === 'none') return 'Sorry For That';
+    if (rew.type === 'gen' && rew.amount === 100) return '100 gen/hr increased';
+    if (rew.type === 'chads' && rew.amount === 10_000_000) return 'Congrats, You Won 10 Million Chads';
+    if (rew.type === 'gen' && rew.amount === 1000) return '1000 gen/hr increased';
+    if (rew.type === 'chads' && rew.amount === 500_000) return '500000 chads added';
+    if (rew.type === 'gen' && rew.amount === 500_000) return '500000 gen/hr increased';
+    if (rew.type === 'chads' && rew.amount === 1_000_000) return '1 Million chads added';
+    return (rew.type === 'gen') ? `${rew.amount} gen/hr increased` : `${rew.amount} chads added`;
+  }
+
+  function applyReward(rew){
+    // give the prize
+    const s = getState();
+    if (rew.type === 'chads') addChads(s, rew.amount);
+    else if (rew.type === 'gen') addGen(s, rew.amount);
+    saveState(s);
+
+    // lock for 24h
+    setCooldown(DAY_MS);
+  }
+
+  /* ---------- Toast (after closing) ---------- */
+  let pendingToast = null;
+  function showPendingToastIfAny(){
+    const msg = localStorage.getItem(STORAGE_RESULT);
+    if (!msg) return;
+    localStorage.removeItem(STORAGE_RESULT);
+    showToast(msg);
+  }
+  function showToast(msg){
+    if (pendingToast){ pendingToast.remove(); pendingToast=null; }
+    const t = document.createElement('div');
+    t.className='tyl-toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(()=> t.classList.add('show'));
+    setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 450); }, 2400);
+    pendingToast = t;
+  }
+
+  /* ---------- Events ---------- */
+  btn.addEventListener('click', ()=>{
+    // open modal always; if locked, it shows grey + timer
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    updateCooldownUI();
+  });
+  closeBtn.addEventListener('click', ()=>{
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    showPendingToastIfAny();
+  });
+  modal.addEventListener('click', (e)=>{
+    if (e.target === modal){ // click outside card closes too
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      showPendingToastIfAny();
+    }
+  });
+  spinBtn.addEventListener('click', spin, { passive:true });
+
+  /* ---------- Init ---------- */
+  // ensure PNG path is correct (also preload to avoid flicker)
+  const img = new Image(); img.src = IMG_PATH;
+
+  updateCooldownUI(); // sets initial states & timers
 })();
 
 
