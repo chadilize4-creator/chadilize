@@ -2324,9 +2324,9 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
     dtMax: 1/30,            // cap dt for stability (seconds)
     ballRestitution: 0.94,  // ball-ball bounciness (in 0.90–0.96 range) [see cites]
     railRestitution: 0.87,  // cushion bounciness (rails)
-    rollingFriction: 500,   // px/s^2 decel (tuned to stop quicker but smooth)
+    rollingFriction: 485,   // px/s^2 decel (tuned to stop quicker but smooth)
     sleepSpeed: 8,          // px/s threshold to stop
-    maxSpeed: 1600          // shot speed scale
+    maxSpeed: 1550          // shot speed scale
   };
 
   let world = null;
@@ -2595,7 +2595,7 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
             cue.y = world.bottom - (R.rBall*5.5);
           } else {
             b.alive = false;
-            score += 1;
+            score += 4;
             chadRun = score * 50;
             scoreEl.textContent = score;
             runChadEl.textContent = fmt(chadRun);
