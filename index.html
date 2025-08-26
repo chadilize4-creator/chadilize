@@ -6,8 +6,7 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  
-/* ====== Layout + button placement ====== */
+  /* ====== Layout + button placement ====== */
 #crypto-break-anchor { position: relative; }
 
 /* The play button injected below #profile-strip */
@@ -131,6 +130,7 @@
   80%  { transform: translate(-50%, -12px); opacity: 1; }
   100% { transform: translate(-50%, -20px); opacity: 0; }
 }
+
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
@@ -989,7 +989,35 @@ canvas{ display:block }
       </div>
     </div>
 
-<link rel="preload" as="image" href="/img/cryptobreak.png">
+<!-- Crypto Break mount + modal -->
+<link rel="stylesheet" href="crypto-break.css">
+
+<div id="crypto-break-anchor"> 
+  <!-- The play button will be injected just BELOW #profile-strip automatically -->
+</div>
+
+<!-- The game modal (created hidden) -->
+<div id="cb-modal" aria-hidden="true">
+  <div class="cb-sheet">
+    <div class="cb-hud">
+      <div class="cb-chip cb-score">Score: <span>0</span></div>
+      <div class="cb-chip cb-chad">CHAD (this run): <span>0</span></div>
+    </div>
+
+    <div class="cb-table-wrap">
+      <canvas id="cb-canvas"></canvas>
+      <!-- 6 pockets are drawn on canvas (not DOM) -->
+    </div>
+
+    <div class="cb-controls">
+      <button class="cb-btn cb-secondary" id="cb-restart">Restart</button>
+      <button class="cb-btn cb-danger" id="cb-quit">Quit</button>
+    </div>
+  </div>
+</div>
+
+<script defer src="crypto-break.js"></script>
+
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -1039,34 +1067,6 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Crypto Break mount + modal -->
-<link rel="stylesheet" href="crypto-break.css">
-
-<div id="crypto-break-anchor"> 
-  <!-- The play button will be injected just BELOW #profile-strip automatically -->
-</div>
-
-<!-- The game modal (created hidden) -->
-<div id="cb-modal" aria-hidden="true">
-  <div class="cb-sheet">
-    <div class="cb-hud">
-      <div class="cb-chip cb-score">Score: <span>0</span></div>
-      <div class="cb-chip cb-chad">CHAD (this run): <span>0</span></div>
-    </div>
-
-    <div class="cb-table-wrap">
-      <canvas id="cb-canvas"></canvas>
-      <!-- 6 pockets are drawn on canvas (not DOM) -->
-    </div>
-
-    <div class="cb-controls">
-      <button class="cb-btn cb-secondary" id="cb-restart">Restart</button>
-      <button class="cb-btn cb-danger" id="cb-quit">Quit</button>
-    </div>
-  </div>
-</div>
-
-<script defer src="crypto-break.js"></script>
 
 
     <!-- PLAY overlay -->
@@ -2574,6 +2574,401 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
+
+/* ===========================================================
+   Crypto Break – portrait pool mini-game with tuned physics
+   - No sounds
+   - Score × 50 => CHAD (BigInt) on Quit
+   - Button placed directly BELOW #profile-strip
+   =========================================================== */
+
+/* ---------- Config ---------- */
+const CB = {
+  anchorSelector: '#profile-strip',   // element under which the play button will be injected
+  imgButton: 'img/cryptobreak.png',   // your repo path
+  table: {
+    cushionRestitution: 0.90, // normal COR vs rails (see refs)
+    ballRestitution:     0.95, // ball-to-ball COR (see refs)
+    rollingMu:           0.990, // per-tick velocity multiplier (friction). Lower => stops sooner
+    minStop:             2.0,   // px/s below which we snap to stop
+    radiusPx:            11.5,  // ball radius in CSS pixels
+    pocketRadiusScale:   1.35,  // pocket radius vs ball radius
+    substeps:            2      // physics sub-steps for stability
+  },
+  scoring: {
+    perBall: 10,       // same base points per pocketed ball
+    chadMultiplier: 50 // CHAD gained = score * 50
+  }
+};
+
+/* ---------- Mount play button right below the wooden strip ---------- */
+(function injectLaunch(){
+  const anchor = document.querySelector(CB.anchorSelector);
+  if (!anchor) return console.warn('[CryptoBreak] anchor not found:', CB.anchorSelector);
+
+  const holder = document.getElementById('crypto-break-anchor');
+  if (!holder) return console.warn('[CryptoBreak] #crypto-break-anchor not found');
+
+  // Insert button directly after #profile-strip (so it’s visually right below it)
+  const btn = document.createElement('div');
+  btn.className = 'cb-launch';
+  btn.setAttribute('role','button');
+  btn.setAttribute('aria-label','Crypto Break – Tap to play');
+  // place right after anchor
+  anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+
+  btn.addEventListener('click', openModal, { passive: true });
+})();
+
+/* ---------- Modal + UI ---------- */
+const modal = document.getElementById('cb-modal');
+const cvs   = document.getElementById('cb-canvas');
+const ctx   = cvs.getContext('2d', { alpha: false });
+const chipScore = document.querySelector('.cb-score span');
+const chipChad  = document.querySelector('.cb-chad span');
+document.getElementById('cb-restart').addEventListener('click', restartGame);
+document.getElementById('cb-quit').addEventListener('click', quitGame);
+
+let W=0,H=0, tableRect=null, pockets=[];
+let balls=[], cueBall=null, running=false, aiming=false;
+let score=0, runChad=0n;
+
+function openModal(){
+  modal.setAttribute('aria-hidden','false');
+  resizeCanvas();
+  setupRack();
+  running = true;
+  loop(0);
+}
+function closeModal(){
+  running=false;
+  modal.setAttribute('aria-hidden','true');
+}
+
+/* ---------- Resize: portrait 2:1 table kept fully visible ---------- */
+function resizeCanvas(){
+  const sheet = modal.querySelector('.cb-sheet');
+  const wrap  = modal.querySelector('.cb-table-wrap');
+  const pad   = 16;
+
+  // Portrait table => height ≈ 2×width; fit inside wrapper:
+  const wrapW = wrap.clientWidth - pad*2;
+  const wrapH = wrap.clientHeight - pad*2;
+  const targetW = Math.min(wrapW, Math.floor(wrapH/2));
+  const targetH = Math.floor(targetW*2);
+
+  cvs.width  = targetW;
+  cvs.height = targetH;
+  W = targetW; H = targetH;
+
+  tableRect = { x:0, y:0, w:W, h:H };
+
+  const R = CB.table.radiusPx;
+  const pr = R * CB.table.pocketRadiusScale;
+
+  pockets = [
+    {x:R,        y:R},
+    {x:W/2,      y:R},
+    {x:W-R,      y:R},
+    {x:R,        y:H-R},
+    {x:W/2,      y:H-R},
+    {x:W-R,      y:H-R},
+  ].map(p => ({...p, r: pr}));
+}
+
+/* ---------- Game state ---------- */
+function setupRack(){
+  score = 0;
+  runChad = 0n;
+  updateHUD();
+
+  // Balls — cue + 15 object balls (triangle near top third)
+  const R = CB.table.radiusPx;
+  balls = [];
+
+  // cue ball
+  cueBall = makeBall(W*0.5, H*0.62, 'white', 0);
+
+  // simple 5-row triangle
+  const startX = W*0.5;
+  const startY = H*0.30;
+  const gap = R*2+0.5;
+  let n=1;
+  for(let row=0; row<5; row++){
+    for(let i=0; i<=row; i++){
+      const x = startX - row*gap/2 + i*gap;
+      const y = startY + row*gap;
+      balls.push(makeBall(x,y, ballColor(n), n));
+      n++;
+    }
+  }
+}
+
+function makeBall(x,y,color,num){
+  return { x,y, vx:0, vy:0, color, num, alive:true, r: CB.table.radiusPx };
+}
+function ballColor(n){
+  // simple palette close to arcade set
+  const col = [
+    '#ffffff', // cue (0)
+    '#f3b300','#2b7ed0','#e0463c','#3cb44b','#9370db',
+    '#00c2c7','#ff7f0e','#d62728',
+    '#f3b300','#2b7ed0','#e0463c','#3cb44b','#9370db','#00c2c7','#ff7f0e'
+  ];
+  return col[n] || '#cccccc';
+}
+
+/* ---------- Input (aim then shoot) ---------- */
+let aim = { active:false, sx:0, sy:0, ex:0, ey:0 };
+
+cvs.addEventListener('pointerdown', e=>{
+  if (!running) return;
+  const p = canvasPoint(e);
+  // only start aiming if pointer is within cue-ball radius
+  const dx = p.x - cueBall.x, dy = p.y - cueBall.y;
+  const d2 = dx*dx+dy*dy, R = cueBall.r;
+  if (d2 <= R*R && totalSpeed()<CB.table.minStop){
+    aim.active = true; aim.sx = p.x; aim.sy = p.y; aim.ex = p.x; aim.ey = p.y;
+  }
+});
+cvs.addEventListener('pointermove', e=>{
+  if (!aim.active) return;
+  const p = canvasPoint(e);
+  aim.ex = p.x; aim.ey = p.y;
+});
+window.addEventListener('pointerup', e=>{
+  if (!aim.active) return;
+  // shoot on release
+  const dx = aim.sx - aim.ex;
+  const dy = aim.sy - aim.ey;
+  const dist = Math.hypot(dx,dy);
+  const power = Math.min(dist, 180); // clamp pullback
+  const k = 0.10; // power-to-speed factor
+  cueBall.vx = (dx/dist || 0) * power * k;
+  cueBall.vy = (dy/dist || 0) * power * k;
+  aim.active = false;
+});
+
+/* ---------- Helpers ---------- */
+function canvasPoint(e){
+  const b = cvs.getBoundingClientRect();
+  return { x:(e.clientX-b.left)*(cvs.width/b.width),
+           y:(e.clientY-b.top )*(cvs.height/b.height) };
+}
+function updateHUD(){
+  chipScore.textContent = score.toString();
+  const ch = BigInt(score) * BigInt(CB.scoring.chadMultiplier);
+  chipChad.textContent = nf(Number(ch));
+}
+function nf(n){ try { return new Intl.NumberFormat('en-US').format(n); } catch { return String(n); } }
+function totalSpeed(){
+  let t=0; for(const b of [cueBall, ...balls]) if (b.alive) t += Math.hypot(b.vx,b.vy);
+  return t;
+}
+
+/* ---------- Physics ---------- */
+let lastT=0;
+function loop(t){
+  if (!running) return;
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.033, (t-lastT)||0.016);
+  lastT=t;
+
+  step(dt);
+  draw();
+}
+
+function step(dt){
+  const S = CB.table.substeps;
+  const sdt = dt / S;
+  for(let s=0; s<S; s++){
+    integrate(sdt);
+    solveCushions();
+    solveBallCollisions();
+    pocketCheck();
+    applyFriction();
+  }
+}
+function integrate(dt){
+  for(const b of [cueBall, ...balls]){
+    if (!b.alive) continue;
+    b.x += b.vx; b.y += b.vy; // dt≈1 per frame in our tuned units
+  }
+}
+function applyFriction(){
+  const mu = CB.table.rollingMu;
+  const stop = CB.table.minStop;
+  for(const b of [cueBall, ...balls]){
+    if (!b.alive) continue;
+    b.vx *= mu; b.vy *= mu;
+    if (Math.hypot(b.vx,b.vy) < stop){ b.vx=0; b.vy=0; }
+  }
+}
+function solveCushions(){
+  const e = CB.table.cushionRestitution;
+  const R = CB.table.radiusPx;
+  for(const b of [cueBall, ...balls]){
+    if (!b.alive) continue;
+    // left
+    if (b.x - R < 0){ b.x = R; b.vx = -b.vx * e; }
+    // right
+    if (b.x + R > W){ b.x = W - R; b.vx = -b.vx * e; }
+    // top
+    if (b.y - R < 0){ b.y = R; b.vy = -b.vy * e; }
+    // bottom
+    if (b.y + R > H){ b.y = H - R; b.vy = -b.vy * e; }
+  }
+}
+function solveBallCollisions(){
+  const e = CB.table.ballRestitution;
+  const all = [cueBall, ...balls].filter(b=>b.alive);
+  for(let i=0; i<all.length; i++){
+    for(let j=i+1; j<all.length; j++){
+      const a = all[i], b = all[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dist = Math.hypot(dx,dy), minD = a.r + b.r;
+      if (dist > 0 && dist < minD){
+        // Resolve overlap
+        const nX = dx/dist, nY = dy/dist;
+        const overlap = (minD - dist);
+        const corr = overlap * 0.5 + 0.01;
+        a.x -= nX*corr; a.y -= nY*corr;
+        b.x += nX*corr; b.y += nY*corr;
+        // Relative velocity
+        const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
+        const velN = rvx*nX + rvy*nY;
+        if (velN < 0){
+          const jimp = -(1+e)*velN/2;
+          const ix = jimp*nX, iy = jimp*nY;
+          a.vx -= ix; a.vy -= iy;
+          b.vx += ix; b.vy += iy;
+        }
+      }
+    }
+  }
+}
+function pocketCheck(){
+  const R = CB.table.radiusPx;
+  const all = [cueBall, ...balls];
+  for(const b of balls){ // only object balls score
+    if (!b.alive) continue;
+    for(const p of pockets){
+      const dx = b.x - p.x, dy = b.y - p.y;
+      if (dx*dx + dy*dy < (p.r*0.9)*(p.r*0.9)){ // slightly smaller to avoid rail ghosts
+        b.alive = false;
+        b.vx = b.vy = 0;
+        score += CB.scoring.perBall;
+        updateHUD();
+      }
+    }
+  }
+}
+
+/* ---------- Draw ---------- */
+function draw(){
+  // felt
+  ctx.fillStyle = '#115c4e';
+  ctx.fillRect(0,0,W,H);
+
+  // rails shadow lip
+  ctx.strokeStyle = 'rgba(20,10,5,.9)';
+  ctx.lineWidth = 24;
+  ctx.strokeRect(12,12,W-24,H-24);
+
+  // pockets
+  ctx.fillStyle = '#0b0b0b';
+  for(const p of pockets){ ctx.beginPath(); ctx.arc(p.x,p.y, p.r, 0, Math.PI*2); ctx.fill(); }
+
+  // balls
+  const drawBall = (b)=>{
+    if (!b.alive) return;
+    const g = ctx.createRadialGradient(b.x-b.r*0.4,b.y-b.r*0.4,b.r*0.2, b.x,b.y,b.r);
+    g.addColorStop(0,'#ffffff');
+    g.addColorStop(0.3,b.color);
+    g.addColorStop(1,'#111');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+
+    if (b.num>0){
+      ctx.fillStyle = '#fff'; ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r*0.45,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.font = `${Math.floor(b.r*0.9)}px system-ui, Arial`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(b.num), b.x, b.y+0.5);
+    }
+  };
+  for(const b of balls) drawBall(b);
+  drawBall(cueBall);
+
+  // aim line + ghost cue
+  if (aim.active){
+    const dx = aim.ex - aim.sx, dy = aim.ey - aim.sy;
+    const ang = Math.atan2(dy, dx);
+    // guide
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.setLineDash([6,6]); ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cueBall.x, cueBall.y);
+    ctx.lineTo(cueBall.x + Math.cos(ang)*160, cueBall.y + Math.sin(ang)*160);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // cue stick (simple)
+    ctx.save();
+    ctx.translate(cueBall.x, cueBall.y);
+    ctx.rotate(ang);
+    ctx.fillStyle = '#b88a4a';
+    ctx.fillRect(-200 - Math.min(140, Math.hypot(dx,dy)), -2.5, 220, 5);
+    ctx.restore();
+  }
+}
+
+/* ---------- Controls ---------- */
+function restartGame(){ setupRack(); }
+function quitGame(){
+  // credit CHAD for this run
+  const add = BigInt(score) * BigInt(CB.scoring.chadMultiplier);
+  let newBal = addChads(add);
+  toast(`🏁 Crypto Break — Added ${nf(Number(add))} CHAD • New balance: ${nf(Number(newBal))}`);
+  closeModal();
+  setupRack();
+}
+
+/* ---------- CHAD storage (BigInt) ----------
+   Integrates with your app’s loadStateLocal/saveStateLocal if present.
+------------------------------------------------*/
+function addChads(delta){
+  try{
+    if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function'){
+      const s = loadStateLocal();
+      s.chads = (BigInt(s.chads||'0') + BigInt(delta));
+      saveStateLocal(s);
+      return BigInt(s.chads);
+    }
+  }catch(e){ console.warn('State bridge failed, falling back to localStorage.', e); }
+
+  // Fallback localStorage mirrors the shape we used before
+  const key = 'fallback_chads';
+  const cur = BigInt(localStorage.getItem(key)||'0');
+  const nxt = cur + BigInt(delta);
+  localStorage.setItem(key, nxt.toString());
+  return nxt;
+}
+
+/* ---------- Toast ---------- */
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'cb-toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=> t.remove(), 2800);
+}
+
+/* ---------- Kick off modal closed state ---------- */
+closeModal();
+
+/* ---------- Number formatting helper stays tiny ---------- */
+// (already defined nf())
 
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
