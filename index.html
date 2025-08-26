@@ -6,74 +6,81 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Button under wooden header */
-.cb-btn{
-  display:flex; align-items:center; gap:.75rem;
-  background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
-  padding:.5rem .9rem; border-radius:16px; backdrop-filter: blur(6px);
-  box-shadow: 0 0 0 0 rgba(255, 215, 0, .45);
-  animation: cbPulse 2.2s ease-in-out infinite;
+  /* --- launch button under the wooden rectangle --- */
+.cb-launch-wrap { display:flex; justify-content:flex-start; margin-top:.6rem; }
+.cb-launch {
+  position:relative; display:flex; align-items:center; gap:.65rem;
+  border:0; background:transparent; padding:0; cursor:pointer;
+  filter: drop-shadow(0 6px 18px rgba(255,215,0,.15));
 }
-.cb-btn img{ height:44px; width:auto; display:block; }
-.cb-btn span{ color:#ddd; font-weight:800; letter-spacing:.3px; font-size:.95rem; }
+.cb-launch-img { height:64px; width:auto; border-radius:14px; box-shadow:0 0 0 2px rgba(255,204,0,.25) inset; }
+.cb-launch-cap {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-weight:800; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.cb-launch::after {
+  content:""; position:absolute; inset:-6px; border-radius:18px;
+  box-shadow:0 0 18px 6px rgba(255,209,0,.35); opacity:.85;
+  animation:cbPulse 2.4s ease-in-out infinite;
+}
+@keyframes cbPulse { 0%,100%{opacity:.25} 50%{opacity:.9} }
 
-@keyframes cbPulse{
-  0%,100%{ box-shadow: 0 0 0 0 rgba(255, 215, 0, .45);}
-  50%{ box-shadow: 0 0 22px 8px rgba(255, 215, 0, .13); }
-}
-
-/* Modal */
-.cb-modal{
-  position:fixed; inset:0; z-index:9999; display:grid; grid-template-rows:auto 1fr auto;
-  background: radial-gradient(1200px 900px at 50% 0%, #0b0f12 0%, #050607 55%, #020203 100%);
-}
-.cb-close{
-  position:absolute; top:10px; right:12px; background:transparent; color:#aab; border:0; font-size:24px;
+/* --- modal overlay --- */
+[hidden]{ display:none !important; } /* ensure other css can't override */
+.cb-modal {
+  position:fixed; inset:0; z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:12px 10px 18px; gap:10px; background:rgba(10,10,14,.88); backdrop-filter:blur(6px);
 }
 
 /* HUD */
-.cb-hud{ display:flex; gap:.8rem; padding:.7rem .8rem; justify-content:center; }
-.cb-pill{
-  color:#e8eef6; font-weight:800; padding:.45rem .9rem; border-radius:16px;
-  background:linear-gradient(180deg,#1d2730,#151b21); border:1px solid rgba(255,255,255,.09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.45);
-  letter-spacing:.3px;
+.cb-hud { width:100%; display:flex; gap:10px; justify-content:center; }
+.cb-pill {
+  min-width:160px; padding:10px 14px; border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(0,0,0,.12));
+  color:#e8f0ff; font-weight:800; letter-spacing:.3px; text-shadow:0 1px 0 rgba(0,0,0,.35);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12), 0 8px 24px rgba(0,0,0,.35);
 }
-.cb-score{}
-.cb-chad{ background:linear-gradient(180deg,#283318,#1a220f); }
+.cb-pill.chad{ background:linear-gradient(180deg,rgba(120,160,70,.24),rgba(0,0,0,.16)); }
 
-/* Table area */
+/* table area (vertical table) */
 .cb-table-wrap{
-  display:grid; place-items:center; padding:.5rem .75rem 0;
+  width:min(96vw,520px); aspect-ratio: 10 / 16; /* tall */
+  border-radius:18px; padding:10px;
+  background:radial-gradient(120% 120% at 50% 30%, rgba(255,255,255,.06), rgba(0,0,0,.35));
+  box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,255,255,.06);
 }
 #cbCanvas{
-  width: min(96vw, 520px);
-  height: calc(100vh - 210px);           /* tall/vertical */
-  max-height: 82vh;
-  background:#0b3f34; border-radius:20px;
-  touch-action: none;                     /* let canvas own gestures (mobile) */
+  width:100%; height:100%; display:block; border-radius:14px;
+  touch-action:none; /* allow pointer events w/out page scroll (MDN) */
+  background:linear-gradient(180deg,#0e6b58,#0d5b47); /* felt */
+  box-shadow: inset 0 0 0 10px #2c2118, inset 0 0 0 16px #4a3326; /* rails */
 }
 
-/* Controls */
-.cb-controls{
-  display:flex; justify-content:center; gap:1rem; padding:.8rem 0 1rem;
+/* controls */
+.cb-controls{ display:flex; gap:12px; justify-content:center; }
+.cb-btn{
+  padding:10px 18px; border-radius:14px; border:0; font-weight:800; cursor:pointer;
+  background:linear-gradient(180deg,#2a2f39,#171a20); color:#e7efff;
+  box-shadow:0 10px 22px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.12);
 }
-.cb-ghost, .cb-danger{
-  border:0; border-radius:14px; padding:.6rem 1.1rem; font-weight:800; letter-spacing:.3px;
-  background:#26313b; color:#e4eef8; box-shadow: 0 10px 30px rgba(0,0,0,.45);
-}
-.cb-danger{ background:#2c191b; }
+.cb-btn.danger{ background:linear-gradient(180deg,#4b2020,#201011); }
 
-/* Toast (+CHAD) */
+/* close X */
+.cb-close{ position:absolute; right:8px; top:6px; border:0; background:transparent; color:#fff; font-size:24px; cursor:pointer; }
+
+/* cue overlay visuals */
+.cb-aim-dot{ position:absolute; width:10px; height:10px; border-radius:50%; background:#fff; box-shadow:0 0 6px #fff; }
+
+/* toasts */
+.cb-toast-host{ position:fixed; bottom:22px; left:0; right:0; display:flex; justify-content:center; pointer-events:none; }
 .cb-toast{
-  position:absolute; left:50%; transform:translateX(-50%);
-  bottom:90px; padding:.6rem 1rem; border-radius:12px; font-weight:900;
-  color:#e7ffe0; background:linear-gradient(180deg,#28431f,#1a2b14);
-  border:1px solid rgba(255,255,255,.08); opacity:0; pointer-events:none;
+  background:rgba(20,24,30,.94); color:#e8f0ff; padding:12px 16px; border-radius:14px;
+  font-weight:800; letter-spacing:.2px; box-shadow:0 16px 36px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+  transform:translateY(0); opacity:0; animation:cbToast 2.4s ease forwards;
 }
+@keyframes cbToast { 0%{opacity:0; transform:translateY(18px)} 20%{opacity:1; transform:translateY(0)} 80%{opacity:1} 100%{opacity:0; transform:translateY(-14px)} }
 
-/* Pockets (drawn on canvas), no CSS needed */
-  
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
@@ -932,38 +939,38 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Crypto Break – vertical pool (8 Ball Strike–style) -->
-<link rel="stylesheet" href="crypto-break.css" />
+<!-- Crypto Break (drop this markup where the wooden profile/username card lives) -->
+<link rel="stylesheet" href="crypto-break.css">
 
-<!-- Play button (place this **below** your wooden profile rectangle) -->
-<button id="cryptoBreakBtn" class="cb-btn" aria-label="Play Crypto Break">
-  <img src="img/cryptobreak.png" alt="Crypto Break" />
-  <span>Tap to play</span>
-</button>
+<div class="cb-launch-wrap">
+  <!-- your wooden card is above this block -->
+  <button id="cryptoBreakBtn" class="cb-launch" aria-haspopup="dialog">
+    <img src="img/cryptobreak.png" alt="Crypto Break" class="cb-launch-img">
+    <span class="cb-launch-cap">Tap to play</span>
+  </button>
+</div>
 
-<!-- Fullscreen modal for the table -->
-<div id="cbModal" class="cb-modal" hidden>
+<!-- Modal overlay (hidden until opened) -->
+<section id="cbModal" class="cb-modal" role="dialog" aria-modal="true" hidden>
   <div class="cb-hud">
-    <div class="cb-pill cb-score">Score: <span id="cbScore">0</span></div>
-    <div class="cb-pill cb-chad">CHAD (this run): <span id="cbRunChad">0</span></div>
+    <div class="cb-pill score">Score: <span id="cbScore">0</span></div>
+    <div class="cb-pill chad">CHAD (this run): <span id="cbChadRun">0</span></div>
   </div>
 
   <div class="cb-table-wrap">
-    <canvas id="cbCanvas" width="600" height="1000"></canvas>
+    <canvas id="cbCanvas" width="540" height="900"></canvas>
   </div>
 
   <div class="cb-controls">
-    <button id="cbRestart" class="cb-ghost">Restart</button>
-    <button id="cbQuit" class="cb-danger">Quit</button>
+    <button id="cbRestart" class="cb-btn">Restart</button>
+    <button id="cbQuit" class="cb-btn danger">Quit</button>
   </div>
 
-  <!-- toast for “+X CHAD added” -->
-  <div id="cbToast" class="cb-toast" hidden></div>
-
   <button id="cbCloseX" class="cb-close" aria-label="Close">✕</button>
-</div>
+  <div id="cbToastHost" class="cb-toast-host"></div>
+</section>
 
-<script src="crypto-break.js"></script>
+<script src="crypto-break.js" defer></script>
 
 
     <!-- MAIN -->
@@ -3180,6 +3187,301 @@ function quitVJ(){
   });
 })();
 
+/* Crypto Break — vertical 8-ball-style mini with pointer-capture drag-to-shoot
+   Focus: robust input, faster settling physics, CHAD credit on Quit (score * 50)
+*/
+
+// ---------- helpers: state + UI ----------
+const $ = s => document.querySelector(s);
+const nf = new Intl.NumberFormat('en-US');
+const hudScore = $('#cbScore'), hudChad = $('#cbChadRun');
+const modal = $('#cbModal'), canvas = $('#cbCanvas'), ctx = canvas.getContext('2d');
+const btnOpen = $('#cryptoBreakBtn'), btnQuit = $('#cbQuit'), btnRestart = $('#cbRestart'), btnCloseX = $('#cbCloseX');
+const toastHost = $('#cbToastHost');
+
+function showToast(html){
+  const d = document.createElement('div');
+  d.className = 'cb-toast'; d.innerHTML = html; toastHost.appendChild(d);
+  setTimeout(()=> d.remove(), 2600);
+}
+
+// safely add CHAD to your balance like Snake does
+function addChadToBalance(amount){
+  try{
+    if (typeof state !== 'undefined' && state && typeof state.chads !== 'undefined'){
+      state.chads = BigInt(state.chads) + BigInt(amount);
+      if (typeof refreshUI === 'function') try{ refreshUI(); }catch{}
+      if (typeof saveStateLocal === 'function') try{ saveStateLocal(state); }catch{}
+    } else {
+      const k='fallback_chads'; const cur = BigInt(localStorage.getItem(k)||'0');
+      localStorage.setItem(k, (cur + BigInt(amount)).toString());
+    }
+  }catch(e){ console.warn('CHAD credit failed', e); }
+}
+
+// ---------- game constants ----------
+const BALL_R = 12;                      // px radius
+const POCKET_R = 22;                    // pocket radius
+const RESTITUTION = 0.93;               // wall/ball restitution
+const ROLL_FRICTION = 0.995;            // per-frame multiplier (smaller = quicker stop)
+const ANG_FRICTION = 0.985;
+const MIN_SPEED = 0.05;                 // clamp small velocities to zero
+const MAX_POWER = 8.0;                  // shot impulse scale
+const TABLE_MARGIN = 36;                // rail thickness for drawing/collisions
+
+// ---------- game state ----------
+let G = null, raf = 0, aiming = false, aimV = {x:0,y:0}, pointerId = null;
+
+// util
+const len = (x,y)=>Math.hypot(x,y);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+function circleCollide(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y, d = Math.hypot(dx,dy);
+  return d > 0 && d < BALL_R*2 ? {dx,dy,d} : null;
+}
+
+function makeRack(cx,cy){
+  // simple triangle rack below center
+  const out = [];
+  const gap = BALL_R*2 + 0.2;
+  let rows = 5, sy = cy - (rows-1)*gap*0.5;
+  let n = 1;
+  for (let r=0;r<rows;r++){
+    const count = rows-r; const rowY = sy + r*gap;
+    const rowW = (count-1)*gap; const sx = cx - rowW/2;
+    for (let i=0;i<count;i++) out.push({ x:sx + i*gap, y:rowY, vx:0, vy:0, sunk:false, num:n++ });
+  }
+  return out;
+}
+
+function newGame(){
+  const W = canvas.width, H = canvas.height;
+  const tl = {x:TABLE_MARGIN, y:TABLE_MARGIN}, br = {x:W-TABLE_MARGIN, y:H-TABLE_MARGIN};
+  const cue = { x: (W/2)-80, y: H*0.62, vx:0, vy:0, sunk:false, isCue:true, num:0 };
+  const rack = makeRack(W/2 + 40, H*0.58);
+  const pockets = [
+    {x:tl.x-2, y:tl.y-2}, {x:W/2, y:tl.y-8}, {x:br.x+2, y:tl.y-2},
+    {x:tl.x-2, y:br.y+2}, {x:W/2, y:br.y+8}, {x:br.x+2, y:br.y+2},
+  ];
+  G = { balls:[cue, ...rack], pockets, score:0, chadRun:0, animating:false, tl, br };
+  updateHud();
+  draw();
+}
+
+function updateHud(){
+  hudScore.textContent = G ? nf.format(G.score) : '0';
+  hudChad.textContent = G ? nf.format(G.score * 50) : '0';
+}
+
+// ---------- rendering ----------
+function draw(){
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // felt gradient
+  const grd = ctx.createRadialGradient(W*0.5,H*0.45,20, W*0.5,H*0.6, H*0.7);
+  grd.addColorStop(0,'#0f7a63'); grd.addColorStop(1,'#0b5443');
+  ctx.fillStyle = grd; ctx.fillRect(TABLE_MARGIN,TABLE_MARGIN,W-2*TABLE_MARGIN,H-2*TABLE_MARGIN);
+
+  // rails already simulated via margin; draw pockets
+  ctx.fillStyle = '#111';
+  for (const p of G.pockets){ ctx.beginPath(); ctx.arc(p.x,p.y,POCKET_R,0,Math.PI*2); ctx.fill(); }
+
+  // balls
+  for (const b of G.balls){
+    if (b.sunk) continue;
+    ctx.beginPath(); ctx.arc(b.x,b.y,BALL_R,0,Math.PI*2);
+    ctx.fillStyle = b.isCue ? '#f5f7fb' : '#3aa3ff';
+    ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.stroke();
+    if (!b.isCue){
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui, -apple-system, Segoe UI';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(String(b.num), b.x, b.y);
+    }
+  }
+
+  // cue guide while aiming
+  if (aiming && G && !G.animating){
+    const cue = G.balls[0]; if (!cue.sunk){
+      const ax = cue.x - aimV.x, ay = cue.y - aimV.y; // direction you’re pulling
+      const dir = Math.atan2(ay - cue.y, ax - cue.x);
+      const L = clamp(len(aimV.x,aimV.y), 0, 120);
+      const pwr = (L/120) * MAX_POWER;
+
+      // line
+      ctx.save();
+      ctx.globalAlpha = .9;
+      ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 3; ctx.setLineDash([10,8]);
+      ctx.beginPath(); ctx.moveTo(cue.x, cue.y); ctx.lineTo(cue.x - aimV.x, cue.y - aimV.y); ctx.stroke();
+      ctx.setLineDash([]);
+      // stick
+      ctx.translate(cue.x, cue.y); ctx.rotate(dir);
+      ctx.fillStyle = '#c5a06a';
+      ctx.fillRect(18, -2, 120 + L*0.5, 4);
+      ctx.restore();
+
+      // tiny power meter
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(G.tl.x+6, G.br.y-16, 140, 6);
+      ctx.fillStyle = '#ffd84a'; ctx.fillRect(G.tl.x+6, G.br.y-16, (140*(pwr/MAX_POWER)), 6);
+    }
+  }
+}
+
+// ---------- physics ----------
+function step(dt){
+  const balls = G.balls;
+  // integrate
+  for (const b of balls){
+    if (b.sunk) continue;
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    b.vx *= ROLL_FRICTION; b.vy *= ROLL_FRICTION;
+    if (Math.abs(b.vx) < MIN_SPEED) b.vx = 0;
+    if (Math.abs(b.vy) < MIN_SPEED) b.vy = 0;
+
+    // wall collisions (rails are TABLE_MARGIN bounds)
+    if (b.x - BALL_R < G.tl.x){ b.x = G.tl.x + BALL_R; b.vx = -b.vx * RESTITUTION; }
+    if (b.x + BALL_R > G.br.x){ b.x = G.br.x - BALL_R; b.vx = -b.vx * RESTITUTION; }
+    if (b.y - BALL_R < G.tl.y){ b.y = G.tl.y + BALL_R; b.vy = -b.vy * RESTITUTION; }
+    if (b.y + BALL_R > G.br.y){ b.y = G.br.y - BALL_R; b.vy = -b.vy * RESTITUTION; }
+  }
+  // ball-ball
+  for (let i=0;i<balls.length;i++){
+    const a = balls[i]; if (a.sunk) continue;
+    for (let j=i+1;j<balls.length;j++){
+      const b = balls[j]; if (b.sunk) continue;
+      const c = circleCollide(a,b);
+      if (c){
+        // separate
+        const nx = c.dx/c.d, ny=c.dy/c.d;
+        const overlap = BALL_R*2 - c.d;
+        a.x -= nx*(overlap/2); a.y -= ny*(overlap/2);
+        b.x += nx*(overlap/2); b.y += ny*(overlap/2);
+        // velocity along normal
+        const va = a.vx*nx + a.vy*ny;
+        const vb = b.vx*nx + b.vy*ny;
+        const imp = (vb - va) * (1+RESTITUTION) / 2;
+        a.vx += imp*nx; a.vy += imp*ny;
+        b.vx -= imp*nx; b.vy -= imp*ny;
+      }
+    }
+  }
+  // pockets
+  for (const b of balls){
+    if (b.sunk) continue;
+    for (const p of G.pockets){
+      const d = Math.hypot(b.x - p.x, b.y - p.y);
+      if (d < POCKET_R * 0.92){
+        b.sunk = true; b.vx = b.vy = 0;
+        if (!b.isCue){ G.score += 10; updateHud(); }
+        else { // cue scratched — place back to center-ish
+          setTimeout(()=>{ b.sunk=false; b.x = (canvas.width/2)-80; b.y = canvas.height*0.62; }, 350);
+        }
+      }
+    }
+  }
+}
+
+function animLoop(ts){
+  if (!G) return;
+  G.animating = true;
+  // fixed time step ~60 fps
+  step(1/60);
+  draw();
+
+  // stop if all velocities ~0 (idle)
+  const moving = G.balls.some(b=>!b.sunk && (Math.abs(b.vx)>MIN_SPEED || Math.abs(b.vy)>MIN_SPEED));
+  if (!moving && !aiming) G.animating = false;
+
+  raf = requestAnimationFrame(animLoop);
+}
+
+// ---------- input (pointer-capture drag to shoot) ----------
+function withinCueBall(px,py){
+  if (!G) return false;
+  const cue = G.balls[0]; if (cue.sunk) return false;
+  return Math.hypot(px - cue.x, py - cue.y) <= BALL_R*1.4;
+}
+
+function canvasToLocal(ev){
+  const r = canvas.getBoundingClientRect();
+  return { x:(ev.clientX - r.left) * (canvas.width / r.width),
+           y:(ev.clientY - r.top)  * (canvas.height / r.height) };
+}
+
+function onDown(ev){
+  const pt = canvasToLocal(ev);
+  if (!withinCueBall(pt.x,pt.y)) return;
+  ev.preventDefault();
+  canvas.setPointerCapture(ev.pointerId);
+  pointerId = ev.pointerId;
+  aiming = true; aimV = {x:0,y:0};
+  draw(); // render aim start
+}
+function onMove(ev){
+  if (!aiming || ev.pointerId !== pointerId) return;
+  const cue = G.balls[0]; if (!cue || cue.sunk) return;
+  const pt = canvasToLocal(ev);
+  aimV.x = clamp(pt.x - cue.x, -120, 120);
+  aimV.y = clamp(pt.y - cue.y, -120, 120);
+  draw();
+}
+function onUp(ev){
+  if (!aiming || ev.pointerId !== pointerId) return;
+  const cue = G.balls[0];
+  const L = Math.hypot(aimV.x, aimV.y);
+  const power = (L/120) * MAX_POWER;
+  const dirx = (-aimV.x) / (L || 1), diry = (-aimV.y) / (L || 1);
+  cue.vx += dirx * power;
+  cue.vy += diry * power;
+  aiming = false; pointerId = null; aimV = {x:0,y:0};
+  if (!raf) raf = requestAnimationFrame(animLoop);
+}
+
+function attachInput(){
+  canvas.addEventListener('pointerdown', onDown, {passive:false});
+  canvas.addEventListener('pointermove', onMove, {passive:false});
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
+}
+function detachInput(){
+  canvas.removeEventListener('pointerdown', onDown);
+  canvas.removeEventListener('pointermove', onMove);
+  canvas.removeEventListener('pointerup', onUp);
+  canvas.removeEventListener('pointercancel', onUp);
+}
+
+// ---------- modal open/close ----------
+function openGame(){
+  modal.hidden = false;
+  // size canvas for device ratio
+  const r = modal.querySelector('.cb-table-wrap').getBoundingClientRect();
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = Math.round(r.width * scale);
+  canvas.height = Math.round(r.height * scale);
+  ctx.setTransform(scale,0,0,scale,0,0); // draw at CSS pixels
+  newGame();
+  attachInput();
+  if (!raf) raf = requestAnimationFrame(animLoop);
+}
+function closeGame(){
+  cancelAnimationFrame(raf); raf = 0;
+  detachInput(); G = null; modal.hidden = true;
+}
+
+btnOpen.addEventListener('click', openGame);
+btnQuit.addEventListener('click', ()=>{
+  if (!G) return closeGame();
+  const earned = G.score * 50;
+  if (earned>0) addChadToBalance(earned);
+  showToast(`<span style="color:#9dfc87;font-weight:900">+${nf.format(earned)}</span> CHAD added`);
+  closeGame();
+});
+btnRestart.addEventListener('click', ()=> newGame());
+btnCloseX.addEventListener('click', closeGame);
+
+// be sure it is hidden on load (in case templating removed [hidden])
+document.addEventListener('DOMContentLoaded', ()=> { modal.hidden = true; });
+
+
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
 
@@ -3619,409 +3921,6 @@ function openBreaker(){
 
   window.addEventListener('resize', resizeCanvas);
 })();
-
-(() => {
-  const MULTIPLIER = 50n;                 // score → CHAD (BigInt)
-  const TABLE = {
-    w: 360, h: 640,                       // physics space (vertical)
-    rail: 18, ballR: 10,
-    pocketR: 16
-  };
-  const PHYS = {
-    dt: 1/120,                             // fixed step (s)
-    mu: 2.25,                              // friction (1/s) – higher = stops sooner
-    stopEps: 3,                            // px/s below which we clamp to zero
-    eBall: 0.96,                           // restitution ball-ball
-    eCushion: 0.85                         // restitution cushion
-  };
-
-  // ===== helpers ============================================================
-  const rnd = (n=1) => Math.random()*n;
-  const len = (x,y) => Math.hypot(x,y);
-  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
-
-  // score/CHAD UI
-  const elScore = () => document.getElementById('cbScore');
-  const elRunChad = () => document.getElementById('cbRunChad');
-  const fmt = new Intl.NumberFormat('en-US');
-
-  // ===== state ==============================================================
-  const stateCB = {
-    running: false,
-    score: 0,
-    runChad: 0n,
-    balls: [],
-    cueIdx: 0,
-    aiming: false,
-    aim: {ang:0, pull:0, pid: null},
-    moving: false
-  };
-
-  // ===== canvas & sizing ====================================================
-  const canvas = document.getElementById('cbCanvas');
-  const ctx = canvas.getContext('2d');
-
-  function resizeCanvasToCSS() {
-    const cs = getComputedStyle(canvas);
-    const cssW = parseFloat(cs.width), cssH = parseFloat(cs.height);
-    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-    if (canvas.width !== cssW*dpr || canvas.height !== cssH*dpr) {
-      canvas.width = Math.round(cssW*dpr);
-      canvas.height = Math.round(cssH*dpr);
-    }
-  }
-
-  function toPx(x, y) {    // physics → canvas
-    const sx = canvas.width / TABLE.w;
-    const sy = canvas.height / TABLE.h;
-    return [x*sx, y*sy, sx, sy];
-  }
-  function toPhys(px, py) { // canvas → physics
-    const sx = TABLE.w / canvas.width;
-    const sy = TABLE.h / canvas.height;
-    return [px*sx, py*sy];
-  }
-
-  // ===== balls ==============================================================
-  function newBall(x, y, color, num, isCue=false) {
-    return { x, y, vx:0, vy:0, r:TABLE.ballR, num, color, alive:true, isCue };
-  }
-
-  function rack() {
-    stateCB.balls.length = 0;
-    // cue in the lower third
-    stateCB.balls.push(newBall(TABLE.w*0.5, TABLE.h*0.72, '#ffffff', 0, true));
-    stateCB.cueIdx = 0;
-
-    // tight triangle slightly above center
-    const bx = TABLE.w*0.5, by = TABLE.h*0.36;
-    const gap = TABLE.ballR*2 + 0.5;
-    let n = 1, row = 5;
-    const palette = [
-      '#f44336','#3f51b5','#4caf50','#ff9800','#9c27b0',
-      '#00bcd4','#8bc34a','#e91e63','#009688','#ffc107',
-      '#03a9f4','#cddc39','#ff5722','#673ab7','#795548'
-    ];
-    for (let r=0; r<5; r++){
-      const y = by + r*gap;
-      for (let c=0; c<=r; c++){
-        const x = bx - (r*gap*0.5) + c*gap;
-        stateCB.balls.push(newBall(x, y, palette[(n-1)%palette.length], n, false));
-        n++;
-      }
-    }
-  }
-
-  // ===== physics ============================================================
-  function stepPhysics() {
-    const dt = PHYS.dt;
-    let anyMoving = false;
-
-    // move
-    for (const b of stateCB.balls) {
-      if (!b.alive) continue;
-      // friction
-      const sp = Math.hypot(b.vx, b.vy);
-      if (sp > 0) {
-        const f = Math.max(0, 1 - PHYS.mu*dt);
-        b.vx *= f; b.vy *= f;
-        if (Math.hypot(b.vx, b.vy) < PHYS.stopEps) { b.vx = b.vy = 0; }
-      }
-      b.x += b.vx*dt;
-      b.y += b.vy*dt;
-
-      // rails
-      const l = TABLE.rail + b.r, r = TABLE.w - l, t = TABLE.rail + b.r, bt = TABLE.h - l;
-      if (b.x < l) { b.x = l; b.vx = -b.vx * PHYS.eCushion; }
-      if (b.x > r) { b.x = r; b.vx = -b.vx * PHYS.eCushion; }
-      if (b.y < t) { b.y = t; b.vy = -b.vy * PHYS.eCushion; }
-      if (b.y > bt){ b.y = bt; b.vy = -b.vy * PHYS.eCushion; }
-
-      if (b.vx || b.vy) anyMoving = true;
-    }
-
-    // collisions (pairwise)
-    for (let i=0; i<stateCB.balls.length; i++){
-      const a = stateCB.balls[i]; if (!a.alive) continue;
-      for (let j=i+1; j<stateCB.balls.length; j++){
-        const b = stateCB.balls[j]; if (!b.alive) continue;
-
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const dist = Math.hypot(dx,dy), minD = a.r + b.r;
-        if (dist > 0 && dist < minD) {
-          // separate
-          const nx = dx/dist, ny = dy/dist;
-          const overlap = minD - dist + 0.01;
-          a.x -= nx*overlap*0.5; a.y -= ny*overlap*0.5;
-          b.x += nx*overlap*0.5; b.y += ny*overlap*0.5;
-
-          // impulse (1D along normal)
-          const relV = (b.vx - a.vx)*nx + (b.vy - a.vy)*ny;
-          if (relV < 0) {
-            const e = PHYS.eBall;
-            const jImp = -(1+e)*relV * 0.5; // equal masses
-            const jx = jImp*nx, jy = jImp*ny;
-            a.vx -= jx; a.vy -= jy;
-            b.vx += jx; b.vy += jy;
-          }
-        }
-      }
-    }
-
-    // pockets
-    const pockets = [
-      [TABLE.rail, TABLE.rail], [TABLE.w/2, TABLE.rail], [TABLE.w-TABLE.rail, TABLE.rail],
-      [TABLE.rail, TABLE.h-TABLE.rail], [TABLE.w/2, TABLE.h-TABLE.rail], [TABLE.w-TABLE.rail, TABLE.h-TABLE.rail]
-    ];
-    for (const b of stateCB.balls) {
-      if (!b.alive) continue;
-      for (const [px,py] of pockets){
-        if (Math.hypot(b.x-px, b.y-py) < TABLE.pocketR){
-          // sink
-          b.alive = false; b.vx=b.vy=0;
-          if (!b.isCue) {
-            stateCB.score += 10;
-            updateUI();
-          } else {
-            // respot cue in lower third
-            const cue = b;
-            cue.alive = true;
-            cue.x = TABLE.w*0.5; cue.y = TABLE.h*0.72; cue.vx=cue.vy=0;
-          }
-        }
-      }
-    }
-
-    stateCB.moving = anyMoving;
-  }
-
-  // ===== draw ===============================================================
-  function draw() {
-    resizeCanvasToCSS();
-    const [W,H] = [canvas.width, canvas.height];
-
-    // table base
-    ctx.clearRect(0,0,W,H);
-
-    // rails & felt gradient
-    const felt = ctx.createLinearGradient(0,0,0,H);
-    felt.addColorStop(0,'#0f6a58'); felt.addColorStop(1,'#0b4a3e');
-    ctx.fillStyle = felt;
-    // outer wood
-    ctx.lineWidth = 22;
-    ctx.strokeStyle = '#5a3929';
-    ctx.fillRect(0,0,W,H);
-    ctx.strokeRect(11,11,W-22,H-22);
-
-    // inner play area
-    const [ix,iy,iw,ih] = [TABLE.rail, TABLE.rail, TABLE.w-2*TABLE.rail, TABLE.h-2*TABLE.rail];
-    const [px,py, sx, sy] = toPx(ix,iy);
-    ctx.fillRect(px,py, iw*sx, ih*sy);
-
-    // pockets
-    ctx.fillStyle = '#0a0a0a';
-    const pR = TABLE.pocketR*sx;
-    const pocketPix = [
-      [TABLE.rail, TABLE.rail], [TABLE.w/2, TABLE.rail], [TABLE.w-TABLE.rail, TABLE.rail],
-      [TABLE.rail, TABLE.h-TABLE.rail], [TABLE.w/2, TABLE.h-TABLE.rail], [TABLE.w-TABLE.rail, TABLE.h-TABLE.rail]
-    ];
-    for (const [pxp,pyp] of pocketPix){
-      const [cx,cy] = toPx(pxp,pyp);
-      ctx.beginPath(); ctx.arc(cx,cy,pR,0,Math.PI*2); ctx.fill();
-    }
-
-    // balls
-    for (const b of stateCB.balls) {
-      if (!b.alive) continue;
-      const [bx,by] = toPx(b.x,b.y);
-      ctx.beginPath(); ctx.arc(bx,by, b.r*sx, 0, Math.PI*2);
-      ctx.fillStyle = b.color; ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
-
-      if (b.isCue){
-        ctx.fillStyle = '#fff'; ctx.fill();
-        ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.stroke();
-      }
-    }
-
-    // cue stick + guide (visible only when not moving)
-    const cue = stateCB.balls[stateCB.cueIdx];
-    if (!stateCB.moving && stateCB.aiming && cue.alive){
-      const [cx,cy] = toPx(cue.x, cue.y);
-
-      // guide line (where ball will go)
-      const dirx = Math.cos(stateCB.aim.ang), diry = Math.sin(stateCB.aim.ang);
-      ctx.save();
-      ctx.globalAlpha = .35;
-      ctx.strokeStyle = '#e8eef8';
-      ctx.setLineDash([10,10]);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx,cy);
-      ctx.lineTo(cx + dirx*180, cy + diry*180);
-      ctx.stroke();
-      ctx.restore();
-
-      // cue stick behind ball
-      ctx.save();
-      ctx.translate(cx,cy);
-      ctx.rotate(stateCB.aim.ang + Math.PI); // stick comes from behind
-      const pullPx = clamp(stateCB.aim.pull, 0, 120);
-      ctx.fillStyle = '#caa06a';
-      ctx.strokeStyle = '#6b5236';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(-pullPx-140, -3, 180, 6, 3);
-      ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  // ===== input (fixed) ======================================================
-  const btn = document.getElementById('cryptoBreakBtn');
-  const modal = document.getElementById('cbModal');
-  const toast = document.getElementById('cbToast');
-
-  btn.addEventListener('click', openModal);
-  document.getElementById('cbCloseX').addEventListener('click', closeModal);
-  document.getElementById('cbRestart').addEventListener('click', restart);
-  document.getElementById('cbQuit').addEventListener('click', quitRun);
-
-  function openModal(){
-    modal.hidden = false;
-    startNew();
-  }
-  function closeModal(){
-    modal.hidden = true;
-    stopLoop();
-  }
-
-  // Pointer — aim on pointerdown, track with pointermove, shoot on pointerup.
-  canvas.addEventListener('pointerdown', (e) => {
-    if (stateCB.moving) return;                   // can’t aim while things move
-    const cue = stateCB.balls[stateCB.cueIdx];
-    if (!cue.alive) return;
-    canvas.setPointerCapture(e.pointerId);        // <<< important on mobile
-    stateCB.aim.pid = e.pointerId;
-    const [x,y] = toPhys(e.offsetX, e.offsetY);
-    const dx = x - cue.x, dy = y - cue.y;
-    stateCB.aim.ang = Math.atan2(dy, dx);
-    stateCB.aim.pull = clamp(len(dx,dy)*1.2, 0, 120);
-    stateCB.aiming = true;
-    e.preventDefault();
-  }, {passive:false});
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (!stateCB.aiming || stateCB.aim.pid !== e.pointerId) return;
-    const cue = stateCB.balls[stateCB.cueIdx];
-    const [x,y] = toPhys(e.offsetX, e.offsetY);
-    const dx = x - cue.x, dy = y - cue.y;
-    stateCB.aim.ang = Math.atan2(dy, dx);
-    stateCB.aim.pull = clamp(len(dx,dy)*1.2, 0, 120);
-    e.preventDefault();
-  }, {passive:false});
-
-  canvas.addEventListener('pointerup', (e) => {
-    if (!stateCB.aiming || stateCB.aim.pid !== e.pointerId) return;
-    canvas.releasePointerCapture(e.pointerId);
-    shootFromAim();
-    e.preventDefault();
-  }, {passive:false});
-
-  canvas.addEventListener('pointercancel', (e) => {
-    if (stateCB.aim.pid === e.pointerId) {
-      canvas.releasePointerCapture(e.pointerId);
-      stateCB.aiming = false;
-    }
-  });
-
-  function shootFromAim(){
-    const cue = stateCB.balls[stateCB.cueIdx];
-    const speed = (stateCB.aim.pull/120) * 420;      // px/s
-    cue.vx = Math.cos(stateCB.aim.ang) * speed;
-    cue.vy = Math.sin(stateCB.aim.ang) * speed;
-    stateCB.aiming = false;
-  }
-
-  // ===== loop ===============================================================
-  let raf = null, acc = 0, last = 0;
-  function loop(t){
-    if (!stateCB.running) return;
-    if (!last) last = t;
-    const dt = Math.min(0.05, (t-last)/1000);
-    last = t; acc += dt;
-    while (acc > PHYS.dt){ acc -= PHYS.dt; stepPhysics(); }
-    draw();
-    updateUI();
-    raf = requestAnimationFrame(loop);
-  }
-  function startLoop(){ if (!raf){ last=0; raf = requestAnimationFrame(loop); } }
-  function stopLoop(){ if (raf){ cancelAnimationFrame(raf); raf=null; } }
-
-  // ===== UI/util ============================================================
-  function updateUI(){
-    elScore().textContent = fmt.format(stateCB.score);
-    const run = BigInt(stateCB.score) * MULTIPLIER;
-    if (run !== stateCB.runChad){ stateCB.runChad = run; elRunChad().textContent = fmt.format(Number(run)); }
-  }
-
-  function startNew(){
-    stateCB.running = true;
-    stateCB.score = 0; stateCB.runChad = 0n; stateCB.moving=false; stateCB.aiming=false;
-    rack();
-    startLoop();
-  }
-  function restart(){ startNew(); }
-
-  function quitRun(){
-    // credit to balance (BigInt), like your Snake game
-    if (stateCB.runChad > 0n) creditChads(stateCB.runChad);
-    showToast(`+${fmt.format(Number(stateCB.runChad))} CHAD added`);
-    closeModal();
-  }
-
-  // ===== CHAD integration (BigInt safe) ====================================
-  // Works with your existing state/save helpers. Falls back to localStorage.
-  function creditChads(amountBig){
-    try{
-      if (window.state && typeof window.state === 'object' && 'chads' in state){
-        state.chads = BigInt(state.chads) + BigInt(amountBig);
-        if (typeof saveStateLocal === 'function') saveStateLocal(state);
-        if (typeof refreshUI === 'function') try{ refreshUI(); }catch{}
-        return;
-      }
-    }catch{}
-    // Fallback (same pattern I used earlier)
-    const key = 'fallback_chads';
-    const cur = BigInt(localStorage.getItem(key) || '0');
-    localStorage.setItem(key, (cur + BigInt(amountBig)).toString());
-  }
-
-  // ===== toast ==============================================================
-  function showToast(msg){
-    toast.textContent = msg;
-    toast.hidden = false;
-    toast.style.opacity = '0';
-    toast.style.transform = 'translate(-50%, 12px)';
-    requestAnimationFrame(()=>{
-      toast.style.transition = 'opacity .55s ease, transform .55s ease';
-      toast.style.opacity = '1';
-      toast.style.transform = 'translate(-50%, 0)';
-    });
-    setTimeout(()=>{
-      toast.style.transition = 'opacity 1.6s ease, transform 1.6s ease';
-      toast.style.opacity = '0';
-      toast.style.transform = 'translate(-50%, -22px)';
-      setTimeout(()=> toast.hidden = true, 1700);
-    }, 850);
-  }
-
-  // ===== open from other code (optional) ====================================
-  window.openCryptoBreak = () => { openModal(); };
-
-  // Start only when user taps button.
-})();
-
 
 
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
