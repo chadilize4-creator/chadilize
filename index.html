@@ -19,6 +19,33 @@
   box-shadow: 0 0 0px 0 rgba(255, 224, 72, 0.0);
   transition: transform .15s ease, box-shadow .3s ease;
 }
+/* soft golden edge glow */
+.crypto-btn::after{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:18px;
+  /* thin outline + subtle outer glow in GOLD (#FFD700) */
+  box-shadow:
+    0 0 0 1px rgba(255, 215,   0, .22),
+    0 0 18px 6px rgba(255, 215, 0, .24);
+  opacity:.9;
+  animation:pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes pulse{
+  0%,100%{
+    box-shadow:
+      0 0 0 1px rgba(255, 215, 0, .22),
+      0 0 16px 5px rgba(255, 215, 0, .20);
+  }
+  50%{
+    box-shadow:
+      0 0 0 1px rgba(255, 215, 0, .30),
+      0 0 26px 10px rgba(255, 215, 0, .34);
+  }
+}
+
 .crypto-btn img{ height: 38px; width: auto; display:block; }
 .crypto-btn span{ color:#d9d9d9; font-weight:800; letter-spacing:.2px; }
 .crypto-btn::after{
