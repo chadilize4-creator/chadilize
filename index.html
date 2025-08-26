@@ -1639,93 +1639,14 @@ window.addEventListener('pointerdown', ()=>{ try{ _audioCtx?.resume(); }catch{} 
 
 /* ===== local state ===== */
 const params = new URLSearchParams(location.search); const tokenHint = params.get('token') || null;
-const UID = tg?.initDataUnsafe?.user?.id?.toString();
-if (!UID) throw new Error('Open this Mini App inside Telegram: missing Telegram user id.');
-const STORAGE_KEY = `chad_state_cache_${UID}`; // local, optional cache only
-// Username uniqueness must be enforced on the server; remove TAKEN_KEY usage.
-const DEFAULT_STATE = () => ({
-  chads: 0n, gen: 0n, acc: 0n,
-  last: Math.floor(Date.now()/1000),
-  level: 1, purchases: {},
-  name: null, avatarIdx: null, avatarLocked: false
-});
-
-// Load from server (verified via tg.initData), fall back to cache, then defaults.
-async function loadState() {
-  // send tg.initData to your backend so it can verify the user (see notes below)
-  const res = await fetch('/api/state', {
-    headers: { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || '' }
-  });
-
-  if (res.ok) {
-    const o = await res.json();
-    const s = {
-      chads: BigInt(o.chads ?? '0'),
-      gen:   BigInt(o.gen   ?? '0'),
-      acc:   BigInt(o.acc   ?? '0'),
-      last:  o.last ?? Math.floor(Date.now()/1000),
-      level: o.level ?? 1,
-      purchases: o.purchases ?? {},
-      name: o.name ?? null,
-      avatarIdx: (typeof o.avatarIdx === 'number') ? o.avatarIdx : null,
-      avatarLocked: !!o.avatarLocked
-    };
-    // update local cache
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ...o,
-      chads: s.chads.toString(), gen: s.gen.toString(), acc: s.acc.toString()
-    }));
-    return s;
-  }
-
-  // cache fallback
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const o = JSON.parse(raw);
-      return {
-        chads: BigInt(o.chads||'0'),
-        gen:   BigInt(o.gen  ||'0'),
-        acc:   BigInt(o.acc  ||'0'),
-        last:  o.last ?? Math.floor(Date.now()/1000),
-        level: o.level ?? 1,
-        purchases: o.purchases ?? {},
-        name: o.name ?? null,
-        avatarIdx: (typeof o.avatarIdx === 'number') ? o.avatarIdx : null,
-        avatarLocked: !!o.avatarLocked
-      };
-    } catch {}
-  }
-  return DEFAULT_STATE();
-}
-
-// Save to server (and refresh cache).
-async function saveState(s) {
-  const payload = {
-    chads: s.chads.toString(),
-    gen:   s.gen.toString(),
-    acc:   s.acc.toString(),
-    last:  s.last,
-    level: s.level,
-    purchases: s.purchases,
-    name: s.name ?? null,
-    avatarIdx: s.avatarIdx ?? null,
-    avatarLocked: !!s.avatarLocked
-  };
-
-  const res = await fetch('/api/state', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!res.ok) throw new Error('Failed to save state');
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
+const UID_HINT = tg?.initDataUnsafe?.user?.id || tokenHint || 'guest';
+const STORAGE_KEY = `chad_state_${UID_HINT}`;
+const TAKEN_KEY = 'chad_taken_usernames';
+function loadStateLocal(){ const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false };
+  try{ const o = JSON.parse(raw); return { chads: BigInt(o.chads||"0"), gen: BigInt(o.gen||"0"), acc: BigInt(o.acc||"0"), last: o.last||Math.floor(Date.now()/1000), level:o.level||1, purchases:o.purchases||{}, name:o.name||null, avatarIdx: (typeof o.avatarIdx==='number')? o.avatarIdx : null, avatarLocked: !!o.avatarLocked };
+  }catch{ return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false }; } }
+function saveStateLocal(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify({ chads:s.chads.toString(), gen:s.gen.toString(), acc:s.acc.toString(), last:s.last, level:s.level, purchases:s.purchases, name:s.name||null, avatarIdx: s.avatarIdx ?? null, avatarLocked: !!s.avatarLocked })); }
 function fmt(n){ return typeof n === 'bigint' ? Number(n).toLocaleString() : Number(n||0).toLocaleString(); }
 let state = null;
 
@@ -1757,27 +1678,18 @@ function refreshUI(){
 }
 
 /* ===== API placeholders (local) ===== */
-// REPLACE your apiCheckName with this
-async function apiCheckName(name) {
-  const initData = window.Telegram?.WebApp?.initData || ""; // raw, signed data from Telegram
-  const resp = await fetch("/api/check-name", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, initData })
-  });
-  if (!resp.ok) return { ok: false, reason: "network" };
-  return await resp.json(); // expected: { ok:true } or { ok:false, reason:'taken' }
+async function apiClickLogo(){ return {total_points: Number(state.chads + 1n)} }
+async function apiCheckName(name){
+  // Local uniqueness check across this device
+  const raw = localStorage.getItem(TAKEN_KEY); let set = new Set();
+  if (raw){ try{ const arr = JSON.parse(raw); if(Array.isArray(arr)) set = new Set(arr); }catch{} }
+  if (set.has(name)) return { ok:false, reason:'taken' };
+  return { ok:true };
 }
-
-// REPLACE your markUsernameTaken with this
-function markUsernameTaken(name) {
-  const initData = window.Telegram?.WebApp?.initData || "";
-  // Let the server persist that this Telegram user has taken this name
-  fetch("/api/mark-name-taken", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, initData })
-  }).catch(() => {});
+function markUsernameTaken(name){
+  const raw = localStorage.getItem(TAKEN_KEY); let set = new Set();
+  if (raw){ try{ const arr = JSON.parse(raw); if(Array.isArray(arr)) set = new Set(arr); }catch{} }
+  set.add(name); localStorage.setItem(TAKEN_KEY, JSON.stringify(Array.from(set)));
 }
 
 /* ===== particles + orb ===== */
@@ -2340,7 +2252,7 @@ document.getElementById('buyBtn')?.addEventListener('click', ()=>openShop('buy')
 document.getElementById('shopCloseBtn')?.addEventListener('click', closeShop);
 
 /* Defensive: ensure state shape exists (in case opened before bootstrap) */
-if (!state){ try { state = loadState(); } catch(e){} }
+if (!state){ try { state = loadStateLocal(); } catch(e){} }
 if (state && !state.purchases) state.purchases = {};
 
 /* ===== Grid helpers (Snake/Tetris) ===== */
@@ -2474,7 +2386,7 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
         return;
       }
       if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function') {
-        const s = loadState(); s.chads = (BigInt(s.chads ?? 0) + add);
+        const s = loadStateLocal(); s.chads = (BigInt(s.chads ?? 0) + add);
         saveStateLocal(s);
         if (typeof refreshUI === 'function') try { refreshUI(); } catch {}
         return;
@@ -3553,7 +3465,7 @@ function quitVJ(){
   function isProfileReady() {
     try{
       if (typeof loadStateLocal === 'function') {
-        const s = loadState();
+        const s = loadStateLocal();
         return !!(s && s.name && s.avatarIdx !== null && s.avatarIdx !== undefined);
       }
     }catch{}
@@ -3673,7 +3585,7 @@ function quitVJ(){
   /* ====== Rewards + state integration ====== */
   function withState(mutator){
     if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function'){
-      const s = loadState(); mutator(s); saveStateLocal(s);
+      const s = loadStateLocal(); mutator(s); saveStateLocal(s);
       if (typeof refreshUI === 'function') try{ refreshUI(); }catch{}
     } else {
       const ch = BigInt(localStorage.getItem('fallback_chads')||'0');
@@ -5991,7 +5903,7 @@ function fancyAlert(text){ showToast(text); }
 
 /* ===== Bootstrap ===== */
 async function bootstrap(){
-  state = loadState(); refreshUI();
+  state = loadStateLocal(); refreshUI();
   buildAvatarGrid();
   if (!state.name || typeof state.avatarIdx!=='number'){ ensureFirstRunFlow(); }
   const now = Math.floor(Date.now()/1000); const elapsed = Math.max(0, now - (state.last||now));
