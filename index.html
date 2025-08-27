@@ -6,40 +6,66 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
- :root{
-    --soc-bg:#0d1117; --soc-elev:rgba(255,255,255,0.06);
-    --soc-ink:#e6edf3; --soc-hint:#9aa6b2; --soc-accent:#6bb6ff;
-    --soc-btn-bg:#2481cc; --soc-btn-ink:#fff;
-  }
-  .soc-overlay{position:fixed;inset:0;background:color-mix(in oklab,var(--soc-bg) 85%,#000 15%);
-    backdrop-filter:blur(6px);display:grid;place-items:end center;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-    z-index:9999}
-  .soc-window{width:min(720px,100%);height:min(80vh,680px);background:var(--soc-elev);
-    border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 50px rgba(0,0,0,.35);
-    border-radius:18px 18px 0 0;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
-  .soc-header{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid rgba(255,255,255,.08)}
-  .soc-title{font-weight:700;color:var(--soc-ink)}
-  .soc-presence{margin-left:auto;font-size:12px;color:var(--soc-hint)}
-  .soc-close{margin-left:8px;border:0;background:transparent;color:var(--soc-ink);font-size:22px;line-height:1;padding:4px 8px;cursor:pointer;opacity:.7}
-  .soc-close:hover{opacity:1}
-  .soc-messages{padding:10px 12px 0;overflow-y:auto;scroll-behavior:smooth}
-  .soc-item{margin:8px 0;display:flex}
-  .soc-me{justify-content:flex-end}
-  .soc-bubble{max-width:78%;background:rgba(255,255,255,.08);color:var(--soc-ink);
-    border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:12px}
-  .soc-me .soc-bubble{background:var(--soc-accent);color:#000;border-color:color-mix(in srgb,var(--soc-accent),#000 20%)}
-  .soc-meta{display:flex;gap:10px;align-items:baseline;margin-bottom:4px}
-  .soc-name{font-weight:700;font-size:12px;opacity:.9}
-  .soc-time{font-size:11px;color:var(--soc-hint)}
-  .soc-me .soc-time{color:rgba(0,0,0,.6)}
-  .soc-text{white-space:pre-wrap;word-wrap:break-word;font-size:14px}
-  .soc-form{display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid rgba(255,255,255,.08)}
-  .soc-input{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
-    color:var(--soc-ink);padding:10px 12px;border-radius:12px;outline:none}
-  .soc-input::placeholder{color:var(--soc-hint)}
-  .soc-send{border:0;padding:10px 14px;border-radius:12px;background:var(--soc-btn-bg);color:var(--soc-btn-ink);font-weight:600;cursor:pointer}
-  .soc-system{width:100%;text-align:center;font-size:12px;color:var(--soc-hint)}
+/* Telegram theme variables (JS will update these) */
+:root {
+  --tg-bg: #0f0f0f;
+  --tg-text: #ffffff;
+  --tg-subtle: #a8b0b9;
+  --tg-card: #16191c;
+  --tg-accent: #2ea6ff;
+  --tg-border: #2a2f34;
+}
+
+.tg-btn {
+  display:inline-block; padding:.6rem .9rem; border-radius:.75rem;
+  background:var(--tg-accent); color:#fff; border:none; font-weight:600;
+  cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+
+/* Overlay & window */
+.soc-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,.45); display:grid; place-items:center;
+}
+.soc-window {
+  width:min(720px, 96vw); height:min(72vh, 86vh);
+  background:var(--tg-card); color:var(--tg-text);
+  border:1px solid var(--tg-border); border-radius:16px; display:flex; flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+}
+
+/* Header */
+.soc-header { display:flex; align-items:center; justify-content:space-between;
+  padding:.75rem 1rem; border-bottom:1px solid var(--tg-border); }
+.soc-title { display:flex; gap:.5rem; align-items:baseline; font-weight:700; }
+.soc-title small { color:var(--tg-subtle); font-weight:500; }
+.soc-close { background:transparent; border:none; color:var(--tg-text); font-size:1.5rem; cursor:pointer; }
+
+/* Messages */
+.soc-messages { flex:1; overflow:auto; padding:1rem; display:flex; flex-direction:column; gap:.5rem; }
+.msg { display:flex; gap:.6rem; align-items:flex-start; }
+.avatar {
+  width:28px; height:28px; border-radius:50%; background:#2c3440; flex:0 0 28px;
+  display:grid; place-items:center; color:#dfe7ef; font-size:.8rem; font-weight:700;
+}
+.bubble {
+  background:var(--tg-bg); border:1px solid var(--tg-border);
+  padding:.5rem .65rem; border-radius:12px; max-width:70%;
+}
+.meta { font-size:.75rem; color:var(--tg-subtle); margin-bottom:.2rem; }
+
+/* Composer */
+.soc-footer { display:flex; gap:.5rem; padding:.6rem; border-top:1px solid var(--tg-border); }
+.soc-input {
+  flex:1; padding:.6rem .75rem; border-radius:12px; border:1px solid var(--tg-border);
+  background:var(--tg-bg); color:var(--tg-text); outline:none;
+}
+.soc-send {
+  padding:.6rem .9rem; border-radius:12px; border:none; cursor:pointer;
+  background:var(--tg-accent); color:#fff; font-weight:700;
+}
+.soc-send[disabled] { opacity:.6; cursor:not-allowed; }
+
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -830,28 +856,32 @@ canvas{ display:block }
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
+<!-- Socialize trigger -->
+<button id="socializeBtn" class="tg-btn">Socialize</button>
 
-
-<button id="socializeBtn" style="display:none"></button>
-
-
-<!-- Overlay -->
-<div id="socializeOverlay" class="soc-overlay" hidden>
-  <div class="soc-window" role="dialog" aria-modal="true" aria-labelledby="socTitle">
+<!-- Chat modal -->
+<div id="socializeModal" class="soc-overlay" hidden>
+  <div class="soc-window">
     <header class="soc-header">
-      <div id="socTitle" class="soc-title">Global Chat</div>
-      <div class="soc-presence"><span id="socOnline">0</span> online</div>
-      <button id="socClose" class="soc-close" aria-label="Close">&times;</button>
+      <div class="soc-title">
+        <span>Global Chat</span>
+        <small id="socOnline">0 online</small>
+      </div>
+      <button id="socClose" class="soc-close" aria-label="Close">×</button>
     </header>
 
-    <div id="socMessages" class="soc-messages" role="log" aria-live="polite"></div>
+    <main id="socMessages" class="soc-messages" aria-live="polite"></main>
 
-    <form id="socForm" class="soc-form" autocomplete="off">
-      <input id="socInput" class="soc-input" type="text" maxlength="500" placeholder="Say something…" />
-      <button class="soc-send" type="submit">Send</button>
-    </form>
+    <footer class="soc-footer">
+      <input id="socInput" class="soc-input" placeholder="Type a message…" maxlength="500" />
+      <button id="socSend" class="soc-send">Send</button>
+    </footer>
   </div>
 </div>
+
+<!-- PubNub JS SDK (CDN) -->
+<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.0.min.js"></script>
+
 
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
@@ -1382,7 +1412,6 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ===== Telegram + loader ===== */
@@ -2037,6 +2066,184 @@ function buildGrid(container, cols, rows){
     clear(x,y){ const el=cells[idx(x,y)]; if(el){ el.className='cell'; } },
     add(x,y,cls){ const el=cells[idx(x,y)]; if(el){ el.classList.add(cls); } } };
 }
+
+
+(() => {
+  // ---- Telegram Mini App context (safe to run outside Telegram too)
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (tg) { try { tg.ready(); tg.expand && tg.expand(); } catch(e) {} }
+
+  // Theme → CSS variables (colors from Telegram ThemeParams)
+  function applyTelegramTheme() {
+    const t = tg?.themeParams || {};
+    const set = (k, v) => { if (v) document.documentElement.style.setProperty(k, v); };
+    set('--tg-bg', t.bg_color ? `#${t.bg_color}` : null);
+    set('--tg-text', t.text_color ? `#${t.text_color}` : null);
+    set('--tg-card', t.secondary_bg_color ? `#${t.secondary_bg_color}` : null);
+    set('--tg-accent', t.button_color ? `#${t.button_color}` : null);
+    set('--tg-subtle', t.hint_color ? `#${t.hint_color}` : null);
+    set('--tg-border', t.section_separator_color ? `#${t.section_separator_color}` : null);
+  }
+  applyTelegramTheme();
+
+  // ---- Elements
+  const $btn = document.getElementById('socializeBtn');
+  const $modal = document.getElementById('socializeModal');
+  const $close = document.getElementById('socClose');
+  const $messages = document.getElementById('socMessages');
+  const $input = document.getElementById('socInput');
+  const $send = document.getElementById('socSend');
+  const $online = document.getElementById('socOnline');
+
+  // ---- Identify user from Telegram (fallbacks for web testing)
+  const tgUser = tg?.initDataUnsafe?.user || null; // Mini Apps provide user info
+  const myId = tgUser?.id ? `tg-${tgUser.id}` : `anon-${Math.random().toString(36).slice(2)}`;
+  const myName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : 'Guest';
+  const myAvatar = tgUser?.photo_url || null; // may be undefined in some clients
+  const myInitial = myName ? myName[0].toUpperCase() : 'U';
+
+  // ---- PubNub setup (replace with your keys)
+  const PUB_KEY = 'YOUR_PUBNUB_PUBLISH_KEY';
+  const SUB_KEY = 'YOUR_PUBNUB_SUBSCRIBE_KEY';
+  const CHANNEL = 'global-chat-v1'; // optionally append your game id/version
+
+  let pubnub = null;
+  let onlineCount = 0;
+
+  // Render helpers
+  function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+  function renderMessage({name, text, ts, avatar, initial}) {
+    const row = el('div','msg');
+    const av = el('div','avatar');
+    if (avatar) {
+      const img = new Image(); img.src = avatar; img.alt = name; img.referrerPolicy='no-referrer';
+      img.onload = () => { av.textContent=''; av.style.background='transparent'; av.appendChild(img); };
+      img.onerror = () => { av.textContent = initial || (name?.[0] || '?').toUpperCase(); };
+      av.textContent = '…';
+    } else {
+      av.textContent = initial || (name?.[0] || '?').toUpperCase();
+    }
+    const bubble = el('div','bubble');
+    const meta = el('div','meta');
+    meta.textContent = `${name || 'Unknown'} • ${new Date(ts || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+    const body = el('div'); body.textContent = text; // safe (no HTML injection)
+    bubble.append(meta, body);
+    row.append(av, bubble);
+    $messages.appendChild(row);
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+
+  // Presence update in header
+  function setOnline(n) {
+    onlineCount = n;
+    $online.textContent = `${n} online`;
+  }
+
+  // Join chat: create client, subscribe with presence, seed hereNow
+  async function openChat() {
+    if (!pubnub) {
+      pubnub = new PubNub({
+        publishKey: PUB_KEY,
+        subscribeKey: SUB_KEY,
+        userId: myId,           // v7+: userId replaces "uuid"
+        restore: true
+      });
+
+      // Listen for messages + presence
+      pubnub.addListener({
+        message: (evt) => {
+          const m = evt.message || {};
+          if (!m.text) return;
+          renderMessage({
+            name: m.name,
+            text: m.text,
+            ts: m.ts,
+            avatar: m.avatar,
+            initial: (m.name||'')[0]?.toUpperCase()
+          });
+        },
+        presence: (p) => {
+          // p.action: join, leave, timeout, state-change
+          if (typeof p.occupancy === 'number') setOnline(p.occupancy);
+        },
+        status: (s) => {
+          // Optionally reflect connection state in UI
+          const ok = s.category === 'PNConnectedCategory' || s.category === 'PNReconnectedCategory';
+          $send.disabled = !ok;
+        }
+      });
+
+      // Subscribe (with presence events)
+      pubnub.subscribe({ channels: [CHANNEL], withPresence: true });
+
+      // Set a small presence state (optional)
+      try {
+        await pubnub.setState({
+          channels: [CHANNEL],
+          state: { name: myName }
+        });
+      } catch(e) {}
+
+      // Seed "who's online" (Presence: hereNow)
+      try {
+        const res = await pubnub.hereNow({ channels: [CHANNEL], includeUUIDs: true });
+        const occ = res?.channels?.[CHANNEL]?.occupancy ?? 1;
+        setOnline(occ);
+      } catch (e) {
+        // fallback – presence events will update soon anyway
+      }
+    }
+
+    // Show modal + Telegram BackButton
+    $modal.hidden = false;
+    if (tg?.BackButton) {
+      tg.BackButton.show();
+      const onBack = () => { closeChat(); tg?.offEvent && tg.offEvent('backButtonClicked', onBack); };
+      tg.onEvent && tg.onEvent('backButtonClicked', onBack);
+    }
+    $input.focus();
+  }
+
+  // Leave chat: unsubscribe, hide modal
+  function closeChat() {
+    $modal.hidden = true;
+    if (tg?.BackButton) tg.BackButton.hide();
+    if (pubnub) {
+      pubnub.unsubscribe({ channels: [CHANNEL] });
+      // Keep the client instance so reconnect is fast next time
+    }
+  }
+
+  // Send message
+  async function sendMessage() {
+    const text = ($input.value || '').trim();
+    if (!text || !pubnub) return;
+
+    // Locally echo (optimistic UI)
+    renderMessage({ name: myName, text, ts: Date.now(), avatar: myAvatar, initial: myInitial });
+
+    // Publish
+    try {
+      await pubnub.publish({
+        channel: CHANNEL,
+        message: { text, name: myName, avatar: myAvatar, ts: Date.now(), uid: myId }
+      });
+      $input.value = '';
+    } catch (e) {
+      // You can show a toast if you want
+    }
+  }
+
+  // Wire up UI
+  $btn?.addEventListener('click', openChat);
+  $close?.addEventListener('click', closeChat);
+  $send?.addEventListener('click', sendMessage);
+  $input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+})();
+
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -3580,168 +3787,6 @@ function openBreaker(){
 
   // bootstrap
   resetGame();
-})();
-(function(){
-  // Telegram Mini App glue (theme + BackButton) — see Telegram Mini Apps WebApp docs. 
-  const tg = window.Telegram ? window.Telegram.WebApp : null;
-  try { tg && tg.expand && tg.expand(); } catch {}
-  function applyTheme(){
-    if (!tg) return;
-    const p = tg.themeParams || {};
-    const root = document.documentElement.style;
-    if (p.bg_color) root.setProperty('--soc-bg', `#${p.bg_color}`);
-    if (p.text_color) root.setProperty('--soc-ink', `#${p.text_color}`);
-    if (p.hint_color) root.setProperty('--soc-hint', `#${p.hint_color}`);
-    if (p.link_color) root.setProperty('--soc-accent', `#${p.link_color}`);
-    if (p.button_color) root.setProperty('--soc-btn-bg', `#${p.button_color}`);
-    if (p.button_text_color) root.setProperty('--soc-btn-ink', `#${p.button_text_color}`);
-    if (p.secondary_bg_color) root.setProperty('--soc-elev', `#${p.secondary_bg_color}`);
-  }
-  applyTheme();
-  tg && tg.onEvent && tg.onEvent('themeChanged', applyTheme);
-
-  // 1) Put your Supabase project credentials here
-  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR_PUBLIC_ANON_KEY';
-
-  // 2) Init client
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // Elements
-  const overlay = document.getElementById('socializeOverlay');
-  const openBtn = document.getElementById('socializeBtn'); // hook your existing Socialize button to this id
-  const closeBtn = document.getElementById('socClose');
-  const messagesEl = document.getElementById('socMessages');
-  const form = document.getElementById('socForm');
-  const input = document.getElementById('socInput');
-  const onlineEl = document.getElementById('socOnline');
-  let channel = null;
-  let isOpen = false;
-
-  // Current user (from Telegram; falls back if testing in browser)
-  const me = (() => {
-    const u = tg?.initDataUnsafe?.user;
-    const name = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : 'Player';
-    const uid  = u ? String(u.id) : Math.random().toString(36).slice(2);
-    return { name, uid };
-  })();
-
-  // Open/Close
-  function openChat(){
-    if (isOpen) return;
-    isOpen = true;
-    overlay.hidden = false;
-    overlay.setAttribute('aria-hidden','false');
-    tg?.BackButton?.show?.();
-    tg?.BackButton?.onClick?.(closeChat);
-    connect();
-    setTimeout(()=>input.focus(), 0);
-  }
-  function closeChat(){
-    if (!isOpen) return;
-    isOpen = false;
-    overlay.hidden = true;
-    overlay.setAttribute('aria-hidden','true');
-    tg?.BackButton?.hide?.();
-    disconnect();
-  }
-  openBtn && openBtn.addEventListener('click', openChat);
-  closeBtn && closeBtn.addEventListener('click', closeChat);
-  document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape' && isOpen) closeChat();
-  });
-
-  // Realtime connection (broadcast + presence)
-  function connect(){
-    channel = supabase.channel('global-chat', {
-      config: { presence: { key: me.uid }, broadcast: { ack: true } }
-    });
-
-    // Presence (online count)
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState();
-      let count = 0;
-      Object.values(state).forEach(arr => { count += Array.isArray(arr) ? arr.length : 0; });
-      onlineEl.textContent = String(count);
-    });
-
-    // Incoming messages
-    channel.on('broadcast', { event: 'message' }, ({ payload }) => {
-      renderMessage(payload, payload.uid === me.uid);
-    });
-
-    // Go live
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        channel.track({ uid: me.uid, name: me.name, at: Date.now() });
-        renderSystem(`You joined as ${me.name}`);
-      }
-    });
-  }
-
-  function disconnect(){
-    if (channel){
-      channel.unsubscribe();
-      channel = null;
-    }
-    onlineEl.textContent = '0';
-    messagesEl.innerHTML = '';
-  }
-
-  // Send
-  form.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text || !channel) return;
-    const msg = { uid: me.uid, name: me.name, text, ts: Date.now() };
-    channel.send({ type:'broadcast', event:'message', payload: msg }); // Supabase Realtime broadcast
-    renderMessage(msg, true);
-    input.value = '';
-    input.focus();
-  });
-
-  // Rendering helpers
-  function renderSystem(text){
-    const item = document.createElement('div');
-    item.className = 'soc-item soc-system';
-    item.textContent = `[${timeStr(Date.now())}] ${text}`;
-    messagesEl.appendChild(item);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-  function renderMessage({ name, text, ts }, isMe){
-    const item = document.createElement('div');
-    item.className = `soc-item ${isMe ? 'soc-me' : 'soc-other'}`;
-    const bubble = document.createElement('div');
-    bubble.className = 'soc-bubble';
-
-    const header = document.createElement('div');
-    header.className = 'soc-meta';
-
-    const nameEl = document.createElement('span');
-    nameEl.className = 'soc-name';
-    nameEl.textContent = isMe ? 'You' : (name || 'Player');
-
-    const timeEl = document.createElement('span');
-    timeEl.className = 'soc-time';
-    timeEl.textContent = timeStr(ts);
-
-    header.appendChild(nameEl);
-    header.appendChild(timeEl);
-
-    const textEl = document.createElement('div');
-    textEl.className = 'soc-text';
-    textEl.textContent = text; // safe (no HTML injection)
-
-    bubble.appendChild(header);
-    bubble.appendChild(textEl);
-    item.appendChild(bubble);
-    messagesEl.appendChild(item);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-  function timeStr(ms){
-    const d = new Date(ms || Date.now());
-    return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-  }
 })();
 
 /* ===== Lane Hopper — Easier edition =====
