@@ -6,224 +6,40 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  /* --- Button, sits under your wood card exactly like before --- */
-#profileStrip { position: relative; display: flex; flex-direction: column; gap: 10px; }
-#woodCard { width: 100%; }
-
-/* Button */
-.crypto-btn{
-  align-self: flex-start;
-  display: inline-flex; align-items: center; gap: 12px;
-  padding: 10px 16px; border: 0; background: rgba(255,255,255,0.04);
-  border-radius: 18px; cursor: pointer; position: relative; overflow: hidden;
-  /* subtle lit edge + depth */
-  box-shadow:
-    0 0 0 1px rgba(255,215,64,.22) inset,
-    0 8px 24px rgba(0,0,0,.35);
-  transition: transform .15s ease, box-shadow .3s ease;
-  isolation: isolate;
-}
-.crypto-btn img{ height: 38px; width: auto; display:block; }
-.crypto-btn span{ color:#d9d9d9; font-weight:800; letter-spacing:.2px; }/* soft golden edge glow */
-.crypto-btn::after{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  border-radius:18px;
-  /* thin outline + subtle outer glow in GOLD (#FFD700) */
-  box-shadow:
-    0 0 0 1px rgba(255, 215,   0, .22),
-    0 0 18px 6px rgba(255, 215, 0, .24);
-  opacity:.9;
-  animation:pulse 2.2s ease-in-out infinite;
-}
-
-@keyframes pulse{
-  0%,100%{
-    box-shadow:
-      0 0 0 1px rgba(255, 215, 0, .22),
-      0 0 16px 5px rgba(255, 215, 0, .20);
+ :root{
+    --soc-bg:#0d1117; --soc-elev:rgba(255,255,255,0.06);
+    --soc-ink:#e6edf3; --soc-hint:#9aa6b2; --soc-accent:#6bb6ff;
+    --soc-btn-bg:#2481cc; --soc-btn-ink:#fff;
   }
-  50%{
-    box-shadow:
-      0 0 0 1px rgba(255, 215, 0, .30),
-      0 0 26px 10px rgba(255, 215, 0, .34);
-  }
-}
-
-.crypto-btn img{ height: 38px; width: auto; display:block; }
-.crypto-btn span{ color:#d9d9d9; font-weight:800; letter-spacing:.2px; }
-.crypto-btn::after{
-  content:""; position:absolute; inset:-2px; border-radius: 18px;
-  box-shadow: 0 0 22px 6px rgba(255, 215, 64, .25);
-  opacity:.8; animation: pulse 2.2s ease-in-out infinite;
-}
-.crypto-btn:active{ transform: scale(.98); }
-@keyframes pulse {
-  0%,100% { box-shadow: 0 0 15px 3px rgba(255,215,64,.25); }
-  50%     { box-shadow: 0 0 26px 10px rgba(255,215,64,.55);}
-}
-
-/* --- Overlay/table --- */
-.cb-overlay{
-  position: fixed; inset:0; display:none; flex-direction:column;
-  background: radial-gradient(120% 120% at 50% -20%, #1b2125 0%, #0c0f12 60%, #050607 100%);
-  z-index: 9999;
-}
-.cb-overlay[aria-hidden="false"]{ display:flex; }
-
-.cb-hud{ display:flex; align-items:center; gap:12px; padding:14px; }
-.pill{
-  color:#e8eef2; background: linear-gradient(180deg, #1c2328, #0d1216);
-  padding:10px 16px; border-radius: 14px; font-weight: 800; letter-spacing:.3px;
-  border:1px solid rgba(255,255,255,.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 6px 20px rgba(0,0,0,.35);
-}
-.pill-chad{ background: linear-gradient(180deg, #1b2a1d, #0b140c); }
-
-.cb-close{
-  margin-left:auto; border:0; background:transparent; color:#d8dee6; font-size:26px;
-  width:42px; height:42px; border-radius: 10px; cursor:pointer;
-}
-.cb-close:hover{ background: rgba(255,255,255,.06); }
-
-.cb-table-wrap{
-  flex: 1;
-  display:flex; align-items:center; justify-content:center;
-  padding: 10px 10px 6px 10px;
-}
-#cbCanvas{
-  width: min(94vw, 560px);
-  height: calc(min(94vw, 560px) * 1.6); /* vertical table */
-  max-height: calc(100vh - 190px);
-  background: #116b5f;
-  border-radius: 22px;
-  box-shadow: 0 18px 50px rgba(0,0,0,.6), inset 0 0 0 10px #28180f, inset 0 0 0 20px #523225;
-}
-
-/* Pockets & rails are painted in canvas; this outer frame darkens edge */
-.cb-ctas{ display:flex; justify-content:center; gap:16px; padding: 8px 0 16px; }
-.btn{
-  padding:12px 18px; border-radius:16px; border:1px solid rgba(255,255,255,.06);
-  background:linear-gradient(180deg,#111519,#0b0f12); color:#dfe8ef; font-weight:800; letter-spacing:.4px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
-}
-/* Quit button text color */
-.btn.danger,
-#cbQuit {
-  color: #fff !important;
-}
-
-.btn.ghost{ opacity:.95; }
-.btn.danger{ background: linear-gradient(180deg,#2e1413,#1a0c0b); }
-
-/* Floating toast */
-.toast-host{ position: fixed; left: 50%; bottom: 20%; transform: translateX(-50%); pointer-events:none; }
-.toast{
-  background: #0e1419; color:#f3f7fb; font-weight:800;
-  border:1px solid rgba(255,255,255,.08); border-radius: 14px;
-  padding:12px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.5);
-  opacity:0; transform: translate(-50%, 8px); position: absolute; left:50%;
-  animation: toastUp 1.6s ease forwards;
-}
-.toast .accent{ color:#9cff6d; }
-@keyframes toastUp{
-  15%{ opacity:1; transform: translate(-50%, 0px); }
-  90%{ opacity:1; transform: translate(-50%, -12px); }
-  100%{ opacity:0; transform: translate(-50%, -18px); }
-}
-
-
-/* ===== Test Your Luck button (image that scrolls with page) ===== */
-.luck-btn-wrap{
-  width:max(100px, 31vw);
-  max-width:220px;
-  margin:-10px auto 8px 0;            /* centers in your page flow */
-  display:flex; flex-direction:column; align-items:center;
-  pointer-events:auto;
-}
-.luck-btn-img{
-  width:100%; height:auto; display:block;
-  /* golden breathing glow around the PNG edges */
-  filter: drop-shadow(0 10px 28px rgba(255,204,0,.25))
-          drop-shadow(0 0 18px rgba(255,204,0,.25));
-  animation: luckGlow 2.2s ease-in-out infinite;
-  cursor:pointer;
-  user-select:none; -webkit-user-drag:none;
-}
-@keyframes luckGlow{
-  0%   { filter: drop-shadow(0 10px 28px rgba(255,204,0,.25)) drop-shadow(0 0 18px rgba(255,204,0,.25)); }
-  60%  { filter: drop-shadow(0 16px 40px rgba(255,204,0,.10)) drop-shadow(0 0 6px rgba(255,204,0,.12)); }
-  100% { filter: drop-shadow(0 10px 28px rgba(255,204,0,.25)) drop-shadow(0 0 18px rgba(255,204,0,.25)); }
-}
-.luck-btn-wrap.is-locked .luck-btn-img{ filter:grayscale(.8) brightness(.7); animation:none; cursor:not-allowed; }
-.luck-btn-timer{
-  margin-top:8px;
-  padding:4px 10px;
-  font:600 12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  color:#fff; background:#000b; border:1px solid #ffffff22; border-radius:999px;
-  box-shadow:0 6px 18px rgba(0,0,0,.45);
-}
-
-/* ===== Modal ===== */
-.luck-modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-  background:radial-gradient(80% 80% at 50% 20%, #0008, #000e); backdrop-filter: blur(4px);
-  z-index:1000;
-}
-.luck-modal.open{ display:flex; }
-.luck-card{
-  width:min(92vw, 720px); height:min(88vh, 860px);
-  background:linear-gradient(180deg,#111,#0b0b0b);
-  border-radius:24px; border:1px solid #ffffff10; box-shadow:0 30px 120px #000c, inset 0 1px 0 #fff1;
-  padding:22px 22px 28px; position:relative;
-}
-.luck-card.is-locked{ filter:grayscale(1) brightness(.75); }
-
-/* Close */
-.luck-close{ position:absolute; top:14px; right:14px; width:44px; height:44px; border-radius:12px; border:none;
-  background:linear-gradient(180deg,#7a1f1f,#4d0f0f); color:#fff; font-size:20px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px #0008, inset 0 1px 0 #fff2;
-}
-
-/* Wheel block */
-.wheel-wrap{ position:relative; margin:52px auto 14px; width:min(86vw,560px); }
-#wheelCanvas{
-  width:100%; height:auto; display:block; margin:0 auto;
-  filter: drop-shadow(0 20px 40px rgba(0,0,0,.5));
-  transition: transform 6.2s cubic-bezier(.15,.8,.15,1);
-  border-radius:50%; background: radial-gradient(60% 60% at 50% 45%, #fff2, #0000);
-}
-.wheel-arrow{
-  position:absolute; top:-12px; left:50%; transform:translateX(-50%);
-  width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
-  border-bottom:32px solid #ffb22f; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45));
-}
-
-/* Spin button */
-.spin-btn{
-  display:block; margin:14px auto 6px; padding:18px 28px; min-width:280px;
-  font:800 18px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; letter-spacing:.04em; text-transform:uppercase;
-  border:none; border-radius:16px; color:#1b1606; box-shadow:0 16px 40px rgba(0,0,0,.45), inset 0 1px 0 #fff6;
-  cursor:pointer; background:linear-gradient(180deg,#ff6262,#ffd54a); animation:colorCycle 3s steps(3,end) infinite;
-}
-.spin-btn[disabled]{ animation:none; cursor:not-allowed; background:#343434; color:#888; }
-@keyframes colorCycle{
-  0%{background:linear-gradient(180deg,#ff3b3b,#ffb04a);}33%{background:linear-gradient(180deg,#ffd54a,#ffe97a);}
-  66%{background:linear-gradient(180deg,#2ecc71,#7bed9f);}100%{background:linear-gradient(180deg,#ff3b3b,#ffb04a);}
-}
-.cooldown-text{ text-align:center; color:#cfcfcf; font:600 14px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; opacity:.9; }
-
-/* Toasts */
-.toast-stack{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:1100; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
-.toast{
-  background:linear-gradient(180deg,#222,#111); border:1px solid #ffffff1a; color:#fff; padding:12px 16px; border-radius:14px;
-  box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 #fff2; font:700 15px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  opacity:0; transform:translateY(8px); animation:toastIn .3s ease-out forwards, toastOut .45s ease-in 2.6s forwards;
-}
-@keyframes toastIn{ to{ opacity:1; transform:translateY(0); } }
-@keyframes toastOut{ to{ opacity:0; transform:translateY(-14px); } }
-
-
+  .soc-overlay{position:fixed;inset:0;background:color-mix(in oklab,var(--soc-bg) 85%,#000 15%);
+    backdrop-filter:blur(6px);display:grid;place-items:end center;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    z-index:9999}
+  .soc-window{width:min(720px,100%);height:min(80vh,680px);background:var(--soc-elev);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 20px 50px rgba(0,0,0,.35);
+    border-radius:18px 18px 0 0;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+  .soc-header{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .soc-title{font-weight:700;color:var(--soc-ink)}
+  .soc-presence{margin-left:auto;font-size:12px;color:var(--soc-hint)}
+  .soc-close{margin-left:8px;border:0;background:transparent;color:var(--soc-ink);font-size:22px;line-height:1;padding:4px 8px;cursor:pointer;opacity:.7}
+  .soc-close:hover{opacity:1}
+  .soc-messages{padding:10px 12px 0;overflow-y:auto;scroll-behavior:smooth}
+  .soc-item{margin:8px 0;display:flex}
+  .soc-me{justify-content:flex-end}
+  .soc-bubble{max-width:78%;background:rgba(255,255,255,.08);color:var(--soc-ink);
+    border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:12px}
+  .soc-me .soc-bubble{background:var(--soc-accent);color:#000;border-color:color-mix(in srgb,var(--soc-accent),#000 20%)}
+  .soc-meta{display:flex;gap:10px;align-items:baseline;margin-bottom:4px}
+  .soc-name{font-weight:700;font-size:12px;opacity:.9}
+  .soc-time{font-size:11px;color:var(--soc-hint)}
+  .soc-me .soc-time{color:rgba(0,0,0,.6)}
+  .soc-text{white-space:pre-wrap;word-wrap:break-word;font-size:14px}
+  .soc-form{display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid rgba(255,255,255,.08)}
+  .soc-input{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+    color:var(--soc-ink);padding:10px 12px;border-radius:12px;outline:none}
+  .soc-input::placeholder{color:var(--soc-hint)}
+  .soc-send{border:0;padding:10px 14px;border-radius:12px;background:var(--soc-btn-bg);color:var(--soc-btn-ink);font-weight:600;cursor:pointer}
+  .soc-system{width:100%;text-align:center;font-size:12px;color:var(--soc-hint)}
 /* ===== Night Grid (stunning edition) ===== */
 .ng-wrap{
   position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden;
@@ -769,7 +585,7 @@ body{
 /* Bottom */
 .bottom{ position:sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); left:12px; right:12px; z-index:90; margin-top:16px; }
 .controls{width:100%;display:grid;grid-template-columns: 1fr 1.2fr 1fr; gap:12px; align-items:stretch}
-.tile{ border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer; border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none }
+.tile{ border-radius:14px;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer; border:1px solid var(--glass);box-shadow:0 18px 60px rgba(0,0,0,0.6); text-align:center; user-select:none padding-inline: 18px; }
 .tile.play{
   /* 1) Texture + gradient layered together */
   background-image:
@@ -792,7 +608,7 @@ body{
 }
 
 .tile.play::before{content:""; position:absolute; inset:0; background:linear-gradient(20deg, rgba(255,255,255,.35), transparent 35%, transparent 65%, rgba(255,255,255,.18)); mix-blend-mode:screen; opacity:.35; pointer-events:none}
-.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6}
+.tile.level{background:linear-gradient(180deg,#16181b,#0f1012); color:#c7ced6 padding-inline: 18px; }
 /* ===== Shop Overlay ===== */
 .shop-overlay {
   position: fixed; inset: 0;
@@ -980,7 +796,6 @@ canvas{ display:block }
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
       <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
-       <span id="pillBadge" class="pill-badge hidden">1</span>
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
         <div class="name" id="userName">Player</div>
       </div>
@@ -990,42 +805,6 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
-
-<!-- Place this block where your wooden profile rectangle is rendered -->
-<div id="profileStrip">
-  <div class="wood-card" id="woodCard"><!-- your profile/username card --></div>
-
-  <!-- The same button you liked, still *below* the wood rectangle -->
-  <button id="cryptoBreakBtn" class="crypto-btn" aria-label="Play Crypto Break">
-    <img src="img/cryptobreak.png" alt="Crypto Break" />
-    <span>Tap to play</span>
-  </button>
-</div>
-
-<!-- Game overlay (opens only when you tap the button) -->
-<div id="cbOverlay" class="cb-overlay" aria-hidden="true">
-  <div class="cb-hud">
-    <div class="pill pill-score">Score: <span id="cbScore">0</span></div>
-    <div class="pill pill-chad">CHAD (this run): <span id="cbRunChad">0</span></div>
-    <button id="cbClose" class="cb-close" aria-label="Close">✕</button>
-  </div>
-
-  <div class="cb-table-wrap">
-    <canvas id="cbCanvas"></canvas>
-  </div>
-
-  <div class="cb-ctas">
-    <button id="cbRestart" class="btn ghost">Restart</button>
-    <button id="cbQuit" class="btn danger">Quit</button>
-  </div>
-
-  <!-- small toast that drifts up and fades -->
-  <div id="cbToastHost" class="toast-host"></div>
-</div>
-
-<link rel="stylesheet" href="crypto-break.css">
-<script defer src="crypto-break.js"></script>
-
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -1042,29 +821,6 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- ===== Test Your Luck (scrolls with page) ===== -->
-<div id="luckBtnWrap" class="luck-btn-wrap">
-  <img id="luckBtnImg" class="luck-btn-img" src="img/testyourluck.png" alt="Test your luck">
-  <div id="luckBtnTimer" class="luck-btn-timer" hidden>00:00:00</div>
-</div>
-
-<!-- ===== Lucky Wheel Modal ===== -->
-<div id="luckModal" class="luck-modal" aria-hidden="true">
-  <div class="luck-card">
-    <button id="luckClose" class="luck-close" aria-label="Close"><span>✕</span></button>
-
-    <div class="wheel-wrap">
-      <div class="wheel-arrow"></div>
-      <canvas id="wheelCanvas" width="560" height="560"></canvas>
-    </div>
-
-    <button id="spinBtn" class="spin-btn">SPIN THE WHEEL</button>
-    <div id="cooldownText" class="cooldown-text" hidden>Next spin in 24:00:00</div>
-  </div>
-</div>
-
-<!-- Toasts -->
-<div id="toastStack" class="toast-stack"></div>
 
     <!-- BOTTOM -->
     <div class="bottom" id="bottom">
@@ -1076,6 +832,26 @@ canvas{ display:block }
     </div>
 
 
+<button id="socializeBtn" style="display:none"></button>
+
+
+<!-- Overlay -->
+<div id="socializeOverlay" class="soc-overlay" hidden>
+  <div class="soc-window" role="dialog" aria-modal="true" aria-labelledby="socTitle">
+    <header class="soc-header">
+      <div id="socTitle" class="soc-title">Global Chat</div>
+      <div class="soc-presence"><span id="socOnline">0</span> online</div>
+      <button id="socClose" class="soc-close" aria-label="Close">&times;</button>
+    </header>
+
+    <div id="socMessages" class="soc-messages" role="log" aria-live="polite"></div>
+
+    <form id="socForm" class="soc-form" autocomplete="off">
+      <input id="socInput" class="soc-input" type="text" maxlength="500" placeholder="Say something…" />
+      <button class="soc-send" type="submit">Send</button>
+    </form>
+  </div>
+</div>
 
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
@@ -1225,7 +1001,6 @@ canvas{ display:block }
       </div>
     </div>
 
-
     <!-- AVATAR overlay (step 2) -->
     <div class="overlay" id="avatarOverlay">
       <div class="panel">
@@ -1238,9 +1013,6 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-
-
-
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -1610,6 +1382,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ===== Telegram + loader ===== */
@@ -2319,464 +2092,6 @@ document.getElementById('snakeQuit').addEventListener('click', ()=>{ if (S?.sess
   if (sLoop) clearInterval(sLoop); sLoop=null; if (S?.cleanup) S.cleanup(); S=null; closeOverlay('snakeModal'); });
 window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal'); };
 
-/* =======================
-   Crypto Break (8-Ball Strike style)
-   – fast, bouncy physics
-   – drag to aim, release to shoot
-   – CHAD added to BigInt balance on Quit (score × 50)
-======================= */
-
-(() => {
-  // ---- helpers for number formatting and DOM ----
-  const $ = sel => document.querySelector(sel);
-  const fmt = n => new Intl.NumberFormat('en-US').format(n);
-
-  const overlay = $('#cbOverlay');
-  const cvs = $('#cbCanvas');
-  const ctx = cvs.getContext('2d', { alpha: false });
-
-  const scoreEl = $('#cbScore');
-  const runChadEl = $('#cbRunChad');
-  const toastHost = $('#cbToastHost');
-
-  const BTN = $('#cryptoBreakBtn');
-  const CLOSE = $('#cbClose');
-  const RESTART = $('#cbRestart');
-  const QUIT = $('#cbQuit');
-
-  // ---------- STATE ----------
-  const R = {               // rendering/table metrics (computed on resize)
-    w: 0, h: 0, pad: 22,    // canvas inner padding (wood)
-    rail: 14,               // rail thickness
-    rBall: 11.5,            // ball radius (px in canvas coordinates)
-    rPocket: 19.5           // pocket radius
-  };
-
-  const PHYS = {
-    dtMax: 1/30,            // cap dt for stability (seconds)
-    ballRestitution: 0.94,  // ball-ball bounciness (in 0.90–0.96 range) [see cites]
-    railRestitution: 0.87,  // cushion bounciness (rails)
-    rollingFriction: 485,   // px/s^2 decel (tuned to stop quicker but smooth)
-    sleepSpeed: 8,          // px/s threshold to stop
-    maxSpeed: 1550          // shot speed scale
-  };
-
-  let world = null;
-  let lastT = 0;
-  let running = false;
-  let aiming = false;
-  let aim = { x:0, y:0, power:0 }; // direction (from cue ball to pointer)
-  let score = 0;
-  let chadRun = 0;
-
-  // ---------- BigInt CHAD integration ----------
-  // Add BigInt CHAD to your game state, using your helpers if present.
-  function addChadsToBalance(amount) {
-    const add = BigInt(String(amount || 0));
-    try {
-      if (typeof withState === 'function') {
-        withState(s => { s.chads = (s.chads ?? 0n) + add; });
-        if (typeof refreshUI === 'function') try { refreshUI(); } catch {}
-        return;
-      }
-      if (typeof state !== 'undefined' && state) {
-        state.chads = (BigInt(state.chads ?? 0) + add);
-        if (typeof saveStateLocal === 'function') saveStateLocal(state);
-        if (typeof refreshUI === 'function') try { refreshUI(); } catch {}
-        return;
-      }
-      if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function') {
-        const s = loadStateLocal(); s.chads = (BigInt(s.chads ?? 0) + add);
-        saveStateLocal(s);
-        if (typeof refreshUI === 'function') try { refreshUI(); } catch {}
-        return;
-      }
-    } catch {}
-    // ultimate fallback
-    const key = 'fallback_chads';
-    const cur = BigInt(localStorage.getItem(key) || '0');
-    localStorage.setItem(key, (cur + add).toString());
-  }
-
-  // ---------- math helpers ----------
-  const vLen = (x,y) => Math.hypot(x,y);
-  const vNorm = (x,y) => { const m = Math.hypot(x,y) || 1; return {x:x/m,y:y/m}; };
-  const clamp = (v,lo,hi)=>Math.max(lo,Math.min(hi,v));
-
-  // ---------- world / balls ----------
-  function newBall(x,y,color,isCue=false,id=0){
-    return { x,y, vx:0, vy:0, color, id, alive:true, cue:isCue };
-  }
-
-  function rackBalls(centerX, centerY) {
-    const balls = [];
-    const r = R.rBall*2 + 0.5;
-    let id=1;
-    for(let row=0; row<5; row++){
-      for(let k=0;k<=row;k++){
-        const x = centerX + (k - row/2) * r;
-        const y = centerY + row * (r*0.88);
-        balls.push(newBall(x,y,ballColor(id),false,id));
-        id++;
-        if (id>15) break;
-      }
-      if (id>15) break;
-    }
-    return balls;
-  }
-
-  function ballColor(i){
-    // simple palette approximating classic balls (solids/stripes both as solid dots for mini-game)
-    const C = [
-      '#ffffff','#f7c300','#1f74db','#f0443a','#7dc242','#7d1a8e','#f67200','#000000',
-      '#f7c300','#1f74db','#f0443a','#7dc242','#7d1a8e','#f67200','#db178b'
-    ];
-    return C[(i-1)%C.length];
-  }
-
-  function makeWorld(){
-    const pad = R.pad, rail = R.rail;
-    const left = pad + rail, right = R.w - pad - rail;
-    const top = pad + rail, bottom = R.h - pad - rail;
-
-    // pockets: TL, TR, BL, BR, ML, MR (vertical table)
-    const P = [];
-    const pr = R.rPocket;
-    P.push({x:left, y:top, r:pr});
-    P.push({x:right, y:top, r:pr});
-    P.push({x:left, y:bottom, r:pr});
-    P.push({x:right, y:bottom, r:pr});
-    P.push({x:left, y:(top+bottom)/2, r:pr});
-    P.push({x:right, y:(top+bottom)/2, r:pr});
-
-    // cue at lower 1/3, rack at center
-    const cx = (left+right)/2;
-    const cy = bottom - (R.rBall*5.5);
-    const cue = newBall(cx, cy, '#ffffff', true, 0);
-
-    const balls = rackBalls(cx, (top+bottom)/2 - R.rBall*2.2);
-
-    return { left, right, top, bottom, pockets:P, balls:[cue, ...balls] };
-  }
-
-  // ---------- drawing ----------
-  function draw(){
-    // background wood & felt are done with CSS & inner shadows; we render pockets/lines/balls
-    ctx.clearRect(0,0,R.w,R.h);
-
-    // felt (inner area)
-    ctx.save();
-    ctx.fillStyle = '#116b5f';
-    roundRect(ctx, R.pad, R.pad, R.w-2*R.pad, R.h-2*R.pad, 20);
-    ctx.fill();
-
-    // rails (darker rings already from CSS border; add subtle overlay)
-    ctx.strokeStyle = 'rgba(0,0,0,.35)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, R.pad+R.rail*0.5, R.pad+R.rail*0.5, R.w-2*(R.pad+R.rail*0.5), R.h-2*(R.pad+R.rail*0.5), 18);
-    ctx.stroke();
-
-    // pockets
-    for(const p of world.pockets){
-      ctx.beginPath(); ctx.fillStyle = '#0a0a0a';
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth=2;
-      ctx.arc(p.x, p.y, p.r-3, 0, Math.PI*2); ctx.stroke();
-    }
-
-    // guideline + stick (only when balls resting & aiming)
-    if (!anyMoving() && aiming) drawAiming();
-
-    // balls
-    for(const b of world.balls){
-      if(!b.alive) continue;
-      ctx.beginPath();
-      ctx.fillStyle = b.color;
-      ctx.arc(b.x, b.y, R.rBall, 0, Math.PI*2);
-      ctx.fill();
-      // small spec highlight
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(255,255,255,.6)';
-      ctx.arc(b.x - R.rBall*0.35, b.y - R.rBall*0.35, 2.2, 0, Math.PI*2);
-      ctx.fill();
-      if(b.cue){
-        ctx.beginPath(); ctx.strokeStyle='rgba(0,0,0,.2)';
-        ctx.lineWidth=1.5; ctx.arc(b.x, b.y, R.rBall-1.5, 0, Math.PI*2); ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-
-  function drawAiming(){
-    const cue = world.balls[0];
-    const dir = vNorm(aim.x - cue.x, aim.y - cue.y);
-    const pull = clamp(aim.power, 0, R.rBall*6); // how far "back" we are pulling the cue
-    const stickLen = R.rBall*7 + pull*1.8;
-
-    // guideline (forward)
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,.55)';
-    ctx.setLineDash([5,6]);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cue.x, cue.y);
-    ctx.lineTo(cue.x + dir.x*R.rBall*20, cue.y + dir.y*R.rBall*20);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // stick (behind the cue ball)
-    const backX = cue.x - dir.x*(R.rBall + pull + 10);
-    const backY = cue.y - dir.y*(R.rBall + pull + 10);
-    const tipX  = cue.x - dir.x*(R.rBall + 2);
-    const tipY  = cue.y - dir.y*(R.rBall + 2);
-
-    ctx.lineCap='round';
-    ctx.strokeStyle='#e2c08c';
-    ctx.lineWidth=6;
-    ctx.beginPath(); ctx.moveTo(backX, backY); ctx.lineTo(tipX, tipY); ctx.stroke();
-    ctx.strokeStyle='#965f2a'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(backX, backY); ctx.lineTo(tipX, tipY); ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function roundRect(ctx, x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.arcTo(x+w,y,x+w,y+h,r);
-    ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r);
-    ctx.arcTo(x,y,x+w,y,r);
-    ctx.closePath();
-  }
-
-  // ---------- physics ----------
-  function anyMoving(){
-    for(const b of world.balls){
-      if(!b.alive) continue;
-      if (Math.abs(b.vx)>PHYS.sleepSpeed || Math.abs(b.vy)>PHYS.sleepSpeed) return true;
-    }
-    return false;
-  }
-
-  function step(dt){
-    // move
-    for(const b of world.balls){
-      if(!b.alive) continue;
-      // integrate
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-
-      // rolling friction (time-based): decelerates along velocity
-      const v = Math.hypot(b.vx, b.vy);
-      if (v>0){
-        const decel = PHYS.rollingFriction * dt;
-        const nv = Math.max(0, v - decel);
-        if (nv === 0){
-          b.vx = b.vy = 0;
-        } else {
-          const scale = nv / v;
-          b.vx *= scale; b.vy *= scale;
-        }
-      }
-
-      // rail collisions (bounce with restitution)
-      railCollide(b);
-    }
-
-    // ball-ball collisions (impulse)
-    const arr = world.balls;
-    for(let i=0;i<arr.length;i++){
-      const A = arr[i]; if(!A.alive) continue;
-      for(let j=i+1;j<arr.length;j++){
-        const B = arr[j]; if(!B.alive) continue;
-        const dx = B.x - A.x, dy = B.y - A.y;
-        const dist = Math.hypot(dx,dy); const minDist = R.rBall*2;
-        if (dist>0 && dist < minDist){
-          // separate to avoid overlap
-          const n = {x:dx/dist, y:dy/dist};
-          const over = (minDist - dist);
-          A.x -= n.x * (over/2); A.y -= n.y * (over/2);
-          B.x += n.x * (over/2); B.y += n.y * (over/2);
-
-          // impulse along normal (equal masses)
-          const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
-          const rel = rvx*n.x + rvy*n.y;
-          if (rel < 0){
-            const e = PHYS.ballRestitution; // 0.90–0.96 typical
-            const j = -(1+e)*rel / (1 + 1); // m1=m2=1
-            const ix = j*n.x, iy = j*n.y;
-            A.vx -= ix; A.vy -= iy;
-            B.vx += ix; B.vy += iy;
-          }
-        }
-      }
-    }
-
-    // pockets
-    for(const b of world.balls){
-      if(!b.alive) continue;
-      for(const p of world.pockets){
-        if (Math.hypot(b.x - p.x, b.y - p.y) < (p.r - 3)){
-          // potted
-          if (b.cue){
-            // respot cue ball near foot spot
-            const cue = b;
-            cue.vx = cue.vy = 0;
-            cue.x = (world.left+world.right)/2;
-            cue.y = world.bottom - (R.rBall*5.5);
-          } else {
-            b.alive = false;
-            score += 10;
-            chadRun = score * 50;
-            scoreEl.textContent = score;
-            runChadEl.textContent = fmt(chadRun);
-            makeMiniToast(`+1 ball  →  +<span class="accent">50</span> CHAD`);
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  function railCollide(b){
-    const L = world.left + R.rBall, Rr = world.right - R.rBall;
-    const T = world.top + R.rBall, B = world.bottom - R.rBall;
-
-    if (b.x < L){ b.x = L; b.vx = -b.vx * PHYS.railRestitution; }
-    if (b.x > Rr){ b.x = Rr; b.vx = -b.vx * PHYS.railRestitution; }
-    if (b.y < T){ b.y = T; b.vy = -b.vy * PHYS.railRestitution; }
-    if (b.y > B){ b.y = B; b.vy = -b.vy * PHYS.railRestitution; }
-  }
-
-  // ---------- input (drag to aim, release to shoot) ----------
-  function canShoot(){ return !anyMoving(); }
-
-  function toCanvasPoint(ev){
-    const rect = cvs.getBoundingClientRect();
-    const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
-    const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - rect.top;
-    // canvas is CSS scaled; map to internal pixels:
-    const sx = cvs.width / rect.width, sy = cvs.height / rect.height;
-    return { x: x*sx, y: y*sy };
-  }
-
-  function pointerDown(ev){
-    if (!canShoot()) return;
-    const cue = world.balls[0];
-    const pt = toCanvasPoint(ev);
-    aiming = true;
-    aim.x = pt.x; aim.y = pt.y; aim.power = 0;
-    ev.preventDefault();
-  }
-  function pointerMove(ev){
-    if (!aiming) return;
-    const cue = world.balls[0];
-    const pt = toCanvasPoint(ev);
-    aim.x = pt.x; aim.y = pt.y;
-    // power is how far we pull *away* from cue-ball opposite the shot direction
-    const dir = vNorm(aim.x - cue.x, aim.y - cue.y);
-    const back = vLen(aim.x - cue.x, aim.y - cue.y);
-    aim.power = clamp(back, 0, R.rBall*6);
-    ev.preventDefault();
-  }
-  function pointerUp(ev){
-    if (!aiming) return;
-    const cue = world.balls[0];
-    const dir = vNorm(aim.x - cue.x, aim.y - cue.y);
-    const power = clamp(aim.power, 0, R.rBall*6);
-    const speed = (power / (R.rBall*6)) * PHYS.maxSpeed;
-    cue.vx = dir.x * speed;
-    cue.vy = dir.y * speed;
-    aiming = false;
-    ev.preventDefault();
-  }
-
-  // ---------- loop ----------
-  function loop(t){
-    if (!running) return;
-    let dt = (t - lastT) / 1000;
-    lastT = t;
-    dt = Math.min(dt, PHYS.dtMax); // stability
-
-    step(dt);
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  // ---------- resize/canvas sizing ----------
-  function fitCanvas(){
-    // sync backing store to CSS size
-    const cssW = cvs.clientWidth;
-    const cssH = cvs.clientHeight;
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    cvs.width = Math.round(cssW * dpr);
-    cvs.height = Math.round(cssH * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    R.w = cssW; R.h = cssH;
-    world = makeWorld();
-  }
-
-  // ---------- toast ----------
-  function makeMiniToast(html){
-    const el = document.createElement('div');
-    el.className = 'toast';
-    el.innerHTML = html;
-    toastHost.appendChild(el);
-    setTimeout(()=>{ el.remove(); }, 1700);
-  }
-  function largeToast(html){
-    makeMiniToast(html); // same visual for simplicity
-  }
-
-  // ---------- controls ----------
-  function openGame(){
-    overlay.setAttribute('aria-hidden','false');
-    // init
-    score = 0; chadRun = 0;
-    scoreEl.textContent = '0'; runChadEl.textContent = '0';
-    fitCanvas();
-    lastT = performance.now();
-    running = true;
-    requestAnimationFrame(loop);
-  }
-  function closeGame(){
-    running = false;
-    overlay.setAttribute('aria-hidden','true');
-  }
-  function restartGame(){
-    score = 0; chadRun = 0;
-    scoreEl.textContent = '0'; runChadEl.textContent = '0';
-    world = makeWorld();
-    aiming = false;
-  }
-  function quitAndPay(){
-    if (chadRun > 0){
-      addChadsToBalance(chadRun);
-      largeToast(`🏁 <b>Crypto Break</b><br>Added <span class="accent">+${fmt(chadRun)}</span> CHAD to your balance.`);
-    }
-    closeGame();
-  }
-
-  // ---------- wire up ----------
-  BTN?.addEventListener('click', openGame);
-  CLOSE.addEventListener('click', closeGame);
-  RESTART.addEventListener('click', restartGame);
-  QUIT.addEventListener('click', quitAndPay);
-
-  // pointer events on the canvas
-  cvs.addEventListener('mousedown', pointerDown, {passive:false});
-  window.addEventListener('mousemove', pointerMove, {passive:false});
-  window.addEventListener('mouseup', pointerUp, {passive:false});
-  cvs.addEventListener('touchstart', pointerDown, {passive:false});
-  window.addEventListener('touchmove', pointerMove, {passive:false});
-  window.addEventListener('touchend', pointerUp, {passive:false});
-  window.addEventListener('resize', ()=>{
-    if (overlay.getAttribute('aria-hidden') === 'false') fitCanvas();
-  });
-})();
-
-
 /* ===== Tetris ===== */
 (function(){
   const gridEl = document.getElementById('tetrisGrid');
@@ -3417,285 +2732,6 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-
-(() => {
-  /* ====== CONFIG ====== */
-  const LUCK_IMG = 'img/testyourluck.png';
-  const SPIN_DURATION = 6200;              // ms, matches CSS transition
-  const SEG_COUNT = 10;
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-  // Respect your existing state & UID
-  const USER_HINT = (typeof UID_HINT !== 'undefined' && UID_HINT) ? UID_HINT : 'guest';
-  const COOLDOWN_KEY = `chad_lucky_cd_${USER_HINT}`;
-  const LAST_RESULT_KEY = `chad_lucky_last_${USER_HINT}`;
-
-  // Rewards — clockwise, starting at arrow top
-  const REWARDS = [
-    {label:'600 chads',   emoji:'🪙', type:'chads', amount:600,          weight:16},
-    {label:'Nothing',     emoji:'❌', type:'none',  amount:0,            weight:16},
-    {label:'100 gen/hr',  emoji:'⚡', type:'gen',   amount:100,          weight:16},
-    {label:'10M chads',   emoji:'👑', type:'chads', amount:10_000_000,   weight:2}, // 2%
-    {label:'1000 gen/hr', emoji:'🚀', type:'gen',   amount:1000,         weight:12},
-    {label:'Nothing',     emoji:'🚫', type:'none',  amount:0,            weight:16},
-    {label:'500k chads',  emoji:'💰', type:'chads', amount:500_000,      weight:8},
-    {label:'500k gen/hr', emoji:'🌟', type:'gen',   amount:500_000,      weight:8},
-    {label:'1M chads',    emoji:'💎', type:'chads', amount:1_000_000,    weight:5}, // 5%
-    {label:'100 gen/hr',  emoji:'⚡', type:'gen',   amount:100,          weight:16},
-  ];
-
-  /* ====== DOM ====== */
-  const $ = (s, p=document) => p.querySelector(s);
-  const wrap = $('#luckBtnWrap');
-  const btnImg = $('#luckBtnImg');
-  const btnTimer = $('#luckBtnTimer');
-  const modal = $('#luckModal');
-  const card  = $('.luck-card', modal);
-  const closeBtn = $('#luckClose');
-  const spinBtn = $('#spinBtn');
-  const cooldownText = $('#cooldownText');
-  const wheel = $('#wheelCanvas');
-  const toastStack = $('#toastStack');
-
-  // Load the image safely (in case path is wrong, keep layout)
-  btnImg.src = LUCK_IMG;
-  btnImg.addEventListener('error', () => { console.warn('testyourluck.png not found'); });
-
-  /* ====== Profile gate ====== */
-  function isProfileReady() {
-    try{
-      if (typeof loadStateLocal === 'function') {
-        const s = loadStateLocal();
-        return !!(s && s.name && s.avatarIdx !== null && s.avatarIdx !== undefined);
-      }
-    }catch{}
-    return false;
-  }
-  function updateGate() {
-    const ok = isProfileReady();
-    wrap.classList.toggle('is-locked', !ok);
-    btnImg.toggleAttribute('disabled', !ok);
-    btnImg.style.pointerEvents = ok ? 'auto' : 'none';
-    btnImg.title = ok ? 'Test your luck' : 'Choose username and avatar first';
-  }
-
-  // Hook into your UI refresh if it exists so gate follows changes
-  if (typeof window.refreshUI === 'function') {
-    const prev = window.refreshUI;
-    window.refreshUI = function() { try{ prev(); }catch{} updateGate(); };
-  }
-
-  /* ====== Canvas wheel drawing ====== */
-  const ctx = wheel.getContext('2d');
-  let DPR = window.devicePixelRatio || 1;
-  function sizeCanvas() {
-    const css = parseInt(getComputedStyle(wheel).width);
-    wheel.width  = Math.round(css * DPR);
-    wheel.height = Math.round(css * DPR);
-  }
-  sizeCanvas();
-
-  function drawWheel() {
-    const W = wheel.width, H = wheel.height;
-    const cx = W/2, cy = H/2, r = W*0.46;
-    ctx.clearRect(0,0,W,H);
-
-    // Background ring
-    ctx.beginPath(); ctx.arc(cx,cy,r*1.07,0,Math.PI*2);
-    const frame = ctx.createRadialGradient(cx,cy,r*0.2,cx,cy,r*1.07);
-    frame.addColorStop(0,'#3a2e10'); frame.addColorStop(1,'#201808');
-    ctx.fillStyle = frame; ctx.fill();
-
-    const segAngle = (Math.PI*2)/SEG_COUNT;
-    for (let i=0;i<SEG_COUNT;i++){
-      const a0 = -Math.PI/2 + i*segAngle;
-      const a1 = a0 + segAngle;
-      const hue = (i*36)%360;
-
-      // glossy segment
-      const grad = ctx.createRadialGradient(cx,cy,r*0.08,cx,cy,r);
-      grad.addColorStop(0, `hsl(${hue}, 90%, 72%)`);
-      grad.addColorStop(.6, `hsl(${hue}, 75%, 55%)`);
-      grad.addColorStop(1, `hsl(${hue}, 70%, 42%)`);
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,a0,a1,false); ctx.closePath();
-      ctx.fillStyle = grad; ctx.fill();
-      ctx.lineWidth = r*0.012; ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.stroke();
-
-      // label + emoji (bigger)
-      const mid = (a0+a1)/2;
-      const rx = cx + Math.cos(mid) * r*0.69;
-      const ry = cy + Math.sin(mid) * r*0.69;
-      ctx.save(); ctx.translate(rx,ry); ctx.rotate(mid + Math.PI/2);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-
-      ctx.font = `${Math.round(r*0.135)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
-      ctx.fillStyle='#121212'; ctx.shadowColor='rgba(255,255,255,.45)'; ctx.shadowBlur=2;
-      ctx.fillText(REWARDS[i].emoji,0,-r*0.03);
-
-      ctx.font = `${Math.round(r*0.085)}px system-ui,-apple-system,Segoe UI,Roboto,sans-serif`;
-      ctx.shadowBlur=0; ctx.fillStyle='#f7f7f7';
-      ctx.fillText(REWARDS[i].label,0,r*0.09);
-      ctx.restore();
-    }
-
-    // outer golden rim
-    ctx.lineWidth = r*0.035; ctx.strokeStyle='rgba(255,220,120,.9)';
-    ctx.beginPath(); ctx.arc(cx,cy,r*1.005,0,Math.PI*2); ctx.stroke();
-
-    // center cap
-    const knob = ctx.createRadialGradient(cx,cy,r*0.08,cx,cy,r*0.28);
-    knob.addColorStop(0,'#ffe9a6'); knob.addColorStop(1,'#b68a22');
-    ctx.beginPath(); ctx.arc(cx,cy,r*0.22,0,Math.PI*2); ctx.fillStyle=knob; ctx.fill();
-    ctx.lineWidth = r*0.015; ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.stroke();
-  }
-  drawWheel();
-
-  /* ====== Spin logic ====== */
-  let currentRotation = 0;
-  let spinning = false;
-  function weightPick(){
-    const sum = REWARDS.reduce((s,r)=>s+r.weight,0);
-    let x = Math.random()*sum;
-    for (let i=0;i<REWARDS.length;i++){ x -= REWARDS[i].weight; if (x<=0) return i; }
-    return REWARDS.length-1;
-  }
-  function spin(){
-    if (spinning || isOnCooldown() || !isProfileReady()) return;
-    spinning = true; spinBtn.disabled = true;
-
-    const idx = weightPick();
-    const segDeg = 360/SEG_COUNT;
-    const targetCenter = idx*segDeg + segDeg/2;
-    const turns = 5 + Math.random()*2;                // 5–7 turns
-    const target = 360*turns + (360 - targetCenter);
-
-    currentRotation = currentRotation % 360;
-    const delta = target - currentRotation;
-    currentRotation += delta;
-    wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-    setTimeout(()=>{
-      grantReward(idx);
-      setCooldown(Date.now() + COOLDOWN_MS);
-      updateCooldownUI();
-      spinning = false;
-    }, SPIN_DURATION + 40);
-  }
-
-  /* ====== Rewards + state integration ====== */
-  function withState(mutator){
-    if (typeof loadStateLocal === 'function' && typeof saveStateLocal === 'function'){
-      const s = loadStateLocal(); mutator(s); saveStateLocal(s);
-      if (typeof refreshUI === 'function') try{ refreshUI(); }catch{}
-    } else {
-      const ch = BigInt(localStorage.getItem('fallback_chads')||'0');
-      const gn = BigInt(localStorage.getItem('fallback_gen')||'0');
-      const tmp = { chads: ch, gen: gn }; mutator(tmp);
-      localStorage.setItem('fallback_chads', tmp.chads.toString());
-      localStorage.setItem('fallback_gen',   tmp.gen.toString());
-    }
-  }
-  const nf = new Intl.NumberFormat('en-US'); const fmt = n => nf.format(n);
-
-  function grantReward(i){
-    const r = REWARDS[i]; let msg = '';
-    if (r.type==='chads'){
-      withState(s => { s.chads = (s.chads??0n) + BigInt(r.amount); });
-      msg = (r.amount===10_000_000) ? 'Congragts , You Won 10 Million Chads'
-          : (r.amount===1_000_000) ? '1 Million chads added'
-          : `${fmt(r.amount)} chads added`;
-    } else if (r.type==='gen'){
-      withState(s => { s.gen = (s.gen??0n) + BigInt(r.amount); });
-      msg = `${fmt(r.amount)} gen/hr increased`;
-    } else {
-      msg = 'Sorry For That';
-    }
-    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ idx:i, at: Date.now() }));
-    // defer toast until modal closes
-    pendingToast = msg;
-  }
-
-  /* ====== Cooldown ====== */
-  function setCooldown(ts){ localStorage.setItem(COOLDOWN_KEY, String(ts)); }
-  function getCooldown(){ const v = Number(localStorage.getItem(COOLDOWN_KEY)||'0'); return Number.isFinite(v)? v : 0; }
-  function isOnCooldown(){ return Date.now() < getCooldown(); }
-  function msHMS(ms){
-    const s = Math.max(0, Math.floor(ms/1000));
-    const h = String(Math.floor(s/3600)).padStart(2,'0');
-    const m = String(Math.floor((s%3600)/60)).padStart(2,'0');
-    const ss= String(s%60).padStart(2,'0');
-    return `${h}:${m}:${ss}`;
-  }
-
-  let cdTimer = null, pendingToast = null;
-  function startTicker(){
-    if (cdTimer) clearInterval(cdTimer);
-    cdTimer = setInterval(()=>{
-      const left = getCooldown() - Date.now();
-      const on = left>0;
-      cooldownText.hidden = !on;
-      btnTimer.hidden = !on;
-      if (on){
-        cooldownText.textContent = `Next spin in ${msHMS(left)}`;
-        btnTimer.textContent = msHMS(left);
-      } else {
-        wrap.classList.remove('is-locked');
-        card.classList.remove('is-locked');
-        spinBtn.disabled = false;
-        cooldownText.hidden = true;
-        btnTimer.hidden = true;
-        clearInterval(cdTimer); cdTimer = null;
-      }
-    },1000);
-  }
-  function updateCooldownUI(){
-    const on = isOnCooldown();
-    wrap.classList.toggle('is-locked', on);
-    card.classList.toggle('is-locked', on);
-    spinBtn.disabled = on || spinning;
-    cooldownText.hidden = !on; btnTimer.hidden = !on;
-    if (on){
-      const left = getCooldown() - Date.now();
-      cooldownText.textContent = `Next spin in ${msHMS(left)}`;
-      btnTimer.textContent = msHMS(left);
-      startTicker();
-    }
-  }
-
-  /* ====== Modal open/close ====== */
-  function openModal(){
-    if (!isProfileReady()){
-      pushToast('Choose username and avatar first');
-      return;
-    }
-    modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
-    updateCooldownUI();
-  }
-  function closeModal(){
-    modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
-    if (pendingToast){ pushToast(pendingToast); pendingToast = null; }
-  }
-
-  /* ====== Toasts ====== */
-  function pushToast(text){
-    const el = document.createElement('div'); el.className='toast'; el.textContent=text;
-    toastStack.appendChild(el); setTimeout(()=>el.remove(), 3200);
-  }
-
-  /* ====== Events ====== */
-  btnImg.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  spinBtn.addEventListener('click', spin);
-
-  // Init
-  updateGate();
-  updateCooldownUI();
-
-  // Resize handling for sharp wheel
-  window.addEventListener('resize', () => {
-    DPR = window.devicePixelRatio || 1; sizeCanvas(); drawWheel();
-  });
-})();
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
@@ -4544,6 +3580,168 @@ function openBreaker(){
 
   // bootstrap
   resetGame();
+})();
+(function(){
+  // Telegram Mini App glue (theme + BackButton) — see Telegram Mini Apps WebApp docs. 
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  try { tg && tg.expand && tg.expand(); } catch {}
+  function applyTheme(){
+    if (!tg) return;
+    const p = tg.themeParams || {};
+    const root = document.documentElement.style;
+    if (p.bg_color) root.setProperty('--soc-bg', `#${p.bg_color}`);
+    if (p.text_color) root.setProperty('--soc-ink', `#${p.text_color}`);
+    if (p.hint_color) root.setProperty('--soc-hint', `#${p.hint_color}`);
+    if (p.link_color) root.setProperty('--soc-accent', `#${p.link_color}`);
+    if (p.button_color) root.setProperty('--soc-btn-bg', `#${p.button_color}`);
+    if (p.button_text_color) root.setProperty('--soc-btn-ink', `#${p.button_text_color}`);
+    if (p.secondary_bg_color) root.setProperty('--soc-elev', `#${p.secondary_bg_color}`);
+  }
+  applyTheme();
+  tg && tg.onEvent && tg.onEvent('themeChanged', applyTheme);
+
+  // 1) Put your Supabase project credentials here
+  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_PUBLIC_ANON_KEY';
+
+  // 2) Init client
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Elements
+  const overlay = document.getElementById('socializeOverlay');
+  const openBtn = document.getElementById('socializeBtn'); // hook your existing Socialize button to this id
+  const closeBtn = document.getElementById('socClose');
+  const messagesEl = document.getElementById('socMessages');
+  const form = document.getElementById('socForm');
+  const input = document.getElementById('socInput');
+  const onlineEl = document.getElementById('socOnline');
+  let channel = null;
+  let isOpen = false;
+
+  // Current user (from Telegram; falls back if testing in browser)
+  const me = (() => {
+    const u = tg?.initDataUnsafe?.user;
+    const name = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') : 'Player';
+    const uid  = u ? String(u.id) : Math.random().toString(36).slice(2);
+    return { name, uid };
+  })();
+
+  // Open/Close
+  function openChat(){
+    if (isOpen) return;
+    isOpen = true;
+    overlay.hidden = false;
+    overlay.setAttribute('aria-hidden','false');
+    tg?.BackButton?.show?.();
+    tg?.BackButton?.onClick?.(closeChat);
+    connect();
+    setTimeout(()=>input.focus(), 0);
+  }
+  function closeChat(){
+    if (!isOpen) return;
+    isOpen = false;
+    overlay.hidden = true;
+    overlay.setAttribute('aria-hidden','true');
+    tg?.BackButton?.hide?.();
+    disconnect();
+  }
+  openBtn && openBtn.addEventListener('click', openChat);
+  closeBtn && closeBtn.addEventListener('click', closeChat);
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && isOpen) closeChat();
+  });
+
+  // Realtime connection (broadcast + presence)
+  function connect(){
+    channel = supabase.channel('global-chat', {
+      config: { presence: { key: me.uid }, broadcast: { ack: true } }
+    });
+
+    // Presence (online count)
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      let count = 0;
+      Object.values(state).forEach(arr => { count += Array.isArray(arr) ? arr.length : 0; });
+      onlineEl.textContent = String(count);
+    });
+
+    // Incoming messages
+    channel.on('broadcast', { event: 'message' }, ({ payload }) => {
+      renderMessage(payload, payload.uid === me.uid);
+    });
+
+    // Go live
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        channel.track({ uid: me.uid, name: me.name, at: Date.now() });
+        renderSystem(`You joined as ${me.name}`);
+      }
+    });
+  }
+
+  function disconnect(){
+    if (channel){
+      channel.unsubscribe();
+      channel = null;
+    }
+    onlineEl.textContent = '0';
+    messagesEl.innerHTML = '';
+  }
+
+  // Send
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text || !channel) return;
+    const msg = { uid: me.uid, name: me.name, text, ts: Date.now() };
+    channel.send({ type:'broadcast', event:'message', payload: msg }); // Supabase Realtime broadcast
+    renderMessage(msg, true);
+    input.value = '';
+    input.focus();
+  });
+
+  // Rendering helpers
+  function renderSystem(text){
+    const item = document.createElement('div');
+    item.className = 'soc-item soc-system';
+    item.textContent = `[${timeStr(Date.now())}] ${text}`;
+    messagesEl.appendChild(item);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function renderMessage({ name, text, ts }, isMe){
+    const item = document.createElement('div');
+    item.className = `soc-item ${isMe ? 'soc-me' : 'soc-other'}`;
+    const bubble = document.createElement('div');
+    bubble.className = 'soc-bubble';
+
+    const header = document.createElement('div');
+    header.className = 'soc-meta';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'soc-name';
+    nameEl.textContent = isMe ? 'You' : (name || 'Player');
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'soc-time';
+    timeEl.textContent = timeStr(ts);
+
+    header.appendChild(nameEl);
+    header.appendChild(timeEl);
+
+    const textEl = document.createElement('div');
+    textEl.className = 'soc-text';
+    textEl.textContent = text; // safe (no HTML injection)
+
+    bubble.appendChild(header);
+    bubble.appendChild(textEl);
+    item.appendChild(bubble);
+    messagesEl.appendChild(item);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function timeStr(ms){
+    const d = new Date(ms || Date.now());
+    return d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+  }
 })();
 
 /* ===== Lane Hopper — Easier edition =====
