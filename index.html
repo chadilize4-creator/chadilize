@@ -6,40 +6,27 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== Chat overlay ===== */
-.chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999}
-.chat-overlay.hidden{display:none}
-.chat-sheet{width:min(960px,100%);height:min(90vh,800px);background:#0b0f14;border:1px solid rgba(255,255,255,.08);border-radius:16px;display:flex;flex-direction:column;box-shadow:0 40px 120px rgba(0,0,0,.45)}
-.chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+/* Overlay styling */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:9999}
+.panel{width:min(720px,95vw);height:min(80vh,700px);background:#0b0f14;border:1px solid rgba(255,255,255,.08);
+       border-radius:16px;display:flex;flex-direction:column}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
 .tabs{display:flex;gap:8px}
-.tab{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0e1520,#0a0f16);color:#eaf0f6;font-weight:600;cursor:pointer}
+.tab{border:none;background:#111b28;color:#dbe6ff;padding:8px 12px;border-radius:10px;cursor:pointer}
 .tab.active{outline:2px solid #4aa3ff}
-.close{background:#1a2430;border:1px solid #2b3b50;color:#fff;border-radius:10px;padding:6px 10px;cursor:pointer}
-
-.view{flex:1;display:flex;flex-direction:column;min-height:0}
-.view.hidden{display:none}
-.list{list-style:none;margin:0;padding:10px;overflow:auto;gap:8px;display:flex;flex-direction:column}
-.msg{display:flex;gap:8px;align-items:flex-start}
-.msg-time{opacity:.5;font-size:12px}
-.msg-user{font-weight:700;color:#ffd166;cursor:pointer}
-.msg-body{color:#eaf0f6;word-break:break-word}
-
-.composer{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)}
-.composer input{flex:1;background:#0f1620;border:1px solid #2b3b50;color:#eaf0f6;border-radius:10px;padding:10px}
-.composer button{background:#1e90ff;border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-
-.friends-wrap{display:grid;grid-template-columns:240px 1fr;gap:10px;height:100%}
-.friends-col,.dm-col{display:flex;flex-direction:column;min-height:0}
-.friends-head,.dm-head{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700}
-.friend{display:flex;justify-content:space-between;align-items:center;background:#0f1620;border:1px solid #2b3b50;border-radius:10px;padding:8px 10px;color:#eaf0f6}
-.friend .start{cursor:pointer}
-.dm-col .list{background:transparent}
-#dmForm.hidden{display:none}
-
-.user-menu{position:fixed;min-width:160px;background:#0f1620;border:1px solid #2b3b50;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
-.user-menu.hidden{display:none}
-.user-menu .um-name{font-weight:700;color:#ffd166}
-.user-menu .danger{background:#2a1a1a;border:1px solid #6b1d1d}
+.x{border:none;background:#111b28;color:#fff;padding:6px 10px;border-radius:8px;cursor:pointer}
+.pane{flex:1;display:flex;flex-direction:column}
+.list{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{background:#121a26;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:8px 10px}
+.msg .head{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.msg .name{font-weight:700;color:#9ad1ff;cursor:pointer}
+.msg .time{margin-left:auto;font-size:12px;opacity:.7}
+.composer{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+.composer input{flex:1;background:#0f1622;border:1px solid rgba(255,255,255,.08);color:#eaf2ff;border-radius:10px;padding:10px}
+.composer button{background:#4aa3ff;border:none;color:#061023;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:800}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;height:100%}
+.col{display:flex;flex-direction:column;min-height:0}
+.dm-wrap{flex:1;overflow:auto;padding:12px;background:#0f1622;border-radius:10px;border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
@@ -1070,53 +1057,6 @@ canvas{ display:block }
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
-<!-- ===== Socialize / Friends Overlay ===== -->
-<div id="chatOverlay" class="chat-overlay hidden" aria-hidden="true">
-  <div class="chat-sheet">
-    <div class="chat-header">
-      <div class="tabs">
-        <button class="tab active" data-tab="social">Socialize</button>
-        <button class="tab" data-tab="friends">Friends</button>
-      </div>
-      <button id="chatClose" class="close">✕</button>
-    </div>
-
-    <!-- Socialize (global chat) -->
-    <div id="socialView" class="view">
-      <ul id="msgList" class="list"></ul>
-      <form id="msgForm" class="composer">
-        <input id="msgInput" maxlength="300" placeholder="Say something…" autocomplete="off" />
-        <button type="submit">Send</button>
-      </form>
-    </div>
-
-    <!-- Friends / DMs -->
-    <div id="friendsView" class="view hidden">
-      <div class="friends-wrap">
-        <div class="friends-col">
-          <div class="friends-head">Your friends</div>
-          <ul id="friendsList" class="list"></ul>
-        </div>
-        <div class="dm-col">
-          <div class="dm-head"><span id="dmName">Select a friend…</span></div>
-          <ul id="dmList" class="list"></ul>
-          <form id="dmForm" class="composer hidden">
-            <input id="dmInput" maxlength="300" placeholder="Write a private message…" autocomplete="off" />
-            <button type="submit">Send</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Little popup near a username -->
-  <div id="userMenu" class="user-menu hidden">
-    <div class="um-name" id="umName"></div>
-    <button id="addFriendAct">Add to friends</button>
-    <button id="closeUserMenu" class="danger">✕</button>
-  </div>
-</div>
-
 
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
@@ -1609,6 +1549,46 @@ canvas{ display:block }
     <p class="note">Jump from platform to platform. Avoid (or stomp) enemies. Coins pay 30 chads then +5 per coin. Quit to collect.</p>
   </div>
 </div>
+<!-- Social / Friends overlay -->
+<div id="socialOverlay" class="overlay" hidden>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="tabs">
+        <button id="tabSocial" class="tab active">Socialize</button>
+        <button id="tabFriends" class="tab">Friends</button>
+      </div>
+      <button id="closeOverlayBtn" class="x">✕</button>
+    </div>
+
+    <!-- Socialize (global chat) -->
+    <div id="socialPane" class="pane">
+      <div id="chatList" class="list"></div>
+      <div class="composer">
+        <input id="chatInput" maxlength="500" placeholder="Type a message…" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+
+    <!-- Friends -->
+    <div id="friendsPane" class="pane" hidden>
+      <div class="row">
+        <div class="col">
+          <h4>Your friends</h4>
+          <div id="friendsList" class="list"></div>
+        </div>
+        <div class="col">
+          <h4>Direct messages</h4>
+          <div id="dmThread" class="dm-wrap" data-peer=""></div>
+          <div class="composer">
+            <input id="dmInput" maxlength="500" placeholder="Message your friend…" />
+            <button id="dmSendBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 
     <!-- HEXAGON (Hamster-style) -->
@@ -1650,7 +1630,6 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 
 <script>
 /* ===== Telegram + loader ===== */
@@ -2764,252 +2743,236 @@ function buildGrid(container, cols, rows){
 })();
 
 (() => {
-  // ===== 0) Supabase config =====
+  // ==== CONFIG ====
   const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // CDN global
-  // Realtime uses channels with postgres_changes (official API). 
-  // Docs: https://supabase.com/docs/reference/javascript/using-modifiers and Realtime postgres_changes. 
-  // (Citations provided below.)
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ===== 1) Elements =====
+  // Your existing wood rectangle (topbar pill)
   const pill = document.getElementById('userPill');
-  const overlay = document.getElementById('chatOverlay');
-  const closeBtn = document.getElementById('chatClose');
-  const tabs = [...document.querySelectorAll('.tab')];
-
-  const userMenu = document.getElementById('userMenu');
-  const umNameEl = document.getElementById('umName');
-  const addFriendAct = document.getElementById('addFriendAct');
-  const closeUserMenu = document.getElementById('closeUserMenu');
-
-  // Socialize
-  const msgList = document.getElementById('msgList');
-  const msgForm = document.getElementById('msgForm');
-  const msgInput = document.getElementById('msgInput');
-
-  // Friends / DMs
-  const friendsList = document.getElementById('friendsList');
-  const dmList = document.getElementById('dmList');
-  const dmForm = document.getElementById('dmForm');
-  const dmInput = document.getElementById('dmInput');
-  const dmName = document.getElementById('dmName');
-
-  // Username in your pill:
   const userNameEl = document.getElementById('userName');
 
-  // ===== 2) Lightweight identity (stored locally) =====
-  const ID_KEY = 'ch_uid';
-  let myId = localStorage.getItem(ID_KEY);
+  // Overlay elements
+  const overlay = document.getElementById('socialOverlay');
+  const closeBtn = document.getElementById('closeOverlayBtn');
+  const tabSocial = document.getElementById('tabSocial');
+  const tabFriends = document.getElementById('tabFriends');
+  const socialPane = document.getElementById('socialPane');
+  const friendsPane = document.getElementById('friendsPane');
+
+  // Socialize (global chat) elements
+  const chatList = document.getElementById('chatList');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // Friends / DM elements
+  const friendsList = document.getElementById('friendsList');
+  const dmWrap = document.getElementById('dmThread');
+  const dmInput = document.getElementById('dmInput');
+  const dmSendBtn = document.getElementById('dmSendBtn');
+
+  // === simple "user id" for anon users ===
+  const LS_UID_KEY = 'chad_uid';
+  let myId = localStorage.getItem(LS_UID_KEY);
   if (!myId) {
-    myId = 'guest-' + Math.random().toString(36).slice(2, 10);
-    localStorage.setItem(ID_KEY, myId);
+    myId = 'u_' + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem(LS_UID_KEY, myId);
   }
-  function currentName() {
-    const t = (userNameEl?.textContent || 'Player').trim();
-    return t || 'Player';
-  }
-
-  // Make sure we have a profile row
-  async function upsertProfile() {
-    await sb.from('profiles').upsert({ id: myId, name: currentName() }, { onConflict: 'id' });
+  function myName() {
+    return (userNameEl?.textContent || 'Player').trim();
   }
 
-  // ===== 3) Overlay open/close =====
-  function openOverlay() {
-    overlay.classList.remove('hidden');
-    overlay.setAttribute('aria-hidden', 'false');
-    activateTab('social');
-    refreshAll();
+  // === UI helpers ===
+  function showOverlay(onFriends = false) {
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTab(onFriends ? 'friends' : 'social');
   }
-  function closeOverlay() {
-    overlay.classList.add('hidden');
-    overlay.setAttribute('aria-hidden', 'true');
+  function hideOverlay() {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+  function setTab(which) {
+    const isSocial = which === 'social';
+    tabSocial.classList.toggle('active', isSocial);
+    tabFriends.classList.toggle('active', !isSocial);
+    socialPane.hidden = !isSocial;
+    friendsPane.hidden = isSocial;
+  }
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  function el(tag, cls, txt) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt != null) n.textContent = txt;
+    return n;
   }
 
-  if (pill) pill.addEventListener('click', openOverlay);
-  closeBtn.addEventListener('click', closeOverlay);
-
-  // ===== 4) Tabs =====
-  const views = {
-    social: document.getElementById('socialView'),
-    friends: document.getElementById('friendsView')
-  };
-  function activateTab(name) {
-    tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-    Object.entries(views).forEach(([k, el]) => el.classList.toggle('hidden', k !== name));
-  }
-  tabs.forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
-
-  // ===== 5) Socialize: list + realtime + send =====
-  async function fetchRecentMessages() {
+  // === Global chat ===
+  async function loadRecentChat() {
     const { data, error } = await sb
       .from('messages')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(60);
-    if (error) { console.warn(error); return; }
-    msgList.innerHTML = '';
-    // Show oldest first
-    data.reverse().forEach(renderMessage);
-    msgList.scrollTop = msgList.scrollHeight;
+    if (error) { console.error(error); return; }
+    chatList.innerHTML = '';
+    // show oldest -> newest
+    data.reverse().forEach(addChatBubble);
+    chatList.scrollTop = chatList.scrollHeight;
   }
 
-  function renderMessage(row, isNew = false) {
-    const li = document.createElement('li');
-    li.className = 'msg';
-    // username (clickable)
-    const u = document.createElement('span');
-    u.className = 'msg-user';
-    u.textContent = row.user_name || 'Player';
-    u.dataset.uid = row.user_id;
-    u.addEventListener('click', (ev) => openUserMenu(ev, row.user_id, row.user_name));
-    // body
-    const b = document.createElement('span');
-    b.className = 'msg-body';
-    b.textContent = ' ' + (row.body || '');
-    // time
-    const t = document.createElement('span');
-    t.className = 'msg-time';
-    const dt = new Date(row.created_at || Date.now());
-    t.textContent = ' • ' + dt.toLocaleTimeString();
-
-    li.appendChild(u); li.appendChild(b); li.appendChild(t);
-    msgList.appendChild(li);
-    if (isNew) msgList.scrollTop = msgList.scrollHeight;
+  function addChatBubble(row) {
+    const item = el('div','msg');
+    const head = el('div','head');
+    const name = el('span','name', row.username);
+    name.title = `Tap to add ${row.username} as friend`;
+    name.addEventListener('click', () => promptAddFriend(row.user_id, row.username));
+    const time = el('span','time', fmtTime(row.created_at));
+    head.append(name, time);
+    const body = el('div','body', row.body);
+    item.append(head, body);
+    chatList.append(item);
   }
 
-  msgForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = msgInput.value.trim();
+  async function sendGlobal() {
+    const body = chatInput.value.trim();
     if (!body) return;
-    await upsertProfile();
-    const { error } = await sb.from('messages').insert({
-      user_id: myId, user_name: currentName(), body
-    });
-    if (!error) msgInput.value = '';
-  });
-
-  // realtime (listen for new messages)
-  let socialChannel = null;
-  function startSocialRealtime() {
-    if (socialChannel) return;
-    socialChannel = sb.channel('public:messages')
-      .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages' },
-          payload => renderMessage(payload.new, true)
-      )
-      .subscribe();
+    chatInput.value = '';
+    const payload = { user_id: myId, username: myName(), body };
+    const { error } = await sb.from('messages').insert(payload);
+    if (error) console.error('send message failed', error);
   }
 
-  // ===== 6) Friends list + DMs =====
-  async function fetchFriends() {
+  // realtime subscribe to new global messages
+  let chatChannel = null;
+  function startChatRealtime() {
+    if (chatChannel) return;
+    chatChannel = sb
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        addChatBubble(payload.new);
+        chatList.scrollTop = chatList.scrollHeight;
+      })
+      .subscribe((status) => {
+        // console.log('channel status', status);
+      });
+  }
+
+  // === Friends & DMs ===
+  async function promptAddFriend(friendId, friendName) {
+    if (friendId === myId) return;
+    const ok = confirm(`Add ${friendName} to your friends?`);
+    if (!ok) return;
+    const { error } = await sb.from('friends').insert({
+      user_id: myId,
+      friend_id: friendId,
+      friend_name: friendName
+    });
+    if (error && error.code !== '23505') { // ignore "duplicate" unique violation
+      console.error('add friend failed', error);
+    }
+    loadFriends();
+    setTab('friends');
+  }
+
+  async function loadFriends() {
     const { data, error } = await sb
       .from('friends')
       .select('*')
-      .eq('owner_id', myId)
+      .eq('user_id', myId)
       .order('created_at', { ascending: true });
-    if (error) { console.warn(error); return; }
+    if (error) { console.error(error); return; }
     friendsList.innerHTML = '';
-    (data || []).forEach(f => {
-      const li = document.createElement('li');
-      li.className = 'friend';
-      li.innerHTML = `<span>${f.friend_name}</span><button class="start">Chat</button>`;
-      li.querySelector('.start').addEventListener('click', () => openDM(f.friend_id, f.friend_name));
-      friendsList.appendChild(li);
+    data.forEach(f => {
+      const row = el('div','msg');
+      const head = el('div','head');
+      head.append(el('span','name', f.friend_name));
+      row.append(head);
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => openDM(f.friend_id, f.friend_name));
+      friendsList.append(row);
     });
   }
 
-  let dmRoom = null, dmChannel = null, dmPeerId = null;
-  function roomId(a, b) { return [a, b].sort().join(':'); }
+  function threadKey(a, b) {
+    return [a, b].sort().join(':');
+  }
 
   async function openDM(peerId, peerName) {
-    dmPeerId = peerId;
-    dmRoom = roomId(myId, peerId);
-    dmName.textContent = `Chat with ${peerName}`;
-    dmForm.classList.remove('hidden');
-    await fetchDMs();
-    startDMRealtime();
-    activateTab('friends');
-  }
+    dmWrap.dataset.peer = JSON.stringify({ peerId, peerName });
+    dmWrap.innerHTML = '';
 
-  async function fetchDMs() {
+    const key = threadKey(myId, peerId);
     const { data, error } = await sb
-      .from('dm_messages')
+      .from('direct_messages')
       .select('*')
-      .eq('room', dmRoom)
+      .eq('thread_key', key)
       .order('created_at', { ascending: true })
       .limit(200);
-    if (error) { console.warn(error); return; }
-    dmList.innerHTML = '';
-    (data || []).forEach(renderDM);
-    dmList.scrollTop = dmList.scrollHeight;
-  }
-  function renderDM(row) {
-    const li = document.createElement('li');
-    li.className = 'msg';
-    const me = row.from_id === myId;
-    const u = document.createElement('span');
-    u.className = 'msg-user';
-    u.textContent = me ? 'You' : row.from_name || 'Player';
-    const b = document.createElement('span');
-    b.className = 'msg-body';
-    b.textContent = ' ' + (row.body || '');
-    li.appendChild(u); li.appendChild(b);
-    dmList.appendChild(li);
+    if (error) { console.error(error); return; }
+    data.forEach(addDM);
+
+    // subscribe to new DMs for this thread
+    startDMRealtime(key);
   }
 
-  dmForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = dmInput.value.trim();
-    if (!body || !dmRoom) return;
-    await upsertProfile();
-    const { error } = await sb.from('dm_messages').insert({
-      room: dmRoom, from_id: myId, from_name: currentName(), body
-    });
-    if (!error) dmInput.value = '';
-  });
+  function addDM(row) {
+    const item = el('div','msg');
+    const head = el('div','head');
+    head.append(el('span','name', row.from_name), el('span','time', fmtTime(row.created_at)));
+    item.append(head, el('div','body', row.body));
+    dmWrap.append(item);
+    dmWrap.scrollTop = dmWrap.scrollHeight;
+  }
 
-  function startDMRealtime() {
+  let dmChannel = null;
+  function startDMRealtime(key) {
     if (dmChannel) { sb.removeChannel(dmChannel); dmChannel = null; }
-    dmChannel = sb.channel('dm:' + dmRoom)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `room=eq.${dmRoom}` },
-        payload => { renderDM(payload.new); dmList.scrollTop = dmList.scrollHeight; })
+    dmChannel = sb
+      .channel('dm:'+key)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'direct_messages',
+        filter: `thread_key=eq.${key}`
+      }, (payload) => addDM(payload.new))
       .subscribe();
   }
 
-  // ===== 7) Username popup (Add to friends) =====
-  let menuTarget = { id: null, name: null };
-  function openUserMenu(ev, uid, name) {
-    menuTarget = { id: uid, name: name || 'Player' };
-    umNameEl.textContent = name || 'Player';
-    userMenu.style.left = (ev.clientX + 8) + 'px';
-    userMenu.style.top = (ev.clientY + 8) + 'px';
-    userMenu.classList.remove('hidden');
-  }
-  addFriendAct.addEventListener('click', async () => {
-    if (!menuTarget.id || menuTarget.id === myId) { userMenu.classList.add('hidden'); return; }
-    await sb.from('friends').upsert({
-      owner_id: myId, friend_id: menuTarget.id, friend_name: menuTarget.name
-    }, { onConflict: 'owner_id,friend_id' });
-    userMenu.classList.add('hidden');
-    fetchFriends();
-  });
-  closeUserMenu.addEventListener('click', () => userMenu.classList.add('hidden'));
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) userMenu.classList.add('hidden');
-  });
-
-  // ===== 8) Load everything when overlay opens =====
-  async function refreshAll() {
-    await upsertProfile();
-    await fetchRecentMessages();
-    startSocialRealtime();
-    await fetchFriends();
+  async function sendDM() {
+    const raw = dmWrap.dataset.peer;
+    if (!raw) return;
+    const { peerId, peerName } = JSON.parse(raw);
+    const body = dmInput.value.trim();
+    if (!body) return;
+    dmInput.value = '';
+    const key = threadKey(myId, peerId);
+    const payload = {
+      thread_key: key,
+      from_id: myId,
+      from_name: myName(),
+      to_id: peerId,
+      body
+    };
+    const { error } = await sb.from('direct_messages').insert(payload);
+    if (error) console.error('send DM failed', error);
   }
 
-  // If your page sets the name later, keep the profile in sync every 5s
-  setInterval(() => sb.from('profiles').upsert({ id: myId, name: currentName() }, { onConflict: 'id' }), 5000);
+  // === Wire up ===
+  pill?.addEventListener('click', () => {
+    showOverlay(false);
+    loadRecentChat();
+    startChatRealtime();
+    loadFriends();
+  });
+  tabSocial.addEventListener('click', () => setTab('social'));
+  tabFriends.addEventListener('click', () => { setTab('friends'); loadFriends(); });
+  closeBtn.addEventListener('click', hideOverlay);
+  sendBtn.addEventListener('click', sendGlobal);
+  chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendGlobal(); });
+  dmSendBtn.addEventListener('click', sendDM);
+  dmInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendDM(); });
+
 })();
 
 /* ===== Snake ===== */
