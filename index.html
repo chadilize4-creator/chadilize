@@ -6,6 +6,89 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ==== Social / Friends modal ==== */
+.hidden { display: none !important; }
+
+.social-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.social-modal__card{
+  width: min(920px, 96vw);
+  height: min(82vh, 720px);
+  background:#0f0f0f; color:#f5f5f5;
+  border:1px solid #242424; border-radius: 16px;
+  box-shadow: 0 12px 50px rgba(0,0,0,.5);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.social-modal__tabs{
+  display:flex; gap:8px; align-items:center; padding:10px;
+  border-bottom:1px solid #202020; background:#111;
+}
+.social-modal__tabs .tab{
+  background:#171717; border:1px solid #2c2c2c; color:#eee;
+  padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:700;
+}
+.social-modal__tabs .tab.is-active{ background:#222; }
+.social-modal__tabs .close{
+  margin-left:auto; background:none; border:0; color:#aaa;
+  font-size:22px; cursor:pointer;
+}
+
+.tab-panel{ flex:1; display:flex; min-height:0; }
+#tab-group .messages{ flex:1; }
+#tab-friends{ gap:12px; }
+.friends{
+  width:240px; border-right:1px solid #1f1f1f; overflow-y:auto; background:#0d0d0d;
+}
+.friend-item{
+  padding:10px 12px; border-bottom:1px solid #181818; cursor:pointer;
+}
+.friend-item.active{ background:#1b1b1b; }
+
+.dm{ flex:1; display:flex; flex-direction:column; min-width:0; }
+.dm__hdr{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:10px 12px; border-bottom:1px solid #1f1f1f; background:#101010;
+}
+.btn-secondary, .btn-primary, .btn-danger{
+  border:0; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer;
+}
+.btn-secondary{ background:#1f1f1f; color:#eaeaea; }
+.btn-primary{ background:#ffd369; color:#121212; }
+.btn-danger{ background:#3a0c0c; color:#ff8b8b; }
+
+.messages{
+  flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;
+  background:#0f0f0f;
+}
+.message{
+  background:#151515; border:1px solid #262626; padding:8px 10px; border-radius:10px;
+  line-height:1.35;
+}
+.message .who{
+  font-weight:800; margin-right:6px; cursor:pointer; color:#ffd369;
+}
+.message .when{ opacity:.6; font-size:.8rem; margin-left:8px; }
+
+.composer{
+  display:flex; gap:8px; padding:10px; border-top:1px solid #1f1f1f; background:#101010;
+}
+.composer input{
+  flex:1; padding:10px; border-radius:10px; border:1px solid #2b2b2b; background:#121212; color:#fff;
+}
+.composer button{
+  padding:10px 14px; border-radius:10px; border:0; background:#ffd369; color:#111; font-weight:800; cursor:pointer;
+}
+
+/* Username popover near clicked username */
+.user-popover{
+  position:absolute; z-index:1100; background:#111; border:1px solid #2d2d2d;
+  border-radius:12px; padding:8px; display:flex; gap:6px; box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -1260,6 +1343,50 @@ canvas{ display:block }
         <p class="note">Clear lines to earn chads. Space: hard drop, C: hold.</p>
       </div>
     </div>
+<!-- SOCIAL / FRIENDS MODAL -->
+<div id="socialModal" class="social-modal hidden">
+  <div class="social-modal__card">
+    <div class="social-modal__tabs">
+      <button class="tab is-active" data-tab="group">Socialize</button>
+      <button class="tab" data-tab="friends">Friends</button>
+      <button class="close" id="socialClose" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Group chat -->
+    <div id="tab-group" class="tab-panel">
+      <div id="groupMessages" class="messages"></div>
+      <form id="groupForm" class="composer" autocomplete="off">
+        <input id="groupInput" maxlength="300" placeholder="Say something…" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <!-- Friends / DMs -->
+    <div id="tab-friends" class="tab-panel hidden">
+      <aside id="friendsList" class="friends"></aside>
+      <section id="dmSection" class="dm hidden">
+        <header class="dm__hdr">
+          <div class="dm__with"><span id="dmWith">Select a friend…</span></div>
+          <div class="dm__actions">
+            <button id="sendChadsBtn" class="btn-secondary">Send chads</button>
+          </div>
+        </header>
+        <div id="dmMessages" class="messages"></div>
+        <form id="dmForm" class="composer" autocomplete="off">
+          <input id="dmInput" maxlength="300" placeholder="Message your friend…" />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Popover for usernames inside chats -->
+<div id="userPopover" class="user-popover hidden">
+  <button id="addFriendBtn" class="btn-primary">Add to friends</button>
+  <button id="dismissPopover" class="btn-danger">✕</button>
+</div>
+
 
     <!-- FLAPPY Modal -->
     <div class="overlay" id="flappyModal">
@@ -2530,7 +2657,7 @@ function buildGrid(container, cols, rows){
             cue.y = world.bottom - (R.rBall*5.5);
           } else {
             b.alive = false;
-            score += 1;
+            score += 12;
             chadRun = score * 50;
             scoreEl.textContent = score;
             runChadEl.textContent = fmt(chadRun);
@@ -3545,7 +3672,7 @@ function newVJGame(){
     for(const c of G.coins){
       if(!c.hit && circleHit(G.player.x,G.player.y,r*0.85, c.x,c.y,c.r)){
         c.hit = true;
-        G.score += 1;
+        G.score += 4;
         const award = 30 + G.coinCount*5;
         G.coinCount++;
         G.earned += award;
@@ -4502,6 +4629,179 @@ function openBreaker(){
   // bootstrap
   resetGame();
 })();
+/* ========= Social/Friends ========= */
+const API_URL  = 'https://YOUR_BACKEND_URL';         // <— change me
+const socket   = io(API_URL, { transports: ['websocket'] }); // realtime
+
+// Basic user info from your local state
+function getLocalState(){
+  try {
+    const hint = (new URLSearchParams(location.search)).get('user') || 'guest';
+    const key  = `chad_state_${hint}`;
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch { return {}; }
+}
+function getUsername(){
+  const s = getLocalState();
+  return (s && s.name) || document.getElementById('userName')?.textContent || 'Player';
+}
+let CURRENT_USER = { id: null, name: getUsername() };
+
+// Elements
+const userPill       = document.getElementById('userPill'); // your wood rectangle
+const socialModal    = document.getElementById('socialModal');
+const socialClose    = document.getElementById('socialClose');
+const tabs           = document.querySelectorAll('.social-modal__tabs .tab');
+const tabGroup       = document.getElementById('tab-group');
+const tabFriends     = document.getElementById('tab-friends');
+
+const groupMessages  = document.getElementById('groupMessages');
+const groupForm      = document.getElementById('groupForm');
+const groupInput     = document.getElementById('groupInput');
+
+const friendsList    = document.getElementById('friendsList');
+const dmSection      = document.getElementById('dmSection');
+const dmWithEl       = document.getElementById('dmWith');
+const dmMessages     = document.getElementById('dmMessages');
+const dmForm         = document.getElementById('dmForm');
+const dmInput        = document.getElementById('dmInput');
+const sendChadsBtn   = document.getElementById('sendChadsBtn');
+
+const popover        = document.getElementById('userPopover');
+const addFriendBtn   = document.getElementById('addFriendBtn');
+const dismissPopover = document.getElementById('dismissPopover');
+
+let POPOVER_TARGET_USER = null;
+let ACTIVE_DM_FRIEND    = null;
+
+/* —— open/close modal —— */
+userPill?.addEventListener('click', async () => {
+  socialModal.classList.remove('hidden');
+  await bootstrapUser();
+  await loadGroupHistory();
+  socket.emit('join-group'); // ensure we are in the group room
+});
+socialClose.addEventListener('click', () => socialModal.classList.add('hidden'));
+
+/* —— switch tabs —— */
+tabs.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    tabs.forEach(b=>b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    if (btn.dataset.tab === 'group'){ tabGroup.classList.remove('hidden'); tabFriends.classList.add('hidden'); }
+    else { tabFriends.classList.remove('hidden'); tabGroup.classList.add('hidden'); loadFriends(); }
+  });
+});
+
+/* —— tiny helpers —— */
+const fmtTime = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+function renderMessage(container, {id, sender_id, sender_name, body, created_at}){
+  const wrap = document.createElement('div'); wrap.className='message';
+  const who = document.createElement('span'); who.className='who'; who.textContent = sender_name;
+  who.addEventListener('click', (e)=> openPopover(e, {id:sender_id, name:sender_name}));
+  const when = document.createElement('span'); when.className='when'; when.textContent = fmtTime(created_at);
+  const text = document.createElement('span'); text.textContent = body;
+  wrap.append(who, when, document.createTextNode(' — '), text);
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+
+/* —— popover —— */
+function openPopover(evt, user){
+  POPOVER_TARGET_USER = user;
+  const r = evt.target.getBoundingClientRect();
+  popover.style.left = `${r.left + window.scrollX}px`;
+  popover.style.top  = `${r.bottom + window.scrollY + 6}px`;
+  popover.classList.remove('hidden');
+}
+dismissPopover.addEventListener('click', ()=> popover.classList.add('hidden'));
+addFriendBtn.addEventListener('click', async ()=>{
+  if (!POPOVER_TARGET_USER || !CURRENT_USER.id) return;
+  await fetch(`${API_URL}/friends/add`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userId: CURRENT_USER.id, friendId: POPOVER_TARGET_USER.id })
+  });
+  popover.classList.add('hidden');
+  await loadFriends();
+});
+
+/* —— user bootstrap —— */
+async function bootstrapUser(){
+  // Create / fetch the user from backend
+  const res = await fetch(`${API_URL}/users/upsert`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: getUsername() })
+  });
+  CURRENT_USER = await res.json();
+  // Attach auth to socket
+  socket.auth = { userId: CURRENT_USER.id, username: CURRENT_USER.username };
+  if (!socket.connected) socket.connect();
+}
+
+/* —— group chat —— */
+async function loadGroupHistory(){
+  groupMessages.innerHTML='';
+  const hist = await (await fetch(`${API_URL}/messages/group?limit=60`)).json();
+  hist.forEach(m => renderMessage(groupMessages, m));
+}
+groupForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const body = (groupInput.value || '').trim();
+  if (!body) return;
+  socket.emit('group:send', { body });
+  groupInput.value='';
+});
+socket.on('group:new', (msg)=> renderMessage(groupMessages, msg));
+
+/* —— friends & DMs —— */
+async function loadFriends(){
+  friendsList.innerHTML='';
+  const res = await fetch(`${API_URL}/friends/${CURRENT_USER.id}`);
+  const friends = await res.json();
+  friends.forEach(f=>{
+    const el = document.createElement('div');
+    el.className = 'friend-item';
+    el.textContent = f.username;
+    el.addEventListener('click', ()=> openDM(f));
+    friendsList.appendChild(el);
+  });
+  if (!friends.length){ dmSection.classList.add('hidden'); }
+}
+async function openDM(friend){
+  ACTIVE_DM_FRIEND = friend;
+  dmWithEl.textContent = friend.username;
+  dmSection.classList.remove('hidden');
+  dmMessages.innerHTML='';
+  const qs = `?userId=${CURRENT_USER.id}&peerId=${friend.id}&limit=60`;
+  const hist = await (await fetch(`${API_URL}/messages/dm${qs}`)).json();
+  hist.forEach(m => renderMessage(dmMessages, m));
+}
+dmForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const body = (dmInput.value || '').trim();
+  if (!body || !ACTIVE_DM_FRIEND) return;
+  socket.emit('dm:send', { toId: ACTIVE_DM_FRIEND.id, body });
+  dmInput.value='';
+});
+socket.on('dm:new', (msg)=>{
+  // only render if this DM is in view, otherwise ignore (or badge)
+  if (!ACTIVE_DM_FRIEND || (msg.sender_id !== ACTIVE_DM_FRIEND.id && msg.sender_id !== CURRENT_USER.id)) return;
+  renderMessage(dmMessages, msg);
+});
+
+/* —— send chads in DM —— */
+sendChadsBtn.addEventListener('click', async ()=>{
+  if (!ACTIVE_DM_FRIEND) return;
+  const amountStr = prompt(`Send how many chads to ${ACTIVE_DM_FRIEND.username}?`, "0");
+  const amount = parseInt(amountStr, 10);
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  await fetch(`${API_URL}/chads/send`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ fromId: CURRENT_USER.id, toId: ACTIVE_DM_FRIEND.id, amount })
+  });
+  alert('Sent!');
+});
+
 
 /* ===== Lane Hopper — Easier edition =====
    Changes vs previous:
@@ -5875,5 +6175,8 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 /* expose */
 window.closeOverlay = closeOverlay;
 </script>
+<!-- add Socket.IO client right before your closing </body> if you don't already have it -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+
 </body>
 </html>
