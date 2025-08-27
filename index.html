@@ -6,6 +6,59 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+ :root { --bg:#0f1220; --panel:#171a2b; --wood:#8b5a2b; --wood-dark:#5e3b17; --accent:#7dd3fc; --muted:#9aa3b2; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:#e6e9ef; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    /* Demo "wood rectangle" if you don't already have one */
+    .wood-rect {
+      display:inline-flex; align-items:center; gap:.75rem;
+      background:linear-gradient(135deg, var(--wood), var(--wood-dark));
+      color:#fff; padding:.8rem 1.1rem; border-radius:12px; box-shadow: inset 0 0 0 2px #0002, 0 8px 24px #0006;
+      position:fixed; left:16px; bottom:16px; cursor:pointer; user-select:none;
+    }
+    .wood-rect b{font-weight:700}
+
+    /* Fullscreen modal */
+    .modal { position:fixed; inset:0; background:#000a; display:none; }
+    .modal.open { display:block; }
+    .sheet {
+      position:absolute; inset:0; background:var(--panel);
+      border-top-left-radius:16px; border-top-right-radius:16px;
+      animation:slideUp .25s ease-out;
+      display:flex; flex-direction:column; max-height:100dvh;
+    }
+    @keyframes slideUp { from{transform:translateY(12px); opacity:.0} to{transform:translateY(0); opacity:1} }
+
+    .sheet-header { display:flex; gap:8px; padding:14px; border-bottom:1px solid #ffffff14; align-items:center; }
+    .tab { padding:.55rem .9rem; border-radius:999px; background:#00000033; cursor:pointer; }
+    .tab.active { background:#ffffff14; }
+    .grow { flex:1 }
+    .xbtn { appearance:none; border:0; background:#ffffff14; color:#fff; border-radius:10px; padding:.5rem .7rem; cursor:pointer; }
+
+    .sheet-body { flex:1; display:flex; min-height:0; }
+    .col { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+    /* Chat lists */
+    .list { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+    .msg { display:flex; gap:10px; align-items:flex-start; }
+    .bubble { background:#ffffff0f; padding:.55rem .75rem; border-radius:12px; max-width:80%; }
+    .meta { font-size:.75rem; color:var(--muted); margin-bottom:4px; }
+    .me .bubble { background:#2b7a2b44; }
+
+    .composer { display:flex; gap:8px; padding:12px; border-top:1px solid #ffffff14; }
+    .composer input { flex:1; background:#0e1120; color:#fff; border:1px solid #ffffff14; border-radius:12px; padding:.65rem .8rem; }
+    .composer button { background:#2b6cb0; color:#fff; border:0; padding:.65rem .95rem; border-radius:12px; cursor:pointer; }
+
+    /* Friends list */
+    .friend { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; background:#ffffff0a; border-radius:10px; }
+    .friend button { background:#334155; color:#fff; border:0; padding:.4rem .6rem; border-radius:8px; cursor:pointer; }
+
+    /* Tiny popover near username (Add to friends / close) */
+    .pop { position:absolute; z-index:50; background:#111429; border:1px solid #ffffff1a; border-radius:10px; padding:8px; display:flex; align-items:center; gap:8px; }
+    .pop button { padding:.35rem .55rem; border-radius:8px; border:0; cursor:pointer; }
+    .pop .danger { background:#7f1d1d; color:#fff; }
+    .pop .ok { background:#14532d; color:#fff; }
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -985,7 +1038,45 @@ canvas{ display:block }
 
 <link rel="stylesheet" href="crypto-break.css">
 <script defer src="crypto-break.js"></script>
+ <!-- If you already have a wooden rectangle in your game UI:
+       Remove this block and use its ID in the JS constant WOOD_RECT_ID below. -->
+  <div id="wood-demo" class="wood-rect"><b>Profile</b> / Open Chat</div>
 
+  <!-- Fullscreen chat modal -->
+  <div id="chatModal" class="modal">
+    <div class="sheet">
+      <div class="sheet-header">
+        <div class="tab active" data-tab="socialize">Socialize</div>
+        <div class="tab" data-tab="friends">Friends</div>
+        <div class="grow"></div>
+        <button class="xbtn" id="btnEditName">Edit name</button>
+        <button class="xbtn" id="btnClose">Close</button>
+      </div>
+
+      <div class="sheet-body">
+        <!-- Socialize (global) -->
+        <div class="col" id="tab-socialize">
+          <div class="list" id="globalList"></div>
+          <div class="composer">
+            <input id="globalInput" placeholder="Say something to everyone…" maxlength="280" />
+            <button id="globalSend">Send</button>
+          </div>
+        </div>
+
+        <!-- Friends -->
+        <div class="col" id="tab-friends" style="display:none">
+          <div class="list" id="friendsList" style="border-right:1px solid #ffffff14"></div>
+          <div class="col" style="flex:2">
+            <div class="list" id="dmList"></div>
+            <div class="composer">
+              <input id="dmInput" placeholder="Message your friend…" maxlength="280" />
+              <button id="dmSend">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -1568,7 +1659,275 @@ canvas{ display:block }
   </div>
 </div>
 
-<script>
+<script type="module">
+ // ====== Configure Supabase ======
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    // TODO: Paste your own values from Supabase > Project Settings > API
+    const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+
+    // If you already have a wood rectangle in your page, set its ID here:
+    // Example: const WOOD_RECT_ID = 'userpill';
+    const WOOD_RECT_ID = 'YOUR_WOOD_RECT_ID'; // <-- replace with your own id, or leave blank to use the demo
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // official pattern :contentReference[oaicite:3]{index=3}
+
+    // ====== Simple client identity (no Auth — for quick testing) ======
+    const store = {
+      get id(){ let x = localStorage.getItem('player_id'); if(!x){ x = crypto.randomUUID(); localStorage.setItem('player_id', x); } return x; },
+      get name(){ let n = localStorage.getItem('player_name'); if(!n){ n = 'Guest_' + String(Math.random()).slice(2,6); localStorage.setItem('player_name', n);} return n; },
+      set name(v){ localStorage.setItem('player_name', v); }
+    };
+
+    // ensure this player exists in DB
+    async function upsertPlayer(){
+      // try insert; if username taken, add a random suffix
+      let name = store.name;
+      let { error } = await supabase.from('players').insert({ id: store.id, username: name }).select().single();
+      if (error && String(error.message).toLowerCase().includes('duplicate')) {
+        name = name + '_' + Math.floor(Math.random()*1000);
+        store.name = name;
+        await supabase.from('players').insert({ id: store.id, username: name }).select().single();
+      }
+    }
+
+    // ====== UI helpers ======
+    const $ = (s, r=document)=>r.querySelector(s);
+    const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+    const modal = $('#chatModal');
+    const tabBtnSocial = $(`.tab[data-tab="socialize"]`);
+    const tabBtnFriends = $(`.tab[data-tab="friends"]`);
+    const tabSocial = $('#tab-socialize');
+    const tabFriends = $('#tab-friends');
+    const btnClose = $('#btnClose');
+    const btnEditName = $('#btnEditName');
+
+    function openModal(){ modal.classList.add('open'); }
+    function closeModal(){ modal.classList.remove('open'); }
+    function activate(tab){
+      for (const t of $$('.tab')) t.classList.remove('active');
+      if (tab==='socialize'){ tabBtnSocial.classList.add('active'); tabSocial.style.display='flex'; tabFriends.style.display='none'; }
+      else { tabBtnFriends.classList.add('active'); tabSocial.style.display='none'; tabFriends.style.display='flex'; }
+    }
+
+    // Hook up the wood rectangle
+    const woodBtn = WOOD_RECT_ID && WOOD_RECT_ID !== 'YOUR_WOOD_RECT_ID' ? document.getElementById(WOOD_RECT_ID) : document.getElementById('wood-demo');
+    woodBtn?.addEventListener('click', openModal);
+    btnClose.addEventListener('click', closeModal);
+    tabBtnSocial.addEventListener('click', ()=>activate('socialize'));
+    tabBtnFriends.addEventListener('click', ()=>{ activate('friends'); refreshFriends(); });
+
+    // Edit display name
+    btnEditName.addEventListener('click', async ()=>{
+      const n = prompt('Choose a display name:', store.name);
+      if (!n) return;
+      store.name = n.trim().slice(0,20) || store.name;
+      await supabase.from('players').upsert({ id: store.id, username: store.name }).select();
+      alert('Name updated!');
+    });
+
+    // ====== Socialize (global chat) ======
+    const globalList = $('#globalList');
+    const globalInput = $('#globalInput');
+    const globalSend = $('#globalSend');
+
+    function renderGlobalMessage(m){
+      const mine = m.user_id === store.id;
+      const row = document.createElement('div');
+      row.className = 'msg' + (mine ? ' me':'');
+      const who = document.createElement('div');
+      who.className = 'meta';
+      who.innerHTML = `<span class="username" data-uid="${m.user_id}" style="cursor:pointer;text-decoration:underline">${m.username}</span> • ${new Date(m.created_at).toLocaleTimeString()}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = m.content;
+      row.appendChild(document.createElement('div')).appendChild(who);
+      row.appendChild(bubble);
+      globalList.appendChild(row);
+      globalList.scrollTop = globalList.scrollHeight;
+    }
+
+    async function loadGlobal(){
+      globalList.innerHTML = '';
+      const { data, error } = await supabase
+        .from('group_messages')
+        .select('id, content, created_at, user_id, players!group_messages_user_id_fkey (username)')
+        .order('created_at', { ascending: true })
+        .limit(60);
+      if (error) { console.error(error); return; }
+      for (const r of data){
+        renderGlobalMessage({
+          id:r.id,
+          content:r.content,
+          created_at:r.created_at,
+          user_id:r.user_id,
+          username:r.players?.username ?? 'Unknown'
+        });
+      }
+    }
+
+    // realtime subscription to new group messages (official approach) :contentReference[oaicite:4]{index=4}
+    const globalChannel = supabase
+      .channel('realtime:group_messages')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'group_messages' },
+        async (payload) => {
+          const m = payload.new;
+          // fetch username for the inserted user_id
+          const { data } = await supabase.from('players').select('username').eq('id', m.user_id).single();
+          renderGlobalMessage({
+            id: m.id, content: m.content, created_at: m.created_at, user_id: m.user_id,
+            username: data?.username ?? 'Unknown'
+          });
+        }
+      )
+      .subscribe();
+
+    async function sendGlobal(){
+      const text = globalInput.value.trim();
+      if (!text) return;
+      globalInput.value = '';
+      await supabase.from('group_messages').insert({ user_id: store.id, content: text });
+    }
+    globalSend.addEventListener('click', sendGlobal);
+    globalInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendGlobal(); });
+
+    // Popover for "Add to friends"
+    let pop = null;
+    function showPop(x, uid, username){
+      hidePop();
+      pop = document.createElement('div');
+      pop.className = 'pop';
+      pop.innerHTML = `
+        <div>👤 ${username}</div>
+        <button class="ok" id="popAdd">Add to friends</button>
+        <button class="danger" id="popClose">✕</button>
+      `;
+      document.body.appendChild(pop);
+      const r = x.getBoundingClientRect();
+      pop.style.left = (r.left + window.scrollX) + 'px';
+      pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+      $('#popAdd', pop).onclick = async ()=>{
+        await supabase.from('friends').upsert({ user_id: store.id, friend_id: uid });
+        alert(`Added ${username} to friends`);
+        hidePop();
+        refreshFriends();
+      };
+      $('#popClose', pop).onclick = hidePop;
+    }
+    function hidePop(){ if(pop){ pop.remove(); pop=null; } }
+    document.addEventListener('click', (e)=>{
+      const t = e.target;
+      if (t && t.classList.contains('username')){
+        const uid = t.getAttribute('data-uid');
+        const name = t.textContent;
+        showPop(t, uid, name);
+      } else if (pop && !pop.contains(t)) {
+        hidePop();
+      }
+    });
+
+    // ====== Friends & DMs ======
+    const friendsList = $('#friendsList');
+    const dmList = $('#dmList');
+    const dmInput = $('#dmInput');
+    const dmSend = $('#dmSend');
+    let activeFriend = null; // { id, username }
+    let dmChannelA = null, dmChannelB = null;
+
+    async function refreshFriends(){
+      friendsList.innerHTML = '';
+      // all rows where I added someone
+      const { data: rows, error } = await supabase
+        .from('friends')
+        .select('friend_id, players!friends_friend_id_fkey(username)')
+        .eq('user_id', store.id)
+        .order('created_at', { ascending: true });
+      if (error) { console.error(error); return; }
+
+      if (!rows?.length){
+        const empty = document.createElement('div');
+        empty.className = 'friend';
+        empty.textContent = 'No friends yet. Tap a username in Socialize → Add to friends.';
+        friendsList.appendChild(empty);
+        return;
+      }
+
+      for (const r of rows){
+        const row = document.createElement('div'); row.className='friend';
+        row.innerHTML = `<div>👥 ${r.players?.username ?? r.friend_id}</div>`;
+        const btn = document.createElement('button'); btn.textContent='Open chat';
+        btn.onclick = ()=>openDM({ id:r.friend_id, username:r.players?.username ?? 'Unknown' });
+        row.appendChild(btn);
+        friendsList.appendChild(row);
+      }
+    }
+
+    function clearDMSubs(){
+      if (dmChannelA){ supabase.removeChannel(dmChannelA); dmChannelA=null; }
+      if (dmChannelB){ supabase.removeChannel(dmChannelB); dmChannelB=null; }
+    }
+
+    async function openDM(friend){
+      activeFriend = friend;
+      dmList.innerHTML = '';
+      // Load last 60 between (me,friend)
+      const pair = [store.id, friend.id].sort(); // for the index
+      const { data, error } = await supabase
+        .from('private_messages')
+        .select('id, sender_id, recipient_id, content, created_at')
+        .or(`and(sender_id.eq.${store.id},recipient_id.eq.${friend.id}),and(sender_id.eq.${friend.id},recipient_id.eq.${store.id})`)
+        .order('created_at', { ascending: true })
+        .limit(60);
+      if (error) { console.error(error); return; }
+      data.forEach(renderDM);
+
+      // Realtime: subscribe to both directions (A→B & B→A) per Supabase channel API :contentReference[oaicite:5]{index=5}
+      clearDMSubs();
+      dmChannelA = supabase.channel(`dm:${store.id}->${friend.id}`).on(
+        'postgres_changes',
+        { event:'INSERT', schema:'public', table:'private_messages', filter:`sender_id=eq.${friend.id}` }, // friend sent something
+        (payload)=>{ const m=payload.new; if(m.recipient_id===store.id) renderDM(m); }
+      ).subscribe();
+
+      dmChannelB = supabase.channel(`dm:${friend.id}->${store.id}`).on(
+        'postgres_changes',
+        { event:'INSERT', schema:'public', table:'private_messages', filter:`recipient_id=eq.${store.id}` }, // I received
+        (payload)=>{ const m=payload.new; if(m.sender_id===friend.id) renderDM(m); }
+      ).subscribe();
+    }
+
+    function renderDM(m){
+      const mine = m.sender_id === store.id;
+      const row = document.createElement('div');
+      row.className = 'msg' + (mine ? ' me':'');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = (mine ? store.name : activeFriend?.username ?? 'Friend') + ' • ' + new Date(m.created_at).toLocaleTimeString();
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = m.content;
+      row.appendChild(document.createElement('div')).appendChild(meta);
+      row.appendChild(bubble);
+      dmList.appendChild(row);
+      dmList.scrollTop = dmList.scrollHeight;
+    }
+
+    async function sendDM(){
+      if (!activeFriend) return;
+      const text = dmInput.value.trim(); if(!text) return;
+      dmInput.value = '';
+      await supabase.from('private_messages').insert({
+        sender_id: store.id, recipient_id: activeFriend.id, content: text
+      });
+    }
+    dmSend.addEventListener('click', sendDM);
+    dmInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
+
+    // ====== Boot ======
+    await upsertPlayer();
+    await loadGlobal();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
 function applyAppHeight(){ const h = tg?.viewportHeight || window.innerHeight; document.documentElement.style.setProperty('--app-h', h + 'px'); }
