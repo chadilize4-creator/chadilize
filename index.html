@@ -863,6 +863,41 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
+<!-- Place this block where your wooden profile rectangle is rendered -->
+<div id="profileStrip">
+  <div class="wood-card" id="woodCard"><!-- your profile/username card --></div>
+
+  <!-- The same button you liked, still *below* the wood rectangle -->
+  <button id="cryptoBreakBtn" class="crypto-btn" aria-label="Play Crypto Break">
+    <img src="img/cryptobreak.png" alt="Crypto Break" />
+    <span>Tap to play</span>
+  </button>
+</div>
+
+<!-- Game overlay (opens only when you tap the button) -->
+<div id="cbOverlay" class="cb-overlay" aria-hidden="true">
+  <div class="cb-hud">
+    <div class="pill pill-score">Score: <span id="cbScore">0</span></div>
+    <div class="pill pill-chad">CHAD (this run): <span id="cbRunChad">0</span></div>
+    <button id="cbClose" class="cb-close" aria-label="Close">✕</button>
+  </div>
+
+  <div class="cb-table-wrap">
+    <canvas id="cbCanvas"></canvas>
+  </div>
+
+  <div class="cb-ctas">
+    <button id="cbRestart" class="btn ghost">Restart</button>
+    <button id="cbQuit" class="btn danger">Quit</button>
+  </div>
+
+  <!-- small toast that drifts up and fades -->
+  <div id="cbToastHost" class="toast-host"></div>
+</div>
+
+<link rel="stylesheet" href="crypto-break.css">
+<script defer src="crypto-break.js"></script>
+
 
     <!-- MAIN -->
     <div class="main" id="main">
@@ -1050,40 +1085,6 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Place this block where your wooden profile rectangle is rendered -->
-<div id="profileStrip">
-  <div class="wood-card" id="woodCard"><!-- your profile/username card --></div>
-
-  <!-- The same button you liked, still *below* the wood rectangle -->
-  <button id="cryptoBreakBtn" class="crypto-btn" aria-label="Play Crypto Break">
-    <img src="img/cryptobreak.png" alt="Crypto Break" />
-    <span>Tap to play</span>
-  </button>
-</div>
-
-<!-- Game overlay (opens only when you tap the button) -->
-<div id="cbOverlay" class="cb-overlay" aria-hidden="true">
-  <div class="cb-hud">
-    <div class="pill pill-score">Score: <span id="cbScore">0</span></div>
-    <div class="pill pill-chad">CHAD (this run): <span id="cbRunChad">0</span></div>
-    <button id="cbClose" class="cb-close" aria-label="Close">✕</button>
-  </div>
-
-  <div class="cb-table-wrap">
-    <canvas id="cbCanvas"></canvas>
-  </div>
-
-  <div class="cb-ctas">
-    <button id="cbRestart" class="btn ghost">Restart</button>
-    <button id="cbQuit" class="btn danger">Quit</button>
-  </div>
-
-  <!-- small toast that drifts up and fades -->
-  <div id="cbToastHost" class="toast-host"></div>
-</div>
-
-<link rel="stylesheet" href="crypto-break.css">
-<script defer src="crypto-break.js"></script>
 
 
     <!-- SNAKE Modal -->
