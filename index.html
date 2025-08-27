@@ -6,6 +6,45 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Overlay shell */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.overlay.hidden { display: none; }
+.panel { width: min(960px, 95vw); height: min(640px, 90vh); background: #0e0e0f; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.5); display: flex; flex-direction: column; }
+.panel-top { display:flex; justify-content: space-between; align-items:center; padding: 10px 12px; border-bottom: 1px solid #242428; }
+.tabs { display:flex; gap:10px; }
+.tab { padding: 8px 12px; border-radius: 10px; border: 1px solid #2f2f36; background:#17171b; color:#ddd; cursor:pointer; }
+.tab.active { background:#24242a; font-weight:700; }
+.close { background:transparent; border:none; color:#bbb; font-size:24px; cursor:pointer; }
+.view { flex:1; display:flex; flex-direction: column; }
+.view.hidden { display:none; }
+
+.msgs { flex:1; overflow:auto; padding: 12px; display:flex; flex-direction: column; gap: 8px; }
+.msg { display:flex; gap:8px; align-items:flex-start; }
+.msg .u { font-weight:700; color:#ffd86b; cursor:pointer; }
+.msg .t { color:#e6e6e6; }
+.msg .ts { color:#888; font-size:12px; margin-left:auto; }
+
+.composer { display:flex; gap:8px; padding: 10px; border-top: 1px solid #242428; }
+.composer input { flex:1; padding:10px; border-radius: 10px; border:1px solid #2e2e34; background:#16161a; color:#eee; }
+.composer button { padding:10px 14px; border-radius:10px; border:1px solid #2e2e34; background:#28282f; color:#eee; cursor:pointer; }
+
+.friends-split { flex:1; display:grid; grid-template-columns: 240px 1fr; }
+.friends-list { border-right:1px solid #242428; display:flex; flex-direction: column; }
+.friends-head { padding:10px; color:#ddd; border-bottom:1px solid #242428; }
+.list { padding:8px; display:flex; flex-direction: column; gap:6px; }
+.friend { display:flex; justify-content: space-between; align-items:center; gap:8px; padding:8px; background:#17171b; border:1px solid #2a2a31; border-radius:10px; color:#ddd; cursor:pointer; }
+.friend .rm { color:#f66; border:none; background:transparent; cursor:pointer; }
+
+.dm-head { padding:10px; color:#ddd; border-bottom:1px solid #242428; }
+.dm-pane { display:flex; flex-direction: column; }
+
+.popover { position: fixed; background:#121215; border:1px solid #2a2a31; color:#ddd; border-radius: 10px; padding:10px; z-index: 10000; width: 180px; }
+.popover.hidden { display:none; }
+.popover .row { display:flex; gap:6px; margin-top:8px; }
+.popover .primary { flex:1; background:#2b8a3e; border:none; color:#fff; border-radius:8px; padding:6px; cursor:pointer; }
+.popover .danger { background:#7a1d1d; border:none; color:#fff; border-radius:8px; padding:6px; cursor:pointer; }
+.popover .nm { font-weight:700; color:#ffd86b; }
+
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -1197,6 +1236,56 @@ canvas{ display:block }
       </div>
     </div>
 
+<!-- SOCIALIZE & FRIENDS OVERLAY -->
+<div id="socialOverlay" class="overlay hidden">
+  <div class="panel">
+    <div class="panel-top">
+      <div class="tabs">
+        <button id="tabSocial" class="tab active">Socialize</button>
+        <button id="tabFriends" class="tab">Friends</button>
+      </div>
+      <button id="closeOverlayBtn" class="close">×</button>
+    </div>
+
+    <!-- Socialize: global group chat -->
+    <div id="socialView" class="view">
+      <div id="groupList" class="msgs"></div>
+      <div class="composer">
+        <input id="groupInput" placeholder="Say something…" maxlength="280">
+        <button id="groupSend">Send</button>
+      </div>
+    </div>
+
+    <!-- Friends: list + DM chat -->
+    <div id="friendsView" class="view hidden">
+      <div class="friends-split">
+        <div class="friends-list">
+          <div class="friends-head">
+            <span>Your friends</span>
+          </div>
+          <div id="friendsUL" class="list"></div>
+        </div>
+        <div class="dm-pane">
+          <div id="dmHeader" class="dm-head">Pick a friend…</div>
+          <div id="dmList" class="msgs"></div>
+          <div class="composer">
+            <input id="dmInput" placeholder="Write a private message…" maxlength="280" disabled>
+            <button id="dmSend" disabled>Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- tiny popover for "Add to friends" on username -->
+<div id="userPopover" class="popover hidden">
+  <div id="popoverName" class="nm"></div>
+  <div class="row">
+    <button id="addFriendBtn" class="primary">Add to friends</button>
+    <button id="closePopBtn" class="danger">✕</button>
+  </div>
+</div>
 
 
     <!-- SNAKE Modal -->
@@ -1567,6 +1656,8 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ===== Telegram + loader ===== */
@@ -2679,7 +2770,266 @@ function buildGrid(container, cols, rows){
   });
 })();
 
+(() => {
+  // ==== 0) CONFIG ====
+  const SUPABASE_URL = 'https://YOUR_SUPABASE_URL.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // Where we read the player's visible name from your page
+  // (you already have #userName in the wood pill)
+  const userNameEl = document.getElementById('userName');
+  function myName() {
+    // Fallback to "Player" if not set
+    return (userNameEl?.textContent || 'Player').trim();
+  }
+
+  // ==== 1) ELEMENTS ====
+  const userpill = document.getElementById('userpill');
+  const ov = document.getElementById('socialOverlay');
+  const closeBtn = document.getElementById('closeOverlayBtn');
+
+  const tabSocial = document.getElementById('tabSocial');
+  const tabFriends = document.getElementById('tabFriends');
+  const socialView = document.getElementById('socialView');
+  const friendsView = document.getElementById('friendsView');
+
+  const groupList = document.getElementById('groupList');
+  const groupInput = document.getElementById('groupInput');
+  const groupSend = document.getElementById('groupSend');
+
+  const friendsUL = document.getElementById('friendsUL');
+  const dmHeader = document.getElementById('dmHeader');
+  const dmList = document.getElementById('dmList');
+  const dmInput = document.getElementById('dmInput');
+  const dmSend = document.getElementById('dmSend');
+
+  const pop = document.getElementById('userPopover');
+  const popName = document.getElementById('popoverName');
+  const popAdd = document.getElementById('addFriendBtn');
+  const popClose = document.getElementById('closePopBtn');
+
+  let currentFriend = null;
+  let groupChannel = null;
+  let dmChannelIncoming = null;
+
+  // ==== 2) HELPERS ====
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  function el(tag, cls, txt) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = txt;
+    return e;
+  }
+  function renderMsg(container, {username, body, created_at}) {
+    const row = el('div', 'msg');
+    const u = el('span', 'u', username);
+    u.dataset.username = username;
+    const t = el('span', 't', body);
+    const ts = el('span', 'ts', fmtTime(created_at));
+    row.append(u, t, ts);
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+  }
+  function showOverlay() { ov.classList.remove('hidden'); }
+  function hideOverlay() { ov.classList.add('hidden'); }
+
+  function setTab(which) {
+    const soc = which === 'social';
+    tabSocial.classList.toggle('active', soc);
+    tabFriends.classList.toggle('active', !soc);
+    socialView.classList.toggle('hidden', !soc);
+    friendsView.classList.toggle('hidden', soc);
+  }
+
+  // ==== 3) SOCIALIZE (GROUP CHAT) ====
+  async function loadGroupLast60() {
+    groupList.innerHTML = '';
+    const { data, error } = await sb
+      .from('group_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(60);
+    if (error) { console.error(error); return; }
+    data.reverse().forEach(msg => renderMsg(groupList, msg));
+  }
+
+  async function sendGroup() {
+    const body = groupInput.value.trim();
+    if (!body) return;
+    groupInput.value = '';
+    const { error } = await sb.from('group_messages').insert({
+      username: myName(),
+      body
+    });
+    if (error) console.error(error);
+  }
+
+  function watchGroupRealtime() {
+    if (groupChannel) { sb.removeChannel(groupChannel); }
+    groupChannel = sb
+      .channel('grp')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' }, (payload) => {
+        renderMsg(groupList, payload.new);
+      })
+      .subscribe();
+  }
+
+  // Username click => popover "Add to friends"
+  groupList.addEventListener('click', (e) => {
+    const target = e.target.closest('.u');
+    if (!target) return;
+    const uname = target.dataset.username;
+    popName.textContent = uname;
+    pop.style.left = (e.clientX + 10) + 'px';
+    pop.style.top  = (e.clientY + 10) + 'px';
+    pop.classList.remove('hidden');
+  });
+  popClose.addEventListener('click', () => pop.classList.add('hidden'));
+  popAdd.addEventListener('click', async () => {
+    const friend = popName.textContent.trim();
+    pop.classList.add('hidden');
+    if (!friend || friend === myName()) return;
+    await sb.from('friends').insert({
+      owner_username: myName(),
+      friend_username: friend
+    });
+    await loadFriends();
+  });
+
+  // ==== 4) FRIENDS + DMs ====
+  async function loadFriends() {
+    friendsUL.innerHTML = '';
+    const { data, error } = await sb
+      .from('friends')
+      .select('*')
+      .eq('owner_username', myName())
+      .order('created_at', { ascending: true });
+    if (error) { console.error(error); return; }
+
+    data.forEach(row => {
+      const li = el('div', 'friend');
+      const nm = el('span', null, row.friend_username);
+      const rm = el('button', 'rm', 'Remove');
+      rm.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await sb.from('friends').delete()
+          .eq('owner_username', myName())
+          .eq('friend_username', row.friend_username);
+        loadFriends();
+        if (currentFriend === row.friend_username) {
+          setCurrentFriend(null);
+        }
+      });
+      li.addEventListener('click', () => setCurrentFriend(row.friend_username));
+      li.append(nm, rm);
+      friendsUL.appendChild(li);
+    });
+  }
+
+  async function loadDMs(friend) {
+    dmList.innerHTML = '';
+    const { data, error } = await sb
+      .from('dm_messages')
+      .select('*')
+      .or(`and(from_username.eq.${myName()},to_username.eq.${friend}),and(from_username.eq.${friend},to_username.eq.${myName()})`)
+      .order('created_at', { ascending: false })
+      .limit(60);
+    if (error) { console.error(error); return; }
+    data.reverse().forEach(m => renderMsg(dmList, { username: m.from_username, body: m.body, created_at: m.created_at }));
+  }
+
+  function watchDMRealtime(friend) {
+    if (dmChannelIncoming) { sb.removeChannel(dmChannelIncoming); }
+    dmChannelIncoming = sb
+      .channel(`dm-${friend}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'dm_messages',
+        filter: `to_username=eq.${myName()}`
+      }, (payload) => {
+        const m = payload.new;
+        const otherIsOpen = (m.from_username === friend);
+        if (otherIsOpen) {
+          renderMsg(dmList, { username: m.from_username, body: m.body, created_at: m.created_at });
+        }
+      })
+      .subscribe();
+  }
+
+  function setCurrentFriend(friend) {
+    currentFriend = friend;
+    if (!friend) {
+      dmHeader.textContent = 'Pick a friend…';
+      dmInput.disabled = true; dmSend.disabled = true;
+      dmList.innerHTML = '';
+      if (dmChannelIncoming) sb.removeChannel(dmChannelIncoming);
+      return;
+    }
+    dmHeader.textContent = `Chat with ${friend}`;
+    dmInput.disabled = false; dmSend.disabled = false;
+    loadDMs(friend);
+    watchDMRealtime(friend);
+  }
+
+  async function sendDM() {
+    const body = dmInput.value.trim();
+    if (!body || !currentFriend) return;
+    dmInput.value = '';
+    const { data, error } = await sb.from('dm_messages').insert({
+      from_username: myName(),
+      to_username: currentFriend,
+      body
+    });
+    if (error) { console.error(error); return; }
+    // echo locally so it appears instantly
+    renderMsg(dmList, { username: myName(), body, created_at: new Date().toISOString() });
+  }
+
+  // ==== 5) CHAD TRANSFERS (simple log) ====
+  async function sendChads(toUser, amount) {
+    const amt = Number(amount);
+    if (!toUser || !Number.isFinite(amt) || amt <= 0) return;
+    const { error } = await sb.from('chad_transfers').insert({
+      from_username: myName(),
+      to_username: toUser,
+      amount: amt
+    });
+    if (error) console.error(error);
+    // You can also adjust your local "state.chads" here if appropriate.
+  }
+
+  // ==== 6) WIRE UP EVENTS ====
+  userpill?.addEventListener('click', async () => {
+    setTab('social');               // default tab
+    showOverlay();
+    await loadGroupLast60();
+    watchGroupRealtime();
+    await loadFriends();
+  });
+  closeBtn.addEventListener('click', hideOverlay);
+
+  tabSocial.addEventListener('click', () => setTab('social'));
+  tabFriends.addEventListener('click', () => setTab('friends'));
+
+  groupSend.addEventListener('click', sendGroup);
+  groupInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendGroup(); });
+
+  dmSend.addEventListener('click', sendDM);
+  dmInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendDM(); });
+
+  // click outside popover to close
+  document.addEventListener('click', (e) => {
+    if (!pop.classList.contains('hidden') && !pop.contains(e.target)) {
+      pop.classList.add('hidden');
+    }
+  });
+
+})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
