@@ -6,130 +6,85 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  /* ===== Socialize Chat (black/grey theme) ===== */
-  :root{
-    --chat-bg:#0d0f12;
-    --chat-panel:#15181d;
-    --chat-panel-2:#1d2127;
-    --chat-text:#e8eaed;
-    --chat-sub:#9aa0a6;
-    --glow:#3a3f47;
-    --accent:#6b7cff; /* soft violet/blue */
-    --danger:#ff3b3b;
-    --glass: rgba(255,255,255,0.06);
-  }
+/* ==== SOCIALIZE overlay (black/gray theme) ==== */
+#socializeOverlay {
+  position: fixed; inset: 0; z-index: 9999; display: none;
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,.08), transparent 60%) , #0b0f14;
+  color: #e6e8ea; backdrop-filter: blur(4px);
+}
+#socializeOverlay.open { display: grid; place-items: center; }
 
-  /* little red 70 badge on the wood rectangle */
-  .msg-badge{
-    position:absolute;
-    top:-6px; right:-8px;
-    min-width:26px; height:26px;
-    padding:0 6px;
-    background:#ff3b3b;
-    color:#fff; font-weight:800; font-size:12px;
-    border-radius:999px;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 18px rgba(255,59,59,.35);
-    pointer-events:none;
-    z-index:3;
-  }
+.chat-panel {
+  width: min(920px, 94vw); height: min(80vh, 720px);
+  display: grid; grid-template-rows: auto 1fr auto;
+  background: linear-gradient(180deg, #0f1319, #0a0d12);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px; box-shadow: 0 30px 90px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.05) inset;
+  overflow: hidden;
+}
 
-  /* overlay shell */
-  #socialOverlay{
-    position:fixed; inset:0; z-index:9999;
-    display:none;
-    background:rgba(0,0,0,.65);
-    backdrop-filter:saturate(120%) blur(6px);
-  }
-  #socialOverlay.show{ display:block; }
+/* Header */
+.chat-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
+  background: linear-gradient(180deg,#151b24,#0e141c);
+}
+.chat-title { font-weight: 800; letter-spacing:.02em; font-size: 14px; color: #cfd5dc; }
+.chat-title .hi { color:#9da7b3; opacity:.9 }
+.chat-close {
+  background:#141a22; border:1px solid rgba(255,255,255,.08);
+  color:#c5ccd4; padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer;
+}
+.chat-close:hover { background:#1b232e; }
 
-  .soc-panel{
-    position:absolute; inset:0;
-    display:grid; place-items:center;
-    padding:22px;
-  }
-  .soc-card{
-    width:min(840px,98vw);
-    height:min(90vh,760px);
-    background:linear-gradient(180deg,var(--chat-panel),var(--chat-panel-2));
-    border:1px solid var(--glass);
-    border-radius:20px;
-    box-shadow:0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 var(--glass);
-    display:grid; grid-template-rows:auto 1fr auto;
-    overflow:hidden;
-  }
+/* List */
+.chat-list {
+  overflow: auto; padding: 18px; display: grid; gap: 14px;
+  background: radial-gradient(900px 400px at 10% 0%, rgba(80,90,110,.14), transparent 40%);
+}
+.chat-empty, .chat-error { color:#ff8b8b; font-weight:600; }
 
-  .soc-top{
-    display:flex; align-items:center; gap:12px;
-    padding:14px 16px;
-    background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);
-    border-bottom:1px solid var(--glass);
-    color:var(--chat-text);
-  }
-  .soc-title{
-    font-size:16px; font-weight:800; letter-spacing:.3px;
-  }
-  .soc-close{
-    margin-left:auto;
-    background:transparent; border:1px solid var(--glass);
-    color:var(--chat-sub); border-radius:12px;
-    font-weight:700; padding:8px 12px; cursor:pointer;
-  }
-  .soc-close:hover{ color:#fff; border-color:#6b7cff; }
+/* Message item */
+.msg {
+  display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start;
+  padding: 12px; border:1px solid rgba(255,255,255,.05); border-radius:14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+}
+.msg .avatar {
+  width:44px; height:44px; border-radius:12px; overflow:hidden; display:grid; place-items:center;
+  background:#111821; border:1px solid rgba(255,255,255,.06); user-select:none;
+  font-weight:800; color:#cdd6df;
+}
+.msg .meta {
+  display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap;
+}
+.msg .name { font-weight:800; color:#e7ecf2; }
+.msg .time { font-size:12px; color:#96a1ad; }
 
-  /* list area */
-  .soc-list{
-    background:radial-gradient(1200px 300px at 20% 0%, rgba(255,255,255,.04), transparent 60%),
-               radial-gradient(1200px 300px at 80% 0%, rgba(255,255,255,.04), transparent 60%),
-               var(--chat-bg);
-    padding:18px; overflow:auto;
-  }
-  .msg{
-    display:grid; grid-template-columns:40px 1fr; gap:12px;
-    padding:10px 12px; border-radius:14px;
-    background:rgba(255,255,255,.03);
-    border:1px solid var(--glass);
-    box-shadow:0 10px 20px rgba(0,0,0,.25);
-    margin-bottom:10px;
-  }
-  .avatar{
-    width:40px; height:40px; border-radius:50%;
-    overflow:hidden; background:#222; display:grid; place-items:center;
-    border:1px solid var(--glass);
-  }
-  .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .avatar .ini{
-    color:#cbd1d8; font-weight:900;
-  }
-  .msg-head{
-    display:flex; align-items:center; gap:8px; margin-bottom:4px;
-  }
-  .msg-name{ color:#fff; font-weight:800; font-size:14px; }
-  .msg-time{ color:var(--chat-sub); font-size:12px; }
+/* Composer */
+.chat-compose {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px; border-top: 1px solid rgba(255,255,255,.06);
+  background: linear-gradient(180deg,#0f151d,#0a0f15);
+}
+.chat-input {
+  width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.06);
+  background:#0a1016; color:#e6e8ea; outline:none;
+}
+.chat-send {
+  padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+  background:linear-gradient(180deg,#1f2834,#17202a); color:#e6edf6; font-weight:800; cursor:pointer;
+}
+.chat-send:hover { transform: translateY(-1px); }
 
-  .msg-body{
-    color:var(--chat-text); font-size:14px; line-height:1.35;
-    word-break:break-word;
-  }
+/* Tiny red "70" badge on top of THE wood rectangle only */
+#userPill { position: relative; }
+#chatBadge70 {
+  position:absolute; top:-6px; right:-6px; z-index:2;
+  width:22px; height:22px; border-radius:50%;
+  background:#ff3b3b; color:#fff; font-size:12px; font-weight:900;
+  display:grid; place-items:center; border:2px solid #111519; box-shadow:0 6px 14px rgba(0,0,0,.5);
+}
 
-  /* composer */
-  .soc-compose{
-    display:grid; grid-template-columns:1fr auto;
-    gap:10px; padding:14px; background:linear-gradient(180deg,transparent,rgba(255,255,255,.035));
-    border-top:1px solid var(--glass);
-  }
-  .soc-input{
-    height:46px; border-radius:14px; border:1px solid var(--glass);
-    background:rgba(255,255,255,.06); color:#fff; outline:none;
-    padding:0 14px; font-size:14px;
-  }
-  .soc-send{
-    height:46px; border-radius:14px; border:0; padding:0 18px;
-    background:linear-gradient(180deg,#7d88ff,#6b7cff);
-    color:#101215; font-weight:900; cursor:pointer;
-    box-shadow:0 12px 26px rgba(107,124,255,.35);
-  }
-  .soc-send[disabled]{ opacity:.5; cursor:not-allowed; }
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -1066,6 +1021,7 @@ canvas{ display:block }
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
       <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
+       <span id="chatBadge70">70</span> <!-- tiny red 70 badge -->
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
         <div class="name" id="userName">Player</div>
       </div>
@@ -1149,24 +1105,6 @@ canvas{ display:block }
 
 <!-- Toasts -->
 <div id="toastStack" class="toast-stack"></div>
-<!-- === Socialize (Global Chat) Overlay === -->
-<div id="socialOverlay">
-  <div class="soc-panel">
-    <div class="soc-card">
-      <div class="soc-top">
-        <div class="soc-title">SOCIALIZE — Global Chat <span style="color:#9aa0a6;font-weight:700">(last 70)</span></div>
-        <button class="soc-close" id="socCloseBtn">Close</button>
-      </div>
-
-      <div class="soc-list" id="socList" aria-live="polite"></div>
-
-      <form class="soc-compose" id="socForm">
-        <input id="socInput" class="soc-input" maxlength="500" placeholder="Say something…" autocomplete="off" />
-        <button id="socSend" class="soc-send" type="submit">Send</button>
-      </form>
-    </div>
-  </div>
-</div>
 
 
     <!-- BOTTOM -->
@@ -1339,6 +1277,22 @@ canvas{ display:block }
       </div>
     </div>
 
+<!-- ===== SOCIALIZE overlay ===== -->
+<div id="socializeOverlay" aria-hidden="true">
+  <div class="chat-panel" role="dialog" aria-modal="true" aria-label="Global Chat">
+    <div class="chat-head">
+      <div class="chat-title">SOCIALIZE <span class="hi">— Global Chat (last 70)</span></div>
+      <button class="chat-close" id="chatCloseBtn">Close</button>
+    </div>
+    <div id="chatList" class="chat-list">
+      <div class="chat-empty">Loading…</div>
+    </div>
+    <div class="chat-compose">
+      <input id="chatInput" class="chat-input" maxlength="500" placeholder="Say something…" />
+      <button id="chatSend" class="chat-send">Send</button>
+    </div>
+  </div>
+</div>
 
 
     <!-- SNAKE Modal -->
@@ -1709,7 +1663,6 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-<!-- Supabase JS v2 (browser CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== Telegram + loader ===== */
@@ -2822,202 +2775,7 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-(() => {
-  // ===== 0. Supabase client (YOUR project) =====
-  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ===== 1. Small 70 badge on the wood rectangle =====
-  function ensureBadge(){
-    const pill = document.getElementById('userPill');
-    if(!pill) return;
-    pill.style.position = pill.style.position || 'relative';
-    if(!pill.querySelector('.msg-badge')){
-      const b = document.createElement('span');
-      b.className = 'msg-badge';
-      b.textContent = '70';
-      pill.appendChild(b);
-    }
-  }
-  ensureBadge();
-
-  // ===== 2. Helpers to read your current username/avatar =====
-  function getLocalState(){
-    // your app saves local state under key that contains "chad_state_"
-    const key = Object.keys(localStorage).find(k => k.startsWith('chad_state_'));
-    let name = 'Player', avatarIdx = null;
-    try{
-      if(key){
-        const s = JSON.parse(localStorage.getItem(key) || '{}');
-        if(s && typeof s === 'object'){
-          name = s.name || name;
-          if(typeof s.avatarIdx === 'number') avatarIdx = s.avatarIdx;
-        }
-      }
-    }catch(_){}
-    // Fallback to #userName text if present
-    const nameEl = document.getElementById('userName');
-    if(nameEl && nameEl.textContent && nameEl.textContent.trim().length) {
-      name = nameEl.textContent.trim();
-    }
-    return { name: name || 'Player', avatarIdx };
-  }
-
-  function initialsOf(n){
-    return (n || 'P').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || 'P';
-  }
-
-  function avatarSrcFromIndex(i){
-    // Adjust this path if your avatar images live elsewhere
-    // Your code earlier used img/profiles/{i}.png
-    if(typeof i === 'number') return `img/profiles/${i}.png`;
-    return null;
-  }
-
-  // Make a durable per-device id (needed for user_id text)
-  function getUserId(){
-    const k = 'chat_guest_id';
-    let v = localStorage.getItem(k);
-    if(!v){
-      v = 'guest-' + Math.random().toString(36).slice(2,10);
-      localStorage.setItem(k, v);
-    }
-    return v;
-  }
-
-  // ===== 3. UI refs =====
-  const overlay = document.getElementById('socialOverlay');
-  const listEl  = document.getElementById('socList');
-  const formEl  = document.getElementById('socForm');
-  const inputEl = document.getElementById('socInput');
-  const sendBtn = document.getElementById('socSend');
-  const closeBtn= document.getElementById('socCloseBtn');
-
-  // Open overlay on the wood rectangle
-  const pill = document.getElementById('userPill');
-  if(pill){
-    pill.addEventListener('click', () => {
-      overlay.classList.add('show');
-      // lazy load messages the first time it's opened
-      if(!listEl.dataset.loaded){
-        bootstrapChat().catch(console.error);
-      }
-    });
-  }
-
-  closeBtn?.addEventListener('click', () => overlay.classList.remove('show'));
-  overlay?.addEventListener('click', (e)=>{
-    if(e.target === overlay) overlay.classList.remove('show');
-  });
-
-  // ===== 4. Render =====
-  function renderMessage(m, {append=true}={}){
-    const wrap = document.createElement('div');
-    wrap.className = 'msg';
-
-    const av = document.createElement('div');
-    av.className = 'avatar';
-    if(typeof m.avatar_idx === 'number'){
-      const img = document.createElement('img');
-      img.alt = 'avatar';
-      img.src = avatarSrcFromIndex(m.avatar_idx) || '';
-      img.onerror = () => { img.remove(); av.appendChild(document.createElement('div')).className='ini'; av.lastChild.textContent = initialsOf(m.username); };
-      av.appendChild(img);
-    }else{
-      const ini = document.createElement('div');
-      ini.className='ini';
-      ini.textContent = initialsOf(m.username);
-      av.appendChild(ini);
-    }
-
-    const body = document.createElement('div');
-    const head = document.createElement('div');
-    head.className = 'msg-head';
-    const nm = document.createElement('div');
-    nm.className = 'msg-name';
-    nm.textContent = m.username || 'Player';
-    const tm = document.createElement('div');
-    tm.className = 'msg-time';
-    tm.textContent = new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    head.append(nm, tm);
-
-    const txt = document.createElement('div');
-    txt.className = 'msg-body';
-    txt.textContent = m.body;
-
-    body.append(head, txt);
-
-    wrap.append(av, body);
-
-    if(append) listEl.appendChild(wrap);
-    else listEl.prepend(wrap);
-  }
-
-  function scrollToBottom(){
-    listEl.scrollTop = listEl.scrollHeight + 9999;
-  }
-
-  // ===== 5. Load, subscribe, send =====
-  async function bootstrapChat(){
-    listEl.innerHTML = '';
-    sendBtn.disabled = true;
-    listEl.dataset.loaded = '1';
-
-    // Load latest 70 (newest last in the UI)
-    const { data, error } = await sb
-      .from('messages')
-      .select('id,user_id,username,avatar_idx,body,created_at')
-      .order('created_at', { ascending: false })
-      .limit(70);
-
-    if(error){
-      console.error(error);
-      listEl.innerHTML = `<div style="color:#ff7b7b;font-weight:700">Could not load messages: ${error.message}</div>`;
-    }else{
-      (data || []).reverse().forEach(m => renderMessage(m));
-      scrollToBottom();
-    }
-
-    // Realtime inserts
-    sb.channel('realtime:public:messages')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        payload => {
-          renderMessage(payload.new);
-          scrollToBottom();
-        }
-      )
-      .subscribe();
-
-    sendBtn.disabled = false;
-  }
-
-  formEl?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = (inputEl.value || '').trim();
-    if(!body) return;
-
-    const { name, avatarIdx } = getLocalState();
-    const msg = {
-      user_id: getUserId(),
-      username: name || 'Player',
-      avatar_idx: (typeof avatarIdx === 'number') ? avatarIdx : null,
-      body
-    };
-
-    sendBtn.disabled = true;
-    const { error } = await sb.from('messages').insert(msg);
-    if(error){
-      // Show the *actual* reason to help you debug if policies are wrong
-      alert('Cannot send message: ' + error.message);
-      console.error(error);
-    }else{
-      inputEl.value = '';
-    }
-    sendBtn.disabled = false;
-  });
-})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -3500,6 +3258,165 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   });
   window.openTetris = ()=>{ closeOverlay('playOverlay'); openOverlay('tetrisModal'); start(); };
 })();
+
+(() => {
+  // ====== CONFIG ======
+  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ====== DOM ======
+  const userPill = document.getElementById('userPill');
+  const userNameEl = document.getElementById('userName');
+  const overlay = document.getElementById('socializeOverlay');
+  const chatList = document.getElementById('chatList');
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+  const chatCloseBtn = document.getElementById('chatCloseBtn');
+
+  // ====== helpers to pull player name + avatar from your page/state/localStorage ======
+  function getPlayerName() {
+    const raw = (userNameEl?.textContent || '').trim();
+    if (raw && raw.toLowerCase() !== 'player') return raw;
+    // fallback: try local storage state used by your game
+    let found = null;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || '';
+      if (k.startsWith('chad_state_')) {
+        try { found = JSON.parse(localStorage.getItem(k) || '{}').name || found; } catch {}
+      }
+    }
+    return (found && String(found).trim()) || 'Player';
+  }
+
+  function getAvatarIdx() {
+    // try reading your game state in localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) || '';
+      if (k.startsWith('chad_state_')) {
+        try {
+          const v = JSON.parse(localStorage.getItem(k) || '{}');
+          if (typeof v.avatarIdx === 'number') return v.avatarIdx;
+        } catch {}
+      }
+    }
+    // final fallback: no avatar selected
+    return null;
+  }
+
+  function avatarPath(idx) {
+    // adjust to your asset path if different
+    return (typeof idx === 'number') ? `img/profiles${idx}.png` : '';
+  }
+
+  function fmtTime(iso) {
+    try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    catch { return ''; }
+  }
+
+  function msgEl(m) {
+    const wrap = document.createElement('div'); wrap.className = 'msg';
+
+    const a = document.createElement('div'); a.className = 'avatar';
+    if (typeof m.avatar_idx === 'number') {
+      const img = document.createElement('img');
+      img.src = avatarPath(m.avatar_idx); img.alt = 'avatar'; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
+      a.appendChild(img);
+    } else {
+      a.textContent = (m.username || '?').slice(0,2).toUpperCase();
+    }
+
+    const body = document.createElement('div'); body.className = 'body';
+
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const name = document.createElement('div'); name.className = 'name'; name.textContent = m.username || 'Player';
+    const t = document.createElement('div'); t.className = 'time'; t.textContent = fmtTime(m.created_at);
+    meta.appendChild(name); meta.appendChild(t);
+
+    const text = document.createElement('div'); text.textContent = m.body;
+
+    body.appendChild(meta); body.appendChild(text);
+    wrap.appendChild(a); wrap.appendChild(body);
+    return wrap;
+  }
+
+  function showError(msg) {
+    chatList.innerHTML = `<div class="chat-error">${msg}</div>`;
+  }
+
+  async function loadLatest() {
+    const { data, error } = await sb
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(70);
+
+    if (error) {
+      showError(`Could not load messages: ${error.message}`);
+      return;
+    }
+
+    chatList.innerHTML = '';
+    // show newest at bottom, so reverse the array for rendering
+    [...data].reverse().forEach(m => chatList.appendChild(msgEl(m)));
+    // scroll to bottom
+    chatList.scrollTop = chatList.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const body = (chatInput.value || '').trim();
+    if (!body) return;
+
+    chatSend.disabled = true;
+
+    const payload = {
+      user_id: 'guest',                    // no auth in this mini-chat
+      username: getPlayerName(),
+      avatar_idx: getAvatarIdx(),
+      body
+    };
+
+    const { error } = await sb.from('messages').insert(payload);
+    if (error) {
+      alert(`Cannot send message: ${error.message}`);
+    } else {
+      chatInput.value = '';
+    }
+    chatSend.disabled = false;
+  }
+
+  // realtime updates — new message at once
+  const channel = sb.channel('realtime:public:messages')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+      chatList.appendChild(msgEl(payload.new));
+      chatList.scrollTop = chatList.scrollHeight;
+    })
+    .subscribe();
+
+  // open/close overlay
+  function openOverlay() {
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    loadLatest();
+    // focus input shortly after open
+    setTimeout(() => chatInput?.focus(), 60);
+  }
+  function closeOverlay() {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  userPill?.addEventListener('click', openOverlay);
+  chatCloseBtn?.addEventListener('click', closeOverlay);
+  overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+  chatSend?.addEventListener('click', sendMessage);
+  chatInput?.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendMessage(); });
+
+  // Make sure the pill is visible and badge is positioned
+  document.getElementById('chatBadge70')?.classList.add('show');
+
+})();
+
 
 /* ===== FLAPPY BIRD ===== */
 (function(){
