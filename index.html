@@ -6,83 +6,61 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ==== SOCIALIZE overlay (black/gray theme) ==== */
-#socializeOverlay {
-  position: fixed; inset: 0; z-index: 9999; display: none;
-  background: radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,.08), transparent 60%) , #0b0f14;
-  color: #e6e8ea; backdrop-filter: blur(4px);
-}
-#socializeOverlay.open { display: grid; place-items: center; }
+/* ==== SOCIALIZE overlay (dark, sleek) ==== */
+#socialOverlay{ position:fixed; inset:0; display:none; z-index:9999; }
+#socialOverlay.show{ display:block; }
+#socialOverlay .backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); }
 
-.chat-panel {
-  width: min(920px, 94vw); height: min(80vh, 720px);
-  display: grid; grid-template-rows: auto 1fr auto;
-  background: linear-gradient(180deg, #0f1319, #0a0d12);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 18px; box-shadow: 0 30px 90px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.05) inset;
-  overflow: hidden;
+.chat-panel{
+  position:absolute; inset:6% 4% auto 4%; bottom:6%;
+  background:linear-gradient(180deg,#0b0b0f,#111216);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:18px; overflow:hidden; box-shadow:0 25px 80px rgba(0,0,0,.6);
+  color:#e8eaf0; display:flex; flex-direction:column;
 }
+.chat-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 16px; background:linear-gradient(90deg,#121318,#0b0c12);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.chat-title{ font-weight:800; letter-spacing:.4px; font-size:15px; color:#cfd3dc; }
+.chat-title b{ color:#9aa3b2; }
+.chat-close{ border:0; background:#181a21; color:#bac1cd; padding:8px 12px; border-radius:10px; cursor:pointer; }
 
-/* Header */
-.chat-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
-  background: linear-gradient(180deg,#151b24,#0e141c);
+.msgs{ flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+.msg{
+  background:linear-gradient(180deg,#15171d,#12141a);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:12px; padding:10px 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
 }
-.chat-title { font-weight: 800; letter-spacing:.02em; font-size: 14px; color: #cfd5dc; }
-.chat-title .hi { color:#9da7b3; opacity:.9 }
-.chat-close {
-  background:#141a22; border:1px solid rgba(255,255,255,.08);
-  color:#c5ccd4; padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer;
-}
-.chat-close:hover { background:#1b232e; }
+.msg .meta{ font-size:11px; color:#8f97a6; margin-bottom:4px; }
+.msg .body{ font-size:14px; color:#e7ebf4; word-break:break-word; }
 
-/* List */
-.chat-list {
-  overflow: auto; padding: 18px; display: grid; gap: 14px;
-  background: radial-gradient(900px 400px at 10% 0%, rgba(80,90,110,.14), transparent 40%);
+.chat-inputbar{
+  display:flex; gap:10px; padding:12px; background:linear-gradient(180deg,#0f1116,#0c0e13);
+  border-top:1px solid rgba(255,255,255,.06);
 }
-.chat-empty, .chat-error { color:#ff8b8b; font-weight:600; }
+#chatText{
+  flex:1; border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  background:rgba(15,17,22,.85); color:#eaf0ff; padding:12px 14px; outline:none;
+  box-shadow:0 0 0 3px rgba(55,115,255,0); transition:box-shadow .2s,border-color .2s;
+}
+#chatText:focus{ border-color:#3d6cff; box-shadow:0 0 0 3px rgba(61,108,255,.22); }
+#chatSend{
+  border:0; border-radius:12px; padding:12px 18px; cursor:pointer;
+  background:linear-gradient(180deg,#2a6dff,#1d48d1);
+  color:#fff; font-weight:700; letter-spacing:.2px; box-shadow:0 8px 18px rgba(33,86,255,.35);
+}
+.chat-error{ color:#ff8b87; padding:8px 14px; font-size:13px; }
 
-/* Message item */
-.msg {
-  display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start;
-  padding: 12px; border:1px solid rgba(255,255,255,.05); border-radius:14px;
-  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-}
-.msg .avatar {
-  width:44px; height:44px; border-radius:12px; overflow:hidden; display:grid; place-items:center;
-  background:#111821; border:1px solid rgba(255,255,255,.06); user-select:none;
-  font-weight:800; color:#cdd6df;
-}
-.msg .meta {
-  display:flex; align-items:center; gap:10px; margin-bottom:4px; flex-wrap:wrap;
-}
-.msg .name { font-weight:800; color:#e7ecf2; }
-.msg .time { font-size:12px; color:#96a1ad; }
-
-/* Composer */
-.chat-compose {
-  display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px; border-top: 1px solid rgba(255,255,255,.06);
-  background: linear-gradient(180deg,#0f151d,#0a0f15);
-}
-.chat-input {
-  width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.06);
-  background:#0a1016; color:#e6e8ea; outline:none;
-}
-.chat-send {
-  padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
-  background:linear-gradient(180deg,#1f2834,#17202a); color:#e6edf6; font-weight:800; cursor:pointer;
-}
-.chat-send:hover { transform: translateY(-1px); }
-
-/* Tiny red "70" badge on top of THE wood rectangle only */
-#userPill { position: relative; }
-#chatBadge70 {
-  position:absolute; top:-6px; right:-6px; z-index:2;
-  width:22px; height:22px; border-radius:50%;
-  background:#ff3b3b; color:#fff; font-size:12px; font-weight:900;
-  display:grid; place-items:center; border:2px solid #111519; box-shadow:0 6px 14px rgba(0,0,0,.5);
+/* Little red "70" badge on the wood rectangle */
+#userPill{ position:relative; } /* ensure positioned parent */
+.pill-badge{
+  position:absolute; top:-6px; right:-6px; min-width:22px; height:22px;
+  padding:0 6px; background:#ff3040; color:#fff; border-radius:999px;
+  font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 16px rgba(255,48,64,.45), inset 0 0 0 1px rgba(255,255,255,.35);
 }
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
@@ -1021,7 +999,6 @@ canvas{ display:block }
     <!-- TOP BAR -->
     <div class="topbar" id="topbar">
       <div id="userPill" class="userpill wood-bg" style="visibility:hidden">
-       <span id="chatBadge70">70</span> <!-- tiny red 70 badge -->
         <div class="avatar" id="userAvatar"><span id="avatarInitials">?</span></div>
         <div class="name" id="userName">Player</div>
       </div>
@@ -1277,22 +1254,6 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- ===== SOCIALIZE overlay ===== -->
-<div id="socializeOverlay" aria-hidden="true">
-  <div class="chat-panel" role="dialog" aria-modal="true" aria-label="Global Chat">
-    <div class="chat-head">
-      <div class="chat-title">SOCIALIZE <span class="hi">— Global Chat (last 70)</span></div>
-      <button class="chat-close" id="chatCloseBtn">Close</button>
-    </div>
-    <div id="chatList" class="chat-list">
-      <div class="chat-empty">Loading…</div>
-    </div>
-    <div class="chat-compose">
-      <input id="chatInput" class="chat-input" maxlength="500" placeholder="Say something…" />
-      <button id="chatSend" class="chat-send">Send</button>
-    </div>
-  </div>
-</div>
 
 
     <!-- SNAKE Modal -->
@@ -1322,6 +1283,26 @@ canvas{ display:block }
         <p class="note">Eat food, avoid walls. Quit to collect session chads.</p>
       </div>
     </div>
+
+
+<!-- ==== SOCIALIZE: Global Chat (last 70) ==== -->
+<div id="socialOverlay" aria-hidden="true">
+  <div class="backdrop"></div>
+  <section class="chat-panel" role="dialog" aria-label="Global chat">
+    <header class="chat-header">
+      <div class="chat-title">SOCIALIZE — <b>Global Chat</b> (last <b>70</b>)</div>
+      <button class="chat-close" id="chatCloseBtn">Close</button>
+    </header>
+    <div id="chatErr" class="chat-error" style="display:none;"></div>
+    <div class="msgs" id="chatList"></div>
+    <div class="chat-inputbar">
+      <input id="chatText" type="text" maxlength="500" placeholder="Type a message…" />
+      <button id="chatSend">Send</button>
+    </div>
+  </section>
+</div>
+
+
 
     <!-- TETRIS Modal -->
     <div class="overlay" id="tetrisModal">
@@ -1663,6 +1644,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
+<!-- Supabase JS (v2) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== Telegram + loader ===== */
@@ -2775,7 +2757,108 @@ function buildGrid(container, cols, rows){
   });
 })();
 
+(() => {
+  // === Config (your project) ===
+  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // === UI elements ===
+  const pill = document.getElementById('userPill');          // your wood rectangle
+  const list = document.getElementById('chatList');
+  const input = document.getElementById('chatText');
+  const sendBtn = document.getElementById('chatSend');
+  const closeBtn = document.getElementById('chatCloseBtn');
+  const overlay = document.getElementById('socialOverlay');
+  const errBox = document.getElementById('chatErr');
+
+  // Add the little red 70 badge
+  (function addBadge(){
+    if (!pill) return;
+    if (!pill.querySelector('.pill-badge')) {
+      const b = document.createElement('span');
+      b.className = 'pill-badge';
+      b.textContent = '70';
+      pill.appendChild(b);
+    }
+  })();
+
+  // Open / close overlay
+  function openChat(){ overlay.classList.add('show'); input?.focus(); }
+  function closeChat(){ overlay.classList.remove('show'); }
+  pill?.addEventListener('click', openChat);
+  closeBtn?.addEventListener('click', closeChat);
+  overlay.querySelector('.backdrop')?.addEventListener('click', closeChat);
+
+  // Render helpers
+  function renderOne(msg){
+    const el = document.createElement('div');
+    el.className = 'msg';
+    const when = new Date(msg.created_at ?? Date.now());
+    el.innerHTML = `
+      <div class="meta">Player • ${when.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+      <div class="body"></div>`;
+    el.querySelector('.body').textContent = msg.body ?? '';
+    return el;
+  }
+  function showError(text){
+    errBox.textContent = text;
+    errBox.style.display = text ? 'block' : 'none';
+  }
+
+  // Load last 70
+  async function loadMessages(){
+    showError('');
+    list.innerHTML = '';
+    const { data, error } = await sb
+      .from('messages')
+      .select('id, body, created_at')
+      .order('created_at', { ascending: false })
+      .limit(70);
+    if (error){ showError('Could not load messages: ' + error.message); return; }
+    // show oldest first
+    (data || []).reverse().forEach(m => list.appendChild(renderOne(m)));
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // Realtime subscribe (v2 channel API)
+  const channel = sb.channel('global-chat')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      (payload) => {
+        // Append the new one
+        const m = payload.new || payload.record || payload;
+        list.appendChild(renderOne(m));
+        // Trim the DOM list to last 70 for performance
+        while (list.children.length > 70) list.removeChild(list.firstChild);
+        list.scrollTop = list.scrollHeight;
+      }
+    )
+    .subscribe(); // uses v2 subscribe API  :contentReference[oaicite:2]{index=2}
+
+  // Send message (always as "Player")
+  async function send(){
+    const text = (input.value || '').trim();
+    if (!text) return;
+    sendBtn.disabled = true;
+    try{
+      const { error } = await sb.from('messages').insert({ body: text });
+      if (error) throw error;
+      input.value = '';
+    }catch(e){
+      showError('Cannot send message: ' + (e?.message || 'try again'));
+    }finally{
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+  sendBtn?.addEventListener('click', send);
+  input?.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') send(); });
+
+  // Bootstrap once DOM is ready
+  document.addEventListener('DOMContentLoaded', loadMessages);
+})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -3258,165 +3341,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
   });
   window.openTetris = ()=>{ closeOverlay('playOverlay'); openOverlay('tetrisModal'); start(); };
 })();
-
-(() => {
-  // ====== CONFIG ======
-  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // ====== DOM ======
-  const userPill = document.getElementById('userPill');
-  const userNameEl = document.getElementById('userName');
-  const overlay = document.getElementById('socializeOverlay');
-  const chatList = document.getElementById('chatList');
-  const chatInput = document.getElementById('chatInput');
-  const chatSend = document.getElementById('chatSend');
-  const chatCloseBtn = document.getElementById('chatCloseBtn');
-
-  // ====== helpers to pull player name + avatar from your page/state/localStorage ======
-  function getPlayerName() {
-    const raw = (userNameEl?.textContent || '').trim();
-    if (raw && raw.toLowerCase() !== 'player') return raw;
-    // fallback: try local storage state used by your game
-    let found = null;
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i) || '';
-      if (k.startsWith('chad_state_')) {
-        try { found = JSON.parse(localStorage.getItem(k) || '{}').name || found; } catch {}
-      }
-    }
-    return (found && String(found).trim()) || 'Player';
-  }
-
-  function getAvatarIdx() {
-    // try reading your game state in localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i) || '';
-      if (k.startsWith('chad_state_')) {
-        try {
-          const v = JSON.parse(localStorage.getItem(k) || '{}');
-          if (typeof v.avatarIdx === 'number') return v.avatarIdx;
-        } catch {}
-      }
-    }
-    // final fallback: no avatar selected
-    return null;
-  }
-
-  function avatarPath(idx) {
-    // adjust to your asset path if different
-    return (typeof idx === 'number') ? `img/profiles${idx}.png` : '';
-  }
-
-  function fmtTime(iso) {
-    try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-    catch { return ''; }
-  }
-
-  function msgEl(m) {
-    const wrap = document.createElement('div'); wrap.className = 'msg';
-
-    const a = document.createElement('div'); a.className = 'avatar';
-    if (typeof m.avatar_idx === 'number') {
-      const img = document.createElement('img');
-      img.src = avatarPath(m.avatar_idx); img.alt = 'avatar'; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover';
-      a.appendChild(img);
-    } else {
-      a.textContent = (m.username || '?').slice(0,2).toUpperCase();
-    }
-
-    const body = document.createElement('div'); body.className = 'body';
-
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const name = document.createElement('div'); name.className = 'name'; name.textContent = m.username || 'Player';
-    const t = document.createElement('div'); t.className = 'time'; t.textContent = fmtTime(m.created_at);
-    meta.appendChild(name); meta.appendChild(t);
-
-    const text = document.createElement('div'); text.textContent = m.body;
-
-    body.appendChild(meta); body.appendChild(text);
-    wrap.appendChild(a); wrap.appendChild(body);
-    return wrap;
-  }
-
-  function showError(msg) {
-    chatList.innerHTML = `<div class="chat-error">${msg}</div>`;
-  }
-
-  async function loadLatest() {
-    const { data, error } = await sb
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(70);
-
-    if (error) {
-      showError(`Could not load messages: ${error.message}`);
-      return;
-    }
-
-    chatList.innerHTML = '';
-    // show newest at bottom, so reverse the array for rendering
-    [...data].reverse().forEach(m => chatList.appendChild(msgEl(m)));
-    // scroll to bottom
-    chatList.scrollTop = chatList.scrollHeight;
-  }
-
-  async function sendMessage() {
-    const body = (chatInput.value || '').trim();
-    if (!body) return;
-
-    chatSend.disabled = true;
-
-    const payload = {
-      user_id: 'guest',                    // no auth in this mini-chat
-      username: getPlayerName(),
-      avatar_idx: getAvatarIdx(),
-      body
-    };
-
-    const { error } = await sb.from('messages').insert(payload);
-    if (error) {
-      alert(`Cannot send message: ${error.message}`);
-    } else {
-      chatInput.value = '';
-    }
-    chatSend.disabled = false;
-  }
-
-  // realtime updates — new message at once
-  const channel = sb.channel('realtime:public:messages')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-      chatList.appendChild(msgEl(payload.new));
-      chatList.scrollTop = chatList.scrollHeight;
-    })
-    .subscribe();
-
-  // open/close overlay
-  function openOverlay() {
-    overlay.classList.add('open');
-    overlay.setAttribute('aria-hidden', 'false');
-    loadLatest();
-    // focus input shortly after open
-    setTimeout(() => chatInput?.focus(), 60);
-  }
-  function closeOverlay() {
-    overlay.classList.remove('open');
-    overlay.setAttribute('aria-hidden', 'true');
-  }
-
-  userPill?.addEventListener('click', openOverlay);
-  chatCloseBtn?.addEventListener('click', closeOverlay);
-  overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
-  chatSend?.addEventListener('click', sendMessage);
-  chatInput?.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendMessage(); });
-
-  // Make sure the pill is visible and badge is positioned
-  document.getElementById('chatBadge70')?.classList.add('show');
-
-})();
-
 
 /* ===== FLAPPY BIRD ===== */
 (function(){
