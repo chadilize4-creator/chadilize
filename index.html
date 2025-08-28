@@ -6,61 +6,76 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ==== SOCIALIZE overlay (dark, sleek) ==== */
-#socialOverlay{ position:fixed; inset:0; display:none; z-index:9999; }
-#socialOverlay.show{ display:block; }
-#socialOverlay .backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); }
-
-.chat-panel{
-  position:absolute; inset:6% 4% auto 4%; bottom:6%;
-  background:linear-gradient(180deg,#0b0b0f,#111216);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:18px; overflow:hidden; box-shadow:0 25px 80px rgba(0,0,0,.6);
-  color:#e8eaf0; display:flex; flex-direction:column;
+/* ===== Socialize (black/grey theme) ===== */
+.socialize-overlay{
+  position:fixed; inset:0; z-index:1000;
+  background:radial-gradient(1200px 600px at 50% 0,#0e0e12 0%,#000 70%);
+  backdrop-filter:saturate(130%) blur(2px);
+  display:flex; align-items:center; justify-content:center; padding:16px;
 }
-.chat-header{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:14px 16px; background:linear-gradient(90deg,#121318,#0b0c12);
+.socialize-card{
+  width:min(820px,100%); height:min(80vh,100%);
+  background:linear-gradient(180deg,#121317 0%, #0b0c10 100%);
+  border:1px solid rgba(255,255,255,.06); border-radius:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.chat-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; background:linear-gradient(180deg,#161820,#111318);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
-.chat-title{ font-weight:800; letter-spacing:.4px; font-size:15px; color:#cfd3dc; }
-.chat-title b{ color:#9aa3b2; }
-.chat-close{ border:0; background:#181a21; color:#bac1cd; padding:8px 12px; border-radius:10px; cursor:pointer; }
-
-.msgs{ flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
-.msg{
-  background:linear-gradient(180deg,#15171d,#12141a);
-  border:1px solid rgba(255,255,255,.05);
-  border-radius:12px; padding:10px 12px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+.chat-head .title{ color:#e9ecf1; font-weight:800; letter-spacing:.3px; }
+.chat-head .title span{ color:#9aa3af; font-weight:600; }
+.ghost-btn{
+  padding:8px 12px; background:#0f1116; color:#cfd6dd; border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; cursor:pointer; transition:all .2s ease; font-weight:600;
 }
-.msg .meta{ font-size:11px; color:#8f97a6; margin-bottom:4px; }
-.msg .body{ font-size:14px; color:#e7ebf4; word-break:break-word; }
+.ghost-btn:hover{ transform:translateY(-1px); background:#151821; }
 
-.chat-inputbar{
-  display:flex; gap:10px; padding:12px; background:linear-gradient(180deg,#0f1116,#0c0e13);
+.chat-error{
+  color:#ff6b6b; background:rgba(255,107,107,.12); border-top:1px solid rgba(255,107,107,.25);
+  font-weight:700; padding:10px 16px;
+}
+.msg-list{
+  list-style:none; margin:0; padding:18px 14px; overflow:auto; flex:1 1 auto;
+  display:flex; flex-direction:column; gap:10px;
+  scrollbar-width:thin; scrollbar-color:#323644 transparent;
+}
+.msg-item{ display:block; }
+.bubble{
+  background:linear-gradient(180deg,#13161d,#0e1217); color:#dfe6ee;
+  border:1px solid rgba(255,255,255,.06); border-radius:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+  padding:10px 12px;
+}
+.meta{ color:#9aa3af; font-size:12px; margin-bottom:4px; }
+.body{ white-space:pre-wrap; word-wrap:break-word; }
+
+.composer{
+  display:grid; grid-template-columns:1fr max-content; gap:10px;
+  padding:12px; background:linear-gradient(180deg,#0f1116,#0b0d12);
   border-top:1px solid rgba(255,255,255,.06);
 }
-#chatText{
-  flex:1; border:1px solid rgba(255,255,255,.08); border-radius:12px;
-  background:rgba(15,17,22,.85); color:#eaf0ff; padding:12px 14px; outline:none;
-  box-shadow:0 0 0 3px rgba(55,115,255,0); transition:box-shadow .2s,border-color .2s;
+#msgInput{
+  background:#0b0e13; color:#e8eef6; border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:12px 14px; outline:none;
 }
-#chatText:focus{ border-color:#3d6cff; box-shadow:0 0 0 3px rgba(61,108,255,.22); }
-#chatSend{
-  border:0; border-radius:12px; padding:12px 18px; cursor:pointer;
-  background:linear-gradient(180deg,#2a6dff,#1d48d1);
-  color:#fff; font-weight:700; letter-spacing:.2px; box-shadow:0 8px 18px rgba(33,86,255,.35);
+#msgInput:focus{ border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.25); }
+.send-btn{
+  padding:12px 18px; border-radius:12px; border:none; cursor:pointer;
+  background:linear-gradient(180deg,#2f7efc,#1f5fe0); color:#fff; font-weight:800;
+  box-shadow:0 10px 30px rgba(47,126,252,.35);
 }
-.chat-error{ color:#ff8b87; padding:8px 14px; font-size:13px; }
+.send-btn:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
 
-/* Little red "70" badge on the wood rectangle */
-#userPill{ position:relative; } /* ensure positioned parent */
+/* Tiny red 70 badge on the wood rectangle */
+#userPill{ position:relative; }
 .pill-badge{
-  position:absolute; top:-6px; right:-6px; min-width:22px; height:22px;
-  padding:0 6px; background:#ff3040; color:#fff; border-radius:999px;
-  font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;
-  box-shadow:0 6px 16px rgba(255,48,64,.45), inset 0 0 0 1px rgba(255,255,255,.35);
+  position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 5px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#ef4444; color:#fff; font-size:11px; line-height:1; border-radius:999px;
+  box-shadow:0 4px 10px rgba(239,68,68,.5); font-weight:800; pointer-events:none;
 }
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
@@ -1093,6 +1108,26 @@ canvas{ display:block }
       </div>
     </div>
 
+<!-- Socialize overlay -->
+<div id="socialOverlay" class="socialize-overlay" style="display:none">
+  <div class="socialize-card">
+    <div class="chat-head">
+      <div class="title">SOCIALIZE — <span>Global Chat (last 70)</span></div>
+      <button id="chatClose" class="ghost-btn">Close</button>
+    </div>
+
+    <div id="chatError" class="chat-error" style="display:none"></div>
+
+    <ul id="msgList" class="msg-list"></ul>
+
+    <div class="composer">
+      <input id="msgInput" type="text" maxlength="500" placeholder="Type a message…" />
+      <button id="sendBtn" class="send-btn">Send</button>
+    </div>
+  </div>
+</div>
+
+
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
       <div class="panel">
@@ -1283,26 +1318,6 @@ canvas{ display:block }
         <p class="note">Eat food, avoid walls. Quit to collect session chads.</p>
       </div>
     </div>
-
-
-<!-- ==== SOCIALIZE: Global Chat (last 70) ==== -->
-<div id="socialOverlay" aria-hidden="true">
-  <div class="backdrop"></div>
-  <section class="chat-panel" role="dialog" aria-label="Global chat">
-    <header class="chat-header">
-      <div class="chat-title">SOCIALIZE — <b>Global Chat</b> (last <b>70</b>)</div>
-      <button class="chat-close" id="chatCloseBtn">Close</button>
-    </header>
-    <div id="chatErr" class="chat-error" style="display:none;"></div>
-    <div class="msgs" id="chatList"></div>
-    <div class="chat-inputbar">
-      <input id="chatText" type="text" maxlength="500" placeholder="Type a message…" />
-      <button id="chatSend">Send</button>
-    </div>
-  </section>
-</div>
-
-
 
     <!-- TETRIS Modal -->
     <div class="overlay" id="tetrisModal">
@@ -1644,7 +1659,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-<!-- Supabase JS (v2) -->
+<!-- Supabase JS v2 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== Telegram + loader ===== */
@@ -2758,106 +2773,118 @@ function buildGrid(container, cols, rows){
 })();
 
 (() => {
-  // === Config (your project) ===
+  // ===== 0) Supabase config =====
   const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // docs show createClient like this. 
 
-  // === UI elements ===
-  const pill = document.getElementById('userPill');          // your wood rectangle
-  const list = document.getElementById('chatList');
-  const input = document.getElementById('chatText');
-  const sendBtn = document.getElementById('chatSend');
-  const closeBtn = document.getElementById('chatCloseBtn');
+  // ===== 1) Stable user id (no profile/username needed) =====
+  function getUID(){
+    try{
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        return 'tg:' + window.Telegram.WebApp.initDataUnsafe.user.id;
+      }
+    }catch(e){}
+    const p = new URLSearchParams(location.search).get('uid');
+    if (p) return 'q:' + p;
+    let u = localStorage.getItem('global_chat_uid');
+    if (!u){ u = 'guest:' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('global_chat_uid', u); }
+    return u;
+  }
+  const USER_ID = getUID();
+
+  // ===== 2) Wire up UI =====
+  const pill = document.getElementById('userPill');
+  if (pill && !pill.querySelector('.pill-badge')){
+    const badge = document.createElement('span');
+    badge.className = 'pill-badge';
+    badge.textContent = '70';
+    pill.appendChild(badge);
+  }
+
   const overlay = document.getElementById('socialOverlay');
-  const errBox = document.getElementById('chatErr');
+  const closeBtn = document.getElementById('chatClose');
+  const ul = document.getElementById('msgList');
+  const input = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const errBox = document.getElementById('chatError');
 
-  // Add the little red 70 badge
-  (function addBadge(){
-    if (!pill) return;
-    if (!pill.querySelector('.pill-badge')) {
-      const b = document.createElement('span');
-      b.className = 'pill-badge';
-      b.textContent = '70';
-      pill.appendChild(b);
-    }
-  })();
+  let channel = null;
 
-  // Open / close overlay
-  function openChat(){ overlay.classList.add('show'); input?.focus(); }
-  function closeChat(){ overlay.classList.remove('show'); }
-  pill?.addEventListener('click', openChat);
-  closeBtn?.addEventListener('click', closeChat);
-  overlay.querySelector('.backdrop')?.addEventListener('click', closeChat);
+  function showOverlay(v){ overlay.style.display = v ? 'flex' : 'none'; }
+  function showError(msg){ errBox.textContent = msg; errBox.style.display = msg ? 'block' : 'none'; }
+  function esc(s){ return s.replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m])); }
+  function fmtTime(ts){ const d=new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
 
-  // Render helpers
-  function renderOne(msg){
-    const el = document.createElement('div');
-    el.className = 'msg';
-    const when = new Date(msg.created_at ?? Date.now());
-    el.innerHTML = `
-      <div class="meta">Player • ${when.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-      <div class="body"></div>`;
-    el.querySelector('.body').textContent = msg.body ?? '';
-    return el;
-  }
-  function showError(text){
-    errBox.textContent = text;
-    errBox.style.display = text ? 'block' : 'none';
+  function renderMessages(rows){
+    ul.innerHTML = '';
+    rows.forEach(r => addOne(r, true));
+    ul.scrollTop = ul.scrollHeight;
   }
 
-  // Load last 70
-  async function loadMessages(){
-    showError('');
-    list.innerHTML = '';
+  function addOne(row, skipScroll){
+    const li = document.createElement('li');
+    li.className = 'msg-item';
+    li.innerHTML = `
+      <div class="bubble">
+        <div class="meta">Player • ${fmtTime(row.created_at)}</div>
+        <div class="body">${esc(row.body)}</div>
+      </div>`;
+    ul.appendChild(li);
+    if (!skipScroll) ul.scrollTop = ul.scrollHeight;
+  }
+
+  async function loadLast70(){
     const { data, error } = await sb
       .from('messages')
       .select('id, body, created_at')
       .order('created_at', { ascending: false })
       .limit(70);
+
     if (error){ showError('Could not load messages: ' + error.message); return; }
-    // show oldest first
-    (data || []).reverse().forEach(m => list.appendChild(renderOne(m)));
-    list.scrollTop = list.scrollHeight;
+    showError('');
+    renderMessages((data||[]).reverse());
   }
 
-  // Realtime subscribe (v2 channel API)
-  const channel = sb.channel('global-chat')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'messages' },
-      (payload) => {
-        // Append the new one
-        const m = payload.new || payload.record || payload;
-        list.appendChild(renderOne(m));
-        // Trim the DOM list to last 70 for performance
-        while (list.children.length > 70) list.removeChild(list.firstChild);
-        list.scrollTop = list.scrollHeight;
-      }
-    )
-    .subscribe(); // uses v2 subscribe API  :contentReference[oaicite:2]{index=2}
+  function subscribeRealtime(){
+    if (channel) sb.removeChannel(channel);
+    channel = sb.channel('room:messages')
+      .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
+        addOne(payload.new);
+      })
+      .subscribe();
+  }
 
-  // Send message (always as "Player")
-  async function send(){
-    const text = (input.value || '').trim();
-    if (!text) return;
+  async function sendMessage(){
+    const body = input.value.trim();
+    if (!body) return;
     sendBtn.disabled = true;
-    try{
-      const { error } = await sb.from('messages').insert({ body: text });
-      if (error) throw error;
+    showError('');
+    const { error } = await sb.from('messages').insert({ body, user_id: USER_ID });
+    // ^ we always include user_id to satisfy NOT NULL (also table default 'anon' is set as a safety net)
+    if (error){
+      showError('Cannot send message: ' + error.message);
+    } else {
       input.value = '';
-    }catch(e){
-      showError('Cannot send message: ' + (e?.message || 'try again'));
-    }finally{
-      sendBtn.disabled = false;
-      input.focus();
     }
+    sendBtn.disabled = false;
   }
-  sendBtn?.addEventListener('click', send);
-  input?.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') send(); });
 
-  // Bootstrap once DOM is ready
-  document.addEventListener('DOMContentLoaded', loadMessages);
+  function openChat(){
+    showOverlay(true);
+    loadLast70();
+    subscribeRealtime();
+    setTimeout(()=> input?.focus(), 50);
+  }
+  function closeChat(){
+    showOverlay(false);
+    if (channel){ sb.removeChannel(channel); channel = null; }
+  }
+
+  pill?.addEventListener('click', openChat);
+  closeBtn?.addEventListener('click', closeChat);
+  sendBtn?.addEventListener('click', sendMessage);
+  input?.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
 })();
 
 /* ===== Snake ===== */
