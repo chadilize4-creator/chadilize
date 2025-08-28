@@ -6,83 +6,196 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ====== ChadNet styles (scoped) ====== */
-:root {
-  --bg: #0b0b0c;
-  --bg-2: #141416;
-  --bg-3: #1b1c1f;
-  --text: #e6e6e6;
-  --muted: #9aa0a6;
-  --accent: #0af;
-  --good: #19c37d;
-  --bad: #e44;
-  --silver: #c0c0c0;
-  --gold: #ffcc55;
-  --purple: #b388ff;
-  --green: #88ff88;
-}
+:root{
+    --bg:#0b0d10;
+    --panel:#0e1116cc;           /* glass panel (with backdrop blur) */
+    --panel-strong:#0e1116f2;
+    --text:#e6e8ee;
+    --muted:#9aa3b2;
+    --accent:#00ffa6;            /* neon mint */
+    --accent-2:#8b5cf6;          /* purple for crystal 2nd place */
+    --gold:#ffd54a;              /* gold glow */
+    --green:#22c55e;             /* emerald 3rd place */
+    --silver:#cbd5e1;            /* for places 4+ */
+    --danger:#ff3b30;
+    --warning:#ffb020;
+    --shadow: 0 10px 30px rgba(0,0,0,.45);
+    --radius: 18px;
+  }
+  /* Fullscreen root */
+  .hub {
+    position: fixed; inset: 0; z-index: 9999; display: none;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #1a1f2a55, transparent 60%),
+      radial-gradient(1200px 600px at 90% 110%, #0b3a3255, transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Oxanium', system-ui, sans-serif;
+    overflow: hidden;
+  }
+  .hub.open { display: grid; grid-template-rows: auto 1fr; }
 
-.chadnet-overlay[hidden] { display:none; }
-.chadnet-overlay {
-  position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.75);
-  display:flex; align-items:center; justify-content:center; padding:12px;
-}
-.chadnet-window {
-  width: min(960px, 96vw); height: min(90vh, 860px);
-  background:linear-gradient(180deg, var(--bg-2), var(--bg-3));
-  color:var(--text); border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.6);
-  display:flex; flex-direction:column; position:relative; overflow:hidden;
-}
-.chadnet-close { position:absolute; top:10px; right:12px; background:#222; color:#fff;
-  border:none; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:20px; }
-.chadnet-close.small { position:static; width:34px; height:34px; border-radius:8px; }
+  /* Top bar */
+  .hub-top {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 18px;
+    backdrop-filter: blur(12px);
+    background: linear-gradient(180deg, #0e111680, #0e111600);
+    border-bottom: 1px solid #1a2333;
+  }
+  .hub-title{
+    display:flex; gap:12px; align-items:center;
+    letter-spacing:.5px; font-weight:700;
+    text-transform: uppercase;
+  }
+  .glow-dot{width:10px;height:10px;border-radius:999px;background:var(--accent);
+    box-shadow:0 0 18px var(--accent), 0 0 42px var(--accent);}
+  .hub-close{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:42px; height:42px; border-radius:12px;
+    border:1px solid #2a3448; background:#12161f; color:#ff5c5c;
+    box-shadow: var(--shadow); cursor:pointer; transition:.18s ease;
+  }
+  .hub-close:hover{ transform: translateY(-1px); }
 
-.chadnet-tabs { display:flex; gap:8px; padding:12px; border-bottom:1px solid #2a2a2a; align-items:center; }
-.chadnet-tab { background:#202022; border:1px solid #2a2a2a; color:#ddd; padding:10px 14px; border-radius:10px; cursor:pointer; }
-.chadnet-tab.is-active { outline:2px solid var(--accent); }
-.chadnet-requests { margin-left:auto; background:#222; border:1px solid #333; border-radius:10px; padding:8px 12px; color:#ddd; }
-.badge { background:#e33; color:#fff; border-radius:999px; padding:2px 7px; margin-left:8px; font-size:12px; }
+  /* Tabs */
+  .hub-tabs{ display:flex; gap:10px; padding: 10px 14px; }
+  .hub-tab{
+    position:relative; padding:10px 14px; border-radius:12px; cursor:pointer;
+    background: #0e1116; border:1px solid #1d2738; color:var(--muted);
+    transition: .18s ease; user-select:none;
+  }
+  .hub-tab:hover{ color:var(--text); transform: translateY(-1px); }
+  .hub-tab.active{
+    color: var(--text);
+    background: linear-gradient(180deg,#141a22,#0d1117);
+    border-color:#2a364b; box-shadow: inset 0 1px 0 #2a364b, 0 8px 24px #00000055;
+  }
+  .badge{
+    position:absolute; top:-6px; right:-6px; background:#ff3b30; color:#fff; font-weight:700;
+    padding:2px 6px; border-radius:999px; font-size:11px; border:2px solid #0d1117;
+  }
 
-.chadnet-panel { flex:1; display:flex; flex-direction:column; }
-.chadnet-panel[hidden] { display:none; }
-.chadnet-feed { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
-.chadnet-card {
-  background:#151617; border:1px solid #24262a; border-radius:14px; padding:12px; display:flex; gap:12px; align-items:flex-start;
-}
-.avatar { width:46px; height:46px; border-radius:50%; background:#2a2d31; display:grid; place-items:center; font-weight:700; color:#fff; }
-.userline { display:flex; align-items:center; gap:8px; }
-.username { font-weight:700; }
-.msg { margin-top:4px; color:#ddd; word-break:break-word; }
-.small-btn { margin-left:auto; background:#222; color:#ddd; border:1px solid #333; border-radius:8px; padding:6px 8px; cursor:pointer; }
+  /* Panels grid */
+  .hub-body{ display:grid; grid-template-columns: 1fr; gap:12px; padding: 0 14px 18px; }
+  .panel{
+    height: calc(100vh - 120px);
+    background: var(--panel);
+    backdrop-filter: blur(16px) saturate(120%);
+    border: 1px solid #1f2a3c;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display:none;
+  }
+  .panel.active{ display:grid; grid-template-rows: auto 1fr auto; }
 
-.chadnet-inputbar { display:flex; gap:8px; padding:12px; border-top:1px solid #2a2a2a; background:#111; }
-.chadnet-inputbar input { flex:1; background:#1a1b1e; border:1px solid #2a2a2a; color:#fff; border-radius:10px; padding:10px; }
-button.primary { background:#2b76ff; border:0; color:#fff; border-radius:10px; padding:10px 14px; cursor:pointer; }
-button.secondary { background:#444; color:#fff; border:0; border-radius:10px; padding:10px 14px; }
-button.shine { background:linear-gradient(90deg,#f8d34f,#f7a64d); color:#000; font-weight:800; border:0; border-radius:10px; padding:8px 12px; }
+  /* Shared headers */
+  .panel-head{
+    padding:14px 16px; border-bottom:1px solid #1b2434; display:flex; align-items:center; gap:10px;
+    background: linear-gradient(180deg,#10151f,#0c1018);
+  }
+  .panel-head h3{ margin:0; font-weight:700; letter-spacing:.4px; }
+  .panel-inner{ overflow:auto; padding: 14px; }
 
-.chadnet-toplist { list-style:none; margin:0; padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:100%; }
-.rank { font-weight:800; margin-left:auto; }
-.rank.gold { color:var(--gold); filter:drop-shadow(0 0 3px rgba(255,204,85,.6)); }
-.rank.purple { color:var(--purple); filter:drop-shadow(0 0 3px rgba(179,136,255,.6)); }
-.rank.green { color:var(--green); filter:drop-shadow(0 0 3px rgba(136,255,136,.6)); }
-.rank.silver { color:var(--silver); }
+  /* Socialize list */
+  .msg{
+    display:grid; grid-template-columns: 56px 1fr auto; align-items:start; gap:12px;
+    padding:12px; border-radius:14px; background: #0f141e99; border:1px solid #1d2738; margin-bottom:10px;
+  }
+  .avatar{
+    width:56px; height:56px; border-radius:999px; display:grid; place-items:center;
+    background: linear-gradient(135deg,#1f2a3b,#111722); color:#bcd0ff; font-weight:700;
+    border:1px solid #2a3448; box-shadow: inset 0 0 12px #0006;
+  }
+  .msg-username{ font-weight:700; color:#dbe4ff; }
+  .msg-text{ color:#d0d7e3; line-height:1.35; }
+  .msg-time{ color:var(--muted); font-size:12px; margin-top:6px; }
+  .msg-actions .mini{
+    padding:8px 10px; border-radius:10px; border:1px solid #27344a; background:#121722; color:#cfe6ff; cursor:pointer;
+  }
+  .msg-actions .mini:hover{ transform: translateY(-1px); }
 
-.chadnet-friends { list-style:none; margin:0; padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:100%; }
+  .friend-cta{
+    margin-top:8px; display:inline-flex; align-items:center; gap:8px; font-size:13px;
+    padding:6px 10px; border-radius:999px; border:1px solid #2a364b; background:#0f1420; cursor:pointer;
+  }
+  .friend-cta:hover{ background:#12192a; }
 
-.chadnet-modal[hidden] { display:none; }
-.chadnet-modal { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; padding:12px; }
-.chadnet-modal-card { width:min(680px,96vw); max-height:85vh; overflow:hidden; background:#151617; color:#fff; border-radius:14px; border:1px solid #333; display:flex; flex-direction:column; }
-.chadnet-modal-card header { display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid #2a2a2a; }
-.chadnet-modal-card .spacer{flex:1}
-.chadnet-requests-list { padding:12px; max-height:70vh; overflow:auto; display:flex; flex-direction:column; gap:10px; }
-.chadnet-dm-feed { padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:60vh; }
-.xfer-body { padding:16px; display:flex; gap:12px; flex-direction:column; }
-.xfer-body .row { display:flex; gap:10px; }
+  .composer{
+    display:flex; gap:10px; padding:12px; border-top:1px solid #1b2434; background:#0f131b;
+  }
+  .input{
+    flex:1; background:#0d1117; border:1px solid #22304a; color:#e8eefc; padding:12px 14px; border-radius:12px;
+  }
+  .btn{
+    padding:12px 16px; border-radius:12px; background: linear-gradient(180deg,#0fe3a6,#01b77f);
+    color:#00120a; border:none; font-weight:800; text-transform:uppercase; letter-spacing:.4px; cursor:pointer;
+    box-shadow:0 6px 24px #00ffa640;
+  }
+  .btn:active{ transform: translateY(1px); }
 
-.chadnet-toasts { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:11000; }
-.toast { background:#222; color:#fff; border:1px solid #444; padding:10px 14px; border-radius:10px; opacity:.96; }
+  /* Friend requests flyout */
+  .requests-btn{
+    margin-left:auto; display:inline-flex; align-items:center; gap:8px;
+    background:#121722; border:1px solid #2a3448; color:#cfe6ff; padding:8px 12px; border-radius:10px;
+    cursor:pointer;
+  }
+  .fly{
+    position:fixed; right:14px; bottom:90px; width:min(460px,95vw);
+    background: var(--panel-strong); border:1px solid #29344a; border-radius:18px; box-shadow: var(--shadow);
+    display:none; max-height:60vh; overflow:auto;
+  }
+  .fly.open{ display:block; }
+  .req-item{
+    display:grid; grid-template-columns:56px 1fr auto; gap:12px; padding:12px; border-bottom:1px solid #1b2434;
+  }
+  .req-actions .accept{ background:#10331e; border:1px solid #1e8a4a; color:#b8ffd3; }
+  .req-actions .decl{ background:#2a1212; border:1px solid #a54848; color:#ffd6d6; }
+  .req-actions button{ padding:8px 10px; border-radius:10px; margin-left:8px; }
 
+  /* Leaderboard */
+  .rank-item{
+    display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center;
+    padding:12px; border-bottom:1px solid #172032;
+  }
+  .place{ font-weight:900; font-size:24px; min-width:48px; text-align:right; }
+  .p1{ color:var(--gold); text-shadow:0 0 12px rgba(255,213,74,.5); }
+  .p2{ color:var(--accent-2); text-shadow:0 0 12px rgba(139,92,246,.5); }
+  .p3{ color:var(--green); text-shadow:0 0 12px rgba(34,197,94,.5); }
+  .pN{ color:var(--silver); }
+
+  /* Friends list & DM */
+  .friend-row{
+    display:grid; grid-template-columns:56px 1fr auto; gap:12px; align-items:center;
+    padding:12px; border-bottom:1px solid #172032;
+  }
+  .msgbox{
+    position:fixed; inset: 10vh 14px 14px 14px; z-index: 10000; display:none;
+    background: var(--panel-strong); border:1px solid #283349; border-radius:18px; box-shadow: var(--shadow);
+    grid-template-rows: auto 1fr auto;
+  }
+  .msgbox.open{ display:grid; }
+  .msglog{ padding:12px; overflow:auto; }
+  .msglog .line{ margin:6px 0; }
+  .line.you{ text-align:right; }
+  .pill{
+    display:inline-block; padding:8px 12px; border-radius:999px; background:#0f1420; border:1px solid #24324e;
+  }
+  .cta-yellow{
+    background: radial-gradient(120% 120% at 30% 20%, #fff59d, #ffd54a 40%, #b88600 100%);
+    color:#2a1f00; font-weight:900; border: none; padding:10px 14px; border-radius:12px; cursor:pointer;
+    box-shadow:0 6px 28px rgba(255,213,74,.35);
+  }
+  .overlay{ position:fixed; inset:0; display:none; place-items:center; background:#0008; z-index: 10001; }
+  .overlay.open{ display:grid; }
+  .card{
+    background: var(--panel-strong); border:1px solid #2a3448; border-radius:18px; padding:18px; width:min(420px,92vw);
+    box-shadow: var(--shadow);
+  }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:20px; z-index:10002;
+    background:#141b26; border:1px solid #2a3448; color:#d7e6ff; padding:10px 14px; border-radius:12px; box-shadow:var(--shadow); }
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -1274,91 +1387,78 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- ===== Social Window (fullscreen) ===== -->
-<div id="chadnetOverlay" class="chadnet-overlay" aria-hidden="true" hidden>
-  <div class="chadnet-window" role="dialog" aria-modal="true">
-    <button id="chadnetClose" class="chadnet-close" aria-label="Close">✕</button>
-
-    <div class="chadnet-tabs" role="tablist" aria-label="ChadNet Sections">
-      <button class="chadnet-tab is-active" data-tab="social" role="tab" aria-selected="true">socialize</button>
-      <button class="chadnet-tab" data-tab="top" role="tab" aria-selected="false">top players</button>
-      <button class="chadnet-tab" data-tab="friends" role="tab" aria-selected="false">friends</button>
-      <button id="chadnetRequestsBtn" class="chadnet-requests">
-        friend requests <span id="chadnetReqBadge" class="badge" hidden>0</span>
-      </button>
+<div class="hub" id="socialHub" aria-hidden="true">
+  <div class="hub-top">
+    <div class="hub-title"><span class="glow-dot"></span> Social Hub</div>
+    <div class="hub-tabs" role="tablist">
+      <div class="hub-tab active" data-tab="socialize">socialize</div>
+      <div class="hub-tab" data-tab="leaders">top players</div>
+      <div class="hub-tab" data-tab="friends">friends</div>
+      <button class="requests-btn" id="openRequests">friend requests <span class="badge" id="reqBadge" style="display:none">0</span></button>
     </div>
+    <button class="hub-close" id="hubClose" aria-label="Close">✕</button>
+  </div>
 
-    <!-- ===== socialize ===== -->
-    <section id="chadnetSocial" class="chadnet-panel is-active" role="tabpanel">
-      <div id="chadnetFeed" class="chadnet-feed" aria-live="polite"></div>
-      <div class="chadnet-inputbar">
-        <input id="chadnetInput" type="text" maxlength="240" placeholder="say something…" />
-        <button id="chadnetSend" class="primary">send</button>
+  <div class="hub-body">
+    <!-- SOCIALIZE -->
+    <section class="panel active" id="panel-socialize" role="tabpanel">
+      <div class="panel-head"><h3>Socialize (global chat)</h3></div>
+      <div class="panel-inner" id="socialList"></div>
+      <div class="composer">
+        <input id="socialInput" class="input" placeholder="Say something to everyone…" maxlength="240">
+        <button id="socialSend" class="btn">Send</button>
       </div>
     </section>
 
-    <!-- ===== top players ===== -->
-    <section id="chadnetTop" class="chadnet-panel" role="tabpanel" hidden>
-      <ol id="chadnetTopList" class="chadnet-toplist"></ol>
+    <!-- LEADERS -->
+    <section class="panel" id="panel-leaders" role="tabpanel">
+      <div class="panel-head"><h3>Top Players</h3></div>
+      <div class="panel-inner" id="leadersList"></div>
+      <div class="composer" style="justify-content:flex-end;"><small class="muted">Top 50 by total chads</small></div>
     </section>
 
-    <!-- ===== friends ===== -->
-    <section id="chadnetFriends" class="chadnet-panel" role="tabpanel" hidden>
-      <ul id="chadnetFriendsList" class="chadnet-friends"></ul>
+    <!-- FRIENDS -->
+    <section class="panel" id="panel-friends" role="tabpanel">
+      <div class="panel-head"><h3>Your Friends</h3></div>
+      <div class="panel-inner" id="friendsList"></div>
+      <div class="composer"><small class="muted">Make friends from Socialize or the Leaderboard to DM.</small></div>
     </section>
   </div>
 </div>
 
-<!-- Friend Requests modal -->
-<div id="chadnetFRModal" class="chadnet-modal" aria-hidden="true" hidden>
-  <div class="chadnet-modal-card">
-    <header>
-      <h3>Friend Requests</h3>
-      <button class="chadnet-close small" data-close="fr">✕</button>
-    </header>
-    <div id="chadnetFRList" class="chadnet-requests-list"></div>
-  </div>
-</div>
+<!-- Friend Requests flyout -->
+<div class="fly" id="requestsFlyout" aria-hidden="true"></div>
 
-<!-- Direct Message modal -->
-<div id="chadnetDMModal" class="chadnet-modal" aria-hidden="true" hidden>
-  <div class="chadnet-modal-card dm">
-    <header>
-      <h3 id="chadnetDMTitle">Chat</h3>
-      <div class="spacer"></div>
-      <button id="chadnetTransferBtn" class="shine">send/receive chads</button>
-      <button class="chadnet-close small" data-close="dm">✕</button>
-    </header>
-    <div id="chadnetDMFeed" class="chadnet-dm-feed"></div>
-    <div class="chadnet-inputbar">
-      <input id="chadnetDMInput" type="text" maxlength="240" placeholder="message…" />
-      <button id="chadnetDMSend" class="primary">send</button>
+<!-- DM message box -->
+<div class="msgbox" id="dmBox" aria-hidden="true">
+  <div class="panel-head">
+    <h3 id="dmTitle">Chat</h3>
+    <div style="margin-left:auto; display:flex; gap:8px;">
+      <button class="cta-yellow" id="openTransfer">Send/Receive Chads</button>
+      <button class="hub-close" id="dmClose">✕</button>
     </div>
+  </div>
+  <div class="msglog" id="dmLog"></div>
+  <div class="composer">
+    <input id="dmInput" class="input" placeholder="Message..." maxlength="240">
+    <button id="dmSend" class="btn">Send</button>
   </div>
 </div>
 
 <!-- Transfer amount modal -->
-<div id="chadnetXferModal" class="chadnet-modal" aria-hidden="true" hidden>
-  <div class="chadnet-modal-card">
-    <header>
-      <h3>Chads transfer</h3>
-      <button class="chadnet-close small" data-close="xfer">✕</button>
-    </header>
-    <div class="xfer-body">
-      <label>enter the amount (max 1,000,000,000,000)</label>
-      <input id="chadnetXferAmount" type="number" min="1" max="1000000000000" step="1" />
-      <div class="row">
-        <button id="chadnetXferSend" class="primary">send</button>
-        <button id="chadnetXferRequest" class="secondary">receive</button>
-      </div>
-      <p class="muted">“send” = you send them chads. “receive” = you ask them to send you chads.</p>
+<div class="overlay" id="transferModal" aria-hidden="true">
+  <div class="card">
+    <h3 style="margin-top:0;">Chads Transfer</h3>
+    <p>Enter amount (max 1,000,000,000,000):</p>
+    <input id="transferAmount" class="input" type="number" min="1" max="1000000000000" placeholder="Amount">
+    <div class="grid2" style="margin-top:12px;">
+      <button class="cta-yellow" id="transferSend">Send</button>
+      <button class="btn" id="transferReceive" style="background:linear-gradient(180deg,#60a5fa,#2563eb); color:#001133;">Request to Receive</button>
     </div>
   </div>
 </div>
 
-<!-- Toasts -->
-<div id="chadnetToasts" class="chadnet-toasts" aria-live="polite"></div>
-
+<div id="toastArea"></div>
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -1728,7 +1828,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://esm.sh/@supabase/supabase-js@2"></script>
 <script>
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
@@ -2840,466 +2940,419 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-(() => {
-  // ====== CONFIG ======
+(function(){
+  /* ====== CONFIG ====== */
   const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
-  const SUPABASE_ANON = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+  const SUPABASE_ANON_KEY = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
 
-  // UI bits we already have in your page
-  const woodRect = document.querySelector('#userPill.wood-bg'); // wooden rectangle
-  const userNameEl = document.getElementById('userName');
-  const avatarTextEl = document.getElementById('avatarInitials');
-  const chadCountEl = document.getElementById('chadCount'); // your existing counter in the top bar
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // Docs: createClient :contentReference[oaicite:0]{index=0}
 
-  // ====== Supabase init & auth (Anonymous) ======
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  // session – anonymous sign-in so we get a real auth.uid()
-  let currentUser = null;
-  let profile = null;
-
-  async function ensureSession() {
-    const { data: sess } = await supabase.auth.getSession();
-    if (!sess.session) {
-      await supabase.auth.signInAnonymously(); // enable Anonymous provider in your Dashboard
-    }
-    const { data: { user } } = await supabase.auth.getUser();
-    currentUser = user;
-    return user;
-  }
-
-  // ====== Helpers ======
-  const qs  = (sel) => document.querySelector(sel);
-  const qsa = (sel) => Array.from(document.querySelectorAll(sel));
-  const overlay = qs('#chadnetOverlay');
-  const closeBtn = qs('#chadnetClose');
-  const tabs = qsa('.chadnet-tab');
+  /* ====== DOM HOOKS ====== */
+  const wood = document.getElementById('woodCard');       // your wooden rectangle
+  const hub  = document.getElementById('socialHub');
+  const hubClose = document.getElementById('hubClose');
+  const tabs = document.querySelectorAll('.hub-tab');
   const panels = {
-    social: qs('#chadnetSocial'),
-    top: qs('#chadnetTop'),
-    friends: qs('#chadnetFriends'),
+    socialize: document.getElementById('panel-socialize'),
+    leaders:   document.getElementById('panel-leaders'),
+    friends:   document.getElementById('panel-friends'),
   };
-  const feedEl = qs('#chadnetFeed');
-  const inputEl = qs('#chadnetInput');
-  const sendBtn = qs('#chadnetSend');
-  const reqBtn = qs('#chadnetRequestsBtn');
-  const reqBadge = qs('#chadnetReqBadge');
-  const frModal = qs('#chadnetFRModal');
-  const frList = qs('#chadnetFRList');
 
-  const topList = qs('#chadnetTopList');
-  const friendsList = qs('#chadnetFriendsList');
+  const socialList = document.getElementById('socialList');
+  const socialInput = document.getElementById('socialInput');
+  const socialSend = document.getElementById('socialSend');
 
-  const dmModal = qs('#chadnetDMModal');
-  const dmTitle = qs('#chadnetDMTitle');
-  const dmFeed = qs('#chadnetDMFeed');
-  const dmInput = qs('#chadnetDMInput');
-  const dmSend = qs('#chadnetDMSend');
-  const xferBtn = qs('#chadnetTransferBtn');
+  const openReqBtn = document.getElementById('openRequests');
+  const reqBadge = document.getElementById('reqBadge');
+  const fly = document.getElementById('requestsFlyout');
 
-  const xferModal = qs('#chadnetXferModal');
-  const xferAmount = qs('#chadnetXferAmount');
-  const xferSend = qs('#chadnetXferSend');
-  const xferRequest = qs('#chadnetXferRequest');
+  const friendsList = document.getElementById('friendsList');
+  const leadersList = document.getElementById('leadersList');
 
-  const toastStack = qs('#chadnetToasts');
+  const dmBox = document.getElementById('dmBox');
+  const dmTitle = document.getElementById('dmTitle');
+  const dmLog = document.getElementById('dmLog');
+  const dmInput = document.getElementById('dmInput');
+  const dmSend = document.getElementById('dmSend');
+  const dmClose = document.getElementById('dmClose');
 
-  // local chad balance (you already store this)
-  function getLocalChads() {
-    let n = localStorage.getItem('chadBalance') || "0";
-    return BigInt(n);
-  }
-  function setLocalChads(v) {
-    localStorage.setItem('chadBalance', String(v));
-    if (chadCountEl) chadCountEl.textContent = String(v);
-  }
+  const transferModal = document.getElementById('transferModal');
+  const transferAmount = document.getElementById('transferAmount');
+  const transferSend = document.getElementById('transferSend');
+  const transferReceive = document.getElementById('transferReceive');
+  const toastArea = document.getElementById('toastArea');
 
-  function toast(txt, ms=2500) {
-    const t = document.createElement('div');
-    t.className='toast';
-    t.textContent = txt;
-    toastStack.appendChild(t);
-    setTimeout(()=>t.remove(), ms);
-  }
+  /* ====== Local identity (UUID) & profile ====== */
+  const LS_ID = 'player_id';
+  const LS_USERNAME = 'player_username';
+  const LS_CHADS = 'chads'; // your local chad balance
 
-  function avatar(initials) {
-    const el = document.createElement('div');
-    el.className = 'avatar';
-    el.textContent = (initials || '?').slice(0,3).toUpperCase();
-    return el;
+  let ME = {
+    id: localStorage.getItem(LS_ID) || crypto.randomUUID(),
+    username: localStorage.getItem(LS_USERNAME) || (document.getElementById('userName')?.textContent?.trim() || ('Player_'+Math.floor(Math.random()*9999))),
+    avatar: (document.getElementById('avatarInitials')?.textContent?.trim() || '🙂')
+  };
+  localStorage.setItem(LS_ID, ME.id);
+  localStorage.setItem(LS_USERNAME, ME.username);
+
+  // ensure profile exists/up-to-date
+  async function upsertMyProfile(){
+    await supabase.from('profiles').upsert({
+      id: ME.id, username: ME.username, avatar_url: ME.avatar,
+      chad_balance: getLocalChads()
+    }, { onConflict: 'id' });
   }
 
-  function userDisplayName() {
-    return (userNameEl?.textContent || localStorage.getItem('playerName') || 'Player').trim();
+  function getLocalChads(){
+    const el = document.getElementById('chadCount');
+    let n = Number(localStorage.getItem(LS_CHADS) || el?.textContent || 0);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
   }
-  function avatarInitials() {
-    return (avatarTextEl?.textContent || localStorage.getItem('avatarInitials') || 'P').trim();
-  }
-
-  // ====== Profile sync ======
-  async function upsertProfile() {
-    const name = userDisplayName();
-    const av = avatarInitials();
-    const balance = getLocalChads();
-    const row = { id: currentUser.id, username: name, avatar: av, chad_balance: String(balance) };
-    const { data, error } = await supabase.from('profiles').upsert(row).select().single();
-    if (error) console.error(error);
-    profile = data || row;
+  function setLocalChads(v){
+    localStorage.setItem(LS_CHADS, String(v));
+    const el = document.getElementById('chadCount');
+    if (el) el.textContent = v;
   }
 
-  async function syncBalanceToCloud() {
-    const { error } = await supabase.from('profiles').update({ chad_balance: String(getLocalChads()) }).eq('id', currentUser.id);
-    if (error) console.error(error);
+  /* ====== Modal Open/Close ====== */
+  wood?.addEventListener('click', async ()=>{
+    await upsertMyProfile();
+    await refreshAll();
+    hub.classList.add('open');
+    hub.setAttribute('aria-hidden','false');
+  });
+  hubClose.addEventListener('click', closeHub);
+  function closeHub(){
+    hub.classList.remove('open');
+    hub.setAttribute('aria-hidden','true');
   }
 
-  // ====== Open / Close ======
-  function openOverlay() {
-    overlay.hidden = false; overlay.setAttribute('aria-hidden','false');
-    setTimeout(()=>overlay.focus(), 0);
-    // default tab
-    setTab('social');
-  }
-  function closeOverlay() {
-    overlay.hidden = true; overlay.setAttribute('aria-hidden','true');
-  }
+  /* ====== Tabs ====== */
+  tabs.forEach(t => t.addEventListener('click', ()=>{
+    tabs.forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const tab = t.dataset.tab;
+    Object.values(panels).forEach(p=>p.classList.remove('active'));
+    panels[tab].classList.add('active');
+    if(tab==='leaders') loadLeaders();
+    if(tab==='friends') loadFriends();
+  }));
 
-  // ====== Tabs ======
-  function setTab(key){
-    qsa('.chadnet-tab').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab===key));
-    Object.entries(panels).forEach(([k,el])=>{
-      const on = k===key; el.hidden = !on; el.classList.toggle('is-active', on);
-    });
-    if (key==='social') loadSocial();
-    if (key==='top') loadTop();
-    if (key==='friends') loadFriends();
+  /* ====== Toast helper ====== */
+  function toast(msg, ms=2200){
+    const d = document.createElement('div');
+    d.className = 'toast';
+    d.textContent = msg;
+    toastArea.appendChild(d);
+    setTimeout(()=>d.remove(), ms);
   }
 
-  tabs.forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.tab)));
-  closeBtn.addEventListener('click', closeOverlay);
-
-  // ====== Social (global) chat ======
-  let socialSub = null;
-
-  async function loadSocial() {
-    // fetch last 70
+  /* ====== Socialize (global chat) ====== */
+  async function loadSocial(){
     const { data, error } = await supabase
       .from('global_messages')
-      .select('id,text,created_at,sender:profiles(id,username,avatar)')
+      .select('id, text, created_at, sender_id, profiles!inner(username, avatar_url)')
       .order('created_at', { ascending:false })
       .limit(70);
-    if (error) return console.error(error);
-    renderFeed((data||[]).reverse());
-    subSocial(); // realtime
+    if(error){ console.error(error); return; }
+    socialList.innerHTML = '';
+    data.reverse().forEach(renderGlobalMessage);
   }
 
-  function renderFeed(rows){
-    feedEl.innerHTML = '';
-    rows.forEach(r => feedEl.appendChild(feedItem(r)));
-    feedEl.scrollTop = feedEl.scrollHeight;
+  function renderGlobalMessage(row){
+    const who = row.profiles || {};
+    const wrap = document.createElement('div');
+    wrap.className = 'msg';
+
+    const av = document.createElement('div');
+    av.className = 'avatar';
+    av.textContent = (who.avatar_url || '🙂').slice(0,2);
+    const body = document.createElement('div');
+    const un = document.createElement('div');
+    un.className = 'msg-username';
+    un.textContent = `@${who.username || 'player'}`;
+    const tx = document.createElement('div');
+    tx.className = 'msg-text';
+    tx.textContent = row.text;
+    const tm = document.createElement('div');
+    tm.className = 'msg-time';
+    tm.textContent = new Date(row.created_at).toLocaleTimeString();
+    body.append(un, tx, tm);
+
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    const fr = document.createElement('button');
+    fr.className = 'friend-cta';
+    fr.innerHTML = 'Send friend request';
+    fr.addEventListener('click', ()=> sendFriendReq(row.sender_id));
+    actions.appendChild(fr);
+
+    wrap.append(av, body, actions);
+    socialList.appendChild(wrap);
+    socialList.scrollTop = socialList.scrollHeight;
   }
 
-  function feedItem(r){
-    const card = document.createElement('div'); card.className='chadnet-card';
-    card.appendChild(avatar(r.sender?.avatar||'?'));
-    const col = document.createElement('div');
-    const userline = document.createElement('div'); userline.className='userline';
-    const name = document.createElement('div'); name.className='username'; name.textContent = r.sender?.username || 'Player';
-    const time = document.createElement('div'); time.className='time muted'; time.style.marginLeft='6px';
-    time.textContent = new Date(r.created_at).toLocaleTimeString();
-    const fr = document.createElement('button'); fr.className='small-btn'; fr.textContent='send friend request';
-    fr.addEventListener('click', ()=> sendFriendRequest(r.sender?.id));
-    userline.append(name, time, fr);
-    const msg = document.createElement('div'); msg.className='msg'; msg.textContent = r.text;
-    col.append(userline, msg); card.appendChild(col);
-    return card;
+  socialSend.addEventListener('click', sendGlobal);
+  socialInput.addEventListener('keydown', e => { if(e.key==='Enter') sendGlobal(); });
+
+  async function sendGlobal(){
+    const text = socialInput.value.trim();
+    if(!text) return;
+    socialInput.value = '';
+    const { error } = await supabase.from('global_messages').insert({
+      sender_id: ME.id, text
+    });
+    if(error){ console.error(error); toast('Failed to send'); }
   }
 
-  async function sendMessage() {
-    const text = inputEl.value.trim();
-    if (!text) return;
-    inputEl.value='';
-    await supabase.from('global_messages').insert({ text, sender: currentUser.id });
-  }
-  sendBtn.addEventListener('click', sendMessage);
-  inputEl.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
+  // realtime global feed
+  supabase.channel('global-feed')
+  .on('postgres_changes',{ event: 'INSERT', schema:'public', table:'global_messages' }, (payload)=>{
+    renderGlobalMessage(payload.new);
+  }).subscribe(); // Supabase realtime channels & postgres_changes :contentReference[oaicite:1]{index=1}
 
-  function subSocial(){
-    if (socialSub) supabase.removeChannel(socialSub);
-    socialSub = supabase.channel('global-msg')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_messages' }, (payload) => {
-        const r = payload.new;
-        const row = { ...r, sender: { id:r.sender, username: r.sender_username || r.username, avatar: r.sender_avatar || '?' } };
-        // we fetch the sender via view; but subscription only gives raw row. Re-query sender quickly:
-        supabase.from('profiles').select('id,username,avatar').eq('id', r.sender).maybeSingle().then(({data})=>{
-          row.sender = data || row.sender; 
-          feedEl.appendChild(feedItem(row));
-          // keep last 70 in UI
-          const items = feedEl.children;
-          while (items.length > 70) items[0].remove();
-          feedEl.scrollTop = feedEl.scrollHeight;
-        });
-      })
-      .subscribe();
+  /* ====== Friend Requests ====== */
+  async function sendFriendReq(to_id){
+    if (to_id === ME.id){ toast('That’s you 🙂'); return; }
+    const { error } = await supabase.from('friend_requests').insert({ from_id: ME.id, to_id });
+    if(error){ toast('Request already sent or error'); return; }
+    toast('Friend request sent');
+    updateReqBadge();
   }
 
-  // ====== Friend requests ======
-  async function sendFriendRequest(toId){
-    if (!toId || toId===currentUser.id) return;
-    const { error } = await supabase.from('friend_requests')
-      .upsert({ from_id: currentUser.id, to_id: toId, status: 'pending' }, { onConflict: 'from_id,to_id' });
-    if (!error) toast('friend request sent');
-  }
-
-  reqBtn.addEventListener('click', async ()=>{
-    const { data } = await supabase.from('friend_requests')
-      .select('id, from_id, to_id, created_at, from:profiles!friend_requests_from_id_fkey(id,username,avatar)')
-      .eq('to_id', currentUser.id)
-      .eq('status','pending')
-      .order('created_at', {ascending:false});
-    renderFRList(data||[]);
-    frModal.hidden=false; frModal.setAttribute('aria-hidden','false');
+  openReqBtn.addEventListener('click', async ()=>{
+    if (fly.classList.contains('open')) { fly.classList.remove('open'); return; }
+    await renderRequests();
+    fly.classList.add('open');
   });
 
-  function renderFRList(rows){
-    frList.innerHTML='';
-    if (!rows.length) { frList.innerHTML = '<p class="muted">No pending requests.</p>'; return; }
-    rows.forEach(r=>{
-      const card = document.createElement('div'); card.className='chadnet-card';
-      card.appendChild(avatar(r.from?.avatar||'?'));
-      const col = document.createElement('div');
-      const name = document.createElement('div'); name.className='username'; name.textContent = r.from?.username || 'Player';
-      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginTop='8px';
-      const accept = document.createElement('button'); accept.className='primary'; accept.textContent='accept friend request';
-      const decline = document.createElement('button'); decline.className='secondary'; decline.style.background='#3a1010'; decline.textContent='decline';
-      accept.addEventListener('click', ()=>acceptFR(r.id));
-      decline.addEventListener('click', ()=>declineFR(r.id));
-      row.append(accept, decline);
-      col.append(name, row); card.appendChild(col);
-      frList.appendChild(card);
+  async function renderRequests(){
+    const { data } = await supabase.from('friend_requests')
+      .select('id, from_id, profiles!friend_requests_from_id_fkey(username, avatar_url)')
+      .eq('to_id', ME.id).eq('status','pending').order('created_at', {ascending:false});
+    fly.innerHTML = data?.length ? '' : '<div style="padding:14px;">No friend requests</div>';
+    data?.forEach(r=>{
+      const row = document.createElement('div'); row.className='req-item';
+      const av = document.createElement('div'); av.className='avatar'; av.textContent = (r.profiles?.avatar_url || '🙂').slice(0,2);
+      const info = document.createElement('div'); info.innerHTML = `<div class="msg-username">@${r.profiles?.username||'player'}</div><div class="msg-time">wants to be your friend</div>`;
+      const act = document.createElement('div'); act.className='req-actions';
+      const ok = document.createElement('button'); ok.className='accept'; ok.textContent='Accept';
+      ok.addEventListener('click',()=> decideReq(r.id,'accepted'));
+      const no = document.createElement('button'); no.className='decl'; no.textContent='Decline';
+      no.addEventListener('click',()=> decideReq(r.id,'declined'));
+      act.append(ok,no);
+      row.append(av, info, act);
+      fly.appendChild(row);
     });
   }
-  async function acceptFR(id){
-    const { error } = await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', id);
-    if (!error) { toast('friend added'); refreshFriendBadge(); frModal.hidden=true; loadFriends(); }
-  }
-  async function declineFR(id){
-    const { error } = await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', id);
-    if (!error) { toast('request declined'); refreshFriendBadge(); frModal.hidden=true; }
-  }
-  qsa('.chadnet-close[data-close="fr"]').forEach(b=>b.addEventListener('click', ()=>{ frModal.hidden=true; }));
 
-  async function refreshFriendBadge(){
+  async function decideReq(id, status){
+    await supabase.from('friend_requests').update({ status }).eq('id', id);
+    toast(status==='accepted' ? 'Friend added' : 'Request declined');
+    await renderRequests();
+    await loadFriends();
+    updateReqBadge();
+  }
+
+  async function updateReqBadge(){
     const { count } = await supabase.from('friend_requests')
-      .select('*', { count: 'exact', head: true })
-      .eq('to_id', currentUser.id).eq('status','pending');
-    if (count>0){ reqBadge.hidden=false; reqBadge.textContent=String(count); } else { reqBadge.hidden=true; }
+      .select('*', { count:'exact', head:true })
+      .eq('to_id', ME.id).eq('status','pending');
+    if((count||0)>0){
+      reqBadge.style.display = 'inline-block';
+      reqBadge.textContent = count;
+    } else reqBadge.style.display = 'none';
   }
 
-  // realtime friend request badge
-  const frSub = supabase.channel('friends-reqs')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `to_id=eq.${currentUser?.id||'000'}` }, refreshFriendBadge)
-    .subscribe();
+  // realtime badge updates
+  supabase.channel('req-badge')
+  .on('postgres_changes',{ event:'INSERT', schema:'public', table:'friend_requests', filter: `to_id=eq.${ME.id}`}, updateReqBadge)
+  .on('postgres_changes',{ event:'UPDATE', schema:'public', table:'friend_requests', filter: `to_id=eq.${ME.id}`}, updateReqBadge)
+  .subscribe();
 
-  // ====== Top players ======
-  async function loadTop(){
-    const { data, error } = await supabase.from('profiles')
-      .select('id,username,avatar,chad_balance')
+  /* ====== Leaders ====== */
+  async function loadLeaders(){
+    const { data } = await supabase.from('profiles')
+      .select('id, username, avatar_url, chad_balance')
       .order('chad_balance',{ascending:false})
       .limit(50);
-    if (error) return console.error(error);
-    topList.innerHTML='';
-    (data||[]).forEach((p, i)=>{
-      const li = document.createElement('li'); li.className='chadnet-card';
-      li.appendChild(avatar(p.avatar||'?'));
-      const name = document.createElement('div'); name.className='username'; name.textContent = p.username;
-      const fr = document.createElement('button'); fr.className='small-btn'; fr.textContent='send friend request';
-      fr.addEventListener('click', ()=> sendFriendRequest(p.id));
-      const rank = document.createElement('div'); rank.className='rank';
-      rank.textContent = `#${i+1}`;
-      if (i===0) rank.classList.add('gold');
-      else if (i===1) rank.classList.add('purple');
-      else if (i===2) rank.classList.add('green');
-      else rank.classList.add('silver');
-      li.append(name, fr, rank);
-      topList.appendChild(li);
+    leadersList.innerHTML='';
+    data?.forEach((p, idx)=>{
+      const row = document.createElement('div'); row.className='rank-item';
+      const av = document.createElement('div'); av.className='avatar'; av.textContent=(p.avatar_url||'🙂').slice(0,2);
+      const info = document.createElement('div'); info.innerHTML = `<div class="msg-username">@${p.username}</div><div class="msg-time">${Number(p.chad_balance).toLocaleString()} chads</div>`;
+      const place = document.createElement('div'); place.className='place ' + (idx===0?'p1':idx===1?'p2':idx===2?'p3':'pN'); place.textContent = '#'+(idx+1);
+      const fr = document.createElement('button'); fr.className='friend-cta'; fr.textContent='Send friend request';
+      fr.addEventListener('click',()=>sendFriendReq(p.id));
+      const wrapAct = document.createElement('div'); wrapAct.append(fr);
+      row.append(av, info, place);
+      leadersList.appendChild(row);
+      row.appendChild(wrapAct);
     });
   }
 
-  // ====== Friends list ======
+  /* ====== Friends List ====== */
+  function otherOf(me, a, b){ return a===me ? b : a; }
+
   async function loadFriends(){
-    // accepted both directions
-    const { data: out } = await supabase.from('friend_requests')
-      .select('to:profiles(id,username,avatar)')
-      .eq('from_id', currentUser.id).eq('status','accepted');
-    const { data: inn } = await supabase.from('friend_requests')
-      .select('from:profiles(id,username,avatar)')
-      .eq('to_id', currentUser.id).eq('status','accepted');
+    // Accepted friend_requests where I am from_id or to_id
+    const { data } = await supabase.from('friend_requests')
+      .select('id, from_id, to_id, status, profiles!friend_requests_from_id_fkey(username, avatar_url), profiles!friend_requests_to_id_fkey(username, avatar_url)')
+      .or(`from_id.eq.${ME.id},to_id.eq.${ME.id}`)
+      .eq('status','accepted')
+      .order('created_at', {ascending:false});
 
-    const friends = [];
-    (out||[]).forEach(r => friends.push(r.to));
-    (inn||[]).forEach(r => friends.push(r.from));
-
-    friendsList.innerHTML='';
-    friends.forEach(f=>{
-      const li = document.createElement('li'); li.className='chadnet-card';
-      li.appendChild(avatar(f.avatar||'?'));
-      const name = document.createElement('div'); name.className='username'; name.textContent=f.username;
-      const btn = document.createElement('button'); btn.className='small-btn'; btn.textContent='send message';
-      btn.addEventListener('click', ()=> openDM(f));
-      li.append(name, btn);
-      friendsList.appendChild(li);
+    const uniq = new Map();
+    (data||[]).forEach(r=>{
+      const other = r.from_id===ME.id ? r.to_id : r.from_id;
+      if(!uniq.has(other)) uniq.set(other, r);
     });
+
+    friendsList.innerHTML = '';
+    for (const [otherId, r] of uniq.entries()){
+      const otherName = r.from_id===ME.id ? r.profiles_2?.username : r.profiles?.username;
+      const otherAvatar = r.from_id===ME.id ? r.profiles_2?.avatar_url : r.profiles?.avatar_url;
+
+      const row = document.createElement('div'); row.className='friend-row';
+      const av = document.createElement('div'); av.className='avatar'; av.textContent=(otherAvatar||'🙂').slice(0,2);
+      const info = document.createElement('div'); info.innerHTML = `<div class="msg-username">@${otherName||'friend'}</div>`;
+      const act = document.createElement('div');
+      const btn = document.createElement('button'); btn.className='friend-cta'; btn.textContent='Send message';
+      btn.addEventListener('click',()=> openDM(otherId, otherName||'friend', otherAvatar||'🙂'));
+      act.appendChild(btn);
+      row.append(av, info, act);
+      friendsList.appendChild(row);
+    }
   }
 
-  // ====== DMs ======
-  let dmPeer = null;
-  let dmSub = null;
+  /* ====== DM ====== */
+  function convKey(a,b){ return [a,b].sort().join('_'); }
 
-  async function openDM(f){
-    dmPeer = f;
-    dmTitle.textContent = `Chat with ${f.username}`;
-    dmModal.hidden=false; dmModal.setAttribute('aria-hidden','false');
-    // load last 100 messages both directions
-    const { data, error } = await supabase.from('direct_messages')
-      .select('id,text,created_at,from_id,to_id')
-      .or(`and(from_id.eq.${currentUser.id},to_id.eq.${f.id}),and(from_id.eq.${f.id},to_id.eq.${currentUser.id})`)
-      .order('created_at', {ascending:false})
-      .limit(100);
-    if (error) console.error(error);
-    renderDM((data||[]).reverse());
-    subDM();
+  let currentDM = null;
+  async function openDM(otherId, otherName, otherAv){
+    currentDM = { otherId, key: convKey(ME.id, otherId), otherName, otherAv };
+    dmTitle.textContent = `@${otherName}`;
+    dmLog.innerHTML = '';
+    dmBox.classList.add('open'); dmBox.setAttribute('aria-hidden','false');
+
+    const { data } = await supabase.from('dm_messages')
+      .select('*')
+      .eq('conversation_key', currentDM.key)
+      .order('created_at',{ascending:true}).limit(200);
+
+    (data||[]).forEach(renderDM);
+
+    // subscribe
+    supabase.channel('dm-'+currentDM.key)
+      .on('postgres_changes',{event:'INSERT', schema:'public', table:'dm_messages', filter:`conversation_key=eq.${currentDM.key}`}, (p)=>renderDM(p.new))
+      .subscribe();
   }
-  function renderDM(rows){
-    dmFeed.innerHTML='';
-    rows.forEach(m=>dmFeed.appendChild(dmItem(m)));
-    dmFeed.scrollTop = dmFeed.scrollHeight;
-  }
-  function dmItem(m){
-    const card = document.createElement('div'); card.className='chadnet-card';
-    const fromMe = m.from_id === currentUser.id;
-    card.style.borderColor = fromMe ? '#2b76ff' : '#333';
-    const who = document.createElement('div'); who.className='username'; who.textContent = fromMe ? 'you' : dmPeer.username;
-    const msg = document.createElement('div'); msg.className='msg'; msg.textContent = m.text;
-    card.append(who, msg);
-    return card;
-  }
-  async function sendDM() {
-    const text = dmInput.value.trim(); if (!text) return;
-    dmInput.value='';
-    await supabase.from('direct_messages').insert({ text, from_id: currentUser.id, to_id: dmPeer.id });
+  dmClose.addEventListener('click', ()=>{ dmBox.classList.remove('open'); dmBox.setAttribute('aria-hidden','true'); });
+
+  function renderDM(m){
+    const line = document.createElement('div');
+    line.className = 'line ' + (m.sender_id===ME.id ? 'you':'them');
+    const bubble = document.createElement('span');
+    bubble.className = 'pill';
+    bubble.textContent = m.text;
+    line.appendChild(bubble);
+    dmLog.appendChild(line);
+    dmLog.scrollTop = dmLog.scrollHeight;
   }
   dmSend.addEventListener('click', sendDM);
   dmInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
-
-  function subDM(){
-    if (dmSub) supabase.removeChannel(dmSub);
-    dmSub = supabase.channel('dm-'+dmPeer.id)
-      .on('postgres_changes', {
-        event: 'INSERT', schema:'public', table:'direct_messages',
-        filter: `or(and(from_id.eq.${currentUser.id},to_id.eq.${dmPeer.id}),and(from_id.eq.${dmPeer.id},to_id.eq.${currentUser.id}))`
-      }, (payload)=>{
-        dmFeed.appendChild(dmItem(payload.new));
-        dmFeed.scrollTop = dmFeed.scrollHeight;
-      }).subscribe();
-  }
-  qsa('.chadnet-close[data-close="dm"]').forEach(b=>b.addEventListener('click', ()=>{ dmModal.hidden=true; if(dmSub) supabase.removeChannel(dmSub); }));
-
-  // ====== Transfers ======
-  xferBtn.addEventListener('click', ()=>{
-    xferAmount.value=''; xferModal.hidden=false; xferModal.setAttribute('aria-hidden','false');
-  });
-  qsa('.chadnet-close[data-close="xfer"]').forEach(b=>b.addEventListener('click', ()=> xferModal.hidden=true));
-
-  function parseAmt(){
-    const n = BigInt(xferAmount.value || '0');
-    if (n<=0n) { toast('enter a positive amount'); return null; }
-    if (n>1000000000000n) { toast('max is 1,000,000,000,000'); return null; }
-    return n;
-  }
-
-  async function requestTransfer(direction){
-    const amt = parseAmt(); if (!amt) return;
-    xferModal.hidden=true;
-    const payload = { direction, requester: currentUser.id, counterparty: dmPeer.id, amount: String(amt), status:'pending' };
-    const { error } = await supabase.from('chad_transfers').insert(payload);
-    if (!error) {
-      const text = direction==='send'
-        ? `requested to send ${amt} chads`
-        : `requested to receive ${amt} chads`;
-      await supabase.from('direct_messages').insert({ text, from_id: currentUser.id, to_id: dmPeer.id });
-    }
-  }
-  xferSend.addEventListener('click', ()=>requestTransfer('send'));
-  xferRequest.addEventListener('click', ()=>requestTransfer('receive'));
-
-  // Listen for transfer actions targeting me to show accept/decline prompts in DM
-  const xferSub = supabase.channel('xfer')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chad_transfers', filter: `counterparty=eq.${currentUser?.id||'000'}` }, refreshDMTransfers)
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chad_transfers', filter: `or(requester.eq.${currentUser?.id||'000'},counterparty.eq.${currentUser?.id||'000'})` }, refreshDMTransfers)
-    .subscribe();
-
-  async function refreshDMTransfers(){
-    if (!dmPeer) return;
-    // Add small “requests” rows for pending transfers in this convo
-    const { data } = await supabase.from('chad_transfers')
-      .select('*')
-      .or(`and(requester.eq.${currentUser.id},counterparty.eq.${dmPeer.id}),and(requester.eq.${dmPeer.id},counterparty.eq.${currentUser.id})`)
-      .order('created_at', {ascending:true}).limit(50);
-    // Remove old request rows then add the latest at the end
-    // (Keep simple: append info line items)
-    (data||[]).forEach(t=>{
-      if (t.status!=='pending') return;
-      const card = document.createElement('div'); card.className='chadnet-card';
-      const ask = (t.direction==='send')
-        ? `${t.requester===currentUser.id?'you':dmPeer.username} want(s) to send ${t.amount} chads`
-        : `${t.requester===currentUser.id?'you':dmPeer.username} request(s) to receive ${t.amount} chads from ${t.requester===currentUser.id?dmPeer.username:'you'}`;
-      const txt = document.createElement('div'); txt.className='msg'; txt.textContent = ask;
-      card.appendChild(txt);
-      if (t.counterparty === currentUser.id) {
-        const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginLeft='auto';
-        const accept = document.createElement('button'); accept.className='primary'; accept.textContent='accept';
-        const decline = document.createElement('button'); decline.className='secondary'; decline.style.background='#3a1010'; decline.textContent='decline';
-        accept.addEventListener('click', ()=>applyTransfer(t.id));
-        decline.addEventListener('click', ()=>declineTransfer(t.id));
-        row.append(accept, decline); card.appendChild(row);
-      }
-      dmFeed.appendChild(card);
-      dmFeed.scrollTop = dmFeed.scrollHeight;
+  async function sendDM(){
+    if(!currentDM) return;
+    const text = dmInput.value.trim();
+    if(!text) return;
+    dmInput.value='';
+    await supabase.from('dm_messages').insert({
+      conversation_key: currentDM.key,
+      sender_id: ME.id,
+      recipient_id: currentDM.otherId,
+      text
     });
   }
 
-  async function applyTransfer(id){
-    const { error } = await supabase.rpc('apply_transfer', { p_transfer_id: id });
-    if (error) {
-      if (String(error.message).includes('insufficient')) toast('not enough chads');
-      else console.error(error);
-    } else {
-      // sync local
-      await pullBalance(); toast('transfer complete'); loadTop();
+  /* ====== Transfer (Send/Receive Chads) ====== */
+  document.getElementById('openTransfer').addEventListener('click', ()=>{ transferModal.classList.add('open'); });
+  transferModal.addEventListener('click', (e)=>{ if(e.target===transferModal) transferModal.classList.remove('open'); });
+
+  async function createTransfer(direction){
+    const amount = Number(transferAmount.value);
+    if(!currentDM){ toast('Open a conversation first'); return; }
+    if(!Number.isFinite(amount) || amount<=0 || amount>1_000_000_000_000){ toast('Bad amount'); return; }
+    transferModal.classList.remove('open');
+    const from_id = ME.id;
+    const to_id = currentDM.otherId;
+    const { data, error } = await supabase.from('chad_transfers')
+      .insert({ from_id, to_id, amount, direction })
+      .select().single();
+    if(error){ console.error(error); toast('Could not create transfer'); return; }
+    // Drop a DM line describing the request
+    const text = direction==='send'
+      ? `requested to SEND you ${amount.toLocaleString()} chads. [accept/decline in this DM]`
+      : `requested to RECEIVE ${amount.toLocaleString()} chads from you. [accept/decline in this DM]`;
+    await supabase.from('dm_messages').insert({
+      conversation_key: currentDM.key, sender_id: ME.id, recipient_id: currentDM.otherId, text
+    });
+    toast('Transfer request sent');
+  }
+  transferSend.addEventListener('click', ()=>createTransfer('send'));
+  transferReceive.addEventListener('click', ()=>createTransfer('receive'));
+
+  // Listen for transfer decision keywords typed back as bot would — but we’ll accept via buttons:
+  // We’ll render actionable buttons when we encounter a transfer with status pending for me.
+  // Small poll to surface pending requests in this DM:
+  async function hydratePendingTransfers(){
+    if(!currentDM) return;
+    const { data } = await supabase.from('chad_transfers')
+      .select('*')
+      .or(`from_id.eq.${ME.id},to_id.eq.${ME.id}`)
+      .eq('status','pending')
+      .order('created_at',{ascending:true});
+    (data||[]).forEach(t=>{
+      const iAmCounterparty = (t.to_id===ME.id);
+      const inThisDM = (t.from_id===currentDM.otherId || t.to_id===currentDM.otherId);
+      if(!iAmCounterparty || !inThisDM) return;
+
+      const line = document.createElement('div'); line.className='line them';
+      const box = document.createElement('span'); box.className='pill';
+      box.innerHTML = (t.direction==='send'
+        ? `@${currentDM.otherName} wants to SEND you <b>${t.amount.toLocaleString()}</b> chads.`
+        : `@${currentDM.otherName} asks to RECEIVE <b>${t.amount.toLocaleString()}</b> chads from you.`);
+      const ok = document.createElement('button'); ok.className='friend-cta'; ok.textContent='Accept';
+      const no = document.createElement('button'); no.className='friend-cta'; no.textContent='Decline';
+      ok.addEventListener('click', ()=> decideTransfer(t.id,'accept'));
+      no.addEventListener('click', ()=> decideTransfer(t.id,'decline'));
+      line.append(box, document.createTextNode(' '), ok, document.createTextNode(' '), no);
+      dmLog.append(line);
+      dmLog.scrollTop = dmLog.scrollHeight;
+    });
+  }
+  async function decideTransfer(id, decision){
+    const { data, error } = await supabase.rpc('accept_transfer', { p_transfer_id: id, p_acceptor: ME.id, p_decision: decision });
+    if(error){ console.error(error); toast('Error processing'); return; }
+    if(!data?.ok){
+      if(data?.reason==='insufficient_funds'){ toast('not enough chads'); }
+      else toast('action not allowed');
+      return;
     }
-  }
-  async function declineTransfer(id){
-    const { error } = await supabase.rpc('decline_transfer', { p_transfer_id: id });
-    if (!error) toast('request declined');
-  }
-
-  async function pullBalance(){
-    const { data } = await supabase.from('profiles').select('chad_balance').eq('id', currentUser.id).single();
-    if (data) setLocalChads(BigInt(data.chad_balance));
+    // refresh my balance from server
+    const { data: me } = await supabase.from('profiles').select('chad_balance').eq('id', ME.id).single();
+    if(me){ setLocalChads(Number(me.chad_balance)); }
+    await loadLeaders();
+    toast(data.status==='accepted' ? 'Transfer completed' : 'Declined');
+    hydratePendingTransfers();
   }
 
-  // ====== Boot ======
-  async function boot(){
-    await ensureSession();
-    await upsertProfile();
-    await syncBalanceToCloud();
-    await refreshFriendBadge();
+  /* ====== Refresh all on open ====== */
+  async function refreshAll(){
+    await Promise.all([loadSocial(), loadLeaders(), loadFriends(), updateReqBadge()]);
   }
 
-  // open on wooden rectangle tap
-  woodRect?.addEventListener('click', async ()=>{
-    await boot(); openOverlay(); loadSocial();
-  });
+  // initial silent sync (in case user never opens the hub)
+  upsertMyProfile();
 
 })();
 
@@ -6497,5 +6550,7 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 /* expose */
 window.closeOverlay = closeOverlay;
 </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700&display=swap" rel="stylesheet">
 </body>
 </html>
