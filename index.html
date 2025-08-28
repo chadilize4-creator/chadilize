@@ -6,6 +6,83 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ====== ChadNet styles (scoped) ====== */
+:root {
+  --bg: #0b0b0c;
+  --bg-2: #141416;
+  --bg-3: #1b1c1f;
+  --text: #e6e6e6;
+  --muted: #9aa0a6;
+  --accent: #0af;
+  --good: #19c37d;
+  --bad: #e44;
+  --silver: #c0c0c0;
+  --gold: #ffcc55;
+  --purple: #b388ff;
+  --green: #88ff88;
+}
+
+.chadnet-overlay[hidden] { display:none; }
+.chadnet-overlay {
+  position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.75);
+  display:flex; align-items:center; justify-content:center; padding:12px;
+}
+.chadnet-window {
+  width: min(960px, 96vw); height: min(90vh, 860px);
+  background:linear-gradient(180deg, var(--bg-2), var(--bg-3));
+  color:var(--text); border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.6);
+  display:flex; flex-direction:column; position:relative; overflow:hidden;
+}
+.chadnet-close { position:absolute; top:10px; right:12px; background:#222; color:#fff;
+  border:none; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:20px; }
+.chadnet-close.small { position:static; width:34px; height:34px; border-radius:8px; }
+
+.chadnet-tabs { display:flex; gap:8px; padding:12px; border-bottom:1px solid #2a2a2a; align-items:center; }
+.chadnet-tab { background:#202022; border:1px solid #2a2a2a; color:#ddd; padding:10px 14px; border-radius:10px; cursor:pointer; }
+.chadnet-tab.is-active { outline:2px solid var(--accent); }
+.chadnet-requests { margin-left:auto; background:#222; border:1px solid #333; border-radius:10px; padding:8px 12px; color:#ddd; }
+.badge { background:#e33; color:#fff; border-radius:999px; padding:2px 7px; margin-left:8px; font-size:12px; }
+
+.chadnet-panel { flex:1; display:flex; flex-direction:column; }
+.chadnet-panel[hidden] { display:none; }
+.chadnet-feed { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+.chadnet-card {
+  background:#151617; border:1px solid #24262a; border-radius:14px; padding:12px; display:flex; gap:12px; align-items:flex-start;
+}
+.avatar { width:46px; height:46px; border-radius:50%; background:#2a2d31; display:grid; place-items:center; font-weight:700; color:#fff; }
+.userline { display:flex; align-items:center; gap:8px; }
+.username { font-weight:700; }
+.msg { margin-top:4px; color:#ddd; word-break:break-word; }
+.small-btn { margin-left:auto; background:#222; color:#ddd; border:1px solid #333; border-radius:8px; padding:6px 8px; cursor:pointer; }
+
+.chadnet-inputbar { display:flex; gap:8px; padding:12px; border-top:1px solid #2a2a2a; background:#111; }
+.chadnet-inputbar input { flex:1; background:#1a1b1e; border:1px solid #2a2a2a; color:#fff; border-radius:10px; padding:10px; }
+button.primary { background:#2b76ff; border:0; color:#fff; border-radius:10px; padding:10px 14px; cursor:pointer; }
+button.secondary { background:#444; color:#fff; border:0; border-radius:10px; padding:10px 14px; }
+button.shine { background:linear-gradient(90deg,#f8d34f,#f7a64d); color:#000; font-weight:800; border:0; border-radius:10px; padding:8px 12px; }
+
+.chadnet-toplist { list-style:none; margin:0; padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:100%; }
+.rank { font-weight:800; margin-left:auto; }
+.rank.gold { color:var(--gold); filter:drop-shadow(0 0 3px rgba(255,204,85,.6)); }
+.rank.purple { color:var(--purple); filter:drop-shadow(0 0 3px rgba(179,136,255,.6)); }
+.rank.green { color:var(--green); filter:drop-shadow(0 0 3px rgba(136,255,136,.6)); }
+.rank.silver { color:var(--silver); }
+
+.chadnet-friends { list-style:none; margin:0; padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:100%; }
+
+.chadnet-modal[hidden] { display:none; }
+.chadnet-modal { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; padding:12px; }
+.chadnet-modal-card { width:min(680px,96vw); max-height:85vh; overflow:hidden; background:#151617; color:#fff; border-radius:14px; border:1px solid #333; display:flex; flex-direction:column; }
+.chadnet-modal-card header { display:flex; align-items:center; gap:10px; padding:12px; border-bottom:1px solid #2a2a2a; }
+.chadnet-modal-card .spacer{flex:1}
+.chadnet-requests-list { padding:12px; max-height:70vh; overflow:auto; display:flex; flex-direction:column; gap:10px; }
+.chadnet-dm-feed { padding:12px; display:flex; flex-direction:column; gap:10px; overflow:auto; height:60vh; }
+.xfer-body { padding:16px; display:flex; gap:12px; flex-direction:column; }
+.xfer-body .row { display:flex; gap:10px; }
+
+.chadnet-toasts { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; z-index:11000; }
+.toast { background:#222; color:#fff; border:1px solid #444; padding:10px 14px; border-radius:10px; opacity:.96; }
+
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
 .luck-btn-wrap{
   width:max(100px, 31vw);
@@ -1197,6 +1274,90 @@ canvas{ display:block }
       </div>
     </div>
 
+<!-- ===== Social Window (fullscreen) ===== -->
+<div id="chadnetOverlay" class="chadnet-overlay" aria-hidden="true" hidden>
+  <div class="chadnet-window" role="dialog" aria-modal="true">
+    <button id="chadnetClose" class="chadnet-close" aria-label="Close">✕</button>
+
+    <div class="chadnet-tabs" role="tablist" aria-label="ChadNet Sections">
+      <button class="chadnet-tab is-active" data-tab="social" role="tab" aria-selected="true">socialize</button>
+      <button class="chadnet-tab" data-tab="top" role="tab" aria-selected="false">top players</button>
+      <button class="chadnet-tab" data-tab="friends" role="tab" aria-selected="false">friends</button>
+      <button id="chadnetRequestsBtn" class="chadnet-requests">
+        friend requests <span id="chadnetReqBadge" class="badge" hidden>0</span>
+      </button>
+    </div>
+
+    <!-- ===== socialize ===== -->
+    <section id="chadnetSocial" class="chadnet-panel is-active" role="tabpanel">
+      <div id="chadnetFeed" class="chadnet-feed" aria-live="polite"></div>
+      <div class="chadnet-inputbar">
+        <input id="chadnetInput" type="text" maxlength="240" placeholder="say something…" />
+        <button id="chadnetSend" class="primary">send</button>
+      </div>
+    </section>
+
+    <!-- ===== top players ===== -->
+    <section id="chadnetTop" class="chadnet-panel" role="tabpanel" hidden>
+      <ol id="chadnetTopList" class="chadnet-toplist"></ol>
+    </section>
+
+    <!-- ===== friends ===== -->
+    <section id="chadnetFriends" class="chadnet-panel" role="tabpanel" hidden>
+      <ul id="chadnetFriendsList" class="chadnet-friends"></ul>
+    </section>
+  </div>
+</div>
+
+<!-- Friend Requests modal -->
+<div id="chadnetFRModal" class="chadnet-modal" aria-hidden="true" hidden>
+  <div class="chadnet-modal-card">
+    <header>
+      <h3>Friend Requests</h3>
+      <button class="chadnet-close small" data-close="fr">✕</button>
+    </header>
+    <div id="chadnetFRList" class="chadnet-requests-list"></div>
+  </div>
+</div>
+
+<!-- Direct Message modal -->
+<div id="chadnetDMModal" class="chadnet-modal" aria-hidden="true" hidden>
+  <div class="chadnet-modal-card dm">
+    <header>
+      <h3 id="chadnetDMTitle">Chat</h3>
+      <div class="spacer"></div>
+      <button id="chadnetTransferBtn" class="shine">send/receive chads</button>
+      <button class="chadnet-close small" data-close="dm">✕</button>
+    </header>
+    <div id="chadnetDMFeed" class="chadnet-dm-feed"></div>
+    <div class="chadnet-inputbar">
+      <input id="chadnetDMInput" type="text" maxlength="240" placeholder="message…" />
+      <button id="chadnetDMSend" class="primary">send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer amount modal -->
+<div id="chadnetXferModal" class="chadnet-modal" aria-hidden="true" hidden>
+  <div class="chadnet-modal-card">
+    <header>
+      <h3>Chads transfer</h3>
+      <button class="chadnet-close small" data-close="xfer">✕</button>
+    </header>
+    <div class="xfer-body">
+      <label>enter the amount (max 1,000,000,000,000)</label>
+      <input id="chadnetXferAmount" type="number" min="1" max="1000000000000" step="1" />
+      <div class="row">
+        <button id="chadnetXferSend" class="primary">send</button>
+        <button id="chadnetXferRequest" class="secondary">receive</button>
+      </div>
+      <p class="muted">“send” = you send them chads. “receive” = you ask them to send you chads.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="chadnetToasts" class="chadnet-toasts" aria-live="polite"></div>
 
 
     <!-- SNAKE Modal -->
@@ -1567,7 +1728,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
@@ -2679,7 +2840,468 @@ function buildGrid(container, cols, rows){
   });
 })();
 
+(() => {
+  // ====== CONFIG ======
+  const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
+  const SUPABASE_ANON = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
 
+  // UI bits we already have in your page
+  const woodRect = document.querySelector('#userPill.wood-bg'); // wooden rectangle
+  const userNameEl = document.getElementById('userName');
+  const avatarTextEl = document.getElementById('avatarInitials');
+  const chadCountEl = document.getElementById('chadCount'); // your existing counter in the top bar
+
+  // ====== Supabase init & auth (Anonymous) ======
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // session – anonymous sign-in so we get a real auth.uid()
+  let currentUser = null;
+  let profile = null;
+
+  async function ensureSession() {
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess.session) {
+      await supabase.auth.signInAnonymously(); // enable Anonymous provider in your Dashboard
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    currentUser = user;
+    return user;
+  }
+
+  // ====== Helpers ======
+  const qs  = (sel) => document.querySelector(sel);
+  const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+  const overlay = qs('#chadnetOverlay');
+  const closeBtn = qs('#chadnetClose');
+  const tabs = qsa('.chadnet-tab');
+  const panels = {
+    social: qs('#chadnetSocial'),
+    top: qs('#chadnetTop'),
+    friends: qs('#chadnetFriends'),
+  };
+  const feedEl = qs('#chadnetFeed');
+  const inputEl = qs('#chadnetInput');
+  const sendBtn = qs('#chadnetSend');
+  const reqBtn = qs('#chadnetRequestsBtn');
+  const reqBadge = qs('#chadnetReqBadge');
+  const frModal = qs('#chadnetFRModal');
+  const frList = qs('#chadnetFRList');
+
+  const topList = qs('#chadnetTopList');
+  const friendsList = qs('#chadnetFriendsList');
+
+  const dmModal = qs('#chadnetDMModal');
+  const dmTitle = qs('#chadnetDMTitle');
+  const dmFeed = qs('#chadnetDMFeed');
+  const dmInput = qs('#chadnetDMInput');
+  const dmSend = qs('#chadnetDMSend');
+  const xferBtn = qs('#chadnetTransferBtn');
+
+  const xferModal = qs('#chadnetXferModal');
+  const xferAmount = qs('#chadnetXferAmount');
+  const xferSend = qs('#chadnetXferSend');
+  const xferRequest = qs('#chadnetXferRequest');
+
+  const toastStack = qs('#chadnetToasts');
+
+  // local chad balance (you already store this)
+  function getLocalChads() {
+    let n = localStorage.getItem('chadBalance') || "0";
+    return BigInt(n);
+  }
+  function setLocalChads(v) {
+    localStorage.setItem('chadBalance', String(v));
+    if (chadCountEl) chadCountEl.textContent = String(v);
+  }
+
+  function toast(txt, ms=2500) {
+    const t = document.createElement('div');
+    t.className='toast';
+    t.textContent = txt;
+    toastStack.appendChild(t);
+    setTimeout(()=>t.remove(), ms);
+  }
+
+  function avatar(initials) {
+    const el = document.createElement('div');
+    el.className = 'avatar';
+    el.textContent = (initials || '?').slice(0,3).toUpperCase();
+    return el;
+  }
+
+  function userDisplayName() {
+    return (userNameEl?.textContent || localStorage.getItem('playerName') || 'Player').trim();
+  }
+  function avatarInitials() {
+    return (avatarTextEl?.textContent || localStorage.getItem('avatarInitials') || 'P').trim();
+  }
+
+  // ====== Profile sync ======
+  async function upsertProfile() {
+    const name = userDisplayName();
+    const av = avatarInitials();
+    const balance = getLocalChads();
+    const row = { id: currentUser.id, username: name, avatar: av, chad_balance: String(balance) };
+    const { data, error } = await supabase.from('profiles').upsert(row).select().single();
+    if (error) console.error(error);
+    profile = data || row;
+  }
+
+  async function syncBalanceToCloud() {
+    const { error } = await supabase.from('profiles').update({ chad_balance: String(getLocalChads()) }).eq('id', currentUser.id);
+    if (error) console.error(error);
+  }
+
+  // ====== Open / Close ======
+  function openOverlay() {
+    overlay.hidden = false; overlay.setAttribute('aria-hidden','false');
+    setTimeout(()=>overlay.focus(), 0);
+    // default tab
+    setTab('social');
+  }
+  function closeOverlay() {
+    overlay.hidden = true; overlay.setAttribute('aria-hidden','true');
+  }
+
+  // ====== Tabs ======
+  function setTab(key){
+    qsa('.chadnet-tab').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tab===key));
+    Object.entries(panels).forEach(([k,el])=>{
+      const on = k===key; el.hidden = !on; el.classList.toggle('is-active', on);
+    });
+    if (key==='social') loadSocial();
+    if (key==='top') loadTop();
+    if (key==='friends') loadFriends();
+  }
+
+  tabs.forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.tab)));
+  closeBtn.addEventListener('click', closeOverlay);
+
+  // ====== Social (global) chat ======
+  let socialSub = null;
+
+  async function loadSocial() {
+    // fetch last 70
+    const { data, error } = await supabase
+      .from('global_messages')
+      .select('id,text,created_at,sender:profiles(id,username,avatar)')
+      .order('created_at', { ascending:false })
+      .limit(70);
+    if (error) return console.error(error);
+    renderFeed((data||[]).reverse());
+    subSocial(); // realtime
+  }
+
+  function renderFeed(rows){
+    feedEl.innerHTML = '';
+    rows.forEach(r => feedEl.appendChild(feedItem(r)));
+    feedEl.scrollTop = feedEl.scrollHeight;
+  }
+
+  function feedItem(r){
+    const card = document.createElement('div'); card.className='chadnet-card';
+    card.appendChild(avatar(r.sender?.avatar||'?'));
+    const col = document.createElement('div');
+    const userline = document.createElement('div'); userline.className='userline';
+    const name = document.createElement('div'); name.className='username'; name.textContent = r.sender?.username || 'Player';
+    const time = document.createElement('div'); time.className='time muted'; time.style.marginLeft='6px';
+    time.textContent = new Date(r.created_at).toLocaleTimeString();
+    const fr = document.createElement('button'); fr.className='small-btn'; fr.textContent='send friend request';
+    fr.addEventListener('click', ()=> sendFriendRequest(r.sender?.id));
+    userline.append(name, time, fr);
+    const msg = document.createElement('div'); msg.className='msg'; msg.textContent = r.text;
+    col.append(userline, msg); card.appendChild(col);
+    return card;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value='';
+    await supabase.from('global_messages').insert({ text, sender: currentUser.id });
+  }
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
+
+  function subSocial(){
+    if (socialSub) supabase.removeChannel(socialSub);
+    socialSub = supabase.channel('global-msg')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'global_messages' }, (payload) => {
+        const r = payload.new;
+        const row = { ...r, sender: { id:r.sender, username: r.sender_username || r.username, avatar: r.sender_avatar || '?' } };
+        // we fetch the sender via view; but subscription only gives raw row. Re-query sender quickly:
+        supabase.from('profiles').select('id,username,avatar').eq('id', r.sender).maybeSingle().then(({data})=>{
+          row.sender = data || row.sender; 
+          feedEl.appendChild(feedItem(row));
+          // keep last 70 in UI
+          const items = feedEl.children;
+          while (items.length > 70) items[0].remove();
+          feedEl.scrollTop = feedEl.scrollHeight;
+        });
+      })
+      .subscribe();
+  }
+
+  // ====== Friend requests ======
+  async function sendFriendRequest(toId){
+    if (!toId || toId===currentUser.id) return;
+    const { error } = await supabase.from('friend_requests')
+      .upsert({ from_id: currentUser.id, to_id: toId, status: 'pending' }, { onConflict: 'from_id,to_id' });
+    if (!error) toast('friend request sent');
+  }
+
+  reqBtn.addEventListener('click', async ()=>{
+    const { data } = await supabase.from('friend_requests')
+      .select('id, from_id, to_id, created_at, from:profiles!friend_requests_from_id_fkey(id,username,avatar)')
+      .eq('to_id', currentUser.id)
+      .eq('status','pending')
+      .order('created_at', {ascending:false});
+    renderFRList(data||[]);
+    frModal.hidden=false; frModal.setAttribute('aria-hidden','false');
+  });
+
+  function renderFRList(rows){
+    frList.innerHTML='';
+    if (!rows.length) { frList.innerHTML = '<p class="muted">No pending requests.</p>'; return; }
+    rows.forEach(r=>{
+      const card = document.createElement('div'); card.className='chadnet-card';
+      card.appendChild(avatar(r.from?.avatar||'?'));
+      const col = document.createElement('div');
+      const name = document.createElement('div'); name.className='username'; name.textContent = r.from?.username || 'Player';
+      const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginTop='8px';
+      const accept = document.createElement('button'); accept.className='primary'; accept.textContent='accept friend request';
+      const decline = document.createElement('button'); decline.className='secondary'; decline.style.background='#3a1010'; decline.textContent='decline';
+      accept.addEventListener('click', ()=>acceptFR(r.id));
+      decline.addEventListener('click', ()=>declineFR(r.id));
+      row.append(accept, decline);
+      col.append(name, row); card.appendChild(col);
+      frList.appendChild(card);
+    });
+  }
+  async function acceptFR(id){
+    const { error } = await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', id);
+    if (!error) { toast('friend added'); refreshFriendBadge(); frModal.hidden=true; loadFriends(); }
+  }
+  async function declineFR(id){
+    const { error } = await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', id);
+    if (!error) { toast('request declined'); refreshFriendBadge(); frModal.hidden=true; }
+  }
+  qsa('.chadnet-close[data-close="fr"]').forEach(b=>b.addEventListener('click', ()=>{ frModal.hidden=true; }));
+
+  async function refreshFriendBadge(){
+    const { count } = await supabase.from('friend_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('to_id', currentUser.id).eq('status','pending');
+    if (count>0){ reqBadge.hidden=false; reqBadge.textContent=String(count); } else { reqBadge.hidden=true; }
+  }
+
+  // realtime friend request badge
+  const frSub = supabase.channel('friends-reqs')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `to_id=eq.${currentUser?.id||'000'}` }, refreshFriendBadge)
+    .subscribe();
+
+  // ====== Top players ======
+  async function loadTop(){
+    const { data, error } = await supabase.from('profiles')
+      .select('id,username,avatar,chad_balance')
+      .order('chad_balance',{ascending:false})
+      .limit(50);
+    if (error) return console.error(error);
+    topList.innerHTML='';
+    (data||[]).forEach((p, i)=>{
+      const li = document.createElement('li'); li.className='chadnet-card';
+      li.appendChild(avatar(p.avatar||'?'));
+      const name = document.createElement('div'); name.className='username'; name.textContent = p.username;
+      const fr = document.createElement('button'); fr.className='small-btn'; fr.textContent='send friend request';
+      fr.addEventListener('click', ()=> sendFriendRequest(p.id));
+      const rank = document.createElement('div'); rank.className='rank';
+      rank.textContent = `#${i+1}`;
+      if (i===0) rank.classList.add('gold');
+      else if (i===1) rank.classList.add('purple');
+      else if (i===2) rank.classList.add('green');
+      else rank.classList.add('silver');
+      li.append(name, fr, rank);
+      topList.appendChild(li);
+    });
+  }
+
+  // ====== Friends list ======
+  async function loadFriends(){
+    // accepted both directions
+    const { data: out } = await supabase.from('friend_requests')
+      .select('to:profiles(id,username,avatar)')
+      .eq('from_id', currentUser.id).eq('status','accepted');
+    const { data: inn } = await supabase.from('friend_requests')
+      .select('from:profiles(id,username,avatar)')
+      .eq('to_id', currentUser.id).eq('status','accepted');
+
+    const friends = [];
+    (out||[]).forEach(r => friends.push(r.to));
+    (inn||[]).forEach(r => friends.push(r.from));
+
+    friendsList.innerHTML='';
+    friends.forEach(f=>{
+      const li = document.createElement('li'); li.className='chadnet-card';
+      li.appendChild(avatar(f.avatar||'?'));
+      const name = document.createElement('div'); name.className='username'; name.textContent=f.username;
+      const btn = document.createElement('button'); btn.className='small-btn'; btn.textContent='send message';
+      btn.addEventListener('click', ()=> openDM(f));
+      li.append(name, btn);
+      friendsList.appendChild(li);
+    });
+  }
+
+  // ====== DMs ======
+  let dmPeer = null;
+  let dmSub = null;
+
+  async function openDM(f){
+    dmPeer = f;
+    dmTitle.textContent = `Chat with ${f.username}`;
+    dmModal.hidden=false; dmModal.setAttribute('aria-hidden','false');
+    // load last 100 messages both directions
+    const { data, error } = await supabase.from('direct_messages')
+      .select('id,text,created_at,from_id,to_id')
+      .or(`and(from_id.eq.${currentUser.id},to_id.eq.${f.id}),and(from_id.eq.${f.id},to_id.eq.${currentUser.id})`)
+      .order('created_at', {ascending:false})
+      .limit(100);
+    if (error) console.error(error);
+    renderDM((data||[]).reverse());
+    subDM();
+  }
+  function renderDM(rows){
+    dmFeed.innerHTML='';
+    rows.forEach(m=>dmFeed.appendChild(dmItem(m)));
+    dmFeed.scrollTop = dmFeed.scrollHeight;
+  }
+  function dmItem(m){
+    const card = document.createElement('div'); card.className='chadnet-card';
+    const fromMe = m.from_id === currentUser.id;
+    card.style.borderColor = fromMe ? '#2b76ff' : '#333';
+    const who = document.createElement('div'); who.className='username'; who.textContent = fromMe ? 'you' : dmPeer.username;
+    const msg = document.createElement('div'); msg.className='msg'; msg.textContent = m.text;
+    card.append(who, msg);
+    return card;
+  }
+  async function sendDM() {
+    const text = dmInput.value.trim(); if (!text) return;
+    dmInput.value='';
+    await supabase.from('direct_messages').insert({ text, from_id: currentUser.id, to_id: dmPeer.id });
+  }
+  dmSend.addEventListener('click', sendDM);
+  dmInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
+
+  function subDM(){
+    if (dmSub) supabase.removeChannel(dmSub);
+    dmSub = supabase.channel('dm-'+dmPeer.id)
+      .on('postgres_changes', {
+        event: 'INSERT', schema:'public', table:'direct_messages',
+        filter: `or(and(from_id.eq.${currentUser.id},to_id.eq.${dmPeer.id}),and(from_id.eq.${dmPeer.id},to_id.eq.${currentUser.id}))`
+      }, (payload)=>{
+        dmFeed.appendChild(dmItem(payload.new));
+        dmFeed.scrollTop = dmFeed.scrollHeight;
+      }).subscribe();
+  }
+  qsa('.chadnet-close[data-close="dm"]').forEach(b=>b.addEventListener('click', ()=>{ dmModal.hidden=true; if(dmSub) supabase.removeChannel(dmSub); }));
+
+  // ====== Transfers ======
+  xferBtn.addEventListener('click', ()=>{
+    xferAmount.value=''; xferModal.hidden=false; xferModal.setAttribute('aria-hidden','false');
+  });
+  qsa('.chadnet-close[data-close="xfer"]').forEach(b=>b.addEventListener('click', ()=> xferModal.hidden=true));
+
+  function parseAmt(){
+    const n = BigInt(xferAmount.value || '0');
+    if (n<=0n) { toast('enter a positive amount'); return null; }
+    if (n>1000000000000n) { toast('max is 1,000,000,000,000'); return null; }
+    return n;
+  }
+
+  async function requestTransfer(direction){
+    const amt = parseAmt(); if (!amt) return;
+    xferModal.hidden=true;
+    const payload = { direction, requester: currentUser.id, counterparty: dmPeer.id, amount: String(amt), status:'pending' };
+    const { error } = await supabase.from('chad_transfers').insert(payload);
+    if (!error) {
+      const text = direction==='send'
+        ? `requested to send ${amt} chads`
+        : `requested to receive ${amt} chads`;
+      await supabase.from('direct_messages').insert({ text, from_id: currentUser.id, to_id: dmPeer.id });
+    }
+  }
+  xferSend.addEventListener('click', ()=>requestTransfer('send'));
+  xferRequest.addEventListener('click', ()=>requestTransfer('receive'));
+
+  // Listen for transfer actions targeting me to show accept/decline prompts in DM
+  const xferSub = supabase.channel('xfer')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'chad_transfers', filter: `counterparty=eq.${currentUser?.id||'000'}` }, refreshDMTransfers)
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'chad_transfers', filter: `or(requester.eq.${currentUser?.id||'000'},counterparty.eq.${currentUser?.id||'000'})` }, refreshDMTransfers)
+    .subscribe();
+
+  async function refreshDMTransfers(){
+    if (!dmPeer) return;
+    // Add small “requests” rows for pending transfers in this convo
+    const { data } = await supabase.from('chad_transfers')
+      .select('*')
+      .or(`and(requester.eq.${currentUser.id},counterparty.eq.${dmPeer.id}),and(requester.eq.${dmPeer.id},counterparty.eq.${currentUser.id})`)
+      .order('created_at', {ascending:true}).limit(50);
+    // Remove old request rows then add the latest at the end
+    // (Keep simple: append info line items)
+    (data||[]).forEach(t=>{
+      if (t.status!=='pending') return;
+      const card = document.createElement('div'); card.className='chadnet-card';
+      const ask = (t.direction==='send')
+        ? `${t.requester===currentUser.id?'you':dmPeer.username} want(s) to send ${t.amount} chads`
+        : `${t.requester===currentUser.id?'you':dmPeer.username} request(s) to receive ${t.amount} chads from ${t.requester===currentUser.id?dmPeer.username:'you'}`;
+      const txt = document.createElement('div'); txt.className='msg'; txt.textContent = ask;
+      card.appendChild(txt);
+      if (t.counterparty === currentUser.id) {
+        const row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginLeft='auto';
+        const accept = document.createElement('button'); accept.className='primary'; accept.textContent='accept';
+        const decline = document.createElement('button'); decline.className='secondary'; decline.style.background='#3a1010'; decline.textContent='decline';
+        accept.addEventListener('click', ()=>applyTransfer(t.id));
+        decline.addEventListener('click', ()=>declineTransfer(t.id));
+        row.append(accept, decline); card.appendChild(row);
+      }
+      dmFeed.appendChild(card);
+      dmFeed.scrollTop = dmFeed.scrollHeight;
+    });
+  }
+
+  async function applyTransfer(id){
+    const { error } = await supabase.rpc('apply_transfer', { p_transfer_id: id });
+    if (error) {
+      if (String(error.message).includes('insufficient')) toast('not enough chads');
+      else console.error(error);
+    } else {
+      // sync local
+      await pullBalance(); toast('transfer complete'); loadTop();
+    }
+  }
+  async function declineTransfer(id){
+    const { error } = await supabase.rpc('decline_transfer', { p_transfer_id: id });
+    if (!error) toast('request declined');
+  }
+
+  async function pullBalance(){
+    const { data } = await supabase.from('profiles').select('chad_balance').eq('id', currentUser.id).single();
+    if (data) setLocalChads(BigInt(data.chad_balance));
+  }
+
+  // ====== Boot ======
+  async function boot(){
+    await ensureSession();
+    await upsertProfile();
+    await syncBalanceToCloud();
+    await refreshFriendBadge();
+  }
+
+  // open on wooden rectangle tap
+  woodRect?.addEventListener('click', async ()=>{
+    await boot(); openOverlay(); loadSocial();
+  });
+
+})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
