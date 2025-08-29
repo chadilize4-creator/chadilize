@@ -6,85 +6,72 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ====== layout beside Crypto Break ====================================== */
-.game-launchers{ display:flex; align-items:center; gap:14px; }
-.cb-chip{ display:flex; align-items:center; gap:10px; background:#121212; color:#ddd;
-  padding:10px 14px; border-radius:16px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
-.cb-img{ width:44px; height:44px; display:block; border-radius:10px; }
-
-.tt-btn-img{
-  display:inline-block; /* clickable area is only the image */
-  width:76px; height:76px; object-fit:contain; cursor:pointer;
-  border-radius:12px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
-  transition: transform .08s ease, box-shadow .2s ease;
+/* ---------- Launcher row ---------- */
+.mini-game-row{
+  display:flex; align-items:center; gap:12px;
 }
-.tt-btn-img:active{ transform: scale(.96); box-shadow: 0 3px 10px rgba(0,0,0,.5); }
+#tokenTriggerBtn{
+  width:72px; /* a tiny bit smaller than Crypto Break */
+  height:auto; display:block; cursor:pointer; user-select:none;
+  border-radius:14px;
+  box-shadow:0 0 0 1px rgba(255,215,0,.22), 0 6px 18px rgba(0,0,0,.45);
+}
+@media (min-width:420px){ #tokenTriggerBtn{ width:84px; } }
 
-/* ====== overlay + HUD ==================================================== */
+/* ---------- Modal layout ---------- */
+.tt-hidden{ display:none; }
 .tt-overlay{
-  position:fixed; inset:0; display:none; z-index:9999; background:#000;
-  /* safe-area padding on notched phones */
-  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  position:fixed; inset:0; z-index:9999;
+  display:flex; flex-direction:column;
+  background:linear-gradient(180deg,#0a0a0c 0%, #000 100%);
 }
-.tt-overlay[aria-hidden="false"]{ display:block; }
-
-.tt-hud{ position:absolute; left:0; right:0; display:flex; gap:10px; justify-content:flex-start; padding:10px; }
-.tt-hud-top{ top:0; align-items:center; }
-.tt-hud-btm{ bottom:0; align-items:center; justify-content:space-between; }
-
+.tt-topbar{
+  padding:10px 14px; display:flex; gap:12px; align-items:center;
+}
 .tt-pill{
-  display:inline-flex; gap:8px; align-items:center; color:#e9e9ec;
-  background: linear-gradient(180deg, rgba(26,26,28,.95), rgba(14,14,16,.92));
-  border-radius:22px; padding:8px 14px; font-weight:600; letter-spacing:.3px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 14px rgba(0,0,0,.35);
+  background:#121214; color:#eee; border-radius:24px;
+  padding:10px 16px; font-weight:700;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.35);
 }
-.tt-pill.wide{ margin-left:6px; }
-.tt-pill b{ color:#4aa5ff; font-weight:800; }
-
+.tt-pill b{ color:#7aa2ff; }
 .tt-close{
-  margin-left:auto; width:40px; height:40px; border-radius:999px; border:none;
-  background: rgba(26,26,28,.9); color:#e9e9ec; font-size:20px; cursor:pointer;
-  display:grid; place-items:center; box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  margin-left:auto; width:40px; height:40px; border-radius:50%;
+  background:#121214; color:#fff; font-size:20px; display:grid; place-items:center;
+  cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.tt-stage{ flex:1; display:grid; place-items:center; padding:8px; }
+.tt-canvas-wrap{
+  position:relative; border-radius:24px; overflow:hidden;
+  background:#0e1116; box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+/* Fullscreen 9:16 canvas area */
+.tt-aspect{ aspect-ratio:9/16; width:min(100vw, 56.25vh); height:min(100vh - 160px, 100vh); }
+.tt-canvas{ width:100%; height:100%; display:block; }
+
+.tt-bottombar{
+  padding:12px 14px; display:flex; align-items:center; justify-content:space-between;
+}
+.tt-bottom-pill{
+  background:#121214; color:#eee; border-radius:24px; padding:12px 16px; font-weight:800;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 8px 24px rgba(0,0,0,.35);
+}
+.tt-button{
+  background:#fff; color:#111; font-weight:800; border-radius:18px;
+  padding:10px 16px; cursor:pointer; border:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
 }
 
-.tt-menu{
-  border:none; border-radius:18px; background:#f2f3f7; color:#0c0c0e;
-  padding:10px 16px; font-weight:800; letter-spacing:.3px; cursor:pointer;
-  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+/* Lose modal */
+.tt-modal{ position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; }
+.tt-modal.show{ display:flex; }
+.tt-modal .box{
+  width:min(92%, 360px); background:#0f1115; color:#fff; text-align:center;
+  border-radius:20px; padding:18px; box-shadow:0 20px 70px rgba(0,0,0,.6);
 }
-
-/* ====== 9:16 stage wrapper ============================================== */
-.tt-stage{
-  position:absolute; inset:56px 0 56px; /* leave space for HUDs */
-  display:grid; place-items:center;
-}
-#ttCanvas{
-  width: min(100vw, 56.25vh); /* enforce 9:16 without distortion */
-  height: calc(min(100vw, 56.25vh) * 16 / 9);
-  max-height: calc(100vh - 112px);
-  border-radius:24px; overflow:hidden;
-  box-shadow: 0 12px 40px rgba(0,0,0,.5);
-  background: #cfe1ff;
-}
-
-/* ====== Dialog =========================================================== */
-.tt-dialog{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; }
-.tt-dialog.show{ display:flex; }
-.tt-card{
-  width:86%; max-width:420px; background:linear-gradient(180deg,#1c1c20,#0e0e12);
-  border-radius:20px; padding:20px; color:#f1f2f6; text-align:center;
-  box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);
-}
-.tt-card h3{ margin:6px 0 10px; font-size:22px; }
-.tt-earn{ opacity:.9; margin:4px 0 16px; }
-.tt-earn b{ color:#4aa5ff; }
-.tt-actions{ display:flex; gap:10px; justify-content:center; }
-.tt-primary, .tt-ghost{
-  padding:10px 14px; border-radius:12px; font-weight:800; cursor:pointer; border:none;
-}
-.tt-primary{ background:#4aa5ff; color:#0b0e12; }
-.tt-ghost{ background:transparent; color:#e8e8ef; border:1px solid rgba(255,255,255,.18); }
-.coin{ filter: drop-shadow(0 2px 6px rgba(255,203,0,.35)); }
+.tt-modal h3{ margin:0 0 6px; font-size:22px; }
+.tt-modal .amount{ font-size:18px; margin-bottom:12px; }
+.tt-modal .row{ display:flex; gap:10px; }
+.tt-modal .row button{ flex:1; }
 /* ==== Social Overlay (dark glass) ==== */
 .social-overlay{
   position:fixed; inset:0; z-index:9999;
@@ -1115,63 +1102,47 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
-<!-- ====== LAUNCHERS ROW  ================================================== -->
-<div class="game-launchers">
-  <!-- Your existing Crypto Break button block stays as-is -->
-  <div class="launcher crypto-break">
-    <!-- whatever you already have -->
-    <div class="cb-chip">
-      <img src="img/cryptobreak.png" alt="" class="cb-img" />
-      <span>Tap to play</span>
-    </div>
+<!-- ----------  TOKEN TRIGGER LAUNCHER ROW  ---------- -->
+<!-- Put your existing Crypto Break button markup inside the .mini-game-row (left),
+     then this Token Trigger image sits to its RIGHT.                     -->
+<div class="mini-game-row">
+  <div id="cryptoBreakSlot">
+    <!-- your existing Crypto Break button lives here (unchanged) -->
   </div>
 
-  <!-- Token Trigger image button (clickable only on the image) -->
-  <img
-    id="tokenTriggerBtn"
-    class="tt-btn-img"
-    src="img/tokentrigger.png"
-    alt="Token Trigger"
-    width="76"
-    height="76"
-    loading="lazy"
-  />
+  <!-- Clickable image only (no surrounding hitbox) -->
+  <img id="tokenTriggerBtn" src="img/tokentrigger.png" alt="Token Trigger" />
 </div>
 
-<!-- ====== TOKEN TRIGGER OVERLAY (insert near end of body) ================= -->
-<div id="ttOverlay" class="tt-overlay" aria-hidden="true">
-  <!-- Top HUD -->
-  <div class="tt-hud tt-hud-top">
-    <div class="tt-pill"><span>ROUND:</span> <b id="ttRound">1</b></div>
-    <div class="tt-pill wide">
-      <span>SCORE:</span> <b id="ttScore">0</b>
-      <span class="dot">•</span>
-      <span>CHADS:</span> <b id="ttChads">0</b>
-    </div>
-    <button class="tt-close" id="ttClose" aria-label="Close">✕</button>
+<!-- ----------  TOKEN TRIGGER MODAL (9:16)  ---------- -->
+<div id="tt-overlay" class="tt-overlay tt-hidden" role="dialog" aria-modal="true">
+  <div class="tt-topbar">
+    <div class="tt-pill">ROUND: <b id="ttRound">1</b></div>
+    <div class="tt-pill">SCORE: <b id="ttScore">0</b> • CHADS: <b id="ttChads">0</b></div>
+    <button id="ttClose" class="tt-close" aria-label="Close">✕</button>
   </div>
 
-  <!-- Game canvas (kept 9:16 regardless of device) -->
   <div class="tt-stage">
-    <canvas id="ttCanvas" width="720" height="1280"></canvas>
-  </div>
+    <div class="tt-canvas-wrap tt-aspect">
+      <canvas id="ttCanvas" class="tt-canvas"></canvas>
 
-  <!-- Bottom HUD -->
-  <div class="tt-hud tt-hud-btm">
-    <div class="tt-pill"><span>DISTANCE:</span> <b id="ttDist">20</b> <span>FT.</span></div>
-    <button class="tt-menu" id="ttMainMenu">MAIN MENU</button>
-  </div>
-
-  <!-- Lose dialog -->
-  <div id="ttDialog" class="tt-dialog" role="dialog" aria-modal="true" aria-labelledby="ttDialogTitle">
-    <div class="tt-card">
-      <h3 id="ttDialogTitle">Nice Shot 💥</h3>
-      <p class="tt-earn">You earned <b id="ttEarned">0</b> <span class="coin">🪙</span> CHADs</p>
-      <div class="tt-actions">
-        <button id="ttQuit" class="tt-primary">Quit (receive chads)</button>
-        <button id="ttRetry" class="tt-ghost">Try again (no chads)</button>
+      <!-- Lose modal (when the PERSON is hit) -->
+      <div id="ttLoseModal" class="tt-modal">
+        <div class="box">
+          <h3>Nice Shot</h3>
+          <div class="amount">🪙 <span id="ttModalChads">0</span> chads earned</div>
+          <div class="row">
+            <button id="ttCashout" class="tt-button">Quit (receive chads)</button>
+            <button id="ttRetry" class="tt-button">Try again (no chads)</button>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <div class="tt-bottombar">
+    <div class="tt-bottom-pill">DISTANCE: <b id="ttDistance" style="color:#b8c0ff">20</b> FT.</div>
+    <button id="ttMainMenu" class="tt-button">MAIN MENU</button>
   </div>
 </div>
 <!-- Place this block where your wooden profile rectangle is rendered -->
@@ -2920,526 +2891,501 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-/* =======================================================================================
-   TOKEN TRIGGER — Apple Shooter (9:16)
-   - Opens only when tapping the Token Trigger image
-   - Projectile motion, faster arrow, clean vector art, particles
-   - Cash out dialog credits CHADs to host app via window.creditChadsToMainApp (optional)
-   ======================================================================================= */
+/* =======================  TOKEN TRIGGER (Canvas Game)  ======================= */
+(function(){
+  const overlay = document.getElementById('tt-overlay');
+  const canvas  = document.getElementById('ttCanvas');
+  const ctx     = canvas.getContext('2d');
 
-(() => {
-  const btn = document.getElementById('tokenTriggerBtn');
-  const overlay = document.getElementById('ttOverlay');
-  const canvas = document.getElementById('ttCanvas');
-  const ctx = canvas.getContext('2d');
-
-  const ui = {
-    round: document.getElementById('ttRound'),
-    score: document.getElementById('ttScore'),
-    chads: document.getElementById('ttChads'),
-    dist:  document.getElementById('ttDist'),
-    close: document.getElementById('ttClose'),
-    main:  document.getElementById('ttMainMenu'),
-    dialog: document.getElementById('ttDialog'),
-    earned: document.getElementById('ttEarned'),
-    quit:   document.getElementById('ttQuit'),
-    retry:  document.getElementById('ttRetry'),
+  const els = {
+    openBtn: document.getElementById('tokenTriggerBtn'),
+    close:   document.getElementById('ttClose'),
+    mainMenu:document.getElementById('ttMainMenu'),
+    round:   document.getElementById('ttRound'),
+    score:   document.getElementById('ttScore'),
+    chads:   document.getElementById('ttChads'),
+    dist:    document.getElementById('ttDistance'),
+    modal:   document.getElementById('ttLoseModal'),
+    modalChads: document.getElementById('ttModalChads'),
+    cashout: document.getElementById('ttCashout'),
+    retry:   document.getElementById('ttRetry'),
   };
 
-  // --- world units are pixels in a 720x1280 logical canvas
-  const W = canvas.width, H = canvas.height;
+  // open only when tapping the image (no auto-open)
+  els.openBtn.addEventListener('click', () => openGame(), {passive:true});
+  els.close.addEventListener('click',  () => closeGame(false));
+  els.mainMenu.addEventListener('click',() => closeGame(false));
+  els.cashout.addEventListener('click', () => { addChadsToBalance(state.chadsEarned); closeGame(true); });
+  els.retry.addEventListener('click',   () => { hideLoseModal(); resetRun(true); });
 
-  // ===== Game State =======================================================
-  let game, raf;
+  let raf = 0;
+  let state = {};
+  let audioCtx;
 
-  const resetGame = () => {
-    game = {
+  function getAudio(){
+    if (!audioCtx){
+      const ACtx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new ACtx();
+    }
+    return audioCtx;
+  }
+  function sfxShoot(){
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(220, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(t + 0.16);
+  }
+  function sfxHit(){
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(120, t);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(t + 0.26);
+  }
+  function sfxDing(){
+    const ctx = getAudio();
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(t + 0.26);
+  }
+
+  function openGame(){
+    overlay.classList.remove('tt-hidden');
+    resizeCanvas();
+    resetAll();
+    loop(0);
+  }
+  function closeGame(cashed){
+    cancelAnimationFrame(raf);
+    overlay.classList.add('tt-hidden');
+    hideLoseModal();
+    if (!cashed){ /* do nothing; player can always come back */ }
+  }
+
+  function resetAll(){
+    state = {
+      running: true,
       round: 1,
-      distanceFt: 20,
       score: 0,
-      pendingChads: 0,
-      state: 'aim', // 'aim' | 'flying' | 'resolve'
-      time: 0,
-      // Archer base
-      archer: {x: 110, y: H-180},
-      // Target person baseline (moves right with distance / round)
-      target: { x: 360, y: H-180, facing: 1 },
-      wallX: W-115,
-      // projectile
-      arrow: { x: 110, y: H-210, vx: 0, vy: 0, flying:false, rot:0 },
-      // blood particles
-      parts: [],
-      // apple
-      apple: { r: 18, popped:false, vx:0, vy:0, x: 360, y: H-260 },
-      // input
-      aim: { dragging:false, startX:0, startY:0, power:0, angle: -Math.PI/8 },
+      chadsEarned: 0,
+      distanceFt: 20,
+      // world / geometry (computed on resize)
+      w: canvas.width, h: canvas.height, // (reset in resize)
+      groundY: 0,
+      archer: {}, victim: {}, wall: {},
+      apple: {}, arrow: null, particles: [],
+      aiming: false, aim: {x:0,y:0,power:0},
+      last: performance.now()
     };
-    placeTargetForDistance();
+    layoutWorld();
     updateHUD();
-  };
-
-  function placeTargetForDistance() {
-    // Base distance in pixels grows with round (keeps feel similar to original game)
-    const dpx = 160 + (game.round-1)*60;
-    game.target.x = game.archer.x + dpx;
-    game.apple.x  = game.target.x;
-    // apple sits above head
-    game.apple.y  = game.target.y - 80;
-    game.apple.vx = game.apple.vy = 0;
-    game.apple.popped = false;
+  }
+  function resetRun(hideModalAlso){
+    state.round = 1;
+    state.score = 0;
+    state.chadsEarned = 0;
+    state.distanceFt = 20;
+    state.arrow = null;
+    state.particles.length = 0;
+    layoutWorld();
+    if (hideModalAlso) hideLoseModal();
+    updateHUD();
   }
 
-  function updateHUD(){
-    ui.round.textContent = game.round;
-    ui.score.textContent = game.score;
-    ui.chads.textContent = game.pendingChads;
-    ui.dist.textContent  = game.distanceFt;
+  function layoutWorld(){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    state.w = w; state.h = h;
+    state.groundY = h * 0.80;
+
+    // Wall at far right, victim beside it, archer farther left
+    const wallX = w * 0.88, wallWidth = 54, wallHeight = h * 0.24;
+    state.wall = { x: wallX, y: state.groundY - wallHeight, w: wallWidth, h: wallHeight };
+
+    const torsoH = h * 0.16, torsoW = Math.max(28, w*0.06);
+    const headR = torsoW*0.42;
+    const victimX = wallX - (torsoW*1.4);
+    const victimY = state.groundY - torsoH - headR*2; // top-left anchor for torso drawing
+    state.victim = { x: victimX, y: victimY, torsoW, torsoH, headR };
+
+    // Apple smaller and exactly on head
+    const appleR = headR * 0.55;
+    state.apple = { cx: victimX + torsoW/2, cy: victimY - appleR + 2, r: appleR };
+
+    // Archer much further left
+    const archerX = Math.max(w*0.08, w*0.12 - (state.round-1)*2);
+    const archerY = state.groundY - torsoH - headR*2;
+    state.archer = { x: archerX, y: archerY, torsoW, torsoH, headR };
+
+    // Pre-compute bow grip position (arrow origin)
+    state.archer.bow = { x: archerX + torsoW*0.9, y: state.groundY - torsoH*0.8 };
+
+    state.arrow = null;
   }
 
-  // ===== Input (touch + mouse) ===========================================
-  const pointer = {
-    active:false, x:0, y:0
-  };
+  // Canvas DPI fit
+  function resizeCanvas(){
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if (state.w) layoutWorld();
+  }
+  window.addEventListener('resize', resizeCanvas);
 
-  function getCanvasPoint(e){
+  // Controls: drag to aim, release to shoot
+  function getLocalPos(e){
     const r = canvas.getBoundingClientRect();
-    const isTouch = e.touches && e.touches[0];
-    const cx = (isTouch ? e.touches[0].clientX : e.clientX) - r.left;
-    const cy = (isTouch ? e.touches[0].clientY : e.clientY) - r.top;
-    // scale to logical canvas
-    const sx = cx * (canvas.width / canvas.clientWidth);
-    const sy = cy * (canvas.height / canvas.clientHeight);
-    return {x:sx, y:sy};
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return {x,y};
   }
+  canvas.addEventListener('pointerdown', e=>{
+    state.aiming = true;
+    state.aim = getLocalPos(e);
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if (!state.aiming) return;
+    state.aim = getLocalPos(e);
+  });
+  canvas.addEventListener('pointerup', e=>{
+    if (!state.aiming) return;
+    state.aiming = false;
+    shootArrow();
+  });
+  canvas.addEventListener('pointercancel', ()=>{state.aiming=false;});
 
-  function pointerDown(e){
-    if (game.state !== 'aim') return;
-    pointer.active = true;
-    const p = getCanvasPoint(e);
-    pointer.x = p.x; pointer.y = p.y;
-    game.aim.dragging = true;
-    game.aim.startX = p.x;
-    game.aim.startY = p.y;
-    e.preventDefault();
-  }
-
-  function pointerMove(e){
-    if (!pointer.active) return;
-    const p = getCanvasPoint(e);
-    pointer.x = p.x; pointer.y = p.y;
-    if (game.aim.dragging) {
-      // vector from archer to pointer defines angle/power
-      const dx = p.x - game.archer.x, dy = p.y - (game.archer.y-30);
-      game.aim.angle = Math.atan2(dy, dx);
-      // Pulling back opposite direction increases power
-      const pull = Math.hypot(dx, dy);
-      game.aim.power = Math.min(180, Math.max(30, pull));
-    }
-  }
-
-  function pointerUp(e){
-    pointer.active = false;
-    if (game.aim.dragging && game.state === 'aim') {
-      game.aim.dragging = false;
-      shootArrow();
-    }
-  }
-
-  // ===== Shooting / Physics =============================================
-  const G = 1800; // gravity px/s^2 (stronger than default for snappier feel)
   function shootArrow(){
-    const speed = game.aim.power * 7.5; // fast but controllable
-    game.arrow.x = game.archer.x+24;
-    game.arrow.y = game.archer.y-40;
-    game.arrow.vx = Math.cos(game.aim.angle) * speed;
-    game.arrow.vy = Math.sin(game.aim.angle) * speed;
-    game.arrow.rot = game.aim.angle;
-    game.arrow.flying = true;
-    game.state = 'flying';
+    // compute angle/power from bow to pointer
+    const bx = state.archer.bow.x, by = state.archer.bow.y;
+    const dx = state.aim.x - bx, dy = state.aim.y - by;
+    let ang = Math.atan2(dy, dx);
+    // clamp angle up a bit
+    ang = Math.max(-Math.PI*0.05, Math.min(Math.PI*0.45, ang));
+    const pull = Math.min(160, Math.hypot(dx, dy)); // drag distance
+    const speed = 950 + pull*3.0; // faster, but not crazy
+    state.arrow = {
+      x: bx, y: by,
+      vx: Math.cos(ang)*speed,
+      vy: Math.sin(ang)*speed,
+      alive: true
+    };
+    sfxShoot();
+  }
+
+  function loop(now){
+    raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.033, (now - (state.last||now))/1000);
+    state.last = now;
+    update(dt);
+    draw();
   }
 
   function update(dt){
-    game.time += dt;
+    // Arrow physics
+    if (state.arrow && state.arrow.alive){
+      const g = 1800; // gravity (px/s^2)
+      state.arrow.vy += g*dt;
+      state.arrow.x += state.arrow.vx*dt;
+      state.arrow.y += state.arrow.vy*dt;
 
-    // Animate particles (blood)
-    game.parts = game.parts.filter(p => {
-      p.vy += G*0.6*dt;
-      p.x += p.vx*dt;
-      p.y += p.vy*dt;
-      p.life -= dt;
-      return p.life > 0 && p.y < H-140;
-    });
-
-    // Update a falling apple after a hit
-    if (game.apple.popped){
-      game.apple.vy += G*dt;
-      game.apple.x  += game.apple.vx*dt;
-      game.apple.y  += game.apple.vy*dt;
-      if (game.apple.y > H-160) { game.apple.vy *= -0.25; game.apple.y = H-160; }
-    }
-
-    if (game.arrow.flying){
-      // projectile motion
-      game.arrow.vy += G*dt;
-      game.arrow.x  += game.arrow.vx*dt;
-      game.arrow.y  += game.arrow.vy*dt;
-      game.arrow.rot = Math.atan2(game.arrow.vy, game.arrow.vx);
-
-      // Ground or offscreen
-      if (game.arrow.y > H-140 || game.arrow.x > W+60 || game.arrow.y < -60){
-        resolveMiss();
-        return;
+      // collisions
+      // 1) with apple (tiny circle)
+      if (circleHit(state.arrow.x, state.arrow.y, state.apple.cx, state.apple.cy, state.apple.r)){
+        sfxDing();
+        popApple();
+        state.score += 1;
+        state.chadsEarned += 1;
+        state.round += 1;
+        state.distanceFt += 2; // UI only
+        updateHUD();
+        layoutWorld(); // reset positions & new apple
+        state.arrow.alive = false;
       }
-
-      // Collisions
-      const hit = checkHit();
-      if (hit === 'apple'){
-        resolveApple();
-      }else if (hit === 'person'){
-        resolvePersonHit();
-      }else if (hit === 'wall'){
-        resolveMiss();
+      // 2) with victim (head + torso rectangles)
+      else if (victimHit(state.arrow.x, state.arrow.y)){
+        sfxHit();
+        bloodBurst(state.arrow.x, state.arrow.y);
+        showLoseModal();
+        state.arrow.alive = false;
+      }
+      // 3) ground / outside
+      else if (state.arrow.y > state.groundY + 20 || state.arrow.x > state.w + 40){
+        state.arrow.alive = false;
       }
     }
-  }
-
-  function checkHit(){
-    // Wall (decorative) on right
-    if (game.arrow.x > game.wallX-6 && game.arrow.x < game.wallX+50 && game.arrow.y > H-260){
-      return 'wall';
+    // particles
+    for (let i=state.particles.length-1;i>=0;i--){
+      const p = state.particles[i];
+      p.vy += 1200*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt;
+      if (p.life <= 0) state.particles.splice(i,1);
     }
-
-    // Person: approximate with head circle + torso rect
-    const head = {x: game.target.x, y: game.target.y-60, r: 24};
-    const torso = {x: game.target.x-16, y: game.target.y-16, w: 32, h: 66};
-
-    // Arrow tip point
-    const tipX = game.arrow.x + Math.cos(game.arrow.rot)*24;
-    const tipY = game.arrow.y + Math.sin(game.arrow.rot)*24;
-
-    // Head circle check
-    const d2 = (tipX-head.x)**2 + (tipY-head.y)**2;
-    if (d2 <= (head.r+2)**2) return 'person';
-
-    // Torso rect check
-    if (tipX > torso.x && tipX < torso.x+torso.w && tipY > torso.y && tipY < torso.y+torso.h){
-      return 'person';
-    }
-
-    // Apple check (circle)
-    const a = game.apple;
-    const ad2 = (tipX-a.x)**2 + (tipY-a.y)**2;
-    if (ad2 <= (a.r+3)**2) return 'apple';
-
-    return null;
   }
 
-  function resolveApple(){
-    game.arrow.flying = false;
-    // pop & knock the apple
-    game.apple.popped = true;
-    game.apple.vx = 220 + Math.random()*90;
-    game.apple.vy = -420 - Math.random()*120;
-
-    game.score += 1;
-    game.pendingChads += 1; // 1 CHAD per score (adjust if needed)
-    if ((game.score % 1) === 0) game.distanceFt += 0; // keep label; change if you scale difficulty
-    updateHUD();
-
-    // Next round after a short pause
-    setTimeout(()=>{
-      game.round += 1;
-      game.distanceFt += 5;
-      placeTargetForDistance();
-      game.state = 'aim';
-      updateHUD();
-    }, 700);
+  function circleHit(x,y,cx,cy,r){ return (x-cx)*(x-cx)+(y-cy)*(y-cy) <= r*r; }
+  function victimHit(x,y){
+    const v = state.victim;
+    // head
+    const hc = {x: v.x + v.torsoW/2, y: v.y + v.vHeadOffset || v.y}; // y adjusted in draw()
+    const headR = v.headR;
+    if (circleHit(x,y, v.x+v.torsoW/2, v.y, headR)) return true;
+    // torso (rounded rect approx)
+    const tx=v.x, ty=v.y+headR*2*0.6, tw=v.torsoW, th=v.torsoH;
+    if (x>=tx && x<=tx+tw && y>=ty && y<=ty+th) return true;
+    return false;
   }
 
-  function resolveMiss(){
-    // just stop the arrow, let player re-aim
-    game.arrow.flying = false;
-    game.state = 'aim';
-  }
-
-  function resolvePersonHit(){
-    game.arrow.flying = false;
-    game.state = 'resolve';
-    // spawn blood particles at hit point (arrow tip)
-    const tipX = game.arrow.x + Math.cos(game.arrow.rot)*24;
-    const tipY = game.arrow.y + Math.sin(game.arrow.rot)*24;
-    for (let i=0;i<36;i++){
-      game.parts.push({
-        x: tipX, y: tipY,
-        vx: (Math.random()*380-190),
-        vy: (-Math.random()*520),
-        r: 2+Math.random()*2,
-        life: .6+Math.random()*.6
+  function popApple(){
+    // confetti-ish red pieces
+    for (let i=0;i<18;i++){
+      const a = Math.random()*Math.PI*2;
+      const s = 380+Math.random()*280;
+      state.particles.push({
+        x: state.apple.cx, y: state.apple.cy,
+        vx: Math.cos(a)*s, vy: Math.sin(a)*s - 150,
+        life: 0.5+Math.random()*0.45, r: 2.2, color:'#ff3b3b'
       });
     }
-    // show dialog after a brief moment
-    setTimeout(()=>{
-      ui.earned.textContent = game.pendingChads;
-      ui.dialog.classList.add('show');
-    }, 350);
+  }
+  function bloodBurst(x,y){
+    for (let i=0;i<26;i++){
+      const a = Math.random()*Math.PI*2;
+      const s = 220+Math.random()*260;
+      state.particles.push({
+        x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 120,
+        life: 0.6+Math.random()*0.6, r: 2.8, color:'#c91414'
+      });
+    }
   }
 
-  // ===== Render ===========================================================
+  function updateHUD(){
+    els.round.textContent = state.round;
+    els.score.textContent = state.score;
+    els.chads.textContent = state.chadsEarned;
+    els.dist.textContent  = state.distanceFt;
+    els.modalChads.textContent = state.chadsEarned;
+  }
+
+  function showLoseModal(){ els.modal.classList.add('show'); }
+  function hideLoseModal(){ els.modal.classList.remove('show'); }
+
   function draw(){
+    const w=state.w, h=state.h, gy=state.groundY;
+
     // sky
-    const sky = ctx.createLinearGradient(0,0,0,H);
-    sky.addColorStop(0, '#dfe9ff');
-    sky.addColorStop(.5, '#d1e2ff');
-    sky.addColorStop(1, '#b8d1ff');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0,0,W,H);
+    const sky = ctx.createLinearGradient(0,0,0,h);
+    sky.addColorStop(0,'#dfe9ff'); sky.addColorStop(1,'#c6d6f5');
+    ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
 
-    // distant mountains
-    drawHills();
+    // distant hill
+    ctx.fillStyle = '#b6c7ea';
+    ctx.beginPath();
+    ctx.moveTo(0, gy-120);
+    ctx.quadraticCurveTo(w*0.5, gy-190, w, gy-120);
+    ctx.lineTo(w, gy); ctx.lineTo(0, gy); ctx.closePath(); ctx.fill();
 
-    // ground strip
-    drawGround();
+    // ground
+    const g = ctx.createLinearGradient(0,gy-24,0,h);
+    g.addColorStop(0,'#79e36c'); g.addColorStop(1,'#40c34d');
+    ctx.fillStyle = g; ctx.fillRect(0, gy, w, h-gy);
 
-    // right wall
-    drawWall(game.wallX, H-270, 4, 5);
+    // wall (nicer bricks)
+    drawWall(state.wall);
 
-    // archer + bow
-    drawArcher();
+    // victim + apple
+    drawPerson(state.victim, true);
+    drawApple(state.apple);
 
-    // target human + apple
-    drawPerson(game.target.x, game.target.y);
-    drawApple(game.apple);
+    // archer
+    drawArcher(state.archer);
 
-    // blood particles
-    for (const p of game.parts){
-      ctx.fillStyle = '#b70e1b';
+    // particles
+    for (const p of state.particles){
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+      ctx.fillStyle = p.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // aim line
+    if (state.aiming){
+      ctx.strokeStyle = 'rgba(20,40,80,.45)';
+      ctx.lineWidth = 2; ctx.setLineDash([6,8]);
+      ctx.beginPath(); ctx.moveTo(state.archer.bow.x, state.archer.bow.y);
+      ctx.lineTo(state.aim.x, state.aim.y); ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     // arrow
-    drawArrow();
-
-    // aiming guide
-    if (game.state==='aim' && pointer.active){
-      ctx.strokeStyle = 'rgba(20,20,22,.25)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(game.archer.x, game.archer.y-30);
-      ctx.lineTo(pointer.x, pointer.y);
-      ctx.stroke();
+    if (state.arrow && state.arrow.alive){
+      drawArrow(state.arrow);
     }
   }
 
-  function drawHills(){
-    ctx.save();
-    ctx.fillStyle = '#b4c7ef';
-    ctx.beginPath();
-    ctx.moveTo(0,H-240);
-    for(let x=0;x<=W;x+=40){
-      ctx.lineTo(x, H-240 - Math.sin(x/160)*20);
-    }
-    ctx.lineTo(W,H-160); ctx.lineTo(0,H-160); ctx.closePath(); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawGround(){
-    const g = ctx.createLinearGradient(0,H-160,0,H);
-    g.addColorStop(0, '#8fe380');
-    g.addColorStop(1, '#33c14f');
-    ctx.fillStyle = g;
-    ctx.fillRect(0,H-160,W,160);
-
-    // subtle track marks
-    ctx.strokeStyle = 'rgba(0,0,0,.08)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for(let x=60;x<W-60;x+=50){
-      ctx.moveTo(x,H-130); ctx.lineTo(x,H-125);
-    }
-    ctx.stroke();
-  }
-
-  function drawWall(x, y, cols, rows){
-    ctx.save();
-    const bw=28,bh=26, gap=4;
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        const bx = x + c*(bw+gap), by = y + r*(bh+gap);
-        const grad = ctx.createLinearGradient(bx,by,bx,by+bh);
-        grad.addColorStop(0,'#bfc4cd'); grad.addColorStop(1,'#9aa1ad');
-        ctx.fillStyle=grad;
-        ctx.fillRect(bx,by,bw,bh);
-        ctx.strokeStyle='rgba(0,0,0,.08)';
-        ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
+  function drawWall(wall){
+    const {x,y,w,h} = wall;
+    const cols=3, rows=5; const bw=w/cols, bh=h/rows;
+    for (let r=0;r<rows;r++){
+      for (let c=0;c<cols;c++){
+        const bx = x + c*bw, by = y + r*bh;
+        const grd = ctx.createLinearGradient(bx,by,bx+bw,by+bh);
+        grd.addColorStop(0,'#9aa4b3'); grd.addColorStop(1,'#7f8998');
+        ctx.fillStyle = grd;
+        roundRect(bx+2,by+2,bw-6,bh-6,6);
+        ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.lineWidth=1;
+        roundRect(bx+2,by+2,bw-6,bh-6,6); ctx.stroke();
       }
     }
-    ctx.restore();
   }
-
-  function drawArcher(){
-    const x=game.archer.x, y=game.archer.y;
-    ctx.save();
-    // boots
-    ctx.fillStyle = '#221f23';
-    ctx.fillRect(x-12,y+28,10,10);
-    ctx.fillRect(x+12,y+28,10,10);
-    // legs
-    ctx.fillStyle = '#c2c6d2';
-    ctx.fillRect(x-10,y,10,28);
-    ctx.fillRect(x+10,y,10,28);
-    // torso
-    const bodyGrad = ctx.createLinearGradient(x-16,y-50,x+16,y);
-    bodyGrad.addColorStop(0,'#2f81ff'); bodyGrad.addColorStop(1,'#1c53b9');
-    ctx.fillStyle=bodyGrad;
-    ctx.fillRoundRect?.(x-20,y-70,40,70,12) || (ctx.beginPath(), roundRectPath(ctx,x-20,y-70,40,70,12), ctx.fill());
-    // arm
-    ctx.fillStyle = '#f2c6a2';
-    ctx.fillRoundRect?.(x+18,y-40,14,40,8) || (ctx.beginPath(), roundRectPath(ctx,x+18,y-40,14,40,8), ctx.fill());
-    // head + cap
-    ctx.fillStyle='#f2c6a2';
-    ctx.beginPath(); ctx.arc(x,y-88,16,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#1a1d23'; ctx.fillRect(x-16,y-102,32,6); // cap brim
-    ctx.fillStyle='#ffd24a'; ctx.beginPath(); ctx.arc(x,y-100,14,0,Math.PI*2); ctx.fill(); // helmet
-    // bow
-    ctx.strokeStyle='#b07a2d'; ctx.lineWidth=6;
-    ctx.beginPath(); ctx.arc(x+46,y-40,44,Math.PI/2,-Math.PI/2); ctx.stroke();
-    ctx.strokeStyle='#26262a'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(x+46,y-84); ctx.lineTo(x+46,y+4); ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawPerson(px, py){
-    ctx.save();
-    // shoes
-    ctx.fillStyle='#221f23';
-    ctx.fillRect(px-10,py+28,12,10); ctx.fillRect(px+2,py+28,12,10);
-    // legs
-    ctx.fillStyle='#c2c6d2';
-    ctx.fillRect(px-6,py,12,26);
-    // torso
-    const shirt = ctx.createLinearGradient(px-22,py-58,px+22,py);
-    shirt.addColorStop(0,'#258fef'); shirt.addColorStop(1,'#1f5fd8');
-    ctx.fillStyle=shirt;
-    ctx.fillRoundRect?.(px-22,py-58,44,68,12) || (ctx.beginPath(), roundRectPath(ctx,px-22,py-58,44,68,12), ctx.fill());
-    // arm
-    ctx.fillStyle = '#f2c6a2';
-    ctx.fillRoundRect?.(px+22,py-36,12,36,8) || (ctx.beginPath(), roundRectPath(ctx,px+22,py-36,12,36,8), ctx.fill());
-    // head
-    ctx.fillStyle = '#f2c6a2';
-    ctx.beginPath(); ctx.arc(px,py-74,18,0,Math.PI*2); ctx.fill();
-    // hair + nose
-    ctx.fillStyle='#6a4a2b';
-    ctx.beginPath(); ctx.arc(px-2,py-82,13,Math.PI*.1,Math.PI*.9); ctx.fill();
-    ctx.fillStyle='#dba77a';
-    ctx.fillRect(px+14,py-76,6,8);
-    ctx.restore();
-  }
-
   function drawApple(a){
+    // stem + leaf
     ctx.save();
-    // shadow
-    ctx.fillStyle='rgba(0,0,0,.12)';
-    ctx.beginPath(); ctx.ellipse(a.x,a.y+a.r+6,a.r*0.9,5,0,0,Math.PI*2); ctx.fill();
-    // body
-    const g = ctx.createRadialGradient(a.x-6,a.y-6,4,a.x,a.y,a.r+2);
-    g.addColorStop(0,'#ff6a6a'); g.addColorStop(1,'#c91515');
-    ctx.fillStyle=g;
-    ctx.beginPath(); ctx.arc(a.x,a.y,a.r,0,Math.PI*2); ctx.fill();
-    // leaf
-    ctx.fillStyle='#4caf50';
-    ctx.beginPath();
-    ctx.ellipse(a.x+10, a.y-16, 8,4, -.6, 0, Math.PI*2); ctx.fill();
+    ctx.translate(a.cx,a.cy);
     // stem
-    ctx.strokeStyle='#6a3b10'; ctx.lineWidth=3;
-    ctx.beginPath(); ctx.moveTo(a.x,a.y- a.r+3); ctx.lineTo(a.x+6,a.y- a.r-8); ctx.stroke();
+    ctx.strokeStyle='#5a3a1e'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,-a.r); ctx.lineTo(0,-a.r-8); ctx.stroke();
+    // leaf
+    ctx.fillStyle='#3db85e';
+    ctx.beginPath(); ctx.moveTo(2,-a.r-6);
+    ctx.quadraticCurveTo(a.r*0.9,-a.r-14, a.r*0.5, -a.r-2);
+    ctx.quadraticCurveTo(a.r*0.1,-a.r-6, 2,-a.r-6);
+    ctx.fill();
+    // body
+    const grd = ctx.createRadialGradient(-a.r*0.4,-a.r*0.4,a.r*0.2,0,0,a.r);
+    grd.addColorStop(0,'#ff7f7f'); grd.addColorStop(1,'#d51d1d');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(0,0,a.r,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
+  function drawPerson(p, feetShadow){
+    const {x,y,torsoW:tw,torsoH:th,headR:hr} = p;
+    // legs
+    ctx.fillStyle='#1f232b';
+    roundRect(x+tw*0.18, y+th+hr*0.9, tw*0.18, hr*0.9, 6); ctx.fill();
+    roundRect(x+tw*0.62, y+th+hr*0.9, tw*0.18, hr*0.9, 6); ctx.fill();
+    // shoes
+    ctx.fillStyle='#111'; roundRect(x+tw*0.08, y+th+hr*1.6, tw*0.34, 10, 6); ctx.fill();
+    roundRect(x+tw*0.58, y+th+hr*1.6, tw*0.34, 10, 6); ctx.fill();
 
-  function drawArrow(){
-    const a = game.arrow;
-    ctx.save();
-    ctx.translate(a.x,a.y);
-    ctx.rotate(a.rot);
-    // shaft
-    ctx.fillStyle='#cda46b';
-    ctx.fillRect(-24,-2,48,4);
+    // torso
+    const torsoGrad = ctx.createLinearGradient(x,y+th*0.2,x+tw,y+th);
+    torsoGrad.addColorStop(0,'#3a7bd5'); torsoGrad.addColorStop(1,'#2346a3');
+    ctx.fillStyle = torsoGrad;
+    roundRect(x, y+hr*0.9, tw, th, 14); ctx.fill();
+
+    // arms
+    ctx.fillStyle = '#f2c29b';
+    roundRect(x-tw*0.18, y+hr*1.2, tw*0.18, th*0.45, 10); ctx.fill();
+    roundRect(x+tw,      y+hr*1.2, tw*0.18, th*0.45, 10); ctx.fill();
+
     // head
-    ctx.fillStyle='#c0c9d6';
-    ctx.beginPath(); ctx.moveTo(24,0); ctx.lineTo(14,-6); ctx.lineTo(14,6); ctx.closePath(); ctx.fill();
+    const hx = x+tw/2, hy = y;
+    const headGrad = ctx.createRadialGradient(hx-hr*0.3,hy-hr*0.3,hr*0.4,hx,hy,hr);
+    headGrad.addColorStop(0,'#ffd9b8'); headGrad.addColorStop(1,'#eeb88d');
+    ctx.fillStyle=headGrad;
+    ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
+
+    // hair + face
+    ctx.fillStyle='#1f232b';
+    ctx.beginPath(); ctx.arc(hx-hr*0.15, hy-hr*0.1, hr*0.9, Math.PI*1.08, Math.PI*1.90); ctx.fill();
+    // eyes
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(hx-hr*0.28, hy-hr*0.1, 2.4, 0, Math.PI*2); ctx.arc(hx+hr*0.1, hy-hr*0.05, 2.4, 0, Math.PI*2); ctx.fill();
+    // nose
+    ctx.strokeStyle='#cc9368'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(hx+hr*0.06, hy+hr*0.02); ctx.quadraticCurveTo(hx+hr*0.26, hy+hr*0.18, hx, hy+hr*0.2); ctx.stroke();
+
+    // shadow at feet
+    if (feetShadow){
+      ctx.globalAlpha = .3; ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.ellipse(x+tw/2, state.groundY+6, tw*.48, 12, 0, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawArcher(a){
+    const {x,y,torsoW:tw,torsoH:th,headR:hr} = a;
+    // legs
+    ctx.fillStyle='#1f232b';
+    roundRect(x+tw*0.1, y+th+hr*0.9, tw*0.18, hr*0.9, 6); ctx.fill();
+    roundRect(x+tw*0.56, y+th+hr*0.9, tw*0.18, hr*0.9, 6); ctx.fill();
+    // shoes
+    ctx.fillStyle='#111'; roundRect(x, y+th+hr*1.6, tw*0.4, 10, 6); ctx.fill();
+    roundRect(x+tw*0.52, y+th+hr*1.6, tw*0.4, 10, 6); ctx.fill();
+
+    // torso (vest)
+    const vest = ctx.createLinearGradient(x,y+th*0.2,x+tw,y+th);
+    vest.addColorStop(0,'#55a4ff'); vest.addColorStop(1,'#2b6adf');
+    ctx.fillStyle = vest; roundRect(x, y+hr*0.9, tw, th, 14); ctx.fill();
+
+    // arms (drawn to hold bow)
+    ctx.fillStyle='#f2c29b';
+    roundRect(x+tw*0.12, y+hr*1.2, tw*0.22, 12, 6); // left upper
+    roundRect(x+tw*0.58, y+hr*1.1, tw*0.42, 12, 6); // right to bow
+    // head + helmet
+    const hx = x+tw/2, hy = y;
+    ctx.fillStyle='#ffd9b8'; ctx.beginPath(); ctx.arc(hx,hy,hr,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e6c43f'; ctx.beginPath(); ctx.arc(hx,hy-hr*0.3, hr*0.86, Math.PI, 0); ctx.fill();
+    // bow
+    ctx.strokeStyle='#c4923d'; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.arc(x+tw*0.9, y+th*0.35, tw*0.55, Math.PI*0.62, Math.PI*1.38); ctx.stroke();
+    // string
+    ctx.strokeStyle='#f3f5fa'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x+tw*0.64, y+th*0.05); ctx.lineTo(x+tw*1.15, y+th*0.65); ctx.stroke();
+
+    // bow grip (arrow origin)
+    state.archer.bow = { x: x+tw*0.9, y: y+th*0.35 };
+  }
+
+  function drawArrow(ar){
+    const len = 36, th = 3;
+    const ang = Math.atan2(ar.vy, ar.vx);
+    ctx.save();
+    ctx.translate(ar.x, ar.y);
+    ctx.rotate(ang);
+    // shaft
+    ctx.strokeStyle='#c3c8cf'; ctx.lineWidth=th; ctx.beginPath();
+    ctx.moveTo(-len*0.2, 0); ctx.lineTo(len*0.65, 0); ctx.stroke();
+    // tip
+    ctx.fillStyle='#c3c8cf';
+    ctx.beginPath(); ctx.moveTo(len*0.65,0); ctx.lineTo(len*0.65-8,4); ctx.lineTo(len*0.65-8,-4); ctx.closePath(); ctx.fill();
     // fletching
-    ctx.fillStyle='#3b83f6';
-    ctx.fillRect(-28,-6,6,12);
+    ctx.fillStyle='#7aa2ff';
+    ctx.beginPath(); ctx.moveTo(-len*0.2, 0); ctx.lineTo(-len*0.35, 6); ctx.lineTo(-len*0.35, -6); ctx.closePath(); ctx.fill();
     ctx.restore();
   }
 
-  function roundRectPath(ctx,x,y,w,h,r){
-    const rr = Math.min(r, w/2, h/2);
-    ctx.moveTo(x+rr,y);
-    ctx.arcTo(x+w,y,x+w,y+h,rr);
-    ctx.arcTo(x+w,y+h,x,y+h,rr);
-    ctx.arcTo(x,y+h,x,y,rr);
-    ctx.arcTo(x,y,x+w,y,rr);
-    ctx.closePath();
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    // caller will fill/stroke
   }
 
-  // ===== Game Loop ========================================================
-  let last=0;
-  function loop(ts){
-    if (!last) last=ts;
-    const dt = Math.min((ts-last)/1000, 0.035); // clamp
-    last = ts;
-
-    update(dt);
-    ctx.clearRect(0,0,W,H);
-    draw();
-
-    raf = requestAnimationFrame(loop);
+  // Cash-out -> add to top balance
+  function addChadsToBalance(delta){
+    if (!delta || delta<=0) return;
+    const target = document.querySelector('[data-chad-balance], #chad-balance, .chad-balance');
+    if (!target) return;
+    const raw = (target.textContent || '').replace(/[^\d]/g,'');
+    const cur = parseInt(raw || '0',10);
+    const next = cur + delta;
+    target.textContent = next.toLocaleString('en-US');
   }
-
-  // ===== Overlay open/close ==============================================
-  function openGame(){
-    overlay.setAttribute('aria-hidden','false');
-    resetGame();
-    last = 0;
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(loop);
-  }
-  function closeGame(){
-    overlay.setAttribute('aria-hidden','true');
-    cancelAnimationFrame(raf);
-    ui.dialog.classList.remove('show');
-  }
-
-  // Launch only when tapping the image (not the sides)
-  btn?.addEventListener('click', openGame, {passive:true});
-
-  ui.close.addEventListener('click', closeGame);
-  ui.main.addEventListener('click', closeGame);
-
-  // Dialog actions
-  ui.quit.addEventListener('click', () => {
-    // Credit pending chads, then exit
-    if (game.pendingChads > 0){
-      const credit = (window.creditChadsToMainApp || ((n)=>console.log('CHADs +', n)));
-      credit(game.pendingChads);
-    }
-    closeGame();
-  });
-
-  ui.retry.addEventListener('click', () => {
-    // Lose all pending for this session and restart from round 1
-    ui.dialog.classList.remove('show');
-    resetGame();
-  });
-
-  // Canvas pointer events
-  canvas.addEventListener('mousedown', pointerDown);
-  canvas.addEventListener('mousemove', pointerMove);
-  window.addEventListener('mouseup', pointerUp);
-  canvas.addEventListener('touchstart', pointerDown, {passive:false});
-  canvas.addEventListener('touchmove', pointerMove, {passive:false});
-  canvas.addEventListener('touchend', pointerUp);
-
 })();
 
 /* ===== Snake ===== */
