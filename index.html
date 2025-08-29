@@ -6,110 +6,57 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{
-    --tt-ui-accent:#4da3ff;
-    --tt-ui-text:#e8ecf1;
-    --tt-ui-dim:#98a1ab;
-    --tt-glass-bg: rgba(0,0,0,.65);
-    --tt-card:#111318;
-    --tt-btn-size: 96px; /* 3× smaller than your previous large tile */
+/* --- Mini-games row placement (puts Token Trigger beside Crypto Break) --- */
+  .mini-games-row{
+    display:flex; align-items:center; gap:12px;
+  }
+  .mini-game{ display:flex; align-items:center; }
+  /* Only the IMAGE is clickable (pointer events on wrapper are off) */
+  #tokenTriggerBtn{ pointer-events:none; }
+  #tokenTriggerBtn .tt-launcher{
+    pointer-events:auto; cursor:pointer; display:block;
+    width:92px; height:auto; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.35);
+    transition:transform .12s ease, filter .12s ease;
+  }
+  #tokenTriggerBtn .tt-launcher:active{ transform:scale(.96); filter:brightness(1.05); }
+
+  /* --- Fullscreen 9:16 modal --- */
+  #tt-overlay{
+    position:fixed; inset:0; background:radial-gradient(100% 140% at 50% 0%, #111 0%, #0b0b0b 60%, #000 100%);
+    display:none; z-index:9999; color:#fff; user-select:none; touch-action:none;
+  }
+  #tt-overlay.tt-open{ display:block; }
+
+  /* Canvas fills 9:16 while keeping device safe areas; letterbox if needed */
+  #tt-canvas{
+    position:absolute; inset:64px 0 64px 0; margin:auto;
+    width:100vw; height:calc(100vh - 128px); aspect-ratio:9/16; background:#e8f1ff; border-radius:22px;
+    box-shadow:0 30px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
   }
 
-  /* Row that holds Crypto Break and Token Trigger side-by-side */
-  .mini-row{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-top:8px;
+  /* HUD */
+  .tt-hud{
+    position:absolute; left:0; right:0; display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; gap:12px; pointer-events:none;
   }
-
-  .crypto-break{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    background:#121519;
-    border-radius:18px;
-    padding:10px 14px;
-    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 6px 20px rgba(0,0,0,.35);
+  .tt-hud-top{ top:0; background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,0)); }
+  .tt-hud-bottom{ bottom:0; background:linear-gradient(0deg, rgba(255,255,255,.08), rgba(0,0,0,0)); }
+  .tt-pill{
+    pointer-events:auto;
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.5));
+    padding:10px 14px; border-radius:16px; font:600 15px/1.1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;
+    letter-spacing:.3px; box-shadow:inset 0 1px rgba(255,255,255,.2), inset 0 -1px rgba(0,0,0,.3);
   }
-  .crypto-break img{height:28px;width:auto;display:block;border-radius:6px;}
-  .crypto-break span{color:#bfc7d4;font-size:14px;}
-
-  /* The Token Trigger launcher – only image is clickable */
-  .token-trigger-btn{
-    background:transparent;
-    border:0;
-    padding:0;                 /* no extra tappable area */
-    display:inline-block;
-    line-height:0;
-    cursor:pointer;
-  }
-  .token-trigger-btn img{
-    width:var(--tt-btn-size);
-    height:var(--tt-btn-size);
-    display:block;             /* exactly the image bounds are clickable */
-    border-radius:14px;
-    box-shadow:0 6px 20px rgba(0,0,0,.35);
-  }
-
-  /* Fullscreen modal */
-  .tt-modal{
-    position:fixed; inset:0;
-    background: radial-gradient(120% 100% at 50% -10%, #1b1c20 0%, #0b0c0f 60%, #06070a 100%);
-    display:grid;
-    place-items:center;
-    z-index:9999;
-  }
-
-  /* 9:16 frame (portrait) */
-  .tt-frame{
-    aspect-ratio: 9 / 16;             /* keeps the playfield true 9:16 */
-    height:100vh;                      /* fill height; width follows ratio */
-    max-height:100vh;
-    max-width:100vw;
-    width:min(56.25vh, 100vw);         /* guard for small landscape cases */
-    display:flex;
-    flex-direction:column;
-    border-radius:22px;
-    overflow:hidden;
-    box-shadow: 0 30px 120px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.05) inset;
-    background:#fff;
-  }
-
-  .tt-hud, .tt-footer{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 16px;
-    background:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.35));
-    color:var(--tt-ui-text);
-    font-weight:700;
-    letter-spacing:.5px;
-  }
-  .tt-hud{ position:relative; }
-  .tt-footer{ position:relative; }
-
-  .hud-left{ font-size:18px; }
-  .hud-right{ font-size:16px; display:flex; align-items:center; gap:12px; }
-  .hud-left span, .hud-right span{ color:var(--tt-ui-accent); }
+  .tt-pill span{ opacity:.85; margin-right:6px; }
+  .tt-pill b{ color:#59a5ff; font-weight:800; }
 
   .tt-close{
-    margin-left:8px;
-    width:36px;height:36px;border-radius:50%;
-    border:0;background:var(--tt-glass-bg);color:#fff;font-size:18px;
-    display:grid;place-items:center;cursor:pointer;
+    pointer-events:auto; width:44px; height:44px; border-radius:50%; border:none; color:#fff; font-size:20px;
+    background:radial-gradient(70% 120% at 50% 0%, #2b2b2b, #111); box-shadow:0 6px 18px rgba(0,0,0,.45);
   }
-
-  .tt-canvas{ display:block; width:100%; height:100%; background:#eaf3ff; }
-
-  .tt-main-menu{
-    background:#f0f2f5;
-    border:0;border-radius:12px;padding:10px 14px;font-weight:800;
-    color:#293241;cursor:pointer;
-    box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px rgba(0,0,0,.25);
-  }
-
-  /* Tiny polish for text rendering inside canvas HUD shadow clones */
-  @media (min-resolution: 2dppx){
-    .tt-hud, .tt-footer { -webkit-font-smoothing:antialiased; }
+  .tt-mainmenu{
+    pointer-events:auto; border:none; border-radius:14px; padding:10px 16px; font-weight:700;
+    background:#f2f3f5; color:#111; box-shadow:0 6px 18px rgba(0,0,0,.35);
   }
 /* ==== Social Overlay (dark glass) ==== */
 .social-overlay{
@@ -1151,40 +1098,32 @@ canvas{ display:block }
     <span>Tap to play</span>
   </button>
 </div>
-<!-- =======================
-     TOKEN TRIGGER (Apple Shooter)
-     ======================= -->
-<!-- 1) Put this launcher row where your "chad counts" / Crypto Break UI lives -->
-<div class="mini-row">
-  <!-- Your existing Crypto Break card/button goes here -->
-  <div class="crypto-break">
-    <img src="./img/cryptobreak.png" alt="Crypto Break" />
-    <span>Tap to play</span>
+<!-- Token Trigger: Apple Shooter mini-game (drop-in) -->
+<div class="mini-games-row">
+  <!-- Existing Crypto Break button lives here in your app -->
+  <div class="mini-game existing-crypto-break">
+    <!-- keep your original markup -->
   </div>
 
-  <!-- Token Trigger launcher: only the image is clickable -->
-  <button id="tokenTriggerBtn" class="token-trigger-btn" aria-label="Play Token Trigger">
-    <img src="./img/tokentrigger.png" alt="Token Trigger" />
-  </button>
+  <!-- Token Trigger launcher (exactly 3× smaller than your previous full-size asset) -->
+  <a class="mini-game" id="tokenTriggerBtn" aria-label="Play Token Trigger" title="Token Trigger">
+    <img src="/img/tokentrigger.png" alt="Token Trigger" class="tt-launcher"/>
+  </a>
 </div>
 
-<!-- 2) Fullscreen 9:16 modal for the game -->
-<div id="ttModal" class="tt-modal" hidden>
-  <div class="tt-frame">
-    <header class="tt-hud">
-      <div class="hud-left">ROUND: <span id="ttRound">1</span></div>
-      <div class="hud-right">
-        SCORE: <span id="ttScore">0</span> • CHADS: <span id="ttChads">0</span>
-        <button id="ttClose" class="tt-close" aria-label="Close">✕</button>
-      </div>
-    </header>
+<!-- Fullscreen 9:16 overlay (starts hidden) -->
+<div id="tt-overlay" aria-hidden="true">
+  <div class="tt-hud tt-hud-top">
+    <div class="tt-pill"><span>ROUND:</span> <b id="tt-round">1</b></div>
+    <div class="tt-pill"><span>SCORE:</span> <b id="tt-score">0</b> • <span>CHADS:</span> <b id="tt-chads">0</b></div>
+    <button class="tt-close" id="tt-close" aria-label="Close">✕</button>
+  </div>
 
-    <canvas id="ttCanvas" class="tt-canvas"></canvas>
+  <canvas id="tt-canvas" width="900" height="1600"></canvas>
 
-    <footer class="tt-footer">
-      <div class="hud-left">DISTANCE: <span id="ttDistance">20</span> FT.</div>
-      <button id="ttMenu" class="tt-main-menu">MAIN MENU</button>
-    </footer>
+  <div class="tt-hud tt-hud-bottom">
+    <div class="tt-pill"><span>DISTANCE:</span> <b id="tt-distance">20</b> <span>FT.</span></div>
+    <button class="tt-mainmenu" id="tt-menu">MAIN MENU</button>
   </div>
 </div>
 <!-- Game overlay (opens only when you tap the button) -->
@@ -2922,377 +2861,429 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-/* ============================================================
-   TOKEN TRIGGER – Apple Shooter (Canvas, 9:16)
-   ============================================================ */
-
 (() => {
-  const $ = (sel) => document.querySelector(sel);
-  const openBtn = $('#tokenTriggerBtn');
-  const modal   = $('#ttModal');
-  const closeBtn= $('#ttClose');
-  const menuBtn = $('#ttMenu');
-  const roundEl = $('#ttRound');
-  const scoreEl = $('#ttScore');
-  const chadsEl = $('#ttChads');
-  const distEl  = $('#ttDistance');
-  const canvas  = $('#ttCanvas');
-  const ctx     = canvas.getContext('2d');
+  // ----- Integration helpers -----
+  const CHADS_PER_SCORE = 1;     // change if you want more CHAD per hit
+  const repoLauncher = document.querySelector('#tokenTriggerBtn .tt-launcher');
+  const overlay   = document.getElementById('tt-overlay');
+  const closeBtn  = document.getElementById('tt-close');
+  const menuBtn   = document.getElementById('tt-menu');
+  const canvas    = document.getElementById('tt-canvas');
+  const ctx       = canvas.getContext('2d');
+  const dpr       = Math.max(1, window.devicePixelRatio || 1);
 
-  // --- Game state ---
-  const WORLD_W = 900;  // virtual canvas (9:16)
-  const WORLD_H = 1600;
+  // Stats
+  const ui = {
+    round: document.getElementById('tt-round'),
+    score: document.getElementById('tt-score'),
+    chads: document.getElementById('tt-chads'),
+    distance: document.getElementById('tt-distance')
+  };
 
-  let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  function resizeCanvas(){
-    const rect = canvas.getBoundingClientRect();
-    canvas.width  = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);   // draw in CSS pixels
+  // Only the image is clickable
+  repoLauncher?.addEventListener('click', openGame);
+  closeBtn?.addEventListener('click', closeGame);
+  menuBtn?.addEventListener('click', closeGame);
+
+  let game = null;
+
+  function openGame(){
+    if (overlay.classList.contains('tt-open')) return;
+    overlay.classList.add('tt-open');
+    game = new TokenTriggerGame(canvas, ui, {
+      onAppleHit: () => awardChads(CHADS_PER_SCORE)
+    });
+    game.start();
   }
 
-  // Award chads to the player (hook into your real app here)
+  function closeGame(){
+    overlay.classList.remove('tt-open');
+    game?.stop();
+    game = null;
+  }
+
   function awardChads(n){
-    // If the host app exposes a function, use it, else update our HUD only
-    if (typeof window.addChads === 'function') window.addChads(n);
-    chads += n;
-    chadsEl.textContent = chads;
-  }
-
-  // HUD state
-  let round = 1, score = 0, chads = 0, distanceFt = 20;
-  function refreshHUD(){
-    roundEl.textContent = round;
-    scoreEl.textContent = score;
-    chadsEl.textContent = chads;
-    distEl.textContent  = distanceFt;
-  }
-
-  // Entities ---------------------------------------------------
-  const archer = {
-    x: 120, y: WORLD_H - 260, // ground baseline
-    drawPower: 0,             // 0..1
-    aiming: false,
-    handAngle: -Math.PI/16,
-  };
-
-  const targetGuy = {
-    baseX: WORLD_W - 260,
-    x: WORLD_W - 260,
-    y: WORLD_H - 260,
-    w: 54, h: 160,
-    headR: 26,
-    apple:{ r: 18, alive: true, hitAnim: 0 }
-  };
-
-  let arrow = null; // {x,y,vx,vy,rot, flying}
-  const gravity = 2500;                     // px / s^2
-  const maxV    = 1200;                     // px / s
-
-  function newArrow(vx, vy){
-    arrow = { x: archer.x+36, y: archer.y-96, vx, vy, rot: Math.atan2(vy,vx), flying:true };
-  }
-
-  // Round management
-  function setupRound(){
-    // Increase distance and slightly vary target placement
-    distanceFt = 20 + (round-1)*8;
-    const ratio = Math.min(0.80, 0.45 + distanceFt/100 * 0.35);
-    targetGuy.baseX = Math.floor(WORLD_W * ratio);
-    targetGuy.x = targetGuy.baseX;
-    targetGuy.apple.alive = true;
-    targetGuy.apple.hitAnim = 0;
-    arrow = null;
-    refreshHUD();
-  }
-
-  // Drawing helpers -------------------------------------------
-  function drawBackground(){
-    // Sky gradient
-    const grd = ctx.createLinearGradient(0,0,0,WORLD_H);
-    grd.addColorStop(0,'#f7fbff');
-    grd.addColorStop(.5,'#e6f1ff');
-    grd.addColorStop(1,'#bfe0ff');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,WORLD_W,WORLD_H);
-
-    // "Wolf Games"-like ladder wall at right for style
-    ctx.fillStyle = '#c7ced7';
-    for (let i=0;i<9;i++){
-      ctx.fillRect(WORLD_W-90, WORLD_H-140 - i*60, 60, 40);
-    }
-
-    // Ground
-    const g = ctx.createLinearGradient(0, WORLD_H-220, 0, WORLD_H);
-    g.addColorStop(0, '#7ed957');
-    g.addColorStop(1, '#3ac23a');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, WORLD_H-220, WORLD_W, 220);
-
-    // Ground gloss
-    ctx.fillStyle = 'rgba(255,255,255,.35)';
-    ctx.fillRect(0, WORLD_H-220, WORLD_W, 6);
-  }
-
-  function drawArcher(){
-    const x=archer.x, y=archer.y;
-
-    // legs
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle='#2b2f37';
-    ctx.beginPath(); ctx.roundRect(-22, 8, 18, 70, 8); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(10, 8, 18, 70, 8); ctx.fill();
-
-    // torso
-    const torsoGrad = ctx.createLinearGradient(0,-60,0,10);
-    torsoGrad.addColorStop(0,'#2b8cff'); torsoGrad.addColorStop(1,'#1552b1');
-    ctx.fillStyle = torsoGrad;
-    ctx.beginPath(); ctx.roundRect(-34,-78, 72, 92, 22); ctx.fill();
-
-    // head
-    const skin = ctx.createLinearGradient(0,-120,0,-76);
-    skin.addColorStop(0,'#f8d9be'); skin.addColorStop(1,'#e6b08d');
-    ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(0,-102,20,0,Math.PI*2); ctx.fill();
-    // visor
-    ctx.fillStyle='#ffe35a'; ctx.beginPath(); ctx.arc(-2,-120,24,Math.PI,0); ctx.fill();
-    ctx.fillStyle='#1a1d23'; ctx.fillRect(-20,-110,40,8);
-
-    // bow
-    ctx.save();
-    ctx.translate(-6,-84);
-    ctx.strokeStyle='#c68b33'; ctx.lineWidth=8;
-    ctx.beginPath(); ctx.moveTo(-6,-54); ctx.quadraticCurveTo(-48,-4,-6,44); ctx.stroke();
-    ctx.strokeStyle='#111'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(-6,-54); ctx.lineTo(-6,44); ctx.stroke();
-    ctx.restore();
-
-    // arms
-    const armAngle = archer.aiming ? Math.atan2(aimPoint.y-(y-90), aimPoint.x-(x+18)) : -0.2;
-    ctx.translate(18,-80);
-    ctx.rotate(armAngle);
-    ctx.fillStyle='#e9c1a0';
-    ctx.beginPath(); ctx.roundRect(0,-8, 56, 16, 8); ctx.fill();
-    // glove
-    ctx.fillStyle='#14161a'; ctx.beginPath(); ctx.roundRect(48,-10, 16, 20, 7); ctx.fill();
-    ctx.restore();
-
-    // string hand + subtle draw distance
-    if(archer.aiming){
-      ctx.save();
-      ctx.translate(x-6,-84);
-      ctx.strokeStyle='#111'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(0,-54); ctx.lineTo(0,44); ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  function drawTarget(){
-    const g = targetGuy;
-    // pedestal
-    ctx.fillStyle='#3aa556';
-    ctx.fillRect(g.x-22, g.y-90, 44, 90);
-
-    // legs
-    ctx.fillStyle='#8a6b43';
-    ctx.fillRect(g.x-18, g.y-16, 16, 16);
-    ctx.fillRect(g.x+2,  g.y-16, 16, 16);
-
-    // torso
-    const torso = ctx.createLinearGradient(0,g.y-120,0,g.y-36);
-    torso.addColorStop(0,'#32b05a'); torso.addColorStop(1,'#1e8a43');
-    ctx.fillStyle = torso;
-    ctx.beginPath(); ctx.roundRect(g.x-34, g.y-120, 68, 86, 24); ctx.fill();
-
-    // head
-    const skin = ctx.createLinearGradient(0,g.y-152,0,g.y-126);
-    skin.addColorStop(0,'#f7d7bc'); skin.addColorStop(1,'#e3b391');
-    ctx.fillStyle=skin; ctx.beginPath(); ctx.arc(g.x, g.y-136, g.headR, 0, Math.PI*2); ctx.fill();
-    // nose
-    ctx.fillStyle='#c98f69'; ctx.beginPath(); ctx.arc(g.x+10, g.y-136, 6, 0, Math.PI*2); ctx.fill();
-    // moustache
-    ctx.fillStyle='#3a2c22';
-    ctx.beginPath(); ctx.ellipse(g.x+6, g.y-126, 10, 4, .2, 0, Math.PI*2); ctx.fill();
-
-    // apple
-    if (g.apple.alive || g.apple.hitAnim>0){
-      const ay = g.y - 164 - g.apple.hitAnim*40;
-      const ax = g.x + g.apple.hitAnim*22;
-      const r = g.apple.r;
-      const grad = ctx.createRadialGradient(ax-r*0.4, ay-r*0.6, r*0.2, ax, ay, r);
-      grad.addColorStop(0,'#fffcf6');
-      grad.addColorStop(0.2,'#ff6860');
-      grad.addColorStop(1,'#c8241e');
-      ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI*2); ctx.fill();
-      // leaf
-      ctx.fillStyle='#2fa84b'; ctx.beginPath();
-      ctx.ellipse(ax-8, ay-r-6, 8,5, -0.6, 0, Math.PI*2); ctx.fill();
-      // stem
-      ctx.strokeStyle='#7a4b2a'; ctx.lineWidth=2; ctx.beginPath();
-      ctx.moveTo(ax, ay-r); ctx.quadraticCurveTo(ax+2, ay-r-8, ax-2, ay-r-12); ctx.stroke();
-    }
-  }
-
-  function drawArrow(){
-    if (!arrow) return;
-    ctx.save();
-    ctx.translate(arrow.x, arrow.y);
-    ctx.rotate(arrow.rot);
-    ctx.fillStyle='#c7ccd3';
-    ctx.fillRect(-18,-2, 36, 4);
-    ctx.fillStyle='#a0752f'; ctx.fillRect(-18,-1.5, 14, 3);
-    // fletching
-    ctx.fillStyle='#1a1f28';
-    ctx.beginPath(); ctx.moveTo(18, -6); ctx.lineTo(26, 0); ctx.lineTo(18, 6); ctx.closePath(); ctx.fill();
-    ctx.restore();
-  }
-
-  // Input (drag to aim, release to fire)
-  let aimPoint = {x:archer.x+180, y: archer.y-120};
-  let dragging = false, dragStart = null;
-
-  function screenToWorld(e){
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.touches?.[0]?.clientX ?? e.clientX) - rect.left;
-    const y = (e.touches?.[0]?.clientY ?? e.clientY) - rect.top;
-    return {x,y};
-  }
-
-  canvas.addEventListener('pointerdown', e=>{
-    dragging = true; archer.aiming = true;
-    dragStart = screenToWorld(e);
-    aimPoint = dragStart;
-  });
-  canvas.addEventListener('pointermove', e=>{
-    if (!dragging) return;
-    aimPoint = screenToWorld(e);
-  });
-  const release = (e)=>{
-    if (!dragging) return;
-    dragging = false; archer.aiming = false;
-    const end = screenToWorld(e);
-    const dx = end.x - (archer.x+36);
-    const dy = end.y - (archer.y-96);
-    const len = Math.hypot(dx,dy);
-    if (len < 12) return;           // tiny taps don't fire
-    const power = Math.min(1, len / 260);
-    const angle = Math.atan2(dy, dx);
-    const v = power * maxV;
-    newArrow(Math.cos(angle)*v, Math.sin(angle)*v);
-  };
-  canvas.addEventListener('pointerup',   release);
-  canvas.addEventListener('pointercancel', release);
-  canvas.addEventListener('pointerleave', release);
-
-  // Physics & game loop ---------------------------------------
-  let last = 0, raf = 0, paused = false;
-  function step(ts){
-    if (!last) last = ts;
-    const dt = Math.min(0.033, (ts-last)/1000);
-    last = ts;
-
-    // Update arrow
-    if (arrow && arrow.flying){
-      arrow.vy += gravity*dt;
-      arrow.x  += arrow.vx*dt;
-      arrow.y  += arrow.vy*dt;
-      arrow.rot = Math.atan2(arrow.vy, arrow.vx);
-
-      // Collisions
-      // ground
-      if (arrow.y >= WORLD_H-225){
-        arrow.flying = false;
+    // 1) If your app exposes a function, use it
+    if (typeof window.addChadsToBalance === 'function') {
+      window.addChadsToBalance(n);
+    } else {
+      // 2) Otherwise try a [data-chad-balance] element on the page
+      const el = document.querySelector('[data-chad-balance]');
+      if (el){
+        const current = parseInt(el.textContent.replace(/[^\d]/g,'')) || 0;
+        el.textContent = (current + n).toLocaleString();
       }
+    }
+  }
 
-      // apple (circle)
-      if (targetGuy.apple.alive){
-        const ax = targetGuy.x, ay = targetGuy.y-164;
-        const dx = arrow.x - ax, dy = arrow.y - ay;
-        if (dx*dx + dy*dy <= (targetGuy.apple.r+8)*(targetGuy.apple.r+8)){
-          targetGuy.apple.alive = false;
-          targetGuy.apple.hitAnim = 0.001; // start anim
-          arrow.flying = false;
-          score += 1;
-          awardChads(1);
-          setTimeout(()=>{ round+=1; setupRound(); }, 900);
+  // ----- GAME IMPLEMENTATION -----
+  class TokenTriggerGame {
+    constructor(canvas, ui, hooks){
+      this.c = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.ui = ui;
+      this.hooks = hooks || {};
+      this.running = false;
+      this.w = 900; this.h = 1600;    // logical canvas @1x (9:16)
+      this.scaleCanvas();
+      this.reset();
+      window.addEventListener('resize', this.scaleCanvas.bind(this));
+    }
+
+    scaleCanvas(){
+      const {c} = this;
+      const rect = c.getBoundingClientRect();
+      c.width  = this.w * dpr;
+      c.height = this.h * dpr;
+      this.ctx.setTransform(dpr,0,0,dpr,0,0); // scale drawing to CSS pixels
+    }
+
+    reset(){
+      this.gravity = 2500; // px/s^2
+      this.groundY = this.h * 0.82;
+      this.round = 1;
+      this.score = 0;
+      this.totalChads = 0;
+      this.nextRound();
+      this.updateHud();
+    }
+
+    nextRound(){
+      this.distanceFt = 20 + (this.round-1) * 8; // step harder
+      // Shooter (left)
+      this.archer = { x: 110, y: this.groundY-80, drawPower:0, aiming:false, angle: -Math.PI/9 };
+      // Target human (right), placed to match distance
+      const pxPerFt = 10;
+      const tx = Math.min(this.w - 180, this.archer.x + this.distanceFt * pxPerFt);
+      this.human = { x: tx, y: this.groundY, w: 80, h: 240 };
+      this.apple = { r: 18, hit:false, x: tx, y: this.groundY-240-18, vy:0, vx:0, spin:0 };
+
+      this.wall = { x: this.w-120, y: this.groundY-260, w: 80, h: 260, brick: 36 };
+
+      this.arrow = null; // no shot yet
+      this.trail = [];
+      this.wind = (Math.random()*2-1) * 40; // slight breeze px/s
+      this.updateHud();
+    }
+
+    updateHud(){
+      this.ui.round.textContent    = this.round;
+      this.ui.score.textContent    = this.score;
+      this.ui.chads.textContent    = this.totalChads;
+      this.ui.distance.textContent = this.distanceFt;
+    }
+
+    start(){
+      if (this.running) return;
+      this.running = true;
+      this.lastTime = performance.now();
+      this.bindInput();
+      requestAnimationFrame(this.loop);
+    }
+
+    stop(){
+      this.running = false;
+      this.unbindInput();
+    }
+
+    bindInput(){
+      this.loop = this.loop.bind(this);
+      this.onDown = this.onDown.bind(this);
+      this.onMove = this.onMove.bind(this);
+      this.onUp   = this.onUp.bind(this);
+      this.c.addEventListener('pointerdown', this.onDown);
+      window.addEventListener('pointermove', this.onMove);
+      window.addEventListener('pointerup',   this.onUp);
+    }
+    unbindInput(){
+      this.c.removeEventListener('pointerdown', this.onDown);
+      window.removeEventListener('pointermove', this.onMove);
+      window.removeEventListener('pointerup',   this.onUp);
+    }
+
+    withinCanvas(p){ const r=this.c.getBoundingClientRect(); return p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom; }
+
+    onDown(e){
+      if (!this.withinCanvas(e)) return;
+      // begin aim only on left half near archer
+      const pos = this.toLocal(e);
+      if (pos.x < this.w*0.45){
+        this.archer.aiming = true;
+        this.startAim = pos;
+        this.archer.drawPower = 0;
+      }
+    }
+    onMove(e){
+      if (!this.archer.aiming) return;
+      const p = this.toLocal(e);
+      const dx = p.x - this.startAim.x, dy = p.y - this.startAim.y;
+      const ang = Math.atan2(dy, dx);
+      // clamp to reasonable shot angles (upwards mostly)
+      this.archer.angle = Math.max(-Math.PI*0.85, Math.min(-0.05, ang));
+      const pull = Math.hypot(dx, dy);
+      this.archer.drawPower = Math.min(1, pull / 220); // 0..1
+    }
+    onUp(e){
+      if (!this.archer.aiming) return;
+      this.archer.aiming = false;
+      if (this.arrow) return; // only one arrow at a time
+      // Fire!
+      const power = 800 + this.archer.drawPower * 900; // initial speed px/s
+      const vx = Math.cos(this.archer.angle) * power + this.wind;
+      const vy = Math.sin(this.archer.angle) * power;
+      const startX = this.archer.x + 36;
+      const startY = this.archer.y - 20;
+      this.arrow = { x:startX, y:startY, vx, vy, rot:this.archer.angle, alive:true, tipR:6 };
+      this.trail.length = 0;
+    }
+
+    toLocal(e){
+      const r = this.c.getBoundingClientRect();
+      return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
+    }
+
+    loop = (now) => {
+      if (!this.running) return;
+      const dt = Math.min(0.034, (now - this.lastTime)/1000); // clamp step
+      this.lastTime = now;
+      this.update(dt);
+      this.render();
+      requestAnimationFrame(this.loop);
+    }
+
+    update(dt){
+      // Update arrow physics
+      if (this.arrow && this.arrow.alive){
+        this.arrow.vy += this.gravity * dt;
+        this.arrow.vx += this.wind * 0.0 * dt; // wind once in initial velocity
+        this.arrow.x += this.arrow.vx * dt;
+        this.arrow.y += this.arrow.vy * dt;
+        this.arrow.rot = Math.atan2(this.arrow.vy, this.arrow.vx);
+
+        this.trail.push({x:this.arrow.x, y:this.arrow.y});
+        if (this.trail.length>30) this.trail.shift();
+
+        // collisions
+        if (this.arrow.y >= this.groundY){ this.arrow.alive=false; setTimeout(()=>this.roundFail(), 450); }
+        // Wall
+        if (this.arrow.x > this.wall.x-2 && this.arrow.x < this.wall.x + this.wall.w + 2 &&
+            this.arrow.y > this.wall.y && this.arrow.y < this.wall.y + this.wall.h){
+          this.arrow.alive=false; setTimeout(()=>this.roundFail(), 450);
+        }
+        // Human body (simple capsule/rect)
+        const hb = {x:this.human.x-28, y:this.human.y-210, w:56, h:210};
+        if (this.pointInRect(this.arrow.x, this.arrow.y, hb)){ this.arrow.alive=false; setTimeout(()=>this.gameOver(), 250); }
+
+        // Apple (circle)
+        const dx = this.arrow.x - this.apple.x, dy = this.arrow.y - this.apple.y;
+        if (!this.apple.hit && Math.hypot(dx,dy) < this.apple.r + 6){
+          this.apple.hit = true;
+          // make apple pop and fall
+          this.apple.vy = -420; this.apple.vx = 220; this.apple.spin = 8;
+          this.score += 1;
+          this.totalChads += CHADS_PER_SCORE;
+          this.updateHud();
+          this.hooks.onAppleHit && this.hooks.onAppleHit();
+          this.arrow.alive = false;
+          setTimeout(()=>{ this.round++; this.nextRound(); }, 800);
         }
       }
 
-      // target body (fail)
-      const g = targetGuy;
-      const bodyRect = { x:g.x-28, y:g.y-120, w:56, h:120+30 };
-      if (arrow.x > bodyRect.x-6 && arrow.x < bodyRect.x+bodyRect.w+6 &&
-          arrow.y > bodyRect.y   && arrow.y < bodyRect.y+bodyRect.h){
-        arrow.flying = false;
-        // reset run
-        setTimeout(()=>{ round = 1; score = 0; setupRound(); }, 800);
+      // Apple physics after hit
+      if (this.apple.hit){
+        this.apple.vy += this.gravity * dt * 0.8;
+        this.apple.x += this.apple.vx * dt;
+        this.apple.y += this.apple.vy * dt;
+        this.apple.spin *= 0.985;
+        if (this.apple.y > this.groundY - this.apple.r){
+          this.apple.y = this.groundY - this.apple.r;
+          this.apple.vy *= -0.35;
+          this.apple.vx *= 0.85;
+          if (Math.abs(this.apple.vy)<40) this.apple.vy = 0;
+        }
+      }
+    }
+
+    pointInRect(x,y,r){ return x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h; }
+
+    roundFail(){ this.round++; this.nextRound(); }
+    gameOver(){
+      // Reset only the round, keep score/chads
+      this.round = 1; 
+      this.nextRound();
+    }
+
+    render(){
+      const g = this.ctx;
+      g.clearRect(0,0,this.w,this.h);
+
+      // Sky gradient
+      const sky = g.createLinearGradient(0,0,0,this.h*0.75);
+      sky.addColorStop(0,'#e7f0ff'); sky.addColorStop(1,'#cde0ff');
+      g.fillStyle = sky; g.fillRect(0,0,this.w,this.h);
+
+      // Ground
+      const grd = g.createLinearGradient(0,this.groundY-40,0,this.h);
+      grd.addColorStop(0,'#9ef78b'); grd.addColorStop(1,'#48d146');
+      g.fillStyle = grd; g.fillRect(0,this.groundY,this.w,this.h-this.groundY);
+
+      // Gentle horizon fade
+      g.fillStyle='rgba(0,0,0,.05)';
+      g.fillRect(0,this.groundY-10,this.w,10);
+
+      // Brick wall
+      this.drawWall(g,this.wall);
+
+      // Human + apple
+      this.drawHuman(g,this.human);
+      this.drawApple(g,this.apple);
+
+      // Archer & bow
+      this.drawArcher(g,this.archer);
+
+      // Arrow trail
+      if (this.trail.length>1){
+        g.strokeStyle='rgba(0,0,0,.18)'; g.lineWidth=2; g.beginPath();
+        g.moveTo(this.trail[0].x, this.trail[0].y);
+        for (let i=1;i<this.trail.length;i++) g.lineTo(this.trail[i].x, this.trail[i].y);
+        g.stroke();
       }
 
-      // wall
-      if (arrow.x > WORLD_W-90 && arrow.y > WORLD_H-580){
-        arrow.flying = false;
+      // Arrow itself
+      if (this.arrow){
+        g.save();
+        g.translate(this.arrow.x, this.arrow.y);
+        g.rotate(this.arrow.rot);
+        this.drawArrow(g);
+        g.restore();
+      }
+
+      // Aim guide
+      if (this.archer.aiming){
+        const power = this.archer.drawPower;
+        g.save();
+        g.translate(this.archer.x+36, this.archer.y-22);
+        g.rotate(this.archer.angle);
+        g.globalAlpha = .25;
+        g.strokeStyle = '#0b4fff'; g.lineWidth = 6;
+        g.beginPath(); g.moveTo(0,0); g.lineTo(220*power,0); g.stroke();
+        g.globalAlpha = 1; g.restore();
+      }
+
+      // Distance marker posts
+      g.globalAlpha = .25;
+      g.strokeStyle = '#666'; g.lineWidth = 2;
+      for (let i=0; i<10; i++){
+        const x = i*(this.w/10);
+        g.beginPath(); g.moveTo(x,this.groundY); g.lineTo(x,this.groundY+16); g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
+    drawWall(g, w){
+      g.save();
+      g.translate(w.x,w.y);
+      for (let y=0;y<w.h;y+=w.brick){
+        for (let x=0;x<w.w;x+=w.brick){
+          const off = (Math.floor(y/w.brick)%2)* (w.brick/2);
+          const bx = (x+off)%w.w;
+          g.fillStyle = '#a9adb6';
+          g.fillRect(bx, y, w.brick-4, w.brick-4);
+          g.strokeStyle='rgba(0,0,0,.15)';
+          g.strokeRect(bx, y, w.brick-4, w.brick-4);
+        }
+      }
+      g.restore();
+    }
+
+    drawHuman(g,h){
+      // Simple semi-realistic man with shading
+      g.save();
+      const baseX = h.x, baseY = h.y;
+      // legs
+      g.lineCap='round';
+      g.strokeStyle='#2e2e2e'; g.lineWidth=18;
+      g.beginPath(); g.moveTo(baseX-16, baseY-20); g.lineTo(baseX-12, baseY); g.moveTo(baseX+14, baseY-20); g.lineTo(baseX+10, baseY); g.stroke();
+      // shoes
+      g.fillStyle='#111'; g.beginPath(); g.ellipse(baseX-12, baseY+2, 18, 6, 0, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse(baseX+10, baseY+2, 18, 6, 0, 0, Math.PI*2); g.fill();
+      // torso
+      const torsoGrad = g.createLinearGradient(0, baseY-200, 0, baseY-40);
+      torsoGrad.addColorStop(0, '#1f7bff'); torsoGrad.addColorStop(1, '#1250b8');
+      g.fillStyle = torsoGrad; g.beginPath(); g.roundRect(baseX-28, baseY-210, 56, 160, 22); g.fill();
+      // arm
+      g.fillStyle='#e7b089'; g.beginPath(); g.roundRect(baseX+20, baseY-180, 18, 70, 9); g.fill();
+      // head
+      const skin = g.createLinearGradient(0, baseY-260, 0, baseY-200);
+      skin.addColorStop(0,'#ffd9b8'); skin.addColorStop(1,'#f1b78f');
+      g.fillStyle = skin; g.beginPath(); g.arc(baseX, baseY-240, 26, 0, Math.PI*2); g.fill();
+      // eye + hair + ear
+      g.fillStyle='#111'; g.beginPath(); g.arc(baseX-6, baseY-246, 3, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.arc(baseX-4, baseY-260, 18, Math.PI*.1, Math.PI*1.2); g.strokeStyle='#2a2a2a'; g.lineWidth=8; g.stroke();
+      g.fillStyle='#f1b78f'; g.beginPath(); g.arc(baseX+20, baseY-240, 6, 0, Math.PI*2); g.fill();
+      g.restore();
+    }
+
+    drawApple(g,a){
+      g.save(); g.translate(a.x, a.y); g.rotate(a.spin*0.02);
+      // stem
+      g.fillStyle='#4a7c2b'; g.fillRect(-2, -22, 4, 12);
+      g.beginPath(); g.moveTo(0,-22); g.quadraticCurveTo(10,-34,18,-22); g.strokeStyle='#4a7c2b'; g.lineWidth=3; g.stroke();
+      // apple body with glossy highlight
+      const R = a.r;
+      const grad = g.createRadialGradient(-R*0.5,-R*0.9, R*0.2, 0,0, R);
+      grad.addColorStop(0,'#ffe5e5');
+      grad.addColorStop(0.35,'#ff5959');
+      grad.addColorStop(1,'#b01919');
+      g.fillStyle = grad; g.beginPath(); g.arc(0,0,R,0,Math.PI*2); g.fill();
+      // subtle outline
+      g.strokeStyle='rgba(0,0,0,.15)'; g.lineWidth=2; g.stroke();
+      g.restore();
+    }
+
+    drawArcher(g,a){
+      const bx = a.x, by = a.y;
+      // body
+      g.fillStyle='#6d9efc'; g.beginPath(); g.roundRect(bx-26,by-56,52,60,16); g.fill();
+      // head
+      g.fillStyle='#f1b78f'; g.beginPath(); g.arc(bx-6, by-78, 18, 0, Math.PI*2); g.fill();
+      g.fillStyle='#222'; g.fillRect(bx-16,by-96,24,6);
+      // arm drawing the bowstring
+      g.fillStyle='#f1b78f'; g.beginPath(); g.roundRect(bx+6,by-52,18,40,8); g.fill();
+
+      // Bow
+      g.save(); g.translate(bx+30, by-52); g.rotate(-Math.PI/12);
+      g.strokeStyle='#c6812f'; g.lineWidth=6; g.beginPath();
+      g.arc(0,30,46,-Math.PI*0.7,Math.PI*0.7); g.stroke();
+      // string
+      g.strokeStyle='#eee'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(-40,-12); g.lineTo(-40,72); g.stroke();
+      g.restore();
+
+      // nocked arrow preview when aiming
+      if (a.aiming){
+        g.save();
+        g.translate(bx+36, by-22);
+        g.rotate(a.angle);
+        this.drawArrow(g, true);
+        g.restore();
       }
     }
 
-    // Apple hit animation
-    if (targetGuy.apple.hitAnim>0 && targetGuy.apple.hitAnim<1){
-      targetGuy.apple.hitAnim = Math.min(1, targetGuy.apple.hitAnim + dt*2.2);
+    drawArrow(g, ghost=false){
+      g.save();
+      if (ghost){ g.globalAlpha=.45; }
+      // shaft
+      g.fillStyle='#cfcfcf'; g.fillRect(-28, -2, 56, 4);
+      // tip
+      g.beginPath(); g.moveTo(28,0); g.lineTo(16,6); g.lineTo(16,-6); g.closePath();
+      g.fillStyle='#8d8d8d'; g.fill();
+      // fletching
+      g.fillStyle='#1a62ff';
+      g.beginPath(); g.moveTo(-28,0); g.lineTo(-40,8); g.lineTo(-40,-8); g.closePath(); g.fill();
+      g.restore();
     }
-
-    // Render
-    ctx.clearRect(0,0,WORLD_W,WORLD_H);
-    drawBackground();
-    drawTarget();
-
-    // Aim guide line
-    if (archer.aiming){
-      ctx.save();
-      ctx.strokeStyle='rgba(20,24,32,.35)';
-      ctx.lineWidth=3; ctx.setLineDash([8,8]);
-      ctx.beginPath();
-      ctx.moveTo(archer.x+36, archer.y-96);
-      ctx.lineTo(aimPoint.x, aimPoint.y);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    drawArcher();
-    drawArrow();
-
-    if (!paused) raf = window.requestAnimationFrame(step);
   }
-
-  function startGame(){
-    paused = false; last = 0; resizeCanvas(); refreshHUD(); setupRound();
-    raf = window.requestAnimationFrame(step);
-  }
-
-  function stopGame(){
-    paused = true;
-    window.cancelAnimationFrame(raf);
-  }
-
-  // Modal wiring ----------------------------------------------
-  function openModal(){
-    modal.hidden = false;
-    startGame();
-  }
-  function closeModal(){
-    stopGame();
-    modal.hidden = true;
-  }
-
-  // Launcher button: only the image is clickable (button has no padding)
-  openBtn.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  menuBtn.addEventListener('click', closeModal);
-
-  // Keep canvas crisp on resize / rotation
-  const ro = new ResizeObserver(resizeCanvas);
-  ro.observe(canvas);
-
-  // Initialize numbers
-  refreshHUD();
 })();
 
 /* ===== Snake ===== */
