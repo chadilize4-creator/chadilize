@@ -6,76 +6,84 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== Socialize (black/grey theme) ===== */
-.socialize-overlay{
-  position:fixed; inset:0; z-index:1000;
-  background:radial-gradient(1200px 600px at 50% 0,#0e0e12 0%,#000 70%);
-  backdrop-filter:saturate(130%) blur(2px);
-  display:flex; align-items:center; justify-content:center; padding:16px;
+/* ==== Social Overlay (dark glass) ==== */
+.social-overlay{
+  position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,.6);
+  display:none; align-items:center; justify-content:center;
+  backdrop-filter: blur(4px);
 }
-.socialize-card{
-  width:min(820px,100%); height:min(80vh,100%);
-  background:linear-gradient(180deg,#121317 0%, #0b0c10 100%);
-  border:1px solid rgba(255,255,255,.06); border-radius:18px;
-  box-shadow:0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+.social-panel{
+  width:min(860px, 94vw);
+  max-height:86vh;
+  background:linear-gradient(180deg, #121316, #0b0c0f);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.05);
   display:flex; flex-direction:column; overflow:hidden;
 }
-.chat-head{
+.social-header{
   display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; background:linear-gradient(180deg,#161820,#111318);
+  padding:14px 16px;
+  background:linear-gradient(180deg,#181a1f,#111318);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
-.chat-head .title{ color:#e9ecf1; font-weight:800; letter-spacing:.3px; }
-.chat-head .title span{ color:#9aa3af; font-weight:600; }
-.ghost-btn{
-  padding:8px 12px; background:#0f1116; color:#cfd6dd; border:1px solid rgba(255,255,255,.08);
-  border-radius:10px; cursor:pointer; transition:all .2s ease; font-weight:600;
-}
-.ghost-btn:hover{ transform:translateY(-1px); background:#151821; }
+.social-header .title{ color:#e7e9ef; font-weight:800; letter-spacing:.3px; }
+.social-header .muted{ color:#9aa0a6; font-weight:600; }
 
-.chat-error{
-  color:#ff6b6b; background:rgba(255,107,107,.12); border-top:1px solid rgba(255,107,107,.25);
-  font-weight:700; padding:10px 16px;
+.btn-close{
+  background:#1f232b; color:#e5e7eb; border:1px solid rgba(255,255,255,.08);
+  border-radius:12px; padding:8px 12px; cursor:pointer;
 }
-.msg-list{
-  list-style:none; margin:0; padding:18px 14px; overflow:auto; flex:1 1 auto;
-  display:flex; flex-direction:column; gap:10px;
-  scrollbar-width:thin; scrollbar-color:#323644 transparent;
+.btn-close:hover{ background:#242933; }
+
+.error-banner{
+  margin:10px 12px 0; padding:10px 12px;
+  color:#fbe9ea; background:linear-gradient(180deg,#4a1317,#2b0c0e);
+  border:1px solid #6f1b22; border-radius:12px; font-weight:600;
 }
-.msg-item{ display:block; }
-.bubble{
-  background:linear-gradient(180deg,#13161d,#0e1217); color:#dfe6ee;
-  border:1px solid rgba(255,255,255,.06); border-radius:14px;
-  box-shadow:0 8px 24px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
-  padding:10px 12px;
+
+.messages{
+  flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:10px;
 }
-.meta{ color:#9aa3af; font-size:12px; margin-bottom:4px; }
-.body{ white-space:pre-wrap; word-wrap:break-word; }
+.msg{
+  background:linear-gradient(180deg,#17191e,#121419);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:16px; padding:12px 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.msg .meta{ color:#9aa0a6; font-size:12px; margin-bottom:6px; }
+.msg .user{ color:#d7dbe5; font-weight:700; margin-right:8px; }
+.msg .time{ color:#7e8590; }
+.msg .text{ color:#eef1f7; font-size:15px; line-height:1.4; }
 
 .composer{
-  display:grid; grid-template-columns:1fr max-content; gap:10px;
-  padding:12px; background:linear-gradient(180deg,#0f1116,#0b0d12);
-  border-top:1px solid rgba(255,255,255,.06);
+  display:flex; gap:10px; padding:12px; border-top:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg,#121418,#0e0f12);
 }
-#msgInput{
-  background:#0b0e13; color:#e8eef6; border:1px solid rgba(255,255,255,.08);
-  border-radius:12px; padding:12px 14px; outline:none;
+.composer-input{
+  flex:1; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.08);
+  background:#0d0f13; color:#e5e7eb; outline:none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
 }
-#msgInput:focus{ border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.25); }
-.send-btn{
-  padding:12px 18px; border-radius:12px; border:none; cursor:pointer;
-  background:linear-gradient(180deg,#2f7efc,#1f5fe0); color:#fff; font-weight:800;
-  box-shadow:0 10px 30px rgba(47,126,252,.35);
+.btn-send{
+  padding:12px 18px; border-radius:14px; border:none; cursor:pointer;
+  font-weight:800;
+  color:#e8ecf6;
+  background:linear-gradient(180deg,#2c6cf0,#244ec9);
+  box-shadow: 0 6px 18px rgba(36,78,201,.45);
 }
-.send-btn:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+.btn-send:active{ transform: translateY(1px); }
 
-/* Tiny red 70 badge on the wood rectangle */
+/* ==== tiny badge “70” on the wood pill ==== */
 #userPill{ position:relative; }
-.pill-badge{
-  position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 5px;
-  display:inline-flex; align-items:center; justify-content:center;
-  background:#ef4444; color:#fff; font-size:11px; line-height:1; border-radius:999px;
-  box-shadow:0 4px 10px rgba(239,68,68,.5); font-weight:800; pointer-events:none;
+.chat-badge{
+  position:absolute; top:-8px; right:-8px;
+  min-width:22px; height:22px; padding:0 6px;
+  border-radius:999px; display:flex; align-items:center; justify-content:center;
+  background:#e11d48; color:#fff; font-weight:900; font-size:11px;
+  box-shadow: 0 6px 14px rgba(225,29,72,.45), inset 0 1px 0 rgba(255,255,255,.25);
+  border:1px solid rgba(255,255,255,.2);
 }
 
 /* ===== Test Your Luck button (image that scrolls with page) ===== */
@@ -1097,6 +1105,24 @@ canvas{ display:block }
 
 <!-- Toasts -->
 <div id="toastStack" class="toast-stack"></div>
+<!-- ===== Socialize / Global Chat Overlay ===== -->
+<div id="socialOverlay" class="social-overlay" style="display:none">
+  <div class="social-panel">
+    <div class="social-header">
+      <div class="title">SOCIALIZE — <span class="muted">Global Chat (last 70)</span></div>
+      <button id="socialClose" class="btn-close">Close</button>
+    </div>
+
+    <div id="socialError" class="error-banner" style="display:none"></div>
+
+    <div id="globalList" class="messages"></div>
+
+    <div class="composer">
+      <input id="globalInput" class="composer-input" type="text" placeholder="Type a message…" maxlength="500" />
+      <button id="globalSend" class="btn-send">Send</button>
+    </div>
+  </div>
+</div>
 
 
     <!-- BOTTOM -->
@@ -1107,26 +1133,6 @@ canvas{ display:block }
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
-
-<!-- Socialize overlay -->
-<div id="socialOverlay" class="socialize-overlay" style="display:none">
-  <div class="socialize-card">
-    <div class="chat-head">
-      <div class="title">SOCIALIZE — <span>Global Chat (last 70)</span></div>
-      <button id="chatClose" class="ghost-btn">Close</button>
-    </div>
-
-    <div id="chatError" class="chat-error" style="display:none"></div>
-
-    <ul id="msgList" class="msg-list"></ul>
-
-    <div class="composer">
-      <input id="msgInput" type="text" maxlength="500" placeholder="Type a message…" />
-      <button id="sendBtn" class="send-btn">Send</button>
-    </div>
-  </div>
-</div>
-
 
     <!-- PLAY overlay -->
     <div class="overlay" id="playOverlay">
@@ -1659,8 +1665,7 @@ canvas{ display:block }
     <div class="toastWrap" id="toastWrap"></div>
   </div>
 </div>
-<!-- Supabase JS v2 -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
@@ -2772,120 +2777,7 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-(() => {
-  // ===== 0) Supabase config =====
-  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // docs show createClient like this. 
 
-  // ===== 1) Stable user id (no profile/username needed) =====
-  function getUID(){
-    try{
-      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        return 'tg:' + window.Telegram.WebApp.initDataUnsafe.user.id;
-      }
-    }catch(e){}
-    const p = new URLSearchParams(location.search).get('uid');
-    if (p) return 'q:' + p;
-    let u = localStorage.getItem('global_chat_uid');
-    if (!u){ u = 'guest:' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('global_chat_uid', u); }
-    return u;
-  }
-  const USER_ID = getUID();
-
-  // ===== 2) Wire up UI =====
-  const pill = document.getElementById('userPill');
-  if (pill && !pill.querySelector('.pill-badge')){
-    const badge = document.createElement('span');
-    badge.className = 'pill-badge';
-    badge.textContent = '70';
-    pill.appendChild(badge);
-  }
-
-  const overlay = document.getElementById('socialOverlay');
-  const closeBtn = document.getElementById('chatClose');
-  const ul = document.getElementById('msgList');
-  const input = document.getElementById('msgInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const errBox = document.getElementById('chatError');
-
-  let channel = null;
-
-  function showOverlay(v){ overlay.style.display = v ? 'flex' : 'none'; }
-  function showError(msg){ errBox.textContent = msg; errBox.style.display = msg ? 'block' : 'none'; }
-  function esc(s){ return s.replace(/[&<>"]/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[m])); }
-  function fmtTime(ts){ const d=new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-
-  function renderMessages(rows){
-    ul.innerHTML = '';
-    rows.forEach(r => addOne(r, true));
-    ul.scrollTop = ul.scrollHeight;
-  }
-
-  function addOne(row, skipScroll){
-    const li = document.createElement('li');
-    li.className = 'msg-item';
-    li.innerHTML = `
-      <div class="bubble">
-        <div class="meta">Player • ${fmtTime(row.created_at)}</div>
-        <div class="body">${esc(row.body)}</div>
-      </div>`;
-    ul.appendChild(li);
-    if (!skipScroll) ul.scrollTop = ul.scrollHeight;
-  }
-
-  async function loadLast70(){
-    const { data, error } = await sb
-      .from('messages')
-      .select('id, body, created_at')
-      .order('created_at', { ascending: false })
-      .limit(70);
-
-    if (error){ showError('Could not load messages: ' + error.message); return; }
-    showError('');
-    renderMessages((data||[]).reverse());
-  }
-
-  function subscribeRealtime(){
-    if (channel) sb.removeChannel(channel);
-    channel = sb.channel('room:messages')
-      .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
-        addOne(payload.new);
-      })
-      .subscribe();
-  }
-
-  async function sendMessage(){
-    const body = input.value.trim();
-    if (!body) return;
-    sendBtn.disabled = true;
-    showError('');
-    const { error } = await sb.from('messages').insert({ body, user_id: USER_ID });
-    // ^ we always include user_id to satisfy NOT NULL (also table default 'anon' is set as a safety net)
-    if (error){
-      showError('Cannot send message: ' + error.message);
-    } else {
-      input.value = '';
-    }
-    sendBtn.disabled = false;
-  }
-
-  function openChat(){
-    showOverlay(true);
-    loadLast70();
-    subscribeRealtime();
-    setTimeout(()=> input?.focus(), 50);
-  }
-  function closeChat(){
-    showOverlay(false);
-    if (channel){ sb.removeChannel(channel); channel = null; }
-  }
-
-  pill?.addEventListener('click', openChat);
-  closeBtn?.addEventListener('click', closeChat);
-  sendBtn?.addEventListener('click', sendMessage);
-  input?.addEventListener('keydown', e => { if (e.key==='Enter') sendMessage(); });
-})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -3480,6 +3372,145 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 
   window.openFlappy = ()=>{ closeOverlay('playOverlay'); openOverlay('flappyModal'); start(); };
 })();
+
+
+(() => {
+  // ==== CONFIG (yours) ====
+  const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ==== simple, stable local identity (id only) ====
+  function getLocalId(){
+    let id = localStorage.getItem('player_public_id');
+    if(!id){
+      id = (crypto.randomUUID && crypto.randomUUID()) || (Date.now()+'-'+Math.random().toString(16).slice(2));
+      localStorage.setItem('player_public_id', id);
+    }
+    return id;
+  }
+  const me = { id: getLocalId(), name: 'Player' };
+
+  // ==== elements ====
+  const userPill    = document.getElementById('userPill');     // your wood rectangle
+  const overlay     = document.getElementById('socialOverlay');
+  const closeBtn    = document.getElementById('socialClose');
+  const list        = document.getElementById('globalList');
+  const input       = document.getElementById('globalInput');
+  const sendBtn     = document.getElementById('globalSend');
+  const errBanner   = document.getElementById('socialError');
+
+  // add tiny "70" badge once
+  (function ensureBadge(){
+    if(!userPill) return;
+    let b = document.getElementById('chatBadge');
+    if(!b){
+      b = document.createElement('span');
+      b.id = 'chatBadge';
+      b.className = 'chat-badge';
+      b.textContent = '70';
+      userPill.appendChild(b);
+    }
+  })();
+
+  // open / close
+  function openOverlay(){
+    overlay.style.display = 'flex';
+    loadMessages();
+  }
+  function closeOverlay(){
+    overlay.style.display = 'none';
+  }
+  if (userPill) {
+    userPill.style.visibility = 'visible';
+    userPill.addEventListener('click', openOverlay);
+  }
+  closeBtn.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeOverlay(); });
+
+  // utilities
+  function showError(msg){
+    errBanner.textContent = msg;
+    errBanner.style.display = 'block';
+  }
+  function clearError(){
+    errBanner.style.display = 'none';
+    errBanner.textContent = '';
+  }
+  function addMessageRow(m){
+    const item = document.createElement('div');
+    item.className = 'msg';
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const u = document.createElement('span');
+    u.className = 'user';
+    u.textContent = 'Player';
+    const t = document.createElement('span');
+    t.className = 'time';
+    t.textContent = ' • ' + new Date(m.created_at).toLocaleTimeString();
+    meta.appendChild(u); meta.appendChild(t);
+
+    const body = document.createElement('div');
+    body.className = 'text';
+    body.textContent = m.body;
+
+    item.appendChild(meta);
+    item.appendChild(body);
+    list.appendChild(item);
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // state
+  let channel = null;
+
+  async function loadMessages(){
+    clearError();
+    // get last 70, newest first
+    const { data, error } = await sb
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending:false })
+      .limit(70);
+
+    list.innerHTML = '';
+    if(error){ showError('Could not load messages: ' + error.message); return; }
+
+    // render oldest -> newest
+    data.reverse().forEach(addMessageRow);
+
+    // realtime subscription once
+    if(!channel){
+      channel = sb.channel('pub:messages')
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, (payload) => {
+          addMessageRow(payload.new);
+        })
+        .subscribe();
+    }
+  }
+
+  async function sendMessage(){
+    const text = (input.value || '').trim();
+    if(!text) return;
+    input.value = '';
+    clearError();
+
+    const { error } = await sb.from('messages').insert({
+      user_id: me.id,
+      username: me.name,   // table has default 'Player' too, but we send it explicitly
+      body: text
+    });
+
+    if(error){
+      showError('Cannot send message: ' + error.message);
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendMessage(); });
+
+})();
+
 
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
