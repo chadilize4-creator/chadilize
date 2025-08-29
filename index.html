@@ -246,8 +246,13 @@
   box-shadow: 0 8px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
 }
 .btn.ghost{ opacity:.95; }
-.btn.danger{ background: linear-gradient(180deg,#2e1413,#1a0c0b); }
-
+/* Quit button text color */
+.btn.danger,
+.btn.danger:hover,
+.btn.danger:active,
+#cbQuit {
+  color: #fff !important;
+}
 /* Floating toast */
 .toast-host{ position: fixed; left: 50%; bottom: 20%; transform: translateX(-50%); pointer-events:none; }
 .toast{
