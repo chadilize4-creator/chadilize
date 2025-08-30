@@ -16,6 +16,32 @@
 .tt-hud{ position:absolute; left:0; right:0; display:flex; gap:10px; justify-content:flex-start; padding:10px; }
 .tt-hud-top{ top:0; align-items:center; }
 .tt-hud-btm{ bottom:0; align-items:center; justify-content:space-between; }
+/* Put both launchers on ONE row */
+.game-launchers{
+  display: flex;
+  flex-direction: row;   /* force horizontal */
+  flex-wrap: nowrap;     /* don't wrap to next line */
+  align-items: center;
+  gap: 12px;
+}
+
+/* Make sure the Crypto Break block doesn't stretch to full width */
+.launcher.crypto-break{
+  display: inline-flex;
+  width: auto;
+  flex: 0 0 auto;        /* don't grow, don't shrink */
+}
+.launcher.crypto-break .cb-chip{ width:auto; }
+
+/* Token Trigger image button (stays to the RIGHT of Crypto Break) */
+#tokenTriggerBtn.tt-btn-img{
+  display: inline-block;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;        /* don't let it stretch */
+  /* If you want it at the far RIGHT edge of the row, uncomment next line: */
+  /* margin-left: auto; */   /* pushes this item to the right in flexbox */
+}
 
 .tt-pill{
   display:inline-flex; gap:8px; align-items:center; color:#e9e9ec;
