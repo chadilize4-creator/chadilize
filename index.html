@@ -23,6 +23,20 @@
   border-radius:22px; padding:8px 14px; font-weight:700; letter-spacing:.3px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 14px rgba(0,0,0,.35);
 }
+/* make the row span the full width */
+.game-launchers{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  width:100%;          /* <-- add */
+}
+
+/* push the Token Trigger image to the far right */
+.tt-btn-img{
+  margin-left:auto;     /* <-- add */
+  /* (your existing size/hover styles can stay) */
+}
+
 .tt-pill b{ color:#4aa5ff; font-weight:800; }
 
 .tt-close{
