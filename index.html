@@ -6,29 +6,55 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* -------- Overlay & HUD -------- */
-  .ttg-overlay{position:fixed;inset:0;display:none;z-index:9999;background:rgba(0,0,0,.85);}
-  .ttg-overlay.ttg-show{display:flex;flex-direction:column;gap:10px;padding:14px;box-sizing:border-box}
-  .ttg-row{display:flex;align-items:center;gap:10px}
-  .ttg-pill{background:#111; color:#e9ebf5; padding:10px 14px; border-radius:18px; 
-            font:600 14px/1.1 ui-sans-serif,system-ui,Segoe UI,Roboto; letter-spacing:.5px;
-            box-shadow:0 1px 0 #000, inset 0 1px 0 rgba(255,255,255,.04)}
-  .ttg-pill b{color:#68a2ff}
-  .ttg-close{margin-left:auto; width:38px; height:38px; border-radius:50%; border:none; 
-             background:#181818; color:#fff; font:700 20px/38px system-ui; cursor:pointer}
-  .ttg-stage{flex:1; display:flex; align-items:center; justify-content:center}
-  .ttg-card{width:min(92vw,570px); aspect-ratio:9/16; background:#0c0f14; border-radius:22px;
-            box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.04);
-            overflow:hidden; position:relative}
-  #ttg-canvas{width:100%; height:100%; display:block}
-  .ttg-footer{display:flex; gap:10px; align-items:center; justify-content:space-between}
-  .ttg-main{background:#fff; color:#111; border:none; padding:10px 16px; border-radius:16px;
-            font:700 14px system-ui; box-shadow:0 1px 0 #000; cursor:pointer}
-  /* optional tap helper pulse on the bow when idle */
-  .ttg-pulse{position:absolute; left:0; top:0; width:16px; height:16px; border-radius:50%;
-             transform:translate(-50%,-50%); pointer-events:none; box-shadow:0 0 0 0 rgba(104,162,255,.7);
-             animation:ttgPulse 2s infinite}
-  @keyframes ttgPulse{to{box-shadow:0 0 0 24px rgba(104,162,255,0)}}
+/* --------- Button (small, right-friendly) --------- */
+.token-trigger-btn{
+  width: 82px; height: auto; display:inline-block; cursor:pointer; user-select:none;
+  border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.35);
+  transition:transform .08s ease;
+}
+.token-trigger-btn:active{ transform:scale(.97); }
+@media (min-width:480px){ .token-trigger-btn{ width:88px; }}
+
+/* --------- Modal shell --------- */
+.ttg-modal{ position:fixed; inset:0; background:rgba(0,0,0,.72);
+  display:none; z-index:9999; }
+.ttg-modal[aria-hidden="false"]{ display:block; }
+.ttg-frame{ position:relative; width:min(94vw, 540px); aspect-ratio:9/16; margin:12px auto;
+  background:#0c0c0f; border-radius:22px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden; }
+
+/* HUD */
+.ttg-hud{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:10px; align-items:center; z-index:5;}
+.ttg-pill{ background:rgba(20,20,26,.85); color:#e9edf4; padding:10px 14px; border-radius:16px;
+  font:600 14px/1.15 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; letter-spacing:.2px; }
+.ttg-pill span{ color:#6aa7ff; font-weight:800; }
+.ttg-close{ margin-left:auto; width:42px; height:42px; border-radius:999px; border:none;
+  background:rgba(20,20,26,.85); color:#fff; font-size:20px; cursor:pointer; }
+
+/* Stage */
+.ttg-stage-wrap{ position:absolute; inset:52px 0 64px; display:grid; place-items:center; }
+#ttg-canvas{ width:100%; height:100%; background:#dfe8ff; display:block; }
+
+/* Footer */
+.ttg-footer{ position:absolute; left:8px; right:8px; bottom:8px; display:flex; gap:10px; align-items:center; z-index:5;}
+.ttg-menu{ margin-left:auto; padding:12px 18px; font:600 14px system-ui; color:#111; background:#fff;
+  border:none; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.25); cursor:pointer; }
+
+/* Lose overlay */
+.ttg-lose{ position:absolute; inset:0; background:rgba(0,0,0,.55); display:grid; place-items:center; z-index:10; }
+.ttg-lose-card{ width:min(86%, 380px); background:#101318; color:#e8ecf5; border-radius:16px; padding:18px 18px 14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.45); text-align:center; }
+.ttg-lose-card h3{ margin:4px 0 8px; font:800 22px/1.1 system-ui; letter-spacing:.2px; }
+.ttg-earn{ margin:0 0 14px; opacity:.92; }
+.ttg-coin{ font-size:18px; }
+.ttg-actions{ display:flex; gap:10px; justify-content:center; }
+.ttg-primary{ background:#1dd181; color:#06110d; border:none; padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer; }
+.ttg-ghost{ background:transparent; border:1px solid rgba(255,255,255,.22); color:#e8ecf5; padding:12px 16px; border-radius:12px; cursor:pointer; }
+
+/* HiDPI crispness tweak on small screens */
+@media (max-width:360px){
+  .ttg-pill{ font-size:13px; padding:9px 12px; }
+  .ttg-menu{ padding:10px 14px; }
+}
 /* ==== Social Overlay (dark glass) ==== */
 .social-overlay{
   position:fixed; inset:0; z-index:9999;
@@ -1068,32 +1094,45 @@ canvas{ display:block }
     <img src="img/cryptobreak.png" alt="Crypto Break" />
     <span>Tap to play</span>
   </button>
-<!-- your existing button (right of Crypto Break) -->
-<img src="/img/tokentrigger.png" alt="Token Trigger" 
-     style="width:80px;height:auto;cursor:pointer"
-     onclick="TokenTriggerGame.open()">
+</div>
+<!-- ===================== TOKEN TRIGGER – MINI GAME (drop-in) ===================== -->
+<!-- Launch button (image only; tap area == image bounds) -->
+<img id="tokenTriggerBtn"
+     class="token-trigger-btn"
+     src="/img/tokentrigger.png"
+     alt="Token Trigger" />
 
-<div id="ttg-overlay" class="ttg-overlay" aria-hidden="true">
-  <div class="ttg-row">
-    <div class="ttg-pill">ROUND: <b id="ttg-round">1</b></div>
-    <div class="ttg-pill">SCORE: <b id="ttg-score">0</b> • CHADS: <b id="ttg-chads">0</b></div>
-    <button class="ttg-close" id="ttg-close" aria-label="Close">×</button>
+<!-- Modal -->
+<div id="ttg-modal" class="ttg-modal" aria-hidden="true">
+  <div class="ttg-frame">
+    <header class="ttg-hud">
+      <div class="ttg-pill">ROUND: <span id="ttg-round">1</span></div>
+      <div class="ttg-pill">SCORE: <span id="ttg-score">0</span> • CHADS: <span id="ttg-chads">0</span></div>
+      <button class="ttg-close" id="ttg-close" aria-label="Close">✕</button>
+    </header>
+
+    <div class="ttg-stage-wrap">
+      <canvas id="ttg-canvas" width="540" height="960"></canvas>
+    </div>
+
+    <footer class="ttg-footer">
+      <div class="ttg-pill">DISTANCE: <span id="ttg-dist">20</span> FT.</div>
+      <button class="ttg-menu" id="ttg-menu">MAIN MENU</button>
+    </footer>
   </div>
 
-  <div class="ttg-stage">
-    <div class="ttg-card">
-      <canvas id="ttg-canvas" width="900" height="1600"></canvas>
-      <div id="ttg-pulse" class="ttg-pulse" style="display:none"></div>
+  <!-- Lose overlay (hit the person) -->
+  <div class="ttg-lose" id="ttg-lose" hidden>
+    <div class="ttg-lose-card">
+      <h3>Nice Shot</h3>
+      <p class="ttg-earn">You earned <span id="ttg-earned">0</span> <span class="ttg-coin">🪙</span> chads this run.</p>
+      <div class="ttg-actions">
+        <button id="ttg-quit" class="ttg-primary">Quit (receive chads)</button>
+        <button id="ttg-try" class="ttg-ghost">Try again (no chads)</button>
+      </div>
     </div>
   </div>
-
-  <div class="ttg-footer">
-    <div class="ttg-pill">DISTANCE: <b id="ttg-dist">20</b> FT.</div>
-    <button class="ttg-main" id="ttg-main">MAIN MENU</button>
-  </div>
 </div>
-</div>
-
 <!-- Game overlay (opens only when you tap the button) -->
 <div id="cbOverlay" class="cb-overlay" aria-hidden="true">
   <div class="cb-hud">
@@ -3564,358 +3603,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 })();
 
 
-/* TokenTrigger Apple-Shooter — no frameworks, no auto-open */
-(function () {
-  const overlay   = document.getElementById('ttg-overlay');
-  const canvas    = document.getElementById('ttg-canvas');
-  const ctx       = canvas.getContext('2d');
-  const pulseDot  = document.getElementById('ttg-pulse');
-
-  const ui = {
-    round: document.getElementById('ttg-round'),
-    score: document.getElementById('ttg-score'),
-    chads: document.getElementById('ttg-chads'),
-    dist:  document.getElementById('ttg-dist'),
-    close: document.getElementById('ttg-close'),
-    main:  document.getElementById('ttg-main')
-  };
-
-  /* ----- world units / physics ----- */
-  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  function resizeCanvas() {
-    // Keep internal resolution crisp
-    const rect = canvas.getBoundingClientRect();
-    canvas.width  = Math.round(rect.width  * DPR);
-    canvas.height = Math.round(rect.height * DPR);
-    ctx.setTransform(DPR,0,0,DPR,0,0);  // draw using CSS pixels
-  }
-  // world scale: 1 meter ~ 36 CSS px (tuned for 9:16 stage)
-  const M2PX = 36;
-
-  // gravity (m/s^2)
-  const G = 9.80665; // standard gravity
-
-  /* ----- game state ----- */
-  let state;
-  function resetState() {
-    state = {
-      round: 1, score: 0, chads: 0,
-      distanceFt: 20,  // label only
-      // layout (meters)
-      groundY: 36*11/ M2PX, // placeholder (will be recomputed after resize)
-      archer: { x: 2.3, y: 0, w: .55, h: 1.6 },
-      target: { x: 12.5, y: 0, w: .65, h: 2.0 }, // smaller & farther
-      wall:   { x: 14.2, y: 0, rows: 5, cols: 3, bw: .45, bh: .35, gap:.08 },
-      arrow: null,
-      aiming: false,
-      bowAnchor: {x:0,y:0}, // draw pulse
-      lastTime: 0
-    };
-  }
-
-  /* ----- drawing helpers (simple, friendly shapes) ----- */
-  function skyGradient(w,h){
-    const g = ctx.createLinearGradient(0, h*0.15, 0, h);
-    g.addColorStop(0, '#dfe9ff');
-    g.addColorStop(1, '#bcd0ff');
-    return g;
-  }
-  function groundGradient(w,h){
-    const g = ctx.createLinearGradient(0, h*0.75, 0, h);
-    g.addColorStop(0, '#3dbb50');
-    g.addColorStop(1, '#1f9a38');
-    return g;
-  }
-  function drawScene() {
-    const w = canvas.width / DPR, h = canvas.height / DPR;
-    // recompute layout from visual card
-    const groundYpx = h*0.82;
-    state.groundY = groundYpx / M2PX;
-
-    // convert meters to pixels
-    const X = m => m*M2PX;
-    const Y = m => groundYpx - m*M2PX;
-
-    // clear
-    ctx.clearRect(0,0,w,h);
-    // sky
-    ctx.fillStyle = skyGradient(w,h);
-    ctx.fillRect(0,0,w,h);
-    // distant hills
-    ctx.fillStyle = '#a9bff8';
-    ctx.beginPath();
-    ctx.moveTo(0,h*0.7); ctx.bezierCurveTo(w*0.25,h*0.6,w*0.55,h*0.75,w,h*0.65); ctx.lineTo(w,h*0.82); ctx.lineTo(0,h*0.82); ctx.closePath(); ctx.fill();
-
-    // ground
-    ctx.fillStyle = groundGradient(w,h);
-    ctx.fillRect(0, groundYpx, w, h-groundYpx);
-    // turf ticks
-    ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1;
-    for (let i=0;i<12;i++){ ctx.beginPath(); ctx.moveTo(i*w/12, groundYpx); ctx.lineTo(i*w/12, groundYpx+6); ctx.stroke();}
-
-    // wall (nicer blocks)
-    const wall = state.wall;
-    const wx = X(wall.x), wy = Y(0);
-    for (let r=0; r<wall.rows; r++){
-      for (let c=0; c<wall.cols; c++){
-        const bx = wx + c*(wall.bw+wall.gap)*M2PX;
-        const by = wy - r*(wall.bh+wall.gap)*M2PX;
-        const bw = wall.bw*M2PX, bh = wall.bh*M2PX, rad = 8;
-        ctx.fillStyle = '#b9c0cd';
-        roundRect(bx, by-bh, bw, bh, rad, true);
-        ctx.fillStyle = 'rgba(0,0,0,.15)';
-        roundRect(bx, by-bh, bw, bh, rad, false); // stroke shadow
-      }
-    }
-
-    // target person (smaller, has legs)
-    drawPerson(X(state.target.x), Y(0), state.target.w*M2PX, state.target.h*M2PX, true);
-
-    // archer (smaller, legs)
-    drawArcher(X(state.archer.x), Y(0), state.archer.w*M2PX, state.archer.h*M2PX);
-
-    // arrow (if alive)
-    if (state.arrow) drawArrow(X(state.arrow.x), Y(state.arrow.y), state.arrow.angle);
-  }
-
-  function roundRect(x,y,w,h,r,fill=true){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
-    if (fill) { ctx.fill(); } else { ctx.stroke(); }
-  }
-
-  function drawPerson(cx, footY, bw, bh, withApple){
-    const bodyTop = footY - bh, bodyW = bw*0.55, armW = bw*0.17;
-    ctx.save();
-    // legs
-    const legW = bw*0.18, legH = bh*0.35;
-    ctx.fillStyle = '#e0e6f0';
-    roundRect(cx-bodyW*0.35 - legW - 2, footY-legH, legW, legH, 6, true);
-    roundRect(cx+bodyW*0.35 + 2, footY-legH, legW, legH, 6, true);
-    ctx.fillStyle = '#111'; roundRect(cx-bodyW*0.35 - legW - 2, footY-6, legW, 8, 4, true);
-    roundRect(cx+bodyW*0.35 + 2, footY-6, legW, 8, 4, true);
-
-    // body cylinder
-    const grad = ctx.createLinearGradient(cx-bodyW/2,0,cx+bodyW/2,0);
-    grad.addColorStop(0,'#2b66d7'); grad.addColorStop(1,'#4f85ff');
-    ctx.fillStyle = grad;
-    roundRect(cx-bodyW/2, bodyTop+bh*0.18, bodyW, bh*0.62, 14, true);
-
-    // head
-    const headR = bodyW*0.42;
-    ctx.fillStyle = '#ffd7b1';
-    ctx.beginPath(); ctx.arc(cx, bodyTop+bh*0.18 - headR*0.6, headR, 0, 2*Math.PI); ctx.fill();
-
-    // arm
-    ctx.fillStyle = '#ffd7b1';
-    roundRect(cx+bodyW/2-6, bodyTop+bh*0.36, armW, bh*0.22, 10, true);
-
-    // apple
-    if (withApple){
-      ctx.fillStyle = '#e74b3b'; ctx.beginPath();
-      ctx.arc(cx, bodyTop+bh*0.18 - headR*1.5, headR*0.55, 0, 2*Math.PI); ctx.fill();
-      ctx.fillStyle = '#2da44e'; ctx.beginPath();
-      ctx.ellipse(cx+headR*0.2, bodyTop+bh*0.18 - headR*1.8, headR*0.22, headR*0.12, 0, 0, 2*Math.PI); ctx.fill();
-      ctx.fillStyle = '#1c6a2f';
-      ctx.fillRect(cx-1, bodyTop+bh*0.18 - headR*1.9, 2, headR*0.45);
-    }
-    ctx.restore();
-  }
-
-  function drawArcher(cx, footY, bw, bh){
-    ctx.save();
-    // legs
-    const legW = bw*0.18, legH = bh*0.38;
-    ctx.fillStyle = '#e0e6f0';
-    roundRect(cx-bw*0.35 - legW, footY-legH, legW, legH, 6, true);
-    roundRect(cx+bw*0.35, footY-legH, legW, legH, 6, true);
-    ctx.fillStyle = '#111'; roundRect(cx-bw*0.35 - legW, footY-6, legW, 8, 4, true);
-    roundRect(cx+bw*0.35, footY-6, legW, 8, 4, true);
-
-    // body + head
-    const bodyW = bw*0.65, bodyH = bh*0.62, bodyTop = footY - bodyH - legH*0.2;
-    const headR  = bw*0.26;
-    const grad = ctx.createLinearGradient(cx-bodyW/2,0,cx+bodyW/2,0);
-    grad.addColorStop(0,'#3a84ff'); grad.addColorStop(1,'#6aa7ff');
-    ctx.fillStyle=grad; roundRect(cx-bodyW/2, bodyTop, bodyW, bodyH, 14, true);
-    ctx.fillStyle='#ffd7b1'; ctx.beginPath(); ctx.arc(cx, bodyTop-headR*0.7, headR, 0, Math.PI*2); ctx.fill();
-
-    // bow
-    const bowR = bw*0.9;
-    ctx.strokeStyle='#c2863f'; ctx.lineWidth=6;
-    ctx.beginPath(); ctx.arc(cx+bodyW*0.7, bodyTop+bodyH*0.5, bowR, Math.PI*0.55, Math.PI*1.45); ctx.stroke();
-    // string
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(cx+bodyW*0.7+bowR*Math.cos(Math.PI*0.55), bodyTop+bodyH*0.5+bowR*Math.sin(Math.PI*0.55));
-    ctx.lineTo(cx+bodyW*0.7+bowR*Math.cos(Math.PI*1.45), bodyTop+bodyH*0.5+bowR*Math.sin(Math.PI*1.45)); ctx.stroke();
-
-    // show gentle pulse where player taps to aim (nocking point)
-    const anchorX = cx+bodyW*0.7, anchorY = bodyTop+bodyH*0.5;
-    pulseDot.style.left = anchorX + 'px'; pulseDot.style.top = anchorY + 'px'; pulseDot.style.display = state.aiming ? 'none' : 'block';
-    state.bowAnchor = {x: anchorX, y: anchorY};
-    ctx.restore();
-  }
-
-  function drawArrow(x, y, angle){
-    ctx.save();
-    ctx.translate(x,y); ctx.rotate(-angle);
-    // shaft
-    ctx.strokeStyle='#f6efe0'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(18,0); ctx.stroke();
-    // head
-    ctx.fillStyle='#d7c6a2'; ctx.beginPath(); ctx.moveTo(18,0); ctx.lineTo(10,-4); ctx.lineTo(10,4); ctx.closePath(); ctx.fill();
-    // fletchings
-    ctx.fillStyle='#7aa2ff';
-    ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(-30,-5); ctx.lineTo(-26,0); ctx.lineTo(-30,5); ctx.closePath(); ctx.fill();
-    ctx.restore();
-  }
-
-  /* ----- input (drag to aim; no guide line while aiming) ----- */
-  let pointerId = null, drag = null;
-  function onPointerDown(e){
-    if (pointerId !== null) return;
-    pointerId = e.pointerId || 1;
-    const rect = canvas.getBoundingClientRect();
-    const px = (e.clientX - rect.left), py = (e.clientY - rect.top);
-    // only start if near bow anchor
-    const dx = px - state.bowAnchor.x, dy = py - state.bowAnchor.y;
-    if (Math.hypot(dx,dy) < 90){ state.aiming = true; drag = {sx:px, sy:py, x:px, y:py}; }
-  }
-  function onPointerMove(e){
-    if (pointerId !== (e.pointerId||1) || !state.aiming) return;
-    const rect = canvas.getBoundingClientRect();
-    drag.x = e.clientX - rect.left; drag.y = e.clientY - rect.top;
-  }
-  function onPointerUp(e){
-    if (pointerId !== (e.pointerId||1) || !state.aiming) return;
-    state.aiming = false; pulseDot.style.display='none';
-    const v = computeShotVelocity(drag);
-    if (v) shoot(v.vx, v.vy);
-    pointerId = null; drag = null;
-  }
-  canvas.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-  window.addEventListener('pointercancel', onPointerUp);
-
-  // Convert drag vector into initial velocity (meters/sec), clamped for slower flight
-  function computeShotVelocity(d){
-    if (!d) return null;
-    const ax = state.bowAnchor.x, ay = state.bowAnchor.y;
-    // drag "back and down" -> more power. Use vector from anchor to drag point.
-    const vx = (ax - d.x), vy = (ay - d.y);
-    const pull = Math.min(140, Math.hypot(vx, vy)); // pixels
-    if (pull < 10) return null;
-    const angle = Math.atan2(-vy, -vx); // aim direction
-    // scale: max speed ~ 16 m/s (deliberately not too fast)
-    const v0 = 7 + (pull/140) * 9;   // 7..16 m/s
-    return { vx: v0*Math.cos(angle), vy: v0*Math.sin(angle) };
-  }
-
-  /* ----- shooting / physics ----- */
-  function shoot(vx, vy){
-    // arrow starts just in front of bow
-    const startx = (state.archer.x + 0.95) ; // meters
-    const starty = (state.groundY - (canvas.height/DPR*0.36)/M2PX); // approx archer chest
-    state.arrow = { x: startx, y: starty, vx, vy, t:0, alive:true, angle: Math.atan2(vy, vx) };
-  }
-
-  function step(dt){
-    if (!state.arrow) return;
-    const a = state.arrow;
-    a.t += dt;
-    a.x += a.vx * dt;
-    a.y += a.vy * dt - 0.5*G*dt*dt; // integrate position
-    a.vy += -G * dt;                // integrate velocity
-    a.angle = Math.atan2(a.vy, a.vx);
-
-    // collisions
-    const hit = checkHit(a);
-    if (hit){
-      state.score += (hit === 'apple') ? 1 : 0;
-      if (hit === 'apple'){
-        // slight bump in difficulty: nudge wall closer next round
-        state.round++; state.chads += 1;
-        // reset arrow, keep positions
-        state.arrow = null;
-      }else if (hit === 'person' || hit === 'wall' || hit==='ground'){
-        state.arrow = null;
-      }
-      updateHUD();
-    }
-    // out of bounds
-    if (a && (a.x < -1 || a.x > 24 || a.y < -1 || a.y > 30)){ state.arrow = null; }
-  }
-
-  // simple AABBs + circle checks
-  function checkHit(a){
-    const ax = a.x, ay = a.y;
-    // ground
-    if (ay <= 0) return 'ground';
-    // target body
-    const t = state.target;
-    const body = {x:t.x - t.w*0.27, y:0, w:t.w*0.54, h:t.h*0.62};
-    if (pointInRect(ax, ay, body)) return 'person';
-    // head
-    const headC = {x:t.x, y:t.h*0.78, r:t.w*0.23};
-    if (dist(ax,ay, headC.x, headC.y) < headC.r) return 'person';
-    // apple (small circle above head)
-    const apple = {x:t.x, y:t.h*0.98, r:t.w*0.18};
-    if (dist(ax,ay, apple.x, apple.y) < apple.r) return 'apple';
-    // wall blocks
-    const w = state.wall;
-    for (let r=0;r<w.rows;r++){
-      for (let c=0;c<w.cols;c++){
-        const rx = w.x + c*(w.bw+w.gap), ry = r*(w.bh+w.gap);
-        const rect = {x: rx, y: ry, w: w.bw, h: w.bh};
-        if (pointInRect(ax, ay, rect)) return 'wall';
-      }
-    }
-    return null;
-  }
-  function pointInRect(px,py,rect){ return px>rect.x-rect.w/2 && px<rect.x+rect.w/2 && py>rect.y && py<rect.y+rect.h; }
-  function dist(x1,y1,x2,y2){ const dx=x1-x2, dy=y1-y2; return Math.hypot(dx,dy); }
-
-  /* ----- animation loop ----- */
-  function loop(t){
-    if (!state.lastTime) state.lastTime = t;
-    const dt = Math.min(0.033, (t - state.lastTime)/1000); // clamp
-    state.lastTime = t;
-
-    // step then draw
-    step(dt);
-    drawScene();
-
-    if (overlay.classList.contains('ttg-show')) requestAnimationFrame(loop);
-  }
-
-  /* ----- HUD ----- */
-  function updateHUD(){
-    ui.round.textContent = state.round;
-    ui.score.textContent = state.score;
-    ui.chads.textContent = state.chads;
-    ui.dist.textContent  = state.distanceFt;
-  }
-
-  /* ----- public controls ----- */
-  function open(){
-    if (overlay.classList.contains('ttg-show')) return;
-    resizeCanvas(); resetState(); updateHUD();
-    overlay.classList.add('ttg-show');
-    requestAnimationFrame(loop);
-  }
-  function close(){ overlay.classList.remove('ttg-show'); }
-
-  // wire buttons
-  ui.close.addEventListener('click', close);
-  ui.main.addEventListener('click', close);
-  window.addEventListener('resize', ()=>{ if(overlay.classList.contains('ttg-show')) resizeCanvas(); });
-
-  // expose minimal API to your app
-  window.TokenTriggerGame = { open, close };
-})();
-
-
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
 
@@ -4735,6 +4422,408 @@ function openBreaker(){
   window.addEventListener('resize', resizeCanvas);
 })();
 
+(() => {
+  // ------- DOM -------
+  const btn   = document.getElementById('tokenTriggerBtn');
+  const modal = document.getElementById('ttg-modal');
+  const cvs   = document.getElementById('ttg-canvas');
+  const ctx   = cvs.getContext('2d');
+  const elRound = document.getElementById('ttg-round');
+  const elScore = document.getElementById('ttg-score');
+  const elChads = document.getElementById('ttg-chads');
+  const elDist  = document.getElementById('ttg-dist');
+  const loseOverlay = document.getElementById('ttg-lose');
+  const loseEarned  = document.getElementById('ttg-earned');
+
+  const closeBtn = document.getElementById('ttg-close');
+  const menuBtn  = document.getElementById('ttg-menu');
+  const quitBtn  = document.getElementById('ttg-quit');
+  const tryBtn   = document.getElementById('ttg-try');
+
+  // ------- State -------
+  let raf = null;
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+
+  const G = 1400;       // gravity px/s^2 (scaled for 9:16 canvas)
+  const MAX_POWER = 28; // max launch speed (px/frame @60fps)
+  const MIN_POWER = 14;
+
+  const world = {
+    round: 1,
+    score: 0,
+    chads: 0,
+    runChads: 0,
+    distanceFt: 20,
+    running: false,
+    aiming: false,
+    arrow: null,
+  };
+
+  const archer = { x: 90, y: 760, r: 44, facing: 1, aim: 0, draw: 0 };
+  const target = { x: 420, y: 720, w: 54, h: 160, head: 32, apple: 18 };
+  const wall   = { x: 470, y: 710, w: 120, h: 160, brick: 28, gap: 6 };
+
+  const particles = [];
+
+  // ------- Audio (no external files) -------
+  let audioCtx = null;
+  const ping = (type='hit') => {
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      if(type==='apple'){ o.frequency.value = 800; }
+      else if(type==='body'){ o.frequency.value = 140; }
+      else { o.frequency.value = 300; }
+      g.gain.setValueAtTime(.18, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      o.start(); o.stop(audioCtx.currentTime + 0.21);
+    }catch(e){}
+  };
+
+  // ------- Utils -------
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand = (a,b)=>a+Math.random()*(b-a);
+
+  function setDPR() {
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = cvs.clientWidth || 540;
+    const cssH = cvs.clientHeight || 960;
+    cvs.width  = Math.round(cssW * dpr);
+    cvs.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // ------- Drawing -------
+  function drawSky() {
+    const { width, height } = cvs;
+    const g = ctx.createLinearGradient(0, 0, 0, height/dpr);
+    g.addColorStop(0, '#dfe8ff');
+    g.addColorStop(1, '#bcd2ff');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width/dpr, height/dpr);
+    // distant hills
+    ctx.fillStyle = '#b3c4f2';
+    roundedRect(0, 640, 540, 90, 40, true);
+    ctx.fillStyle = '#a3b8ef';
+    roundedRect(190, 660, 350, 80, 40, true);
+  }
+
+  function drawGround() {
+    // turf
+    ctx.fillStyle = '#2ac45c';
+    roundedRect(20, 840, 500, 68, 24, true);
+    // subtle darker top edge
+    ctx.fillStyle = '#24ad51';
+    ctx.fillRect(24, 840, 492, 6);
+  }
+
+  function roundedRect(x, y, w, h, r, fill=true, stroke=false){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
+    ctx.closePath();
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
+  }
+
+  function drawArcher() {
+    const {x,y,r} = archer;
+    // legs
+    ctx.fillStyle='#222';
+    roundedRect(x-20, y+18, 18, 22, 6, true);
+    roundedRect(x+4,  y+18, 18, 22, 6, true);
+    // body
+    const torsoW=48, torsoH=58;
+    const torsoX=x-torsoW/2, torsoY=y-30;
+    const grad=ctx.createLinearGradient(torsoX, torsoY, torsoX, torsoY+torsoH);
+    grad.addColorStop(0,'#5aa7ff'); grad.addColorStop(1,'#2e73e6');
+    ctx.fillStyle=grad; roundedRect(torsoX, torsoY, torsoW, torsoH, 14, true);
+    // head
+    ctx.fillStyle='#ffd2a3'; ctx.beginPath(); ctx.arc(x, y-52, 20, 0, Math.PI*2); ctx.fill();
+    // arm drawing string
+    ctx.fillStyle='#fccb9a'; roundedRect(x+18, y-10, 14, 28, 7, true);
+    // bow
+    ctx.strokeStyle='#c88b3a'; ctx.lineWidth=5; ctx.beginPath();
+    ctx.arc(x+28, y-6, 28, -Math.PI/2, Math.PI/2); ctx.stroke();
+    // string
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x+28, y-34); ctx.lineTo(x+28, y+22); ctx.stroke();
+
+    // loaded arrow (only when aiming and no airborne arrow)
+    if(world.aiming && !world.arrow){
+      const ang = archer.aim;
+      ctx.save();
+      ctx.translate(x+28, y-6);
+      ctx.rotate(ang);
+      drawArrowShape(-16 - archer.draw*22, 0);
+      ctx.restore();
+    }
+  }
+
+  function drawTarget() {
+    const t = target;
+    // body
+    const grad=ctx.createLinearGradient(t.x, t.y- t.h, t.x, t.y);
+    grad.addColorStop(0,'#3c79e6'); grad.addColorStop(1,'#2550b5');
+    ctx.fillStyle=grad; roundedRect(t.x - t.w/2, t.y - t.h, t.w, t.h, 16, true);
+    // feet
+    ctx.fillStyle='#222';
+    roundedRect(t.x-18, t.y-6, 16, 12, 6, true);
+    roundedRect(t.x+2,  t.y-6, 16, 12, 6, true);
+    // arm
+    ctx.fillStyle='#fccb9a'; roundedRect(t.x + t.w/2 - 12, t.y - 74, 14, 46, 8, true);
+    // head
+    ctx.fillStyle='#ffd2a3'; ctx.beginPath(); ctx.arc(t.x, t.y - t.h - t.head/2 + 8, t.head/2, 0, Math.PI*2); ctx.fill();
+    // apple
+    const ax = t.x, ay = t.y - t.h - t.head + 2;
+    ctx.fillStyle='#d94a3a'; ctx.beginPath(); ctx.arc(ax, ay, t.apple/2, 0, Math.PI*2); ctx.fill();
+    // leaf
+    ctx.fillStyle='#2dbb59'; ctx.beginPath();
+    ctx.ellipse(ax+10, ay-10, 6, 3, Math.PI/6, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawWall() {
+    const b=wall.brick, g=wall.gap, cols=3, rows=5;
+    const ox=wall.x, baseY=wall.y;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x=ox + c*(b+g), y=baseY - r*(b+g);
+        const grad=ctx.createLinearGradient(x,y,x,y+b);
+        grad.addColorStop(0,'#cfd6de'); grad.addColorStop(1,'#9ea9b7');
+        ctx.fillStyle=grad; roundedRect(x,y-b,b,b,6,true);
+        ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.stroke();
+      }
+    }
+  }
+
+  function drawArrow(a){
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(a.rot);
+    drawArrowShape(0, 0);
+    ctx.restore();
+  }
+
+  function drawArrowShape(offsetX, offsetY){
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    // shaft
+    ctx.strokeStyle='#c9cfd8'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-28,0); ctx.lineTo(26,0); ctx.stroke();
+    // head
+    ctx.fillStyle='#eaeef6';
+    ctx.beginPath(); ctx.moveTo(26,0); ctx.lineTo(18,-5); ctx.lineTo(18,5); ctx.closePath(); ctx.fill();
+    // fletching
+    ctx.fillStyle='#6aa7ff';
+    ctx.beginPath(); ctx.moveTo(-28,0); ctx.lineTo(-22,6); ctx.lineTo(-22,-6); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawParticles(){
+    for(const p of particles){
+      ctx.fillStyle = `rgba(200,0,0,${p.a})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ------- Physics & Game Loop -------
+  function spawnArrow(vx, vy){
+    world.arrow = {
+      x: archer.x+28, y: archer.y-6,
+      vx, vy, rot: Math.atan2(vy, vx), alive:true
+    };
+  }
+
+  function update(dt){
+    // arrow
+    if(world.arrow){
+      const a=world.arrow;
+      a.vy += G*dt;
+      a.x  += a.vx*dt;
+      a.y  += a.vy*dt;
+      a.rot = Math.atan2(a.vy, a.vx);
+      if(checkHitApple(a) || checkHitBody(a) || outOfBounds(a)){
+        world.arrow.alive=false;
+      }
+      if(!a.alive) world.arrow=null;
+    }
+    // particles
+    for(const p of particles){
+      p.vx *= 0.98; p.vy += 900*dt; p.x += p.vx*dt; p.y += p.vy*dt; p.a *= 0.96;
+    }
+    for(let i=particles.length-1;i>=0;i--) if(particles[i].a<0.05) particles.splice(i,1);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,cvs.width, cvs.height);
+    drawSky(); drawGround(); drawWall(); drawTarget(); drawArcher();
+    if(world.arrow) drawArrow(world.arrow);
+    drawParticles();
+  }
+
+  function loop(ts){
+    if(!world.running) return;
+    const now = performance.now();
+    loop.prev ??= now;
+    const dt = Math.min(0.033, (now - loop.prev)/1000);
+    loop.prev = now;
+
+    update(dt);
+    render();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function resetRun(){
+    world.round = 1; world.score = 0; world.chads = 0; world.runChads = 0; world.distanceFt = 20;
+    elRound.textContent = world.round;
+    elScore.textContent = world.score;
+    elChads.textContent = world.chads;
+    elDist.textContent  = world.distanceFt;
+    // spacing & scale (characters smaller + farther)
+    archer.x = 78;  archer.y = 760;
+    target.x = 460; target.y = 720; target.h = 150; target.w=48;
+    wall.x   = 500; wall.y = 710;
+  }
+
+  function start(){
+    setDPR();
+    resetRun();
+    world.running = true;
+    loop.prev = undefined;
+    raf = requestAnimationFrame(loop);
+  }
+
+  function stop(){
+    world.running = false;
+    if(raf) cancelAnimationFrame(raf);
+  }
+
+  function outOfBounds(a){
+    return (a.x < -60 || a.x > cvs.width/dpr + 60 || a.y > cvs.height/dpr + 60);
+  }
+
+  function checkHitApple(a){
+    const ax = target.x, ay = target.y - target.h - target.head + 2;
+    const dx = a.x - ax, dy = a.y - ay;
+    const hit = dx*dx + dy*dy <= (target.apple/2 + 6)**2;
+    if(hit){
+      ping('apple');
+      world.score += 1; world.chads += 1; world.runChads += 1;
+      elScore.textContent = world.score; elChads.textContent = world.chads;
+      // next round: slightly farther
+      world.round += 1; elRound.textContent = world.round;
+      target.x = clamp(target.x + 8, 380, 480);
+      wall.x   = target.x + 34;
+      world.distanceFt += 2; elDist.textContent = world.distanceFt;
+      // little confetti (red apple bits)
+      for(let i=0;i<12;i++){
+        particles.push({x:ax,y:ay,r:rand(2,3.5),vx:rand(-180,180),vy:rand(-240,-60),a:1});
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function checkHitBody(a){
+    // torso box + head circle
+    const torso = { x: target.x - target.w/2, y: target.y - target.h, w: target.w, h: target.h };
+    const headC = { x: target.x, y: target.y - target.h - target.head/2 + 8, r: target.head/2 };
+    const inTorso = a.x > torso.x && a.x < torso.x+torso.w && a.y > torso.y && a.y < torso.y+torso.h;
+    const inHead = ((a.x-headC.x)**2 + (a.y-headC.y)**2) <= (headC.r+6)**2;
+
+    if(inTorso || inHead){
+      ping('body');
+      // blood burst
+      for(let i=0;i<22;i++){
+        particles.push({x:a.x, y:a.y, r:rand(1.5,3.5), vx:rand(-220,220), vy:rand(-260,60), a:1});
+      }
+      stop();
+      showLose();
+      return true;
+    }
+    return false;
+  }
+
+  // ------- Input (tap & drag to set angle/power; no guideline line) -------
+  function pointerOnBow(px,py){
+    return Math.hypot(px-(archer.x+28), py-(archer.y-6)) < 48;
+  }
+  cvs.addEventListener('pointerdown', (e)=>{
+    const rect = cvs.getBoundingClientRect();
+    const px = (e.clientX-rect.left), py = (e.clientY-rect.top);
+    if(pointerOnBow(px,py) && !world.arrow){
+      world.aiming = true; archer.draw = 0.0;
+    }
+  });
+  cvs.addEventListener('pointermove', (e)=>{
+    if(!world.aiming) return;
+    const rect = cvs.getBoundingClientRect(); const px=(e.clientX-rect.left), py=(e.clientY-rect.top);
+    const dx = px - (archer.x+28), dy = py - (archer.y-6);
+    const ang = Math.atan2(dy, dx);
+    // limit angle upward & a bit downward
+    archer.aim = clamp(ang, -Math.PI*0.15, Math.PI*0.35);
+    // power from pull distance
+    const pull = clamp(Math.hypot(dx,dy)/120, 0, 1);
+    archer.draw = pull;
+  });
+  const release = ()=>{
+    if(!world.aiming) return;
+    world.aiming=false;
+    const p = MIN_POWER + (MAX_POWER-MIN_POWER)*archer.draw; // px/frame
+    const spd = p * 60; // convert to px/s
+    const vx = Math.cos(archer.aim)*spd;
+    const vy = Math.sin(archer.aim)*spd;
+    spawnArrow(vx, vy);
+    archer.draw=0;
+  };
+  cvs.addEventListener('pointerup', release);
+  cvs.addEventListener('pointercancel', release);
+  cvs.addEventListener('pointerleave', release);
+
+  // ------- Lose Overlay -------
+  function showLose(){
+    loseEarned.textContent = world.runChads;
+    loseOverlay.hidden = false;
+  }
+  function hideLose(){ loseOverlay.hidden = true; }
+
+  quitBtn?.addEventListener('click', ()=>{
+    // award run chads to app
+    const amt = world.runChads|0;
+    try{ if(typeof window.addChads === 'function') window.addChads(amt); }catch(e){}
+    window.dispatchEvent(new CustomEvent('tokentrigger:award',{ detail:{ chads: amt }}));
+    hideLose();
+    closeModal();
+  });
+  tryBtn?.addEventListener('click', ()=>{
+    // forfeit this run; restart
+    hideLose();
+    start();
+  });
+
+  // ------- Modal control (no auto-open) -------
+  function openModal(){
+    modal.setAttribute('aria-hidden','false');
+    start();
+  }
+  function closeModal(){
+    stop();
+    modal.setAttribute('aria-hidden','true');
+  }
+
+  btn?.addEventListener('click', openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  menuBtn?.addEventListener('click', closeModal);
+
+  // Resize handling
+  const resize = ()=>{ if(modal.getAttribute('aria-hidden')==='false'){ setDPR(); render(); } };
+  window.addEventListener('resize', resize);
+})();
 
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
 (function(){
