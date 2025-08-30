@@ -6,50 +6,78 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== Token Trigger (scoped) ===== */
-.tt-overlay{
-  position:fixed; inset:0; z-index:9999; display:flex; flex-direction:column;
-  background: #000; color:#e9ecf1; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, Apple Color Emoji, Noto Color Emoji;
-}
-.tt-topbar,.tt-bottombar{
-  display:flex; gap:12px; align-items:center; justify-content:space-between;
-  padding:10px 14px; background:rgba(0,0,0,.65); backdrop-filter: blur(6px);
-}
-.tt-chip{
-  background: linear-gradient(180deg,#1c1f23,#121417);
-  border-radius:14px; padding:8px 14px; font-weight:600; letter-spacing:.3px;
-  display:inline-flex; align-items:baseline; gap:8px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-}
-.tt-chip span{ color:#adb5bd; font-weight:700; }
-.tt-chip b{ color:#70a1ff; font-weight:800; }
-.tt-close{
-  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
-  background:rgba(255,255,255,.08); color:#e9ecf1; font-size:18px;
-}
-.tt-stage-wrap{ position:relative; flex:1; display:flex; align-items:center; justify-content:center; padding:10px; }
-.tt-canvas{
-  width: min(100vw, 100vh * 9/16);
-  height: min(100vh - 120px, (100vw) * 16/9);
-  max-height: calc(100dvh - 120px);
-  background:#0c0f12; border-radius:18px; box-shadow:0 0 0 1px rgba(255,255,255,.05), 0 30px 80px rgba(0,0,0,.6);
-}
-.tt-mainmenu{
-  border:0; border-radius:16px; padding:10px 16px; font-weight:800; cursor:pointer;
-  background:#f1f3f5; color:#111; box-shadow:0 6px 18px rgba(0,0,0,.25);
-}
-.tt-dialog{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.45); }
-.tt-dialog-card{
-  width:min(90vw,460px); background:linear-gradient(180deg,#13161a,#0f1216);
-  border-radius:18px; padding:22px; box-shadow:0 25px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
-  text-align:center;
-}
-.tt-dialog-title{ margin:0 0 6px; font-size:22px; }
-.tt-dialog-sub{ margin:0 0 18px; color:#cfd6de; }
-.tt-coin{ filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
-.tt-btn{ padding:10px 14px; border-radius:12px; border:0; font-weight:800; cursor:pointer; }
-.tt-btn-primary{ background:#00d67a; color:#082012; }
-.tt-btn-ghost{ background:transparent; color:#e9ecf1; border:1px solid rgba(255,255,255,.1); }
+ /* ───────── General reset for the overlay (prevents accidental auto show) ───────── */
+  .tt-overlay[hidden]{display:none!important;}
 
+  /* Launcher image (put on the right of your Crypto Break button) */
+  .tt-launch{
+    width:72px; height:auto; display:inline-block; border-radius:12px;
+    box-shadow:0 4px 16px rgba(0,0,0,.35); cursor:pointer; user-select:none;
+    margin-left:12px; /* keeps it to the right side */
+  }
+  .tt-launch:active{transform:scale(.98);}
+
+  /* Fullscreen overlay */
+  .tt-overlay{
+    position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.85);
+  }
+  .tt-overlay.tt-show{display:flex;}
+
+  /* Phone 9:16 frame */
+  .tt-frame{
+    width:min(100vw, 100vh*9/16);
+    height:min(100vh, 100vw*16/9);
+    background:radial-gradient(120% 120% at 50% 0%, #0f0f10 0%, #0a0a0b 60%, #000 100%);
+    border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+
+  /* HUD */
+  .tt-hud{display:flex; align-items:center; gap:12px; padding:12px;}
+  .tt-pill{
+    background:linear-gradient(180deg,#2b2b2f,#171719);
+    border-radius:16px; padding:10px 14px; color:#d9d9e0; font-weight:700; letter-spacing:.5px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 6px 12px rgba(0,0,0,.45);
+  }
+  .tt-pill span{color:#5aa1ff;}
+  .tt-close{
+    margin-left:auto; width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
+    background:linear-gradient(180deg,#2b2b2f,#171719); color:#fff; font-size:18px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 6px 12px rgba(0,0,0,.45);
+  }
+
+  /* Stage and canvas */
+  .tt-stage{flex:1; padding:12px; display:flex;}
+  #ttCanvas{
+    flex:1; background:#cfe0ff; border-radius:22px; display:block;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25), inset 0 -120px 160px rgba(0,0,0,.12);
+  }
+
+  /* Footer */
+  .tt-footer{display:flex; align-items:center; gap:12px; padding:12px;}
+  .tt-btn{
+    margin-left:auto; background:#fff; border:0; border-radius:16px; padding:10px 16px; font-weight:800;
+    box-shadow:0 8px 20px rgba(0,0,0,.2); cursor:pointer;
+  }
+
+  /* Modal */
+  .tt-modal{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.45);
+  }
+  .tt-modal[hidden]{display:none!important;}
+  .tt-card{
+    width:min(88%,420px); background:#121214; border-radius:18px; padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.05);
+    text-align:center; color:#e9e9f0;
+  }
+  .tt-title{margin:0 0 8px 0; font-size:22px;}
+  .tt-sub{opacity:.9; margin:0 0 16px;}
+  .tt-actions{display:flex; gap:10px; justify-content:center;}
+  .tt-accept{background:#17c964; color:#00120a;}
+  .tt-retry{background:#22242a; color:#e9e9f0;}
+  .tt-accept,.tt-retry{padding:12px 14px; border:0; border-radius:14px; cursor:pointer; font-weight:800;}
 /* ==== Social Overlay (dark glass) ==== */
 .social-overlay{
   position:fixed; inset:0; z-index:9999;
@@ -1080,40 +1108,6 @@ canvas{ display:block }
         <div class="small">generation / hr: <span id="genRate">0</span></div>
       </div>
     </div>
-<!-- OPTIONAL: use only if you don't already render the Token Trigger button -->
-<img id="tokenTriggerBtn" src="img/tokentrigger.png" alt="Token Trigger"
-     style="width:88px;height:auto;display:block" />
-
-<!-- Token Trigger overlay (injected hidden; shown on open) -->
-<div id="tt-overlay" class="tt-overlay" hidden>
-  <div class="tt-topbar">
-    <div class="tt-chip"><span>ROUND:</span><b id="tt-round">1</b></div>
-    <div class="tt-chip"><span>SCORE:</span><b id="tt-score">0</b>&nbsp;•&nbsp;<span>CHADS:</span><b id="tt-chads">0</b></div>
-    <button class="tt-close" aria-label="Close" id="tt-close">✕</button>
-  </div>
-
-  <div class="tt-stage-wrap">
-    <canvas id="tt-canvas" class="tt-canvas" width="900" height="1600"></canvas>
-  </div>
-
-  <div class="tt-bottombar">
-    <div class="tt-chip"><span>DISTANCE:</span><b id="tt-distance">20</b>&nbsp;<span>FT.</span></div>
-    <button class="tt-mainmenu" id="tt-mainmenu">MAIN MENU</button>
-  </div>
-
-  <!-- Result dialog -->
-  <div id="tt-dialog" class="tt-dialog" hidden>
-    <div class="tt-dialog-card">
-      <h3 class="tt-dialog-title">Nice Shot</h3>
-      <p class="tt-dialog-sub">You earned <b id="tt-earned">0</b> <span class="tt-coin">🪙</span> chads this run.</p>
-      <div class="tt-dialog-actions">
-        <button id="tt-quit" class="tt-btn tt-btn-primary">Quit (receive chads)</button>
-        <button id="tt-retry" class="tt-btn tt-btn-ghost">Try again (no chads)</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Place this block where your wooden profile rectangle is rendered -->
 <div id="profileStrip">
   <div class="wood-card" id="woodCard"><!-- your profile/username card --></div>
@@ -1123,6 +1117,47 @@ canvas{ display:block }
     <img src="img/cryptobreak.png" alt="Crypto Break" />
     <span>Tap to play</span>
   </button>
+</div>
+<!-- ───────────────────── TOKEN TRIGGER LAUNCHER (place to the RIGHT of Crypto Break) ───────────────────── -->
+<img
+  id="tokenTriggerBtn"
+  src="img/tokentrigger.png"
+  alt="Token Trigger"
+  class="tt-launch"
+/>
+
+<!-- ───────────────────── TOKEN TRIGGER OVERLAY (copy once, anywhere near </body>) ───────────────────── -->
+<div id="ttOverlay" class="tt-overlay" hidden aria-hidden="true">
+  <div class="tt-frame" role="dialog" aria-label="Token Trigger Mini-Game">
+    <header class="tt-hud">
+      <div class="tt-pill">ROUND: <span id="ttRound">1</span></div>
+      <div class="tt-pill">SCORE: <span id="ttScore">0</span> • CHADS: <span id="ttChads">0</span></div>
+      <button id="ttClose" class="tt-close" aria-label="Close">✕</button>
+    </header>
+
+    <div class="tt-stage">
+      <canvas id="ttCanvas" width="360" height="640"></canvas>
+    </div>
+
+    <footer class="tt-footer">
+      <div class="tt-pill">DISTANCE: <span id="ttDistance">20</span> FT.</div>
+      <button id="ttMenu" class="tt-btn">MAIN MENU</button>
+    </footer>
+
+    <!-- Result modal (appears when the person is hit) -->
+    <div id="ttModal" class="tt-modal" hidden aria-hidden="true">
+      <div class="tt-card">
+        <h3 class="tt-title">Nice Shot</h3>
+        <p class="tt-sub">
+          <span id="ttModalChads">0</span> <span aria-hidden="true">🪙</span>
+        </p>
+        <div class="tt-actions">
+          <button id="ttQuit" class="tt-btn tt-accept">Quit (receive chads)</button>
+          <button id="ttRetry" class="tt-btn tt-retry">Try again (no chads)</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Game overlay (opens only when you tap the button) -->
@@ -3594,6 +3629,441 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 
 })();
 
+(()=>{
+  "use strict";
+
+  /* ─────────────────────────────────────────────────────────────────────────────
+     Never auto-open: overlay starts hidden and is force-hidden on load/page show
+  ───────────────────────────────────────────────────────────────────────────── */
+  const $ = (s, r=document)=>r.querySelector(s);
+  const overlay = $("#ttOverlay");
+  const btn      = $("#tokenTriggerBtn");
+  const closeBtn = $("#ttClose");
+  const menuBtn  = $("#ttMenu");
+  const modal    = $("#ttModal");
+  const quitBtn  = $("#ttQuit");
+  const retryBtn = $("#ttRetry");
+
+  function hideOverlayHard(){
+    overlay.setAttribute("hidden",""); overlay.classList.remove("tt-show");
+    overlay.setAttribute("aria-hidden","true");
+  }
+  function showOverlay(){
+    overlay.removeAttribute("hidden"); overlay.classList.add("tt-show");
+    overlay.setAttribute("aria-hidden","false");
+    Game.start(); // (re)start round when opened
+  }
+  // Force hidden on load & when page is shown from history/bfcache
+  document.addEventListener("DOMContentLoaded", hideOverlayHard, {once:true});
+  window.addEventListener("pageshow", hideOverlayHard, {once:true}); // iOS bfcache, etc.
+
+  // Open only on image tap
+  btn?.addEventListener("click", ()=>{
+    // unlock audio on user gesture
+    Game.unlockAudio();
+    showOverlay();
+  });
+
+  // Close buttons
+  function closeAll(){
+    Game.stop();
+    hideOverlayHard();
+  }
+  closeBtn?.addEventListener("click", closeAll);
+  menuBtn?.addEventListener("click", closeAll);
+
+  // Modal actions
+  quitBtn?.addEventListener("click", ()=>{
+    const payout = Game.flushPayout(); // number of chads earned this game
+    try {
+      if(typeof window.onTokenTriggerChadsEarned === "function"){
+        window.onTokenTriggerChadsEarned(payout);
+      }
+      // also dispatch an event for hosts that prefer events
+      window.dispatchEvent(new CustomEvent("tokentrigger:chadsEarned",{detail:{amount:payout}}));
+    } catch(e){}
+    closeAll();
+  });
+  retryBtn?.addEventListener("click", ()=>{
+    Game.loseRoundKeepWindow();
+  });
+
+  /* ─────────────────────────────────────  GAME  ───────────────────────────────────── */
+  const Game = (()=>{
+
+    // UI
+    const roundEl = $("#ttRound"), scoreEl = $("#ttScore"),
+          chadsEl = $("#ttChads"), distEl = $("#ttDistance"),
+          chadsModalEl = $("#ttModalChads");
+
+    // Canvas setup (HiDPI aware)
+    const canvas = $("#ttCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let raf = 0, running = false;
+
+    // World
+    const world = {
+      W: 360, H: 640,
+      gravity: 0.7, // pretty snappy
+      distance: 20, // ft label
+      groundY: 520,
+      skyGrad: null
+    };
+
+    // Entities
+    const archer = {
+      x: 54, y: world.groundY-86, pulling:false, aimA:-0.05, power:14, maxPower:26
+    };
+    const man = {
+      x: world.W-66, y: world.groundY-112,
+      w: 26, h: 112
+    };
+    const apple = { r: 10 };
+    const wall = { x: world.W-30, y: world.groundY-110, w:18, h:110, bricks:5 };
+
+    // Arrow
+    let arrow = null; // {x,y,vx,vy,tipX,tipY}
+    let particles = []; // blood
+
+    // Score state
+    let score=0, chads=0, round=1, payoutBank=0;
+
+    // Sounds (created lazily on first tap)
+    let audioCtx = null;
+    function unlockAudio(){
+      if(audioCtx) return;
+      try{
+        audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      }catch(e){ audioCtx=null; }
+    }
+    function splash(){
+      if(!audioCtx) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type="square"; o.frequency.value=140;
+      g.gain.value=0.25;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      // short burst
+      setTimeout(()=>{g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.10);},0);
+      setTimeout(()=>o.stop(),120);
+    }
+
+    // Helpers
+    function setHud(){
+      roundEl.textContent = String(round);
+      scoreEl.textContent = String(score);
+      chadsEl.textContent = String(chads);
+      distEl.textContent  = String(world.distance);
+    }
+
+    function resetArrow(){
+      arrow = null;
+    }
+
+    function drawBackground(){
+      // sky gradient with soft hills
+      if(!world.skyGrad){
+        const g = ctx.createLinearGradient(0,0,0,world.H);
+        g.addColorStop(0,"#dbe9ff");
+        g.addColorStop(.6,"#cfe0ff");
+        g.addColorStop(1,"#b7d0ff");
+        world.skyGrad=g;
+      }
+      ctx.fillStyle=world.skyGrad; ctx.fillRect(0,0,world.W,world.H);
+      // distant hills
+      ctx.fillStyle="#b8c8f1";
+      ctx.beginPath();
+      ctx.moveTo(0,400); ctx.quadraticCurveTo(160,340,280,370); ctx.quadraticCurveTo(340,390,360,380);
+      ctx.lineTo(360,world.groundY); ctx.lineTo(0,world.groundY); ctx.closePath(); ctx.fill();
+      // ground
+      ctx.fillStyle="#61d65f"; ctx.fillRect(0,world.groundY,world.W, world.H-world.groundY);
+      ctx.fillStyle="rgba(0,0,0,.08)"; ctx.fillRect(0,world.groundY-2,world.W,2);
+    }
+
+    function drawArcher(){
+      const x=archer.x, y=archer.y;
+
+      // legs
+      ctx.fillStyle="#c9c9cf";
+      ctx.fillRect(x-8,y+68,8,20); ctx.fillRect(x+8,y+68,8,20);
+      ctx.fillStyle="#222"; ctx.fillRect(x-10,y+88,12,6); ctx.fillRect(x+6,y+88,12,6);
+
+      // body
+      const bodyR=18;
+      const grd=ctx.createLinearGradient(0,y,0,y+64);
+      grd.addColorStop(0,"#7ab2ff"); grd.addColorStop(1,"#3c7be9");
+      ctx.fillStyle=grd; roundedRect(x- bodyR, y+12, bodyR*2, 56, 12);
+
+      // head
+      ctx.fillStyle="#f4c49e"; ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2); ctx.fill();
+      // visor/helmet
+      ctx.fillStyle="#e9e357"; ctx.beginPath(); ctx.arc(x,y-8,14,Math.PI,0); ctx.fill();
+      ctx.fillStyle="#111"; ctx.fillRect(x-8,y-2,16,3);
+
+      // bow
+      ctx.strokeStyle="#c58a2c"; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(x+28,y+28,28,-Math.PI/2,Math.PI/2); ctx.stroke();
+      // string
+      ctx.strokeStyle="#eee"; ctx.lineWidth=2; ctx.beginPath();
+      const pullX = archer.pulling ? x+6 - Math.min(archer.power*1.4, 26) : x+6;
+      ctx.moveTo(x+28,y); ctx.lineTo(pullX,y+28); ctx.lineTo(x+28,y+56); ctx.stroke();
+
+      // left arm (front)
+      ctx.fillStyle="#f4c49e"; roundedRect(x- bodyR-4, y+28, 10, 18, 5);
+      // right arm drawing the string
+      roundedRect(pullX-4, y+23, 10, 18, 5);
+
+      // arrow preview in hand (only when not flying)
+      if(!arrow && archer.pulling){
+        ctx.strokeStyle="#c4ced9"; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(pullX,y+28);
+        const ax = pullX + Math.cos(archer.aimA)*20;
+        const ay = y+28 + Math.sin(archer.aimA)*20;
+        ctx.lineTo(ax,ay); ctx.stroke();
+      }
+    }
+
+    function drawMan(){
+      const m=man;
+      // body
+      const grd=ctx.createLinearGradient(0,m.y,0,m.y+m.h);
+      grd.addColorStop(0,"#3a76e6"); grd.addColorStop(1,"#1c4fae");
+      ctx.fillStyle=grd; roundedRect(m.x-13,m.y,26,m.h,12);
+      // head
+      const hx=m.x, hy=m.y-16;
+      ctx.fillStyle="#f4c49e"; ctx.beginPath(); ctx.arc(hx,hy,12,0,Math.PI*2); ctx.fill();
+      // eyes & mouth
+      ctx.fillStyle="#111"; ctx.fillRect(hx-6,hy-2,4,2); ctx.fillRect(hx+2,hy-2,4,2);
+      ctx.fillRect(hx-4,hy+4,8,2);
+      // arm
+      ctx.fillStyle="#f4c49e"; roundedRect(m.x+12,m.y+36,10,22,6);
+      // feet shadow
+      ctx.fillStyle="#222"; ctx.fillRect(m.x-10,m.y+m.h,20,6);
+
+      // apple (slightly smaller and centered)
+      const ax=hx, ay=hy-18;
+      ctx.fillStyle="#d73c2f"; ctx.beginPath(); ctx.arc(ax,ay,apple.r,0,Math.PI*2); ctx.fill();
+      // leaf + stem
+      ctx.fillStyle="#2fa24f"; ctx.beginPath(); ctx.ellipse(ax+6,ay-7,4,2, -0.6, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle="#5b2a06"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ax,ay-apple.r); ctx.lineTo(ax+3,ay-apple.r-6); ctx.stroke();
+    }
+
+    function drawWall(){
+      const bW=18,bH=18, cols=1, rows=6;
+      const sx=wall.x, sy=wall.y;
+      for(let r=0;r<rows;r++){
+        const y=sy + r*(bH+2);
+        for(let c=0;c<cols;c++){
+          const x=sx + c*(bW+2);
+          ctx.fillStyle="#b9c0cc"; roundedRect(x,y,bW,bH,4);
+          ctx.fillStyle="rgba(0,0,0,.08)"; ctx.fillRect(x,y+bH-4,bW,4);
+        }
+      }
+    }
+
+    function drawArrow(){
+      if(!arrow) return;
+      const a = Math.atan2(arrow.vy, arrow.vx);
+      ctx.save();
+      ctx.translate(arrow.x, arrow.y);
+      ctx.rotate(a);
+      // shaft
+      ctx.fillStyle="#d8dfe9";
+      ctx.fillRect(-16,-1,20,2);
+      // head
+      ctx.fillStyle="#c2c9d5";
+      ctx.beginPath(); ctx.moveTo(4,0); ctx.lineTo(12,-4); ctx.lineTo(12,4); ctx.closePath(); ctx.fill();
+      // fletching
+      ctx.fillStyle="#8aa7ff";
+      ctx.fillRect(-18,-3,6,6);
+      ctx.restore();
+    }
+
+    function drawParticles(){
+      particles = particles.filter(p=>p.a>0 && p.y < world.H+40);
+      for(const p of particles){
+        p.vx *= .98; p.vy += .5; p.x += p.vx; p.y += p.vy; p.a -= .02;
+        ctx.fillStyle=`rgba(200,20,30,${p.a})`;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    function roundedRect(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Physics update
+    function step(){
+      ctx.clearRect(0,0,world.W,world.H);
+      drawBackground(); drawWall(); drawMan(); drawArcher();
+      if(arrow){
+        arrow.vy += world.gravity;
+        arrow.x += arrow.vx; arrow.y += arrow.vy;
+        arrow.tipX = arrow.x + Math.cos(Math.atan2(arrow.vy,arrow.vx))*12;
+        arrow.tipY = arrow.y + Math.sin(Math.atan2(arrow.vy,arrow.vx))*12;
+
+        // ground
+        if(arrow.y > world.groundY-4){
+          resetArrow();
+        }
+
+        // apple collision
+        const hx = man.x, hy = man.y-16;
+        const ax = hx, ay = hy-18;
+        const dx = arrow.tipX-ax, dy = arrow.tipY-ay;
+        if(dx*dx+dy*dy <= (apple.r*apple.r)){
+          // Pop!
+          score++; chads++; payoutBank=chads;
+          setHud();
+          // little red puff
+          for(let i=0;i<10;i++){
+            particles.push({x:ax,y:ay, vx:(Math.random()*2-1)*2, vy:(Math.random()*-1.5-0.5), r:2+Math.random()*2, a:.9});
+          }
+          resetArrow();
+        }
+
+        // human collision (head or body)
+        const hitHead = (()=>{
+          const dx = arrow.tipX - (man.x);
+          const dy = arrow.tipY - (man.y-16);
+          return dx*dx+dy*dy <= 12*12;
+        })();
+        const hitBody = (arrow.tipX > man.x-13 && arrow.tipX < man.x+13 && arrow.tipY > man.y && arrow.tipY < man.y+man.h);
+
+        if(hitHead || hitBody){
+          // blood burst at impact point
+          const ix = arrow.tipX, iy = arrow.tipY;
+          for(let i=0;i<36;i++){
+            const ang = Math.random()*Math.PI*2;
+            const spd = 2+Math.random()*3;
+            particles.push({x:ix,y:iy, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd, r:2+Math.random()*2, a:1});
+          }
+          splash();
+          resetArrow();
+          // show modal with payout
+          chadsModalEl.textContent = String(payoutBank);
+          modal.removeAttribute("hidden"); modal.setAttribute("aria-hidden","false");
+          stop(); // pause game behind modal
+        }
+
+        drawArrow();
+      }
+
+      drawParticles();
+
+      if(running) raf = requestAnimationFrame(step);
+    }
+
+    // Input (Pointer drag in archer area)
+    function onDown(e){
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      // only start pull if near the archer
+      if(px < archer.x+70 && py > archer.y-20 && py < archer.y+100){
+        archer.pulling = true;
+        canvas.setPointerCapture(e.pointerId);
+      }
+    }
+    function onMove(e){
+      if(!archer.pulling) return;
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      // angle from archer hand
+      const hx = archer.x+6, hy = archer.y+28;
+      let ang = Math.atan2(py-hy, px-hx);
+      // limit upward angles a bit (no guide line)
+      ang = Math.max(-0.9, Math.min(0.2, ang));
+      archer.aimA = ang;
+      // power from pull distance
+      const dx = px - hx, dy = py - hy;
+      const pull = Math.min(Math.hypot(dx,dy)/3, archer.maxPower);
+      archer.power = 10 + pull;
+    }
+    function onUp(e){
+      if(!archer.pulling) return;
+      archer.pulling = false;
+      // fire!
+      const speed = archer.power + 10; // faster base
+      arrow = {
+        x: archer.x+6,
+        y: archer.y+28,
+        vx: Math.cos(archer.aimA)*speed,
+        vy: Math.sin(archer.aimA)*speed,
+        tipX:0, tipY:0
+      };
+    }
+
+    // Public controls
+    function start(){
+      // reset round visuals/state
+      modal.setAttribute("hidden",""); modal.setAttribute("aria-hidden","true");
+      setHud();
+      running = true; cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+      canvas.addEventListener("pointerdown", onDown);
+      canvas.addEventListener("pointermove", onMove);
+      canvas.addEventListener("pointerup", onUp);
+    }
+    function stop(){
+      running = false; cancelAnimationFrame(raf);
+      canvas.removeEventListener("pointerdown", onDown);
+      canvas.removeEventListener("pointermove", onMove);
+      canvas.removeEventListener("pointerup", onUp);
+    }
+
+    function loseRoundKeepWindow(){
+      // user chose retry: zero chads this run
+      payoutBank = 0; chads = 0; score = 0; setHud();
+      modal.setAttribute("hidden",""); modal.setAttribute("aria-hidden","true");
+      start();
+    }
+
+    function flushPayout(){
+      const amt = payoutBank|0;
+      // reset game counters for a new run
+      payoutBank = 0; score = 0; chads = 0; round = 1; setHud();
+      modal.setAttribute("hidden",""); modal.setAttribute("aria-hidden","true");
+      return amt;
+    }
+
+    // resize to HiDPI
+    function resizeHiDPI(){
+      const ratio = window.devicePixelRatio || 1;
+      const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      canvas.width = Math.round(cssW * ratio);
+      canvas.height= Math.round(cssH* ratio);
+      ctx.setTransform(ratio,0,0,ratio,0,0);
+      world.W = cssW; world.H = cssH; world.groundY = Math.round(cssH*0.81);
+      // reposition actors relative to new size
+      archer.x = Math.round(world.W*0.15);
+      archer.y = world.groundY-86;
+      man.x = Math.round(world.W*0.86);
+      man.y = world.groundY-112;
+      wall.x = Math.round(world.W*0.92);
+      wall.y = world.groundY-110;
+    }
+
+    // observe size changes
+    const ro = new ResizeObserver(resizeHiDPI);
+    ro.observe(canvas);
+
+    window.addEventListener("resize", resizeHiDPI);
+    resizeHiDPI();
+
+    return {
+      start, stop, unlockAudio, loseRoundKeepWindow, flushPayout
+    };
+  })();
+})();
+
 
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
@@ -3973,527 +4443,6 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-
-(() => {
-  const $ = sel => document.querySelector(sel);
-
-  // Public API --------------------------------------------------------------
-  const TokenTrigger = {
-    open() {
-      ensureDOM();
-      state.running = true;
-      $('#tt-overlay').hidden = false;
-      resetRun();
-      start();
-    },
-    close() {
-      stop();
-      $('#tt-overlay').hidden = true;
-    }
-  };
-  window.TokenTrigger = TokenTrigger;
-
-  // Hook the button if present (only the image is clickable)
-  window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('tokenTriggerBtn');
-    if (btn) btn.addEventListener('click', () => TokenTrigger.open(), { passive:true });
-  });
-
-  // Internal state ----------------------------------------------------------
-  const state = {
-    rAF: null,
-    lastT: 0,
-    running: false,
-    // round data
-    round: 1, distanceFt: 20, score: 0, chadsThisRun: 0,
-    // physics
-    gravity: 1400, // px/s^2
-    maxPower: 900, // px/s initial speed cap
-    arrow: null,
-    particles: [],
-    dragging: false,
-    startPt: null,
-    // art sizes (scaled later)
-    size: { W: 900, H: 1600 }
-  };
-
-  // DOM references (injected only once) ------------------------------------
-  let ctx, canvas, overlay, dialog, earnedEl;
-
-  function ensureDOM() {
-    overlay  = $('#tt-overlay');
-    canvas   = $('#tt-canvas');
-    dialog   = $('#tt-dialog');
-    earnedEl = $('#tt-earned');
-
-    $('#tt-close').onclick = () => TokenTrigger.close();
-    $('#tt-mainmenu').onclick = () => TokenTrigger.close();
-    $('#tt-quit').onclick = onQuit;
-    $('#tt-retry').onclick = onRetry;
-
-    if (!ctx) ctx = canvas.getContext('2d');
-
-    // pointer handlers (Pointer Events API)
-    canvas.addEventListener('pointerdown', onPointerDown, { passive:false });
-    window.addEventListener('pointerup', onPointerUp, { passive:false });
-    window.addEventListener('pointermove', onPointerMove, { passive:false });
-    window.addEventListener('resize', fitHiDPI);
-    fitHiDPI(); // scale canvas for devicePixelRatio
-  }
-
-  // HiDPI canvas scaling ----------------------------------------------------
-  function fitHiDPI() {
-    const ratio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    // keep 9:16 internally; CSS handles layout sizing
-    const w = state.size.W, h = state.size.H;
-    canvas.width  = w * ratio;
-    canvas.height = h * ratio;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  }
-
-  // Game lifecycle ----------------------------------------------------------
-  function resetRun() {
-    state.round = 1;
-    state.distanceFt = 20;
-    state.score = 0;
-    state.chadsThisRun = 0;
-    state.particles.length = 0;
-    spawnRound();
-    updateHUD();
-    hideDialog();
-  }
-
-  function spawnRound() {
-    // positions layout in virtual 900x1600
-    const W = state.size.W, H = state.size.H;
-    const groundY = H * 0.86;
-
-    // compute distance in px roughly mapping FT to px
-    const ftToPx = 12; // tuning: 1ft ≈ 12px
-    const gap = state.distanceFt * ftToPx;
-
-    // Archer (left)
-    state.archer = {
-      x: W*0.10, y: groundY,
-      bowY: groundY - 250,
-      // visual params
-      scale: 1
-    };
-
-    // Target & wall (right)
-    const targetX = Math.min(W*0.10 + gap, W*0.78);
-    state.target = {
-      x: targetX, y: groundY,
-      width: 64, height: 230,
-      headR: 34,
-      alive: true
-    };
-    state.apple = {
-      r: 22,
-      // exactly centered on head top
-      cx: targetX, cy: groundY - state.target.height - state.target.headR - 8
-    };
-    state.wall = {
-      x: Math.min(targetX + 85, W*0.90), y: groundY,
-      brick: { w: 42, h: 32 }, rows: 6, cols: 2
-    };
-
-    // No arrow in flight yet
-    state.arrow = null;
-  }
-
-  function nextRound() {
-    state.round += 1;
-    state.distanceFt = Math.min(120, state.distanceFt + (state.round < 4 ? 10 : 15));
-    spawnRound(); updateHUD();
-  }
-
-  function start() {
-    cancelAnimationFrame(state.rAF);
-    state.lastT = performance.now();
-    loop(state.lastT);
-  }
-  function stop() {
-    cancelAnimationFrame(state.rAF);
-    state.running = false;
-  }
-
-  // Input (drag -> release) -------------------------------------------------
-  function onPointerDown(e) {
-    if (!state.running || isDialogOpen()) return;
-    state.dragging = true;
-    const rect = canvas.getBoundingClientRect();
-    state.startPt = { x: (e.clientX - rect.left) / rect.width * state.size.W,
-                      y: (e.clientY - rect.top)  / rect.height * state.size.H };
-    e.preventDefault();
-  }
-  function onPointerMove(e) {
-    if (!state.dragging) return;
-    // We intentionally DO NOT draw a guide line per your request.
-  }
-  function onPointerUp(e) {
-    if (!state.dragging || !state.running || isDialogOpen()) return;
-    state.dragging = false;
-
-    const rect = canvas.getBoundingClientRect();
-    const endPt = { x: (e.clientX - rect.left) / rect.width * state.size.W,
-                    y: (e.clientY - rect.top)  / rect.height * state.size.H };
-
-    // Vector from archer bow to pointer delta defines angle & power.
-    const bow = { x: state.archer.x + 40, y: state.archer.bowY };
-    let vx = endPt.x - bow.x;
-    let vy = endPt.y - bow.y;
-
-    // Clamp to rightward shots only, limit angle
-    const angle = Math.atan2(vy, vx);
-    if (vx <= 0 || angle > Math.PI*0.45 || angle < -Math.PI*0.45) {
-      // ignore nonsense pulls
-      return;
-    }
-
-    // Normalize and scale to power
-    const len = Math.hypot(vx, vy);
-    const power = Math.min(state.maxPower, len * 3.2);
-    const dirX = vx / (len || 1), dirY = vy / (len || 1);
-    const speedX = power * dirX, speedY = power * dirY;
-
-    fireArrow(bow.x, bow.y, speedX, speedY);
-  }
-
-  // Arrow / physics ---------------------------------------------------------
-  function fireArrow(x, y, vx, vy) {
-    state.arrow = {
-      x, y, vx, vy, alive:true
-    };
-  }
-
-  function loop(t) {
-    if (!state.running) return;
-    const dt = Math.min(0.033, (t - state.lastT) / 1000);
-    state.lastT = t;
-
-    update(dt);
-    render();
-
-    state.rAF = requestAnimationFrame(loop);
-  }
-
-  function update(dt) {
-    // update arrow
-    const ar = state.arrow;
-    if (ar && ar.alive) {
-      ar.vy += state.gravity * dt;
-      ar.x  += ar.vx * dt;
-      ar.y  += ar.vy * dt;
-
-      // orient by velocity (used in render)
-
-      // collisions
-      const gY = state.size.H * 0.86;
-
-      // hit target body?
-      if (hitBody(ar)) {
-        ar.alive = false;
-        // blood particles + hit sound
-        spawnBlood(ar.x, ar.y);
-        playHitTone();
-        showDialog(); // body hit ends the run
-      }
-      // hit apple?
-      else if (hitApple(ar)) {
-        ar.alive = false;
-        state.score += 1;
-        state.chadsThisRun += 1;
-        updateHUD();
-        // confetti-ish red/green sparks
-        spawnAppleBurst();
-        playDing();
-        setTimeout(nextRound, 550);
-      }
-      // hit wall bricks? stop arrow
-      else if (hitWall(ar)) {
-        ar.alive = false;
-      }
-      // ground
-      else if (ar.y > gY - 6) {
-        ar.alive = false;
-      }
-    }
-
-    // particles
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-      const p = state.particles[i];
-      p.vy += p.g * dt; p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt;
-      if (p.life <= 0) state.particles.splice(i,1);
-    }
-  }
-
-  function hitApple(ar) {
-    const { cx, cy, r } = state.apple;
-    // tip of arrow
-    const tipX = ar.x + Math.cos(Math.atan2(ar.vy, ar.vx)) * 26;
-    const tipY = ar.y + Math.sin(Math.atan2(ar.vy, ar.vx)) * 26;
-    return ( (tipX - cx)**2 + (tipY - cy)**2 ) <= (r*r);
-  }
-
-  function hitBody(ar) {
-    const t = state.target;
-    const headCx = t.x, headCy = t.y - t.height - t.headR;
-    const torsoX = t.x - t.width*0.5, torsoY = t.y - t.height;
-    const tipX = ar.x + Math.cos(Math.atan2(ar.vy, ar.vx)) * 26;
-    const tipY = ar.y + Math.sin(Math.atan2(ar.vy, ar.vx)) * 26;
-
-    // head circle
-    if ((tipX - headCx)**2 + (tipY - headCy)**2 <= t.headR*t.headR) return true;
-    // torso rect
-    if (tipX >= torsoX && tipX <= torsoX + t.width && tipY >= torsoY && tipY <= torsoY + t.height) return true;
-    // legs small rect
-    const legsW = t.width*0.5, legsH = 38, legsX = t.x - legsW/2, legsY = t.y - legsH;
-    return (tipX>=legsX && tipX<=legsX+legsW && tipY>=legsY && tipY<=legsY+legsH);
-  }
-
-  function hitWall(ar) {
-    const tipX = ar.x + Math.cos(Math.atan2(ar.vy, ar.vx)) * 26;
-    const tipY = ar.y + Math.sin(Math.atan2(ar.vy, ar.vx)) * 26;
-    const w = state.wall, b = w.brick;
-    const wallLeft = w.x - w.cols*b.w, wallTop = w.y - w.rows*b.h;
-    return (tipX >= wallLeft && tipX <= w.x && tipY >= wallTop && tipY <= w.y);
-  }
-
-  // Particles & SFX ---------------------------------------------------------
-  function spawnBlood(x, y) {
-    for (let i=0; i<40; i++){
-      state.particles.push({
-        x, y, vx: (Math.random()*320-160), vy: (Math.random()*-600-120),
-        g: 1800, life: .6 + Math.random()*.5, color: 'rgba(210,20,20,.95)', r: 3+Math.random()*2
-      });
-    }
-  }
-  function spawnAppleBurst(){
-    const c = state.apple;
-    for (let i=0;i<26;i++){
-      state.particles.push({
-        x:c.cx, y:c.cy, vx:(Math.random()*420-210), vy:(Math.random()*-520),
-        g:1600, life:.5+Math.random()*.6, color: i%2?'#d64a3a':'#4caf50', r:2+Math.random()*2
-      });
-    }
-  }
-
-  // simple WebAudio beeps (no assets)
-  let audioCtx;
-  function getCtx(){
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
-  }
-  function playHitTone(){
-    try{
-      const ac = getCtx();
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.type = 'square'; o.frequency.value = 140;
-      g.gain.setValueAtTime(0.0001, ac.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.3, ac.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.22);
-      o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.25);
-    }catch(_){}
-  }
-  function playDing(){
-    try{
-      const ac = getCtx();
-      const o = ac.createOscillator(), g = ac.createGain();
-      o.type = 'sine'; o.frequency.value = 880;
-      g.gain.setValueAtTime(0.0001, ac.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.25, ac.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.30);
-      o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.32);
-    }catch(_){}
-  }
-
-  // HUD & dialog ------------------------------------------------------------
-  function updateHUD() {
-    $('#tt-round').textContent = state.round;
-    $('#tt-score').textContent = state.score;
-    $('#tt-chads').textContent = state.chadsThisRun;
-    $('#tt-distance').textContent = state.distanceFt;
-  }
-
-  function isDialogOpen(){ return !dialog.hidden; }
-  function showDialog(){
-    earnedEl.textContent = state.chadsThisRun;
-    dialog.hidden = false;
-  }
-  function hideDialog(){ dialog.hidden = true; }
-
-  function onQuit(){
-    // credit chads to host app
-    const amount = state.chadsThisRun|0;
-    if (amount>0){
-      if (typeof window.addChadsToGlobalBalance === 'function') {
-        window.addChadsToGlobalBalance(amount);
-      }
-      document.dispatchEvent(new CustomEvent('tokentrigger:credit', { detail:{ amount } }));
-    }
-    TokenTrigger.close();
-  }
-  function onRetry(){
-    // discard this run
-    resetRun();
-  }
-
-  // Rendering ---------------------------------------------------------------
-  function render() {
-    const W = state.size.W, H = state.size.H;
-    const groundY = H * 0.86;
-
-    // sky
-    const sky = ctx.createLinearGradient(0,0,0,groundY);
-    sky.addColorStop(0, '#cfe2ff');
-    sky.addColorStop(1, '#b7d0ff');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0,0,W,groundY);
-
-    // distant hills
-    ctx.fillStyle = '#a8bdf7';
-    ctx.beginPath();
-    ctx.moveTo(0, groundY-240);
-    ctx.bezierCurveTo(W*0.25, groundY-340, W*0.55, groundY-120, W, groundY-220);
-    ctx.lineTo(W, groundY); ctx.lineTo(0, groundY); ctx.closePath(); ctx.fill();
-
-    // ground
-    const grass = ctx.createLinearGradient(0, groundY-40, 0, H);
-    grass.addColorStop(0, '#40d870'); grass.addColorStop(1, '#1aa94b');
-    ctx.fillStyle = grass; ctx.fillRect(0, groundY, W, H-groundY);
-
-    drawWall();       // right wall
-    drawTarget();     // human + apple
-    drawArcher();     // archer
-    drawArrow();      // arrow if any
-    drawParticles();  // particles
-  }
-
-  function drawArcher() {
-    const a = state.archer;
-    const baseX = a.x, baseY = a.y;
-
-    // legs
-    ctx.fillStyle = '#343a40';
-    ctx.fillRect(baseX-20, baseY-36, 18, 36);
-    ctx.fillRect(baseX+6,  baseY-36, 18, 36);
-
-    // body
-    const bodyGrad = ctx.createLinearGradient(0, baseY-220, 0, baseY-60);
-    bodyGrad.addColorStop(0, '#5aa7ff'); bodyGrad.addColorStop(1, '#347edb');
-    roundRect(baseX-48, baseY-220, 96, 160, 26, bodyGrad);
-
-    // arm + bow
-    ctx.fillStyle = '#ffd6a3';
-    roundRect(baseX+30, baseY-176, 24, 76, 12, ctx.fillStyle);
-    // bow shape
-    ctx.lineWidth = 10; ctx.strokeStyle = '#c68b3d';
-    ctx.beginPath(); ctx.arc(baseX+72, baseY-138, 56, -Math.PI/2, Math.PI/2); ctx.stroke();
-    ctx.lineWidth = 2; ctx.strokeStyle = '#222';
-    ctx.beginPath(); ctx.moveTo(baseX+72, baseY-194); ctx.lineTo(baseX+72, baseY-82); ctx.stroke();
-
-    // head + helmet
-    ctx.fillStyle = '#ffd6a3';
-    ctx.beginPath(); ctx.arc(baseX, baseY-250, 28, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#edc531';
-    ctx.beginPath(); ctx.arc(baseX, baseY-255, 30, Math.PI, 0); ctx.fill();
-    ctx.fillRect(baseX-30, baseY-255, 60, 10);
-  }
-
-  function drawTarget() {
-    const t = state.target, gY = state.size.H*0.86;
-
-    // legs
-    ctx.fillStyle = '#2e343a';
-    ctx.fillRect(t.x - t.width*0.25, gY-36, t.width*0.2, 36);
-    ctx.fillRect(t.x + t.width*0.05,  gY-36, t.width*0.2, 36);
-
-    // torso
-    const torsoGrad = ctx.createLinearGradient(0, gY-t.height, 0, gY);
-    torsoGrad.addColorStop(0, '#2c7ad6'); torsoGrad.addColorStop(1, '#1d56a0');
-    roundRect(t.x - t.width/2, gY - t.height, t.width, t.height, 26, torsoGrad);
-
-    // arm
-    ctx.fillStyle = '#ffd6a3';
-    roundRect(t.x + t.width/2 - 12, gY - t.height*0.55, 22, 90, 11, ctx.fillStyle);
-
-    // head
-    ctx.fillStyle = '#ffd6a3';
-    ctx.beginPath(); ctx.arc(t.x, gY - t.height - t.headR, t.headR, 0, Math.PI*2); ctx.fill();
-    // facial line
-    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(t.x-6, gY - t.height - t.headR + 20);
-    ctx.lineTo(t.x+6, gY - t.height - t.headR + 20); ctx.stroke();
-
-    // apple (exactly centered on head)
-    const a = state.apple;
-    ctx.fillStyle = '#d7473b';
-    ctx.beginPath(); ctx.arc(a.cx, a.cy, a.r, 0, Math.PI*2); ctx.fill();
-    // highlight
-    ctx.fillStyle = 'rgba(255,255,255,.7)';
-    ctx.beginPath(); ctx.arc(a.cx - a.r*0.35, a.cy - a.r*0.35, a.r*0.25, 0, Math.PI*2); ctx.fill();
-    // leaf
-    ctx.fillStyle = '#3cbc5a';
-    ctx.beginPath(); ctx.ellipse(a.cx+7, a.cy- a.r - 6, 7, 4, -0.6, 0, Math.PI*2); ctx.fill();
-    // stem
-    ctx.strokeStyle = '#5e3d2d'; ctx.lineWidth = 3; ctx.beginPath();
-    ctx.moveTo(a.cx, a.cy - a.r); ctx.lineTo(a.cx+4, a.cy - a.r - 10); ctx.stroke();
-  }
-
-  function drawWall() {
-    const w = state.wall, b = w.brick;
-    const left = w.x - w.cols*b.w, top = w.y - w.rows*b.h;
-    for (let r=0;r<w.rows;r++){
-      for (let c=0;c<w.cols;c++){
-        const x = left + c*b.w, y = top + r*b.h;
-        const g = ctx.createLinearGradient(0,y,0,y+b.h);
-        g.addColorStop(0,'#bfc5cc'); g.addColorStop(1,'#a7b0ba');
-        roundRect(x+4, y+4, b.w-8, b.h-8, 6, g);
-        ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.strokeRect(x+4.5, y+4.5, b.w-9, b.h-9);
-      }
-    }
-  }
-
-  function drawArrow() {
-    const ar = state.arrow; if (!ar || !ar.alive) return;
-    const ang = Math.atan2(ar.vy, ar.vx);
-    ctx.save();
-    ctx.translate(ar.x, ar.y);
-    ctx.rotate(ang);
-    // shaft
-    ctx.fillStyle = '#b08968';
-    ctx.fillRect(-16, -2, 40, 4);
-    // tip
-    ctx.fillStyle = '#e9ecef';
-    ctx.beginPath(); ctx.moveTo(24,0); ctx.lineTo(32,-4); ctx.lineTo(32,4); ctx.closePath(); ctx.fill();
-    // fletching
-    ctx.fillStyle = '#5fa8d3';
-    ctx.beginPath(); ctx.moveTo(-16,-4); ctx.lineTo(-28,-10); ctx.lineTo(-20,0); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-16, 4); ctx.lineTo(-28, 10); ctx.lineTo(-20,0); ctx.closePath(); ctx.fill();
-    ctx.restore();
-  }
-
-  function drawParticles(){
-    for (const p of state.particles){
-      ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-    }
-  }
-
-  // util
-  function roundRect(x,y,w,h,r,fill){
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y,   x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x,   y+h, r);
-    ctx.arcTo(x,   y+h, x,   y,   r);
-    ctx.arcTo(x,   y,   x+w, y,   r);
-    ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill();
-  }
-})();
-
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
