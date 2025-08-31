@@ -6737,16 +6737,6 @@ updateHUD();
     drawPalette();
   }
 
-ui.quit.addEventListener('click', () => {
-  if (game.pendingChads > 0) {
-    // use the same function Snake would call
-    window.addChadsToBalance(game.pendingChads);
-    game.pendingChads = 0; // optional: zero out the session pot
-  }
-  closeGame();
-});
-
-
   function start(){ running=true; paused=false; reset(); draw(); document.getElementById('hexPause').textContent='Pause'; }
   function pause(){ if(!running) return; paused=!paused; document.getElementById('hexPause').textContent = paused?'Resume':'Pause'; }
   function quit(){
@@ -6797,23 +6787,7 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 
 /* expose */
 window.closeOverlay = closeOverlay;
-// Make the “credit to balance” function available to any mini-game
-window.addChadsToBalance = window.addChadsToBalance || function (amt) {
-  try {
-    // ensure BigInt math like in Snake
-    const add = BigInt(amt);
-    if (!window.state) throw new Error('state not found');
 
-    window.state.chads = BigInt(window.state.chads || 0n) + add;
-
-    // same trio Snake uses
-    if (window.refreshUI) window.refreshUI();
-    if (window.saveStateLocal) window.saveStateLocal(window.state);
-    if (window.showToast) window.showToast(`<span class="accent">+${amt}</span> chads added to balance.`);
-  } catch (err) {
-    console.warn('Failed to credit CHADs:', err, 'amount=', amt);
-  }
-};
 </script>
 </body>
 </html>
