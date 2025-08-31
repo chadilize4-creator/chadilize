@@ -6,6 +6,31 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+.btn-claim{background:transparent;border:none;padding:0;cursor:pointer}
+.btn-claim img{display:block;width:220px;max-width:58vw;filter:drop-shadow(0 8px 24px rgba(0,0,0,.35));transition:transform .2s ease}
+.btn-claim:hover img{transform:translateY(-2px)}
+
+.rw-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,10,20,.55);backdrop-filter:blur(8px);z-index:999}
+.rw-modal.hidden{display:none}
+.rw-card{width:min(680px,92vw);background:linear-gradient(180deg,rgba(20,28,39,.85),rgba(10,14,20,.85));border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.45);padding:16px 14px 18px}
+.rw-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rw-top h3{margin:0;font-size:22px;letter-spacing:.3px}
+.rw-x{background:transparent;border:0;color:#cbd5e1;font-size:26px;cursor:pointer}
+.rw-tiers{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:680px){ .rw-tiers{grid-template-columns:repeat(3,1fr)} }
+
+.rw-tier{position:relative;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:radial-gradient(120% 120% at 0% 0%,rgba(52,67,92,.45),rgba(30,40,58,.4));min-height:170px;display:flex;flex-direction:column;gap:8px}
+.rw-head{font-weight:700;opacity:.9}
+.rw-amt{font-size:18px;font-weight:800}
+.rw-actions{margin-top:auto;display:flex;gap:8px}
+.rw-badge{position:absolute;top:10px;right:12px;font-size:12px;padding:4px 8px;border-radius:999px;background:#0f172a;color:#a3e635;border:1px solid rgba(163,230,53,.3)}
+.rw-btn{flex:1;border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700}
+.rw-btn.primary{background:#3b82f6;color:white}
+.rw-btn.warn{background:#facc15;color:#111}
+.rw-btn.disabled{background:#1f2937;color:#94a3b8;cursor:not-allowed}
+.rw-note{opacity:.7;margin-top:10px;font-size:12px;text-align:center}
+.rw-tick{position:absolute;bottom:10px;right:12px;color:#22c55e;font-weight:900}
+
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1582,6 +1607,28 @@ canvas{ display:block }
   </div>
 </div>
 
+<!-- Claim Rewards button -->
+<button id="btnClaimRewards" class="btn-claim">
+  <img src="./img/claimrewards.png" alt="Claim Rewards" />
+</button>
+
+<!-- Rewards Modal -->
+<div id="rewardsModal" class="rw-modal hidden">
+  <div class="rw-card">
+    <div class="rw-top">
+      <h3>Claim Rewards</h3>
+      <button class="rw-x" onclick="closeRewards()">×</button>
+    </div>
+
+    <div id="rwTiers" class="rw-tiers">
+      <!-- populated by JS -->
+    </div>
+
+    <div class="rw-note">
+      Invite a friend for each tier. When they play, you can claim the reward.
+    </div>
+  </div>
+</div>
 
 <!-- 2048 SWIPE Modal -->
 <div class="overlay" id="tw2Modal">
@@ -4037,6 +4084,139 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
+
+
+/* ====================== Supabase client ====================== */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/referrals`;
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ============== Telegram helpers & initData string ============== */
+const tg = window.Telegram?.WebApp;
+function getInitDataString(){ return tg?.initData || ""; }
+function getStartParamFromURL(){
+  // Telegram also passes start_param via GET tgWebAppStartParam so the app can react instantly.
+  // Docs: "The value of the start_param parameter will also be passed in the GET-parameter tgWebAppStartParam"
+  // https://core.telegram.org/bots/webapps
+  const sp = new URLSearchParams(location.search).get("tgWebAppStartParam");
+  return sp || tg?.initDataUnsafe?.start_param || "";
+}
+
+/* ======================= Rewards UI logic ======================= */
+const TIERS = [
+  { tier:1, amt:  500_000n },
+  { tier:2, amt: 50_000_000n },
+  { tier:3, amt: 3_000_000_000n }
+];
+
+document.getElementById("btnClaimRewards").addEventListener("click", openRewards);
+
+function openRewards(){ document.getElementById("rewardsModal").classList.remove("hidden"); refreshRewardsUI(); }
+function closeRewards(){ document.getElementById("rewardsModal").classList.add("hidden"); }
+window.closeRewards = closeRewards;
+
+async function api(route, opts={}){
+  const res = await fetch(`${FUNCTION_URL}/${route}`, {
+    method: opts.method || "GET",
+    headers: { "content-type":"application/json" },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  return await res.json();
+}
+
+// build cards
+async function refreshRewardsUI(){
+  const initData = getInitDataString();
+  const stateRes = await api(`state?initData=${encodeURIComponent(initData)}`);
+  const container = document.getElementById("rwTiers"); container.innerHTML = "";
+
+  const tiers = stateRes?.tiers || TIERS.map(t => ({ tier:t.tier, reward: t.amt.toString(), status: "locked" }));
+
+  tiers.forEach(t => {
+    const wrap = document.createElement("div");
+    wrap.className = "rw-tier";
+    const amt = BigInt(t.reward || "0");
+    const nice = amt.toLocaleString();
+
+    const badge = document.createElement("div");
+    badge.className = "rw-badge";
+    badge.textContent = `Tier ${t.tier}`;
+    wrap.appendChild(badge);
+
+    const head = document.createElement("div");
+    head.className = "rw-head";
+    head.textContent = "Add a friend";
+    wrap.appendChild(head);
+
+    const a = document.createElement("div");
+    a.className = "rw-amt";
+    a.innerHTML = `${nice} <span style="opacity:.7">chads</span>`;
+    wrap.appendChild(a);
+
+    const actions = document.createElement("div");
+    actions.className = "rw-actions";
+
+    // buttons per state
+    if (t.status === "locked") {
+      const btn = mkBtn("Invite", "disabled"); btn.disabled = true; actions.appendChild(btn);
+    } else if (t.status === "pending") {
+      const invite = mkBtn("Invite", "primary");
+      invite.onclick = async () => {
+        // create invite for the NEXT available (this tier) and get share link
+        const r = await api("create", { method:"POST", body:{ initData } });
+        if (r?.ok) shareInvite(r.share_url);
+        else fancyAlert(r?.error || "Unable to create invite");
+      };
+      actions.appendChild(invite);
+    } else if (t.status === "claimable") {
+      const claim = mkBtn("Claim", "warn");
+      claim.onclick = () => claimReward(t.tier, amt);
+      actions.appendChild(claim);
+    } else if (t.status === "claimed") {
+      const done = mkBtn("Claimed", "disabled"); done.disabled = true; actions.appendChild(done);
+      const tick = document.createElement("div"); tick.className = "rw-tick"; tick.textContent = "✓"; wrap.appendChild(tick);
+    }
+
+    wrap.appendChild(actions);
+    container.appendChild(wrap);
+  });
+}
+
+function mkBtn(text, kind){ const b=document.createElement("button"); b.className=`rw-btn ${kind}`; b.textContent=text; return b; }
+
+function shareInvite(url){
+  // Prefer shareMessage if present; otherwise use a universal share link.
+  // Both are documented in Telegram Mini Apps page.
+  if (tg?.shareMessage) {
+    tg.shareMessage(`Join me and get chads!`, { url });
+  } else {
+    tg?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent("Join me and get chads!")}`);
+  }
+}
+
+async function claimReward(tier, amtBig){
+  const initData = getInitDataString();
+  const r = await api("claim", { method:"POST", body:{ initData, tier } });
+  if (!r?.ok) return fancyAlert(r?.error || "Not claimable yet");
+
+  // update local balance (your existing state helpers)
+  state.chads = (BigInt(state.chads || 0n) + amtBig);
+  refreshUI(); saveStateLocal(state);
+  showToast(`<span class="accent">+${amtBig.toLocaleString()}</span> chads added to balance.`);
+
+  // refresh UI tiers
+  refreshRewardsUI();
+}
+
+/* ============== On first open: mark referral landing ============== */
+(async function handleLanding(){
+  const code = getStartParamFromURL();
+  if (!code) return;
+  const initData = getInitDataString();
+  await api("landed", { method:"POST", body:{ initData, startParam: code } });
+})();
+
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
