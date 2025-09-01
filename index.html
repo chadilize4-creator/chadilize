@@ -6,59 +6,40 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Button */
-.claim-btn {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-}
-.claim-btn img { width: 180px; height: auto; display: block; }
+.claim-btn { background: none; border: none; padding: 0; cursor: pointer; }
+.claim-btn img { height: 48px; display: block; }
 
-/* Modal shell */
-.rewards-modal {
+.claim-modal[hidden] { display: none; }
+.claim-modal {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.55);
   display: grid; place-items: center;
   z-index: 1000;
 }
-.hidden { display: none; }
-
-/* Card */
-.rewards-card {
-  width: min(560px, 92vw);
-  background: radial-gradient(120% 120% at 10% 0%, #0e1a25 0%, #0a131b 55%, #071018 100%);
-  border: 1px solid #1f2a35;
-  border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.45);
-  color: #e6f2ff;
-  padding: 18px;
+.claim-card {
+  width: min(560px, calc(100% - 24px));
+  background: #0b1220; color: #e9f0ff;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px; padding: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.45);
 }
+.claim-card__header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+.claim-card__header h3 { margin: 0; font-size: 20px; }
+.claim-card__header .close { background: transparent; color: #9fb3ff; border: 0; font-size: 22px; cursor: pointer; }
 
-.rewards-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
-.rewards-header h3 { margin:0; font-size: 20px; letter-spacing:.4px; }
-.icon-x { background:#12202c; border:1px solid #1e2a36; color:#a6c3de; border-radius:10px; padding:6px 10px; cursor:pointer; }
-
-.tiers { display:grid; gap: 10px; margin-top: 6px; }
-.tier-row {
-  display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:center;
-  background: linear-gradient(180deg, rgba(24,38,52,.7), rgba(12,22,32,.7));
-  border:1px solid #223242; padding:12px; border-radius:14px;
-}
-.tier-title { font-weight:700; font-size:16px; }
-.tier-reward { font-size:14px; opacity:.85; }
-
-.btn {
-  border:0; border-radius:12px; padding:8px 12px; font-weight:700; cursor:pointer;
-}
-.btn-send { background:#1976d2; color:white; }
-.btn-claim { background:#ffd54f; color:#0d1015; }
-.btn-disabled { background:#374151; color:#93a3b6; cursor:not-allowed; }
-
-.badge {
-  padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800;
-}
-.badge-green { background:#1f6f4d; color:#dff6ea; border:1px solid #2e8b65; }
+.tier-row { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding: 12px 0; border-bottom: 1px dashed rgba(255,255,255,.08); }
+.tier-row:last-child { border-bottom: 0; }
+.tier-info .tier-title { font-weight: 700; margin-right: 6px; }
+.tier-sub { opacity: .9; }
+.tier-actions { display:flex; align-items:center; gap: 8px; }
+.tier-actions .invite-btn { padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background:#111a2e; color:#cfe2ff; cursor:pointer; }
+.tier-actions .claim-btn.small { padding: 8px 12px; border-radius: 12px; border: 0; background: #ffd84c; color: #1a1200; font-weight: 800; cursor:pointer; }
+.tier-actions .claim-btn.small[disabled] { background: #2a3347; color:#8891a7; cursor: not-allowed; }
+.tier-actions .invite-btn[disabled] { opacity: .5; cursor: not-allowed; }
+.tier-actions .status { min-width: 18px; height: 18px; }
+.tier-actions .status.ok::after { content: '✓'; color:#3dff6e; font-weight: 900; }
+.tier-actions .status.wait::after { content: '…'; color:#ffd84c; }
+.hint { opacity: .8; font-size: 12px; margin-top: 8px; }
 
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
@@ -1283,26 +1264,56 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- Claim Rewards Button -->
-<button id="claimRewardsBtn" class="claim-btn">
+<!-- Claim Rewards button -->
+<button id="claimRewardsBtn" class="claim-btn" aria-haspopup="dialog" aria-controls="claimRewardsModal">
   <img src="/img/claimrewards.png" alt="Claim Rewards" />
 </button>
 
 <!-- Modal -->
-<div id="rewardsModal" class="rewards-modal hidden">
-  <div class="rewards-card">
-    <div class="rewards-header">
-      <h3>Invite Rewards</h3>
-      <button id="rewardsClose" class="icon-x">✕</button>
+<div id="claimRewardsModal" class="claim-modal" hidden>
+  <div class="claim-card">
+    <div class="claim-card__header">
+      <h3>Claim Rewards</h3>
+      <button class="close" id="claimClose" aria-label="Close">×</button>
     </div>
 
-    <div id="rewardsTiers" class="tiers">
-      <!-- Tiers injected by JS -->
+    <div class="tier-row" data-tier="1">
+      <div class="tier-info">
+        <span class="tier-title">Tier 1</span>
+        <span class="tier-sub">Invite 1 friend → <b>500,000</b> chads</span>
+      </div>
+      <div class="tier-actions">
+        <button class="invite-btn">Invite</button>
+        <button class="claim-btn small" disabled>Claim</button>
+        <span class="status"></span>
+      </div>
     </div>
 
-    <div class="rewards-tip">
-      Send your bot link. When a friend opens the game from your link, the tier unlocks and you can claim.
+    <div class="tier-row" data-tier="2">
+      <div class="tier-info">
+        <span class="tier-title">Tier 2</span>
+        <span class="tier-sub">Invite 2nd friend → <b>50,000,000</b> chads</span>
+      </div>
+      <div class="tier-actions">
+        <button class="invite-btn" disabled>Invite</button>
+        <button class="claim-btn small" disabled>Claim</button>
+        <span class="status"></span>
+      </div>
     </div>
+
+    <div class="tier-row" data-tier="3">
+      <div class="tier-info">
+        <span class="tier-title">Tier 3</span>
+        <span class="tier-sub">Invite 3rd friend → <b>3,000,000,000</b> chads</span>
+      </div>
+      <div class="tier-actions">
+        <button class="invite-btn" disabled>Invite</button>
+        <button class="claim-btn small" disabled>Claim</button>
+        <span class="status"></span>
+      </div>
+    </div>
+
+    <p class="hint">An invite is <b>activated</b> when someone opens your bot from your link. Then the Claim button turns yellow.</p>
   </div>
 </div>
 
@@ -1890,180 +1901,7 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script type="module">
-import { supabase } from '/supabaseClient.js';
-
-const BOT_USERNAME = 'ChadiliZe'; // no @
-let TG = window.Telegram?.WebApp;
-TG?.ready?.();
-
-const TIERS = [
-  { tier: 1, label: 'Tier 1 — Add a Friend', reward: 500_000 },
-  { tier: 2, label: 'Tier 2 — Add a Friend', reward: 50_000_000 },
-  { tier: 3, label: 'Tier 3 — Add a Friend', reward: 3_000_000_000 },
-];
-
-const elBtn   = document.getElementById('claimRewardsBtn');
-const modal   = document.getElementById('rewardsModal');
-const elClose = document.getElementById('rewardsClose');
-const elTiers = document.getElementById('rewardsTiers');
-
-function openModal(){ modal.classList.remove('hidden'); }
-function closeModal(){ modal.classList.add('hidden'); }
-elBtn.addEventListener('click', openModal);
-elClose.addEventListener('click', closeModal);
-modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
-
-function getTGUser(){
-  const u = TG?.initDataUnsafe?.user;
-  if (!u) { throw new Error('Telegram user not found. Open in Telegram Mini App.'); }
-  return {
-    tg_id: BigInt(u.id),                // JS BigInt, we’ll downcast to number for RPC input
-    username: u.username || null,
-    display_name: [u.first_name, u.last_name].filter(Boolean).join(' ')
-  };
-}
-
-// Call on app start (and whenever URL may have ?code=)
-await bootstrapRewards();
-
-async function bootstrapRewards(){
-  const me = getTGUser();
-
-  // Ensure player row
-  await supabase.rpc('ensure_player', {
-    _tg_id: Number(me.tg_id), _username: me.username, _display_name: me.display_name
-  });
-
-  // If launched with invite code -> activate
-  const params = new URLSearchParams(location.search);
-  const code = params.get('code') || params.get('start'); // support both ?code and Telegram ?start
-  if (code) {
-    try { await supabase.rpc('activate_invite', { code, invitee_id: Number(me.tg_id) }); }
-    catch(e){ /* ignore already-bound */ }
-  }
-
-  await renderTiers();
-  await refreshBalance();
-}
-
-async function refreshBalance(){
-  const me = getTGUser();
-  const { data, error } = await supabase.rpc('get_me', { _tg_id: Number(me.tg_id) });
-  if (!error && data && data.length) {
-    const row = data[0];
-    // keep your local state in sync if you have it
-    if (window.state) {
-      const dbChads = BigInt(row.chads ?? 0);
-      window.state.chads = dbChads;       // source of truth = DB
-      window.saveStateLocal?.(window.state);
-      window.refreshUI?.();
-    }
-  }
-}
-
-function shareLinkToBot(code){
-  const url = `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(code)}`;
-  // Open Telegram chat with bot and pre-attach the deep link
-  if (TG?.openTelegramLink) {
-    TG.openTelegramLink(url);
-  } else {
-    window.open(url, '_blank');
-  }
-}
-
-async function getProgress(){
-  const me = getTGUser();
-  const { data, error } = await supabase.rpc('get_reward_progress', { p_inviter_id: Number(me.tg_id) });
-  if (error) throw error;
-  // transform to convenient map
-  const p = data[0];
-  return {
-    1: { activated: p.tier1_activated, claimed: p.tier1_claimed },
-    2: { activated: p.tier2_activated, claimed: p.tier2_claimed },
-    3: { activated: p.tier3_activated, claimed: p.tier3_claimed },
-  };
-}
-
-async function ensureInvite(tier){
-  const me = getTGUser();
-  const { data, error } = await supabase.rpc('create_invite', { inviter_id: Number(me.tg_id), t: tier });
-  if (error) throw error;
-  return data.code;
-}
-
-async function renderTiers(){
-  const prog = await getProgress();
-
-  elTiers.innerHTML = '';
-  for (const t of TIERS) {
-    const row = document.createElement('div');
-    row.className = 'tier-row';
-    row.innerHTML = `
-      <div>
-        <div class="tier-title">${t.label}</div>
-        <div class="tier-reward">Reward: <b>${t.reward.toLocaleString()}</b> chads</div>
-      </div>
-      <div class="tier-status"></div>
-      <div class="tier-action"></div>
-    `;
-    const status = row.querySelector('.tier-status');
-    const action = row.querySelector('.tier-action');
-
-    const p = prog[t.tier];
-    const prevTierOk = (t.tier === 1) || (prog[t.tier - 1]?.claimed === true);
-
-    if (p.claimed) {
-      status.innerHTML = `<span class="badge badge-green">✔ Claimed</span>`;
-      action.innerHTML = `<button class="btn btn-disabled" disabled>Claimed</button>`;
-    } else if (!prevTierOk) {
-      status.textContent = 'Complete previous tier first';
-      action.innerHTML = `<button class="btn btn-disabled" disabled>Locked</button>`;
-    } else if (p.activated) {
-      status.textContent = 'Friend joined — ready to claim';
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-claim'; btn.textContent = 'Claim';
-      btn.onclick = async () => {
-        btn.disabled = true;
-        try {
-          const me = getTGUser();
-          const { data, error } = await supabase.rpc('claim_reward', { p_inviter_id: Number(me.tg_id), t: t.tier });
-          if (error) throw error;
-          const amount = t.reward;
-          if (window.state) {
-            window.state.chads = (window.state.chads ?? 0n) + BigInt(amount);
-            window.saveStateLocal?.(window.state);
-            window.refreshUI?.();
-          }
-          // refresh from DB to be sure
-          await refreshBalance();
-          await renderTiers();
-          window.showToast?.(`<span class="accent">+${amount.toLocaleString()}</span> chads added to balance.`);
-        } catch (e) {
-          alert('Claim failed: ' + e.message);
-          btn.disabled = false;
-        }
-      };
-      action.appendChild(btn);
-    } else {
-      status.textContent = 'Send your link to a friend';
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-send'; btn.textContent = 'Send Link';
-      btn.onclick = async () => {
-        try {
-          const code = await ensureInvite(t.tier);
-          shareLinkToBot(code);
-        } catch (e) {
-          alert('Could not create invite: ' + e.message);
-        }
-      };
-      action.appendChild(btn);
-    }
-
-    elTiers.appendChild(row);
-  }
-}
-</script>
+<script type="module" src="/supabaseClient.js"></script>
 
 <script>
 /* ===== Telegram + loader ===== */
@@ -3176,6 +3014,180 @@ function buildGrid(container, cols, rows){
   });
 })();
 
+// claimRewards.js
+import { supabase } from './supabaseClient.js';
+
+const BOT_USERNAME = 'ChadiliZe'; // without @
+
+const tg = window.Telegram?.WebApp;
+function getTGUser() {
+  // Use Telegram Mini App user if present; otherwise allow ?tg_id=...&username=... for testing
+  const u = tg?.initDataUnsafe?.user;
+  if (u?.id) {
+    return {
+      tg_id: BigInt(u.id),           // keep BigInt for your local state usage
+      username: u.username ?? null,
+      display_name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'Guest',
+    };
+  }
+  const sp = new URLSearchParams(location.search);
+  const tg_id = sp.get('tg_id');
+  return {
+    tg_id: tg_id ? BigInt(tg_id) : BigInt(0),
+    username: sp.get('username'),
+    display_name: sp.get('name') || 'Guest',
+  };
+}
+
+// helpers
+function show(el) { el.hidden = false; }
+function hide(el) { el.hidden = true; }
+function toast(msg) {
+  if (window.showToast) return window.showToast(msg);
+  alert(msg.replace(/<[^>]*>/g,''));
+}
+
+async function ensurePlayer() {
+  const u = getTGUser();
+  if (u.tg_id === 0n) return null;
+  const { data, error } = await supabase.rpc('ensure_player', {
+    _tg_id: Number(u.tg_id), _username: u.username, _display_name: u.display_name
+  });
+  if (error) { console.error(error); toast('Failed to sync player.'); return null; }
+  return data;
+}
+
+function tierRow(tier) {
+  return document.querySelector(`.tier-row[data-tier="${tier}"]`);
+}
+function setInviteEnabled(tier, on) {
+  tierRow(tier).querySelector('.invite-btn').disabled = !on;
+}
+function setClaimEnabled(tier, on) {
+  const btn = tierRow(tier).querySelector('.claim-btn.small');
+  btn.disabled = !on;
+  btn.style.background = on ? '#ffd84c' : '';
+}
+function setStatus(tier, cls) {
+  const s = tierRow(tier).querySelector('.status');
+  s.className = 'status ' + (cls || '');
+}
+
+async function refreshProgress() {
+  const u = getTGUser();
+  if (u.tg_id === 0n) return;
+  const { data, error } = await supabase.rpc('get_reward_progress', { _inviter_tg_id: Number(u.tg_id) });
+  if (error) { console.error(error); return; }
+
+  // initial: only tier1 Invite enabled; next tiers unlock after claiming previous
+  // We also reflect activated/claimed visually
+  const map = [
+    { tier: 1, a: data.tier1_activated, c: data.tier1_claimed },
+    { tier: 2, a: data.tier2_activated, c: data.tier2_claimed },
+    { tier: 3, a: data.tier3_activated, c: data.tier3_claimed },
+  ];
+
+  // Invite buttons: enable tier1 always; tier2 only after tier1 is claimed; tier3 only after tier2 is claimed
+  setInviteEnabled(1, true);
+  setInviteEnabled(2, map[0].c === true);
+  setInviteEnabled(3, map[1].c === true);
+
+  // Claim buttons: enabled when activated && not already claimed
+  map.forEach(({tier, a, c}) => {
+    setClaimEnabled(tier, a === true && c !== true);
+    setStatus(tier, c ? 'ok' : (a ? 'wait' : ''));
+  });
+}
+
+function inviteURL(code) {
+  return `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(code)}`;
+}
+async function shareInvite(tier) {
+  const u = getTGUser();
+  if (u.tg_id === 0n) { toast('Open inside Telegram to invite friends.'); return; }
+
+  const { data, error } = await supabase.rpc('create_invite', {
+    _inviter_tg_id: Number(u.tg_id),
+    _tier: tier
+  });
+  if (error) { console.error(error); toast('Could not create invite.'); return; }
+
+  const url = inviteURL(data.code);
+
+  // Try Telegram's link open to bot chat (user can forward), or Web Share, or clipboard
+  try {
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(url);
+      toast('Bot opened. Forward the link to a friend!');
+    } else if (navigator.share) {
+      await navigator.share({ title: 'Join me', url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast('Invite link copied to clipboard.');
+      window.open(url, '_blank');
+    }
+  } catch {
+    await navigator.clipboard.writeText(url);
+    toast('Invite link copied to clipboard.');
+  }
+}
+
+async function claimTier(tier) {
+  const u = getTGUser();
+  if (u.tg_id === 0n) return;
+
+  const { data, error } = await supabase.rpc('claim_reward', {
+    _inviter_tg_id: Number(u.tg_id),
+    _tier: tier
+  });
+  if (error) { console.error(error); toast(error.message || 'Claim failed'); return; }
+
+  // Update local balance to match your mini-games (BigInt)
+  try {
+    if (window.state) {
+      // compute delta by reloading from server, but here we derive by tier amount:
+      const reward = tier === 1 ? 500000n : tier === 2 ? 50000000n : 3000000000n;
+      window.state.chads = (window.state.chads ?? 0n) + reward;
+      if (window.refreshUI) window.refreshUI();
+      if (window.saveStateLocal) window.saveStateLocal(window.state);
+    }
+  } catch (e) { console.warn('local state not present', e); }
+
+  toast(`<span class="accent">+${(tier===1?500000:tier===2?50000000:3000000000).toLocaleString()}</span> chads added to balance.`);
+  await refreshProgress();
+}
+
+// wire up UI
+function bindUI() {
+  const btn = document.getElementById('claimRewardsBtn');
+  const modal = document.getElementById('claimRewardsModal');
+  const close = document.getElementById('claimClose');
+
+  btn?.addEventListener('click', async () => {
+    show(modal);
+    await ensurePlayer();
+    await refreshProgress();
+  });
+
+  close?.addEventListener('click', () => hide(modal));
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) hide(modal);
+  });
+
+  // tier buttons
+  document.querySelectorAll('.tier-row').forEach(row => {
+    const tier = Number(row.dataset.tier);
+    row.querySelector('.invite-btn')?.addEventListener('click', () => shareInvite(tier));
+    row.querySelector('.claim-btn.small')?.addEventListener('click', () => claimTier(tier));
+  });
+}
+
+// init after DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindUI);
+} else {
+  bindUI();
+}
 
 
 /* ===== Snake ===== */
