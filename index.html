@@ -808,6 +808,37 @@ body{
   background: radial-gradient(600px 300px at -10% -20%, rgba(100,180,255,.07), transparent 35%), linear-gradient(180deg,#0b1218,#0a0e12);
   border:1px solid var(--glass); box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
 }
+/* two columns: left = user area (shrinks), right = stats (auto width, locked) */
+.topbar{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) auto; /* left can shrink; right stays auto */
+  align-items:center;
+  gap:12px;
+}
+
+/* let the name truncate, not push */
+.userpill{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;                  /* IMPORTANT for flex/grid shrink */
+}
+#userName{
+  min-width:0;                  /* allow shrinking inside flex/grid child */
+  max-width:100%;
+  white-space:nowrap;           /* keep on one line */
+  overflow:hidden;              /* clip overflow */
+  text-overflow:ellipsis;       /* show … when clipped */
+}
+
+/* stats block won’t move */
+.topbar .stat{
+  justify-self:end;             /* hug the right */
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+}
+
 /* Wood texture skin for the user pill */
 .userpill.wood-bg{
   position: relative;            /* keep children positioned correctly */
