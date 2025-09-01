@@ -6,25 +6,60 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
- .claim-btn { background: transparent; border: 0; cursor: pointer; }
-  .claim-btn img { height: 48px; width: auto; filter: drop-shadow(0 6px 18px rgba(0,0,0,.35)); }
-  .claim-modal { position: fixed; inset:0; display:flex; align-items:center; justify-content:center;
-                 background: rgba(8,12,18,.65); backdrop-filter: blur(4px); z-index:1000; }
-  .claim-window { width:min(720px,92vw); border-radius:20px; background: linear-gradient(180deg,#0d1720,#0a1219);
-                  border:1px solid #173247; box-shadow: 0 30px 80px rgba(0,0,0,.55); padding:20px 16px; color:#d6e7ff; }
-  .claim-window h2 { margin:0 0 14px 0; font-size:22px; letter-spacing:.3px; }
-  .accent { color:#47f28a; }
-  .tiers { display:flex; flex-direction:column; gap:10px; }
-  .tier { display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:14px;
-          background: radial-gradient(120% 160% at 0% 0%, rgba(25,91,160,.22), transparent 70%);
-          border:1px solid rgba(64,110,160,.3); }
-  .left .title { font-weight:700; }
-  .left .reward { opacity:.85; font-size:13px; }
-  .right { display:flex; align-items:center; gap:8px; }
-  .right .share { padding:8px 12px; border-radius:10px; border:0; cursor:pointer; background:#2b6cf0; color:white; }
-  .right .claim { padding:8px 12px; border-radius:10px; border:0; cursor:pointer; background:#ffd451; }
-  .right .claim[disabled], .right .share[disabled] { opacity:.5; cursor:not-allowed; }
-  .tick { color:#47f28a; font-weight:900; font-size:18px; }
+/* Button */
+.claim-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.claim-btn img { width: 180px; height: auto; display: block; }
+
+/* Modal shell */
+.rewards-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  display: grid; place-items: center;
+  z-index: 1000;
+}
+.hidden { display: none; }
+
+/* Card */
+.rewards-card {
+  width: min(560px, 92vw);
+  background: radial-gradient(120% 120% at 10% 0%, #0e1a25 0%, #0a131b 55%, #071018 100%);
+  border: 1px solid #1f2a35;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  color: #e6f2ff;
+  padding: 18px;
+}
+
+.rewards-header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+.rewards-header h3 { margin:0; font-size: 20px; letter-spacing:.4px; }
+.icon-x { background:#12202c; border:1px solid #1e2a36; color:#a6c3de; border-radius:10px; padding:6px 10px; cursor:pointer; }
+
+.tiers { display:grid; gap: 10px; margin-top: 6px; }
+.tier-row {
+  display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:center;
+  background: linear-gradient(180deg, rgba(24,38,52,.7), rgba(12,22,32,.7));
+  border:1px solid #223242; padding:12px; border-radius:14px;
+}
+.tier-title { font-weight:700; font-size:16px; }
+.tier-reward { font-size:14px; opacity:.85; }
+
+.btn {
+  border:0; border-radius:12px; padding:8px 12px; font-weight:700; cursor:pointer;
+}
+.btn-send { background:#1976d2; color:white; }
+.btn-claim { background:#ffd54f; color:#0d1015; }
+.btn-disabled { background:#374151; color:#93a3b6; cursor:not-allowed; }
+
+.badge {
+  padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800;
+}
+.badge-green { background:#1f6f4d; color:#dff6ea; border:1px solid #2e8b65; }
+
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1248,56 +1283,29 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- somewhere in your page layout -->
-<button id="btnClaimRewards" class="claim-btn">
+<!-- Claim Rewards Button -->
+<button id="claimRewardsBtn" class="claim-btn">
   <img src="/img/claimrewards.png" alt="Claim Rewards" />
 </button>
 
-<div id="claimModal" class="claim-modal" hidden>
-  <div class="claim-window">
-    <h2>Invite friends, get <span class="accent">CHADS</span></h2>
-
-    <div class="tiers">
-      <div class="tier" data-tier="1">
-        <div class="left">
-          <div class="title">Add a friend</div>
-          <div class="reward">Claim 500,000 chads</div>
-        </div>
-        <div class="right">
-          <button class="share">Invite</button>
-          <button class="claim" disabled>Claim</button>
-          <span class="tick" hidden>✔</span>
-        </div>
-      </div>
-
-      <div class="tier" data-tier="2">
-        <div class="left">
-          <div class="title">Add a friend</div>
-          <div class="reward">Claim 50,000,000 chads</div>
-        </div>
-        <div class="right">
-          <button class="share" disabled>Invite</button>
-          <button class="claim" disabled>Claim</button>
-          <span class="tick" hidden>✔</span>
-        </div>
-      </div>
-
-      <div class="tier" data-tier="3">
-        <div class="left">
-          <div class="title">Add a friend</div>
-          <div class="reward">Claim 3,000,000,000 chads</div>
-        </div>
-        <div class="right">
-          <button class="share" disabled>Invite</button>
-          <button class="claim" disabled>Claim</button>
-          <span class="tick" hidden>✔</span>
-        </div>
-      </div>
+<!-- Modal -->
+<div id="rewardsModal" class="rewards-modal hidden">
+  <div class="rewards-card">
+    <div class="rewards-header">
+      <h3>Invite Rewards</h3>
+      <button id="rewardsClose" class="icon-x">✕</button>
     </div>
 
-    <button id="closeClaim">Close</button>
+    <div id="rewardsTiers" class="tiers">
+      <!-- Tiers injected by JS -->
+    </div>
+
+    <div class="rewards-tip">
+      Send your bot link. When a friend opens the game from your link, the tier unlocks and you can claim.
+    </div>
   </div>
 </div>
+
 <!-- ===== Test Your Luck (scrolls with page) ===== -->
 <div id="luckBtnWrap" class="luck-btn-wrap">
   <img id="luckBtnImg" class="luck-btn-img" src="img/testyourluck.png" alt="Test your luck">
@@ -1883,180 +1891,178 @@ canvas{ display:block }
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { supabase } from '/supabaseClient.js';
 
-const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cnZsYXhmcm5nbGF4dWVxZ2R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMDYzOTIsImV4cCI6MjA3MTg4MjM5Mn0.wzW3yQVi5mZOAx8dAmdgLmLOacaPPaxYJv53p_1BIzs";
-const BOT_USERNAME = "ChadiliZe"; // no @
+const BOT_USERNAME = 'ChadiliZe'; // no @
+let TG = window.Telegram?.WebApp;
+TG?.ready?.();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TIERS = [
+  { tier: 1, label: 'Tier 1 — Add a Friend', reward: 500_000 },
+  { tier: 2, label: 'Tier 2 — Add a Friend', reward: 50_000_000 },
+  { tier: 3, label: 'Tier 3 — Add a Friend', reward: 3_000_000_000 },
+];
 
-// ——— pull TG id (works in Mini App). Fallback to a querystring ?tg= or saved hint.
-const tg = window.Telegram?.WebApp;
-const params = new URLSearchParams(location.search);
-const TG_ID = Number(
-  tg?.initDataUnsafe?.user?.id ??
-  params.get("tg") ??
-  localStorage.getItem("tg_id_hint") ??
-  0
-);
-if (TG_ID) localStorage.setItem("tg_id_hint", String(TG_ID));
+const elBtn   = document.getElementById('claimRewardsBtn');
+const modal   = document.getElementById('rewardsModal');
+const elClose = document.getElementById('rewardsClose');
+const elTiers = document.getElementById('rewardsTiers');
 
-// Your existing state helpers
-const STORAGE_KEY = `chad_state_${params.get('token') || 'guest'}`;
-function loadStateLocal(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const o = raw ? JSON.parse(raw) : {};
-    return {
-      chads: BigInt(o.chads ?? "0"),
-      gen: BigInt(o.gen ?? "0"),
-      acc: BigInt(o.acc ?? "0"),
-      last: o.last ?? Math.floor(Date.now()/1000),
-      level: o.level ?? 1,
-      purchases: o.purchases ?? {},
-      name: o.name ?? null,
-      avatarIdx: (typeof o.avatarIdx==='number')? o.avatarIdx : null,
-      avatarLocked: !!o.avatarLocked
-    };
-  } catch { return { chads:0n, gen:0n, acc:0n, last:Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false }; }
-}
-function saveStateLocal(s){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    chads: s.chads.toString(), gen: s.gen.toString(), acc: s.acc.toString(),
-    last: s.last, level: s.level, purchases: s.purchases,
-    name: s.name ?? null, avatarIdx: s.avatarIdx ?? null, avatarLocked: !!s.avatarLocked
-  }));
-}
-let state = loadStateLocal();
-function setChadsFromServer(newChads){
-  try {
-    const v = BigInt(String(newChads));
-    state.chads = v;
-    saveStateLocal(state);
-    if (window.refreshUI) window.refreshUI();
-  } catch {}
+function openModal(){ modal.classList.remove('hidden'); }
+function closeModal(){ modal.classList.add('hidden'); }
+elBtn.addEventListener('click', openModal);
+elClose.addEventListener('click', closeModal);
+modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+function getTGUser(){
+  const u = TG?.initDataUnsafe?.user;
+  if (!u) { throw new Error('Telegram user not found. Open in Telegram Mini App.'); }
+  return {
+    tg_id: BigInt(u.id),                // JS BigInt, we’ll downcast to number for RPC input
+    username: u.username || null,
+    display_name: [u.first_name, u.last_name].filter(Boolean).join(' ')
+  };
 }
 
-// ——— Supabase RPC wrappers
-async function rpcCreateInvite(tier){
-  const { data, error } = await supabase.rpc("create_invite", { p_inviter_tg_id: TG_ID, p_tier: tier });
-  if (error) throw error;
-  return data; // reward_invites row
-}
-async function rpcClaim(tier){
-  const { data, error } = await supabase.rpc("claim_reward", { p_inviter_tg_id: TG_ID, p_tier: tier });
-  if (error) throw error;
-  return data && data[0]; // { new_chads, claimed, code }
-}
-async function rpcProgress(){
-  const { data, error } = await supabase.rpc("get_progress", { p_inviter_tg_id: TG_ID });
-  if (error) throw error;
-  return data && data[0];
-}
+// Call on app start (and whenever URL may have ?code=)
+await bootstrapRewards();
 
-// ——— UI wiring
-const $ = sel => document.querySelector(sel);
-const modal = $("#claimModal");
-$("#btnClaimRewards").addEventListener("click", async () => {
-  modal.hidden = false;
-  await refreshProgressUI();
-});
-$("#closeClaim").addEventListener("click", ()=> modal.hidden = true);
+async function bootstrapRewards(){
+  const me = getTGUser();
 
-// build per-tier handlers
-for (const tierEl of document.querySelectorAll(".tier")){
-  const tier = Number(tierEl.dataset.tier);
-  const btnShare = tierEl.querySelector(".share");
-  const btnClaim = tierEl.querySelector(".claim");
-  const tick = tierEl.querySelector(".tick");
-
-  btnShare.addEventListener("click", async ()=>{
-    try{
-      const row = await rpcCreateInvite(tier);
-      const code = row.code;
-      // Telegram deep link to your bot with payload. (standard "?start=<payload>")
-      const url = `https://t.me/${BOT_USERNAME}?start=inv-${code}`;
-      if (tg?.openTelegramLink) tg.openTelegramLink(url);
-      else if (navigator.share) await navigator.share({ title:"Play Chadilize", url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast("Invite link copied!");
-      }
-    }catch(e){ toast("Could not create invite: " + (e?.message||e)); }
+  // Ensure player row
+  await supabase.rpc('ensure_player', {
+    _tg_id: Number(me.tg_id), _username: me.username, _display_name: me.display_name
   });
 
-  btnClaim.addEventListener("click", async ()=>{
-    btnClaim.disabled = true;
-    try{
-      const res = await rpcClaim(tier); // { new_chads, claimed, code }
-      if (res?.claimed){
-        setChadsFromServer(res.new_chads);
-        tick.hidden = false;
-        btnShare.disabled = true;
-        btnClaim.disabled = true;
-        // enable the next tier's share button
-        const next = document.querySelector(`.tier[data-tier="${tier+1}"] .share`);
-        if (next) next.disabled = false;
-        toast("Reward claimed! ✅");
-      } else {
-        btnClaim.disabled = false;
-        toast("Not ready to claim yet.");
-      }
-    }catch(e){
-      btnClaim.disabled = false;
-      toast("Claim failed: " + (e?.message||e));
+  // If launched with invite code -> activate
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code') || params.get('start'); // support both ?code and Telegram ?start
+  if (code) {
+    try { await supabase.rpc('activate_invite', { code, invitee_id: Number(me.tg_id) }); }
+    catch(e){ /* ignore already-bound */ }
+  }
+
+  await renderTiers();
+  await refreshBalance();
+}
+
+async function refreshBalance(){
+  const me = getTGUser();
+  const { data, error } = await supabase.rpc('get_me', { _tg_id: Number(me.tg_id) });
+  if (!error && data && data.length) {
+    const row = data[0];
+    // keep your local state in sync if you have it
+    if (window.state) {
+      const dbChads = BigInt(row.chads ?? 0);
+      window.state.chads = dbChads;       // source of truth = DB
+      window.saveStateLocal?.(window.state);
+      window.refreshUI?.();
     }
-  });
+  }
 }
 
-// keep buttons in proper state
-async function refreshProgressUI(){
-  try{
-    const p = await rpcProgress(); // booleans for each tier
-    const tiers = [
-      { tier:1, activated: p?.tier1_activated, claimed: p?.tier1_claimed },
-      { tier:2, activated: p?.tier2_activated, claimed: p?.tier2_claimed },
-      { tier:3, activated: p?.tier3_activated, claimed: p?.tier3_claimed },
-    ];
+function shareLinkToBot(code){
+  const url = `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(code)}`;
+  // Open Telegram chat with bot and pre-attach the deep link
+  if (TG?.openTelegramLink) {
+    TG.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
+}
 
-    let allowInvite = true; // tier 1 share starts enabled
-    for (const t of tiers){
-      const root = document.querySelector(`.tier[data-tier="${t.tier}"]`);
-      const share = root.querySelector(".share");
-      const claim = root.querySelector(".claim");
-      const tick  = root.querySelector(".tick");
+async function getProgress(){
+  const me = getTGUser();
+  const { data, error } = await supabase.rpc('get_reward_progress', { p_inviter_id: Number(me.tg_id) });
+  if (error) throw error;
+  // transform to convenient map
+  const p = data[0];
+  return {
+    1: { activated: p.tier1_activated, claimed: p.tier1_claimed },
+    2: { activated: p.tier2_activated, claimed: p.tier2_claimed },
+    3: { activated: p.tier3_activated, claimed: p.tier3_claimed },
+  };
+}
 
-      share.disabled = !allowInvite;
-      if (t.claimed){
-        share.disabled = true;
-        claim.disabled = true;
-        tick.hidden = false;
-        allowInvite = true; // next tier can be enabled
-      } else {
-        tick.hidden = true;
-        claim.disabled = !t.activated; // yellow claim becomes enabled only after activation
-        allowInvite = t.claimed; // only enable next share when this is claimed
-      }
+async function ensureInvite(tier){
+  const me = getTGUser();
+  const { data, error } = await supabase.rpc('create_invite', { inviter_id: Number(me.tg_id), t: tier });
+  if (error) throw error;
+  return data.code;
+}
+
+async function renderTiers(){
+  const prog = await getProgress();
+
+  elTiers.innerHTML = '';
+  for (const t of TIERS) {
+    const row = document.createElement('div');
+    row.className = 'tier-row';
+    row.innerHTML = `
+      <div>
+        <div class="tier-title">${t.label}</div>
+        <div class="tier-reward">Reward: <b>${t.reward.toLocaleString()}</b> chads</div>
+      </div>
+      <div class="tier-status"></div>
+      <div class="tier-action"></div>
+    `;
+    const status = row.querySelector('.tier-status');
+    const action = row.querySelector('.tier-action');
+
+    const p = prog[t.tier];
+    const prevTierOk = (t.tier === 1) || (prog[t.tier - 1]?.claimed === true);
+
+    if (p.claimed) {
+      status.innerHTML = `<span class="badge badge-green">✔ Claimed</span>`;
+      action.innerHTML = `<button class="btn btn-disabled" disabled>Claimed</button>`;
+    } else if (!prevTierOk) {
+      status.textContent = 'Complete previous tier first';
+      action.innerHTML = `<button class="btn btn-disabled" disabled>Locked</button>`;
+    } else if (p.activated) {
+      status.textContent = 'Friend joined — ready to claim';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-claim'; btn.textContent = 'Claim';
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          const me = getTGUser();
+          const { data, error } = await supabase.rpc('claim_reward', { p_inviter_id: Number(me.tg_id), t: t.tier });
+          if (error) throw error;
+          const amount = t.reward;
+          if (window.state) {
+            window.state.chads = (window.state.chads ?? 0n) + BigInt(amount);
+            window.saveStateLocal?.(window.state);
+            window.refreshUI?.();
+          }
+          // refresh from DB to be sure
+          await refreshBalance();
+          await renderTiers();
+          window.showToast?.(`<span class="accent">+${amount.toLocaleString()}</span> chads added to balance.`);
+        } catch (e) {
+          alert('Claim failed: ' + e.message);
+          btn.disabled = false;
+        }
+      };
+      action.appendChild(btn);
+    } else {
+      status.textContent = 'Send your link to a friend';
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-send'; btn.textContent = 'Send Link';
+      btn.onclick = async () => {
+        try {
+          const code = await ensureInvite(t.tier);
+          shareLinkToBot(code);
+        } catch (e) {
+          alert('Could not create invite: ' + e.message);
+        }
+      };
+      action.appendChild(btn);
     }
-  }catch(e){ console.warn(e); }
-}
 
-// tiny toast
-function toast(msg){
-  if (window.showToast) return window.showToast(msg);
-  console.log(msg);
+    elTiers.appendChild(row);
+  }
 }
-
-// if the invited user opens the game via ?start=inv-<code>, activate it automatically
-(function autoActivateFromStart(){
-  const start = params.get("start") || params.get("tgWebAppStartParam");
-  if (!start || !/^inv-/.test(start) || !TG_ID) return;
-  const code = start.replace(/^inv-/, "");
-  supabase.rpc("activate_invite", { p_code: code, p_invitee_tg_id: TG_ID })
-    .then(()=> refreshProgressUI())
-    .catch(()=>{});
-})();
 </script>
 
 <script>
@@ -3170,6 +3176,15 @@ function buildGrid(container, cols, rows){
   });
 })();
 
+// supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
+
+export const SUPABASE_URL = 'https://jwrvlaxfrnglaxueqgdx.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3cnZsYXhmcm5nbGF4dWVxZ2R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzMDYzOTIsImV4cCI6MjA3MTg4MjM5Mn0.wzW3yQVi5mZOAx8dAmdgLmLOacaPPaxYJv53p_1BIzs';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false },
+});
 
 
 /* ===== Snake ===== */
