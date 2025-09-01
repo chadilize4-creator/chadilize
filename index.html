@@ -6,32 +6,6 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-.rw-claim-btn { background: transparent; border: 0; padding: 0; cursor: pointer; }
-  .rw-claim-img { width: 260px; max-width: 80vw; display: block; }
-  .rw-modal { position: fixed; inset: 0; display: none; z-index: 1000; }
-  .rw-modal.open { display: block; }
-  .rw-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
-  .rw-modal-card { position: relative; margin: 6vh auto; max-width: 520px; background: #0b1016; color: #e8f1ff; border-radius: 18px; padding: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
-  .rw-head { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 8px; }
-  .rw-x { background: #15202b; color: #cbd5e1; border:0; width:36px; height:36px; border-radius:10px; cursor:pointer; }
-  .rw-tiers { display: grid; gap: 10px; }
-  .rw-row { display:flex; align-items:center; justify-content:space-between; background: #0e1622; padding: 12px; border-radius: 14px; border:1px solid rgba(255,255,255,.06);}
-  .rw-left { display:flex; align-items:center; gap: 10px; }
-  .rw-badge { width:30px; height:30px; border-radius:50%; background: linear-gradient(135deg,#64ffda,#7c9eff); opacity:.9; }
-  .rw-title { font-weight:700; }
-  .rw-reward { opacity:.8; font-size:.9rem; }
-  .rw-actions { display:flex; align-items:center; gap: 6px; }
-  .rw-btn { border:0; border-radius:10px; padding:8px 12px; cursor:pointer; font-weight:700; }
-  .rw-send { background:#2563eb; color:white; }
-  .rw-send[disabled] { opacity:.4; cursor:not-allowed; }
-  .rw-claim { background:#fbbf24; color:#111827; display:none; }
-  .rw-claim.active { display:inline-block; }
-  .rw-done { background:#16a34a; color:white; pointer-events:none; }
-  .rw-hint { margin-top:8px; opacity:.7; font-size:.9rem; }
-  .rw-link { margin-top:10px; padding:10px; background:#0e1622; border-radius:12px; border:1px solid rgba(255,255,255,.06); display:flex; align-items:center; gap:10px; }
-  .rw-link.hidden { display:none; }
-  .rw-copy { background:#0b84ff; color:#fff; border:0; border-radius:8px; padding:6px 10px; cursor:pointer; }
-  .rw-tick { color:#16a34a; font-weight:900; margin-left:6px; }
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1165,30 +1139,7 @@ canvas{ display:block }
 <!-- Place this block where your wooden profile rectangle is rendered -->
 <div id="profileStrip">
   <div class="wood-card" id="woodCard"><!-- your profile/username card --></div>
-<!-- Claim Rewards button -->
-<button id="claimRewardsBtn" class="rw-claim-btn" aria-haspopup="dialog" aria-controls="claimModal">
-  <img src="/img/claimrewards.png" alt="Claim rewards" class="rw-claim-img" />
-</button>
 
-<!-- Modal -->
-<div id="claimModal" class="rw-modal" aria-hidden="true">
-  <div class="rw-modal-backdrop" data-close></div>
-  <div class="rw-modal-card" role="dialog" aria-modal="true" aria-labelledby="rwTitle">
-    <div class="rw-head">
-      <h3 id="rwTitle">Claim Rewards</h3>
-      <button class="rw-x" data-close>&times;</button>
-    </div>
-    <div id="rwTiers" class="rw-tiers">
-      <!-- rows inserted by JS -->
-    </div>
-    <div id="rwHint" class="rw-hint">Share your link from inside Telegram with a friend. When they play, the tier unlocks and the Claim button turns yellow.</div>
-    <div id="rwLinkBox" class="rw-link hidden">
-      <div>Share this link:</div>
-      <a id="rwLink" href="#" target="_blank" rel="noopener" data-tg-ignore="true"></a>
-      <button id="rwCopy" class="rw-copy">Copy</button>
-    </div>
-  </div>
-</div>
 <!-- ===================== TOKEN TRIGGER OVERLAY ======================= -->
 <div id="ttOverlay" class="tt-overlay" aria-hidden="true">
   <!-- HUD (top) -->
@@ -1862,9 +1813,6 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- Telegram JS (required for openTelegramLink in Mini App) -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script type="module" src="/js/rewards.js"></script>
 <script>
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
@@ -4089,10 +4037,6 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-
-
-
-
 
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
