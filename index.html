@@ -1117,10 +1117,10 @@ canvas{ display:block }
 .hidden{ display:none !important }
 /* ================= LEVELS (scoped; safe for profile/username) ================ */
 
-/* Make the 3 bottom tiles exactly equal */
+/* Make the 3 bottom tiles exactly equal (no stretching) */
 #bottom .controls{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* equal columns */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap:12px;
   align-items:stretch;
 }
@@ -1196,7 +1196,6 @@ canvas{ display:block }
   display:grid; gap:10px; border-radius:14px; padding:10px;
   background: linear-gradient(180deg,#0f1217,#0b0f12);
   border:1px solid rgba(255,255,255,.08);
-  /* subtle white–blue glow */
   box-shadow:
     0 0 0 1px rgba(200,225,255,.18),
     0 12px 36px rgba(0,0,0,.55),
@@ -1210,7 +1209,6 @@ canvas{ display:block }
 }
 .lv-thumb{ position:relative; aspect-ratio:1/1; border-radius:12px; overflow:hidden; }
 .lv-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-/* Gray image but colored lock */
 .lv-card.locked .lv-thumb img{ filter:grayscale(100%) brightness(.78); }
 .lv-lock{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
 .lv-lock img{ width:46%; height:auto; }
@@ -1393,8 +1391,8 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-         <!-- Middle tile shows CURRENT unlocked level -->
-    <div class="tile" id="levelBtn" aria-haspopup="dialog" aria-controls="lvLevelsModal">
+         <!-- Middle tile shows CURRENT unlocked level (click to open list) -->
+    <div class="tile level" id="levelBtn" aria-haspopup="dialog" aria-controls="lvLevelsModal">
       <figure class="lv-badge">
         <img id="lvBadgeImg" src="img/level1.png" alt="Current Level" loading="lazy" />
         <span class="lv-ring" aria-hidden="true"></span>
@@ -5175,7 +5173,7 @@ function openBreaker(){
     {id:19, chads:100_000_000_000, gen:300_000_000,  tap:120_000},
   ];
   const TOTAL = LV.length;
-  const STORE = 'lv.levels.v4';
+  const STORE = 'lv.levels.v5';
   const imgLevel = n => `img/level${n}.png`;
   const imgChest = n => `img/chest${n}.png`;
 
@@ -5193,7 +5191,7 @@ function openBreaker(){
   const orb      = $('orb');
 
   const chadsEl  = $('chadCount'); // top stat value
-  const genEl    = $('genRate');    // top stat gen/hr
+  const genEl    = $('genRate');   // top stat gen/hr
 
   /* -------- State -------- */
   const st = { unlocked:Array(TOTAL).fill(false), current:1, lastChest:0 };
@@ -5219,7 +5217,6 @@ function openBreaker(){
     return Number.isFinite(n) ? n : 0;
   };
   function getStats(){
-    // prefer DOM counters, fall back to window.state BigInts if present
     let chads = readNum(chadsEl);
     let gen = readNum(genEl);
     if ((!chads || !gen) && window.state){
@@ -5237,8 +5234,7 @@ function openBreaker(){
     let max = 1;
     for (let i=0;i<TOTAL;i++){
       const lv = LV[i];
-      if (s.chads >= lv.chads && s.gen >= lv.gen) max = i+1;
-      else break; // configs are ascending
+      if (s.chads >= lv.chads && s.gen >= lv.gen) max = i+1; // scan all (no early break)
     }
     return max;
   }
@@ -5247,7 +5243,8 @@ function openBreaker(){
     const s = getStats();
     const hi = highestUnlockedByStats(s);
     for (let i=0;i<TOTAL;i++){
-      st.unlocked[i] = i < hi;
+      const lv = LV[i];
+      st.unlocked[i] = (s.chads >= lv.chads && s.gen >= lv.gen);
     }
     st.current = hi;
     save();
@@ -5277,8 +5274,8 @@ function openBreaker(){
           <div class="lv-status">${unlocked ? 'Unlocked' : 'Locked'}</div>
         </div>
         <div class="lv-req">${i===1 ? 'Starting level' :
-          \`Reach \${LV[i-1].chads.toLocaleString()} CHADs AND \${LV[i-1].gen.toLocaleString()} generation/hr\`}</div>
-        <div class="lv-reward">${i===1 ? '—' : \`Reward: +\${LV[i-1].tap.toLocaleString()} chad tap\`}</div>
+          \`Reach \${lv.chads.toLocaleString()} CHADs AND \${lv.gen.toLocaleString()} generation/hr\`}</div>
+        <div class="lv-reward">${i===1 ? '—' : \`Reward: +\${lv.tap.toLocaleString()} chad tap\`}</div>
       `;
       grid.appendChild(card);
     }
@@ -5303,17 +5300,17 @@ function openBreaker(){
   /* Unlock pass; show chest only for NEWLY unlocked highest */
   function checkUnlocks(){
     const before = st.current;
-    recalcFromStats(); // recompute strictly from current counters
+    recalcFromStats();
     syncUI();
     if (st.current > before) showChest(st.current);
-    // also mirror into your main save if present
+    // mirror to your main state if present
     if (window.state && typeof window.state.level === 'number'){
       window.state.level = st.current;
       if (window.saveStateLocal) try{ window.saveStateLocal(window.state); }catch{}
     }
   }
 
-  /* Tap bonus wrapper: adds (tap-1) safely into your own saveStateLocal() */
+  /* Tap bonus wrapper: adds (tap-1) safely into your saveStateLocal() */
   function currentTap(){ return LV[st.current-1]?.tap || 1; }
   function wireTapBonus(){
     if (!orb || orb.dataset.lvWired==='1') return;
@@ -5334,7 +5331,7 @@ function openBreaker(){
           }
         }catch{}
         const r = original.apply(this, arguments);
-        // refresh the numeric counter text so it never “snaps back”
+        // keep the header counter in sync to prevent "snap-back"
         Promise.resolve().then(() => {
           const n = typeof s.chads==='bigint' ? Number(s.chads) : Number(s.chads);
           if (Number.isFinite(n) && document.getElementById('chadCount')){
@@ -5347,7 +5344,7 @@ function openBreaker(){
     }
   }
 
-  /* Observe the counters so the badge reacts instantly when values change */
+  /* Observe the counters so the badge reacts the moment numbers change */
   function observeCounters(){
     const targets = [chadsEl, genEl].filter(Boolean);
     if (!targets.length) return;
@@ -5355,7 +5352,7 @@ function openBreaker(){
     targets.forEach(el => mo.observe(el, {childList:true, characterData:true, subtree:true}));
   }
 
-  /* Modal UX (Esc + focus trap) */
+  /* Modal UX (Esc + simple focus trap) */
   let trap=null, lastFocus=null;
   function openLevels(){
     lastFocus = document.activeElement;
@@ -5383,8 +5380,8 @@ function openBreaker(){
   /* Init */
   function init(){
     load();
-    if (!st.unlocked.some(Boolean)) st.unlocked[0] = true;
-    recalcFromStats(); // force compute from live counters at startup
+    st.unlocked[0] = true;
+    recalcFromStats();
     syncUI();
 
     btn?.addEventListener('click', openLevels);
@@ -5394,7 +5391,7 @@ function openBreaker(){
     wireTapBonus();
     observeCounters();
 
-    // Catch late updates from your Telegram init/render
+    // catch late renders from Telegram
     setTimeout(checkUnlocks, 150);
     setTimeout(checkUnlocks, 1000);
   }
