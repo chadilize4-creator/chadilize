@@ -1115,7 +1115,7 @@ canvas{ display:block }
 
 /* Hidden helpers */
 .hidden{ display:none !important }
-/* helpers */
+/* --- helpers --- */
 .glass-xl{
   background:
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
@@ -1126,13 +1126,13 @@ canvas{ display:block }
   border-radius: 16px;
 }
 
-/* center badge with shape-hugging blue-white glow (filter: drop-shadow) */
+/* --- home badge --- */
 .level-badge{ display:grid; place-items:center; padding:10px; }
 .level-badge-box{
   width:100%; aspect-ratio:1/1; border-radius:14px; overflow:hidden; position:relative;
   border:1px solid rgba(255,255,255,.08);
   background:linear-gradient(180deg,#16181b,#0f1012);
-  transition: transform .15s ease, box-shadow .25s ease, filter .25s ease;
+  transition: transform .15s ease, filter .25s ease, box-shadow .25s ease;
 }
 .level-badge-box:hover{ transform: translateY(-1px) scale(1.01); }
 .level-badge-box img{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -1141,12 +1141,13 @@ canvas{ display:block }
   font:900 12px/1 system-ui,Segoe UI,Roboto,sans-serif; letter-spacing:.28px;
   color:#dff0ff; text-shadow:0 1px 0 rgba(0,0,0,.55);
 }
+/* shape-hugging glow (drop-shadow follows PNG alpha; better than box-shadow) */
 .level-badge-box.current{
   filter: drop-shadow(0 0 14px rgba(168,210,255,.55)) drop-shadow(0 0 30px rgba(168,210,255,.35));
   box-shadow: 0 0 16px rgba(160,200,255,.45), 0 0 36px rgba(160,200,255,.30);
 }
 
-/* levels overlay grid */
+/* --- levels overlay grid --- */
 .levels-grid{ display:grid; gap:14px; grid-template-columns:repeat(2,1fr); }
 @media (min-width:520px){ .levels-grid{ grid-template-columns:repeat(3,1fr); } }
 
@@ -1172,7 +1173,7 @@ canvas{ display:block }
   color:#eaf1f8; font:900 11px/1 system-ui,Segoe UI,Roboto,sans-serif; letter-spacing:.3px;
 }
 
-/* lock: keep lock colored, gray out ONLY the level image */
+/* locked state: image greys out, lock sits centered, lock remains colored */
 .lvl-card.locked .lvl-imgbox img{ filter: grayscale(100%) brightness(.72); }
 .lvl-card.locked .lock{
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(46%,120px);
@@ -1180,14 +1181,14 @@ canvas{ display:block }
   opacity:.95; pointer-events:none;
 }
 
-/* states */
+/* outline states */
 .lvl-card.current{ outline:2px solid #4aa3ff; outline-offset:2px; }
 .lvl-card.unlocked:not(.current){ outline:2px solid #22ff88; outline-offset:2px; }
 
 .lvl-req{ font-size:12px; color:#9aa3ab; line-height:1.35; }
 .lvl-reward{ font-size:12px; color:#cfe4ff; font-weight:800; }
 
-/* chest popup */
+/* --- chest popup --- */
 .levelup-modal{
   position:fixed; inset:0; display:none; place-items:center; z-index:10000;
   background:radial-gradient(80% 80% at 50% 20%, #0009, #000e);
@@ -1375,7 +1376,7 @@ canvas{ display:block }
 <div class="tile level level-badge" id="levelBtn" role="button" aria-label="Open Levels">
   <div class="level-badge-box current">
     <img id="currentLevelImg" src="img/level1.png" alt="Level 1" loading="eager">
-    <div class="level-badge-label">LEVELS</div>
+    <div class="level-badge-label">LEVEL</div>
   </div>
 </div>
 
@@ -1556,7 +1557,7 @@ canvas{ display:block }
   </div>
 </div>
 
-<!-- LEVEL-UP Modal -->
+<!-- LEVEL-UP (chest) Modal -->
 <div id="levelUpModal" class="levelup-modal" aria-hidden="true">
   <div class="lu-card">
     <img id="luImg" class="lu-img" src="img/chest2.png" alt="">
@@ -1564,7 +1565,6 @@ canvas{ display:block }
     <button id="luOk" class="lu-ok">OK</button>
   </div>
 </div>
-
 
 
     <!-- SNAKE Modal -->
@@ -5599,167 +5599,199 @@ function openBreaker(){
   // bootstrap
   resetGame();
 })();
+
+
 (() => {
-  const TOTAL = 19;
+  /* -------------------- constants & helpers -------------------- */
+  const TOTAL_LEVELS = 19;
   const levelImg = (n) => `img/level${n}.png`;
   const chestImg = (n) => `img/chest${n}.png`;
   const LOCK_IMG = 'img/lock.png';
 
-  // DOM hooks
+  // DOM
+  const $ = (id) => document.getElementById(id);
   const els = {
-    btn: document.getElementById('levelBtn'),
-    badgeImg: document.getElementById('currentLevelImg'),
+    btn: $('levelBtn'),
+    badgeImg: $('currentLevelImg'),
     badgeBox: document.querySelector('.level-badge-box'),
-    overlay: document.getElementById('levelsOverlay'),
-    grid: document.getElementById('levelsGrid'),
-    luModal: document.getElementById('levelUpModal'),
-    luImg: document.getElementById('luImg'),
-    luTitle: document.getElementById('luTitle'),
-    luOk: document.getElementById('luOk')
+    overlay: $('levelsOverlay'),
+    grid: $('levelsGrid'),
+    luModal: $('levelUpModal'),
+    luImg: $('luImg'),
+    luTitle: $('luTitle'),
+    luOk: $('luOk')
   };
 
-  /* ---------- read/write persistent state from localStorage FIRST ---------- */
-  // Uses your STORAGE_KEY when present; otherwise auto-detects the newest "chad_state_*"
+  /* -------------------- persistent state -------------------- */
+  // Read the canonical app state from:
+  // 1) window.state (if present), OR
+  // 2) your loadStateLocal() helper, OR
+  // 3) localStorage (latest chad_state_*)
   function readPersistent(){
-    // 1) prefer window.state if already populated
-    if (window.state && typeof state.chads === 'bigint' && typeof state.gen === 'bigint'){
-      return { key: (window.STORAGE_KEY || null), raw: state,
-        chads: state.chads, gen: state.gen, level: Number(state.level || 1), last: Number(state.last||0) };
-    }
+    try {
+      if (window.state && typeof state.chads === 'bigint' && typeof state.gen === 'bigint') {
+        return {
+          key: (window.STORAGE_KEY || null),
+          chads: state.chads, gen: state.gen,
+          level: Number(state.level || 1),
+          last: Number(state.last || 0)
+        };
+      }
+    } catch {}
 
-    // 2) prefer loadStateLocal() if available — it returns parsed BigInts
-    try{
-      if (typeof window.loadStateLocal === 'function'){
+    try {
+      if (typeof window.loadStateLocal === 'function') {
         const s = loadStateLocal();
-        if (s && typeof s.chads === 'bigint' && typeof s.gen === 'bigint'){
-          return { key: (window.STORAGE_KEY || null), raw: s,
-            chads: s.chads, gen: s.gen, level: Number(s.level || 1), last: Number(s.last||0) };
+        if (s && typeof s.chads === 'bigint' && typeof s.gen === 'bigint') {
+          return {
+            key: (window.STORAGE_KEY || null),
+            chads: s.chads, gen: s.gen,
+            level: Number(s.level || 1),
+            last: Number(s.last || 0)
+          };
         }
       }
-    }catch{}
+    } catch {}
 
-    // 3) scan localStorage for chad_state_* and pick the newest/most-filled
+    // scan localStorage
     let best = null;
-    try{
-      const keys = [];
-      if (typeof window.STORAGE_KEY === 'string') keys.push(window.STORAGE_KEY);
-      for (let i=0;i<localStorage.length;i++){
+    try {
+      const keys = new Set();
+      if (typeof window.STORAGE_KEY === 'string') keys.add(window.STORAGE_KEY);
+      for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith('chad_state_') && !keys.includes(k)) keys.push(k);
+        if (k && k.startsWith('chad_state_')) keys.add(k);
       }
-      for (const k of keys){
+      for (const k of keys) {
         const raw = localStorage.getItem(k);
         if (!raw) continue;
-        try{
+        try {
           const o = JSON.parse(raw);
           const rec = {
-            key:k,
+            key: k,
             chads: BigInt(o.chads || "0"),
-            gen:   BigInt(o.gen || "0"),
+            gen:   BigInt(o.gen   || "0"),
             level: Number(o.level || 1),
-            last:  Number(o.last || 0)
+            last:  Number(o.last  || 0)
           };
           if (!best || rec.last > best.last || rec.chads > best.chads) best = rec;
-        }catch{}
+        } catch {}
       }
-    }catch{}
+    } catch {}
 
-    // 4) empty fallback
     return best || { key: (window.STORAGE_KEY || null), chads: 0n, gen: 0n, level: 1, last: 0 };
   }
 
   function writePersistentLevel(newLevel){
-    // If app has state + saveStateLocal, update via it
-    try{
-      if (window.state){
+    try {
+      if (window.state) {
         state.level = newLevel;
-        if (typeof window.saveStateLocal === 'function') saveStateLocal(state);
-        else if (window.STORAGE_KEY){
+        if (typeof window.saveStateLocal === 'function') { saveStateLocal(state); }
+        else if (window.STORAGE_KEY) {
           const raw = localStorage.getItem(STORAGE_KEY);
           const o = raw ? JSON.parse(raw) : {};
-          o.level = newLevel; localStorage.setItem(STORAGE_KEY, JSON.stringify(o));
+          o.level = newLevel;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(o));
         }
         return;
       }
-    }catch{}
+    } catch {}
 
-    // Otherwise, patch the chosen chad_state_* object directly
-    try{
+    try {
       const p = readPersistent();
-      if (p.key){
+      if (p.key) {
         const raw = localStorage.getItem(p.key);
         const o = raw ? JSON.parse(raw) : {};
         o.level = newLevel;
         localStorage.setItem(p.key, JSON.stringify(o));
       }
-    }catch{}
+    } catch {}
   }
 
-  /* ---------- level definitions ---------- */
-  const L = (level, chads, gen, tap) => ({
-    level, img: levelImg(level),
-    requirementText: `Reach ≥ ${chads.toLocaleString()} CHADs AND ≥ ${gen.toLocaleString()} generation/hr.`,
+  /* -------------------- level definitions -------------------- */
+  const mk = (level, needChads, needGen, tap) => ({
+    level,
+    img: levelImg(level),
+    needChads,
+    needGen,
+    tapValue: tap,
+    requirementText: `Reach ≥ ${needChads.toLocaleString()} CHADs AND ≥ ${needGen.toLocaleString()} generation/hr.`,
     rewardText: `Achievement: Tap becomes +${tap.toLocaleString()} CHAD`,
-    needChads: chads, needGen: gen, tapValue: tap,
-    check: (m) => (m.chadsTotal||0) >= chads && (m.genPerHour||0) >= gen
+    check: (m) => (m.chadsTotal || 0) >= needChads && (m.genPerHour || 0) >= needGen
   });
 
-  const defs = [
-    { level:1, img:levelImg(1), requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD", tapValue:1, check:()=>true },
-    L(2,   5_000,            100,             3),
-    L(3,  20_000,          1_000,             9),
-    L(4,  30_000,          4_000,            20),
-    L(5,  60_000,          8_000,            60),
-    L(6, 120_000,         14_000,           120),
-    L(7, 300_000,         25_000,           200),
-    L(8, 600_000,         45_000,           300),
-    L(9,   1_000_000,     60_000,           400),
-    L(10,  1_300_000,     80_000,           600),
-    L(11,  3_000_000,    190_000,           700),
-    L(12, 10_000_000,    600_000,         1_000),
-    L(13, 90_000_000,  4_000_000,         4_000),
-    L(14, 40_000_000,  8_000_000,         5_000),
-    L(15,100_000_000, 16_000_000,         8_000),
-    L(16,1_000_000_000,23_000_000,       10_000),
-    L(17,12_000_000_000,40_000_000,      40_000),
-    L(18,80_000_000_000,100_000_000,     60_000),
-    L(19,100_000_000_000,300_000_000,   120_000),
+  const LEVEL_DEFS = [
+    { level:1, img:levelImg(1), tapValue:1,
+      requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD",
+      check:() => true },
+    mk(2,    5_000,            100,              3),
+    mk(3,   20_000,          1_000,              9),
+    mk(4,   30_000,          4_000,             20),
+    mk(5,   60_000,          8_000,             60),
+    mk(6,  120_000,         14_000,            120),
+    mk(7,  300_000,         25_000,            200),
+    mk(8,  600_000,         45_000,            300),
+    mk(9, 1_000_000,        60_000,            400),
+    mk(10, 1_300_000,       80_000,            600),
+    mk(11, 3_000_000,      190_000,            700),
+    mk(12,10_000_000,      600_000,          1_000),
+    mk(13,90_000_000,    4_000_000,          4_000),
+    mk(14,40_000_000,    8_000_000,          5_000),
+    mk(15,100_000_000,  16_000_000,          8_000),
+    mk(16,1_000_000_000,23_000_000,         10_000),
+    mk(17,12_000_000_000,40_000_000,        40_000),
+    mk(18,80_000_000_000,100_000_000,       60_000),
+    mk(19,100_000_000_000,300_000_000,     120_000)
   ];
 
-  const TOTAL = defs.length;
-  const highestUnlocked = (m) => defs.reduce((h,d)=> d.check(m) ? Math.max(h,d.level) : h, 1);
-
-  /* ---------- tap value API for the orb ---------- */
-  function getTapValue(lv){
-    const L = typeof lv === 'number' ? lv : getLevel();
-    let v = 1; for (const d of defs) if (d.level <= L && typeof d.tapValue === 'number') v = d.tapValue; return v;
+  function highestUnlocked(metrics){
+    let h = 1;
+    for (const d of LEVEL_DEFS) if (d.check(metrics)) h = Math.max(h, d.level);
+    return h;
   }
 
-  /* ---------- current level (persisted) ---------- */
+  function metricsFromStorage(){
+    const p = readPersistent();
+    return {
+      chadsTotal: Number(p.chads || 0n),
+      genPerHour: Number(p.gen   || 0n)
+    };
+  }
+
+  /* -------------------- tap value API for orb -------------------- */
+  function getTapValue(levelOpt){
+    const L = typeof levelOpt === 'number' ? levelOpt : getLevel();
+    let val = 1;
+    for (const d of LEVEL_DEFS) {
+      if (d.level <= L && typeof d.tapValue === 'number') val = d.tapValue;
+    }
+    return val;
+  }
+
+  /* -------------------- level read/write -------------------- */
   function getLevel(){
     const p = readPersistent();
     const lv = Number(p.level || 1);
-    return Math.max(1, Math.min(TOTAL, isFinite(lv)?lv:1));
-    // levels are persisted back through writePersistentLevel(...)
+    return Math.max(1, Math.min(TOTAL_LEVELS, isFinite(lv) ? lv : 1));
   }
 
-  /* ---------- renderers ---------- */
+  /* -------------------- rendering -------------------- */
   function renderBadge(){
     const lv = getLevel();
     els.badgeImg.src = levelImg(lv);
     els.badgeImg.alt = `Level ${lv}`;
-    els.badgeBox.classList.add('current');
+    els.badgeBox?.classList.add('current');
   }
 
   function renderGrid(){
     const current = getLevel();
-    els.grid.innerHTML = defs.map(d=>{
+    els.grid.innerHTML = LEVEL_DEFS.map(d=>{
       const unlocked = d.level <= current;
       return `
-        <div class="lvl-card ${unlocked? 'unlocked':'locked'} ${d.level===current?'current':''}" data-level="${d.level}">
+        <div class="lvl-card ${unlocked?'unlocked':'locked'} ${d.level===current?'current':''}" data-level="${d.level}">
           <div class="lvl-imgbox">
             <img src="${d.img}" alt="Level ${d.level}" loading="lazy" width="400" height="400">
-            ${unlocked ? '' : `<img class="lock" src="img/lock.png" alt="Locked">`}
+            ${unlocked ? '' : `<img class="lock" src="${LOCK_IMG}" alt="Locked">`}
             <span class="lvl-tag">${d.level===current?'CURRENT':(unlocked?'UNLOCKED':'LOCKED')}</span>
           </div>
           <div class="lvl-req">${d.requirementText}</div>
@@ -5768,21 +5800,21 @@ function openBreaker(){
     }).join('');
   }
 
+  /* -------------------- overlay + chests -------------------- */
   function open(){ els.overlay.classList.add('show'); els.overlay.setAttribute('aria-hidden','false'); }
   function close(){ els.overlay.classList.remove('show'); els.overlay.setAttribute('aria-hidden','true'); }
   els.btn?.addEventListener('click', open);
 
-  /* ---------- chest queue ---------- */
   const luQueue = [];
   function queueLevelUp(level){
     luQueue.push(level);
     if (!els.luModal.classList.contains('show')) showNextLevelUp();
   }
   function showNextLevelUp(){
-    const next = luQueue.shift(); if (!next) return;
-    els.luImg.src = chestImg(next);
-    els.luImg.alt = `Level ${next} chest`;
-    els.luTitle.textContent = `Congrats, You Have Reached Level ${next} 🎉`;
+    const nxt = luQueue.shift(); if (!nxt) return;
+    els.luImg.src = chestImg(nxt);
+    els.luImg.alt = `Level ${nxt} chest`;
+    els.luTitle.textContent = `Congrats, You Have Reached Level ${nxt} 🎉`;
     els.luModal.classList.add('show'); els.luModal.setAttribute('aria-hidden','false');
   }
   function hideLevelUp(){
@@ -5791,31 +5823,22 @@ function openBreaker(){
   }
   els.luOk.addEventListener('click', hideLevelUp);
 
-  /* ---------- compute from PERSISTED values, then sync level ---------- */
-  function currentMetrics(){
-    const p = readPersistent();
-    return {
-      chadsTotal: Number(p.chads || 0n),
-      genPerHour: Number(p.gen   || 0n)
-    };
-  }
-
+  /* -------------------- sync logic -------------------- */
   function syncFromStorage(){
-    const m = currentMetrics();
+    const m = metricsFromStorage();
     const oldLv = getLevel();
     const newHi = highestUnlocked(m);
     if (newHi > oldLv){
       for (let lv = oldLv + 1; lv <= newHi; lv++) queueLevelUp(lv);
       writePersistentLevel(newHi);
       renderBadge(); renderGrid();
-    } else if (newHi < oldLv){
-      // Do NOT downgrade automatically — keep the highest reached level.
+    } else {
+      // keep highest reached level; never downgrade
       renderBadge(); renderGrid();
     }
   }
 
-  /* ---------- wire up change detection ---------- */
-  // 1) Hook into your own save function if present → instant same-tab updates
+  // Patch your saveStateLocal to auto-sync after writes (same tab).
   try{
     if (typeof window.saveStateLocal === 'function'){
       const _orig = window.saveStateLocal;
@@ -5827,40 +5850,52 @@ function openBreaker(){
     }
   }catch{}
 
-  // 2) Cross-tab updates (storage event fires on other tabs, not the tab that changed)  :contentReference[oaicite:1]{index=1}
+  // Cross-tab updates: storage event (won't fire on the tab that made the change; this is expected). :contentReference[oaicite:1]{index=1}
   window.addEventListener('storage', (e) => {
     if (!e.key || !e.key.startsWith('chad_state_')) return;
     syncFromStorage();
   });
 
-  // 3) Small poll as a final fallback (covers paths that bypass saveStateLocal)
+  // Tiny poll to catch any path that bypasses saveStateLocal
   let lastSig = '';
-  function sig(){
+  function signature(){
     const p = readPersistent();
     return `${p.chads}-${p.gen}-${p.level}-${p.last}`;
   }
   setInterval(()=>{
-    const s = sig();
+    const s = signature();
     if (s !== lastSig){ lastSig = s; syncFromStorage(); }
   }, 1200);
 
-  /* ---------- boot ---------- */
-  function boot(){
-    // initial render from persistent storage
-    renderBadge();
-    renderGrid();
-    syncFromStorage();
-  }
+  // boot
+  function boot(){ renderBadge(); renderGrid(); syncFromStorage(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
   // public API
-  window.LevelSystem = {
-    open, close,
-    getTapValue,
-    forceSync: syncFromStorage
-  };
+  window.LevelSystem = { open, close, getTapValue, forceSync: syncFromStorage };
 })();
+</script>
+4) Orb tap — make sure fallback uses the level tap value
+Update your orb handler’s offline fallback add to use the level’s tap value:
+
+js
+Copy code
+async function handleOrbTap(e){
+  // ... your existing particle/pulse code ...
+  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1);
+  try {
+    const data = await apiClickLogo();           // server sets total_points
+    state.chads = BigInt(data.total_points);
+  } catch {
+    state.chads += tapVal;                       // <-- was 1n, now uses level
+  }
+  saveStateLocal(state);
+  refreshUI();
+  if (window.LevelSystem) LevelSystem.forceSync(); // ensure badge/overlay update immediately
+}
+
+
 /* ===== Lane Hopper — Easier edition =====
    Changes vs previous:
    - Easier: slower cars, fewer spawns, extra safe rows (every 4th row), slower ramp
