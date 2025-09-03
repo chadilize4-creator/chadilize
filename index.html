@@ -1115,99 +1115,66 @@ canvas{ display:block }
 
 /* Hidden helpers */
 .hidden{ display:none !important }
-/* ===== LEVELS (scoped) ================================================== */
-.lv-badge{
-  position:relative; width:100%; aspect-ratio:1/1; border-radius:14px; overflow:hidden;
-  background:radial-gradient(140% 120% at 50% -10%, #131720 0%, #0a0d12 70%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.15), 0 14px 40px rgba(0,0,0,.55);
-  isolation:isolate;
-}
-.lv-badge img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:inherit; }
-
-/* subtle white-blue halo */
-.lv-badge::before{
-  content:""; position:absolute; inset:-2px; border-radius:inherit; pointer-events:none;
-  box-shadow: 0 0 0 2px rgba(220,235,255,.45), 0 0 24px rgba(145,190,255,.6), 0 0 64px rgba(145,190,255,.25);
-}
-
-/* animated conic ring */
-.lv-ring{
-  position:absolute; inset:-8px; border-radius:inherit; pointer-events:none; mix-blend-mode:screen;
-  background: conic-gradient(from 220deg, rgba(160,200,255,.0) 0deg, rgba(160,200,255,.35) 90deg,
-                                         rgba(255,255,255,.0) 180deg, rgba(160,200,255,.25) 270deg,
-                                         rgba(255,255,255,.0) 360deg);
-  animation: lvSpin 8s linear infinite; filter: blur(2px) saturate(140%);
-}
-@keyframes lvSpin{ to{ transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce){ .lv-ring{ animation:none; } }
-
-/* ---------- Overlay shell ---------- */
-.lv-overlay{
-  position:fixed; inset:0; z-index:130; display:none; align-items:center; justify-content:center;
-  background: radial-gradient(160% 120% at 50% -20%, rgba(8,10,16,.92), rgba(4,6,10,.96));
-  backdrop-filter: blur(6px); padding: min(4vh,18px);
-}
-.lv-overlay[aria-hidden="false"]{ display:flex; }
-
-.lv-panel{
-  width:min(960px, 96vw); max-height:88vh; overflow:auto;
-  border-radius:18px; padding:16px; color:#e9eef6;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03)),
-              radial-gradient(160% 120% at 0% -20%, rgba(160,200,255,.10), transparent 45%),
-              linear-gradient(180deg,#0e141a,#0a0e12);
+/* Home badge (middle tile) */
+.level-badge{
+  width:100%;
+  aspect-ratio:1/1;
+  display:block;
+  border-radius:12px;
+  object-fit:cover;
   border:1px solid rgba(255,255,255,.08);
-  box-shadow: 0 30px 90px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.level-badge.glow{
+  box-shadow:
+    0 0 0 2px rgba(220,235,255,.45),
+    0 0 18px rgba(140,190,255,.55),
+    0 0 42px rgba(140,190,255,.35);
 }
 
-.lv-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.lv-head h2{ margin:6px 0; font-weight:900; }
-.lv-chip{
-  border:0; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:900; color:#dfe7f6;
-  background:linear-gradient(180deg,#20262f,#161a22);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 8px 18px rgba(0,0,0,.45);
+/* Levels modal grid/cards */
+.levels-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (min-width:520px){ .levels-grid{ grid-template-columns:1fr 1fr 1fr; } }
+
+.level-card{
+  background:#0f0f0f; border:2px solid #2b2b2b; border-radius:12px;
+  padding:10px; display:grid; gap:8px;
 }
-.lv-sub{ margin:.2rem 0 1rem; color:#9aa6b4; }
-
-/* Cards grid */
-.lv-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
-@media (min-width:520px){ .lv-grid{ grid-template-columns:repeat(3, 1fr); } }
-@media (min-width:880px){ .lv-grid{ grid-template-columns:repeat(4, 1fr); } }
-
-.lv-card{
-  display:grid; gap:10px; border-radius:14px; padding:10px;
-  background: linear-gradient(180deg,#0f1217,#0b0f12);
+.level-thumb{
+  position:relative; aspect-ratio:1/1; overflow:hidden; border-radius:10px;
   border:1px solid rgba(255,255,255,.08);
-  box-shadow: 0 22px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05);
 }
-.lv-thumb{ position:relative; aspect-ratio:1/1; border-radius:12px; overflow:hidden; }
-.lv-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-.lv-card.locked .lv-thumb img{ filter: grayscale(100%) brightness(.75); } /* lock remains colored */
-.lv-lock{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-.lv-lock img{ width:46%; height:auto; }
+.level-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-.lv-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.lv-name{ font-weight:900; }
-.lv-status{ font-weight:900; color:#98e29a; }
-.lv-card.locked .lv-status{ color:#ff8c8c; }
-.lv-req{ font-size:12px; color:#9aa3ab; }
-.lv-reward{ font-size:12px; color:#e6f1ff; font-weight:800; }
-
-/* Level-up panel */
-.lv-panel--up{ text-align:center; display:grid; gap:14px; justify-items:center; }
-.lv-chest{ width:min(360px, 82vw); aspect-ratio:1/1; border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,.08); }
-.lv-chest img{ width:100%; height:100%; object-fit:cover; display:block; }
-.lv-title{ margin:0; font-weight:900; }
-
-.lv-btn{
-  padding:12px 18px; border-radius:14px; font-weight:900; border:0; cursor:pointer;
-  color:#0b1220; background:#eee;
+/* Locked = greyscale image + centered colored lock */
+.level-card.locked .level-thumb img{ filter: grayscale(100%) brightness(.74); }
+.level-lock{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
 }
-.lv-btn--blue{
-  color:#eaf2ff;
-  background:linear-gradient(180deg,#2e6ff3,#244fca);
-  box-shadow: 0 0 0 2px rgba(125,165,255,.35), 0 12px 32px rgba(40,80,220,.55), inset 0 1px 0 rgba(255,255,255,.25);
+.level-lock img{ width:46%; height:auto; opacity:.95; }
+
+.level-head{ display:flex; justify-content:space-between; align-items:center; }
+.level-name{ font-weight:900; }
+.level-status{ font-weight:900; color:#9ee081; }
+.level-card.locked .level-status{ color:#ff8b8b; }
+
+.level-reqs{ font-size:12px; color:#9aa3ab; line-height:1.35; }
+.level-achs{ font-size:12px; color:#e7f2ff; font-weight:800; }
+
+/* Level-up modal visuals */
+.levelup-panel{ display:grid; gap:14px; justify-items:center; text-align:center; }
+.levelup-imgwrap{ width:min(360px, 80vw); aspect-ratio:1/1; border-radius:14px; overflow:hidden; }
+.levelup-imgwrap img{ width:100%; height:100%; object-fit:cover; display:block; }
+.levelup-title{ font-weight:900; margin:6px 0 0; }
+
+/* Blue glowing OK button */
+.btn-blueglow{
+  padding:12px 16px; border-radius:14px; border:0; cursor:pointer;
+  font-weight:900; letter-spacing:.2px; color:#eaf1ff;
+  background:linear-gradient(180deg,#2c6cf0,#244ec9);
+  box-shadow: 0 0 0 2px rgba(120,160,255,.35), 0 10px 26px rgba(40,80,220,.55), inset 0 1px 0 rgba(255,255,255,.25);
 }
-.lv-btn--blue:active{ transform:translateY(1px); }
+.btn-blueglow:active{ transform: translateY(1px); }
 
 </style>
 </head>
@@ -1370,13 +1337,9 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <!-- Middle tile (Level badge) — uses a NEW id to avoid old handlers -->
-<div class="tile level" id="lvTile" role="button" tabindex="0"
-     aria-haspopup="dialog" aria-controls="lvLevelsModal" title="View levels">
-  <figure class="lv-badge" aria-label="Current level">
-    <img id="lvBadgeImg" src="img/level1.png" alt="Level 1 badge" loading="lazy">
-    <span class="lv-ring" aria-hidden="true"></span>
-  </figure>
+        <!-- Middle tile (replace your current #levelBtn contents) -->
+<div class="tile level" id="levelBtn" aria-haspopup="dialog" aria-controls="levelsModal" title="View levels">
+  <img id="levelBadge" class="level-badge glow" src="img/level1.png" alt="Level 1 badge" loading="lazy">
 </div>
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
@@ -1543,27 +1506,28 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Levels Modal -->
-<div class="lv-overlay" id="lvLevelsModal" role="dialog" aria-modal="true"
-     aria-labelledby="lvLevelsTitle" aria-hidden="true">
-  <div class="lv-panel">
-    <div class="lv-head">
-      <h2 id="lvLevelsTitle">Levels</h2>
-      <button id="lvClose" class="lv-chip" type="button">Close</button>
+<!-- LEVELS MODAL -->
+<div class="overlay" id="levelsModal" role="dialog" aria-modal="true" aria-labelledby="levelsTitle" aria-hidden="true">
+  <div class="panel">
+    <div class="row">
+      <h2 id="levelsTitle">Levels</h2>
+      <button class="tile level" style="padding:8px 12px" id="levelsClose">Close</button>
     </div>
-    <p class="lv-sub">Unlock levels to change your badge. Each card shows the
-      <b>requirements</b> and the <b>reward</b>.</p>
-    <div id="lvGrid" class="lv-grid"></div>
+    <div class="row" style="gap:12px">
+      <div class="note">Unlock levels to change the badge on the home screen. Requirements & rewards are shown under each image.</div>
+    </div>
+    <div id="levelsGrid" class="levels-grid"></div>
   </div>
 </div>
 
-<!-- Level-Up (Congrats) Modal -->
-<div class="lv-overlay" id="lvUpModal" role="dialog" aria-modal="true"
-     aria-labelledby="lvUpTitle" aria-hidden="true">
-  <div class="lv-panel lv-panel--up">
-    <div class="lv-chest"><img id="lvUpImg" alt=""></div>
-    <h3 id="lvUpTitle" class="lv-title">Congrats, You Have Reached Level X 🎉</h3>
-    <button id="lvUpOk" class="lv-btn lv-btn--blue" type="button">OK</button>
+<!-- LEVEL-UP (Congrats) MODAL -->
+<div class="overlay" id="levelUpModal" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle" aria-hidden="true">
+  <div class="panel levelup-panel">
+    <div class="levelup-imgwrap">
+      <img id="levelUpImg" alt="Level chest">
+    </div>
+    <h3 id="levelUpTitle" class="levelup-title">Congrats, You Have Reached Level X 🎉</h3>
+    <button id="levelUpOk" class="btn btn-blueglow" aria-label="Close">OK</button>
   </div>
 </div>
 
@@ -3814,202 +3778,6 @@ window.openSnake = ()=>{ closeOverlay('playOverlay'); openOverlay('snakeModal');
 
 })();
 
-(() => {
-  /* ===== images & constants ===== */
-  const imgLevel = n => `img/level${n}.png`;
-  const imgChest = n => `img/chest${n}.png`;   // chest2..chest19 exist in your repo
-  const STORE = 'lv.levels.v3';
-  const TOTAL = 19;
-
-  // Levels table (requirements + tap reward)
-  const LV = [
-    {id:1,  chads:0,               gen:0,            tap:1},
-    {id:2,  chads:5_000,           gen:100,          tap:3},
-    {id:3,  chads:20_000,          gen:1_000,        tap:9},
-    {id:4,  chads:30_000,          gen:4_000,        tap:20},
-    {id:5,  chads:60_000,          gen:8_000,        tap:60},
-    {id:6,  chads:120_000,         gen:14_000,       tap:120},
-    {id:7,  chads:300_000,         gen:25_000,       tap:200},
-    {id:8,  chads:600_000,         gen:45_000,       tap:300},
-    {id:9,  chads:1_000_000,       gen:60_000,       tap:400},
-    {id:10, chads:1_300_000,       gen:80_000,       tap:600},
-    {id:11, chads:3_000_000,       gen:190_000,      tap:700},
-    {id:12, chads:10_000_000,      gen:600_000,      tap:1_000},
-    {id:13, chads:90_000_000,      gen:4_000_000,    tap:4_000},
-    {id:14, chads:40_000_000,      gen:8_000_000,    tap:5_000},
-    {id:15, chads:100_000_000,     gen:16_000_000,   tap:8_000},
-    {id:16, chads:1_000_000_000,   gen:23_000_000,   tap:10_000},
-    {id:17, chads:12_000_000_000,  gen:40_000_000,   tap:40_000},
-    {id:18, chads:80_000_000_000,  gen:100_000_000,  tap:60_000},
-    {id:19, chads:100_000_000_000, gen:300_000_000,  tap:120_000},
-  ];
-
-  /* ===== dom ===== */
-  const $ = id => document.getElementById(id);
-  const badgeImg = $('lvBadgeImg');
-  const tile     = $('lvTile');
-  const grid     = $('lvGrid');
-  const modal    = $('lvLevelsModal');
-  const closeBtn = $('lvClose');
-  const upModal  = $('lvUpModal');
-  const upImg    = $('lvUpImg');
-  const upTitle  = $('lvUpTitle');
-  const upOk     = $('lvUpOk');
-
-  /* ===== helpers ===== */
-  const fmt = n => Number(n).toLocaleString();
-  const readInt = el => {
-    if (!el) return 0;
-    const t = el.textContent.replace(/[,\s]/g,'');
-    const n = parseInt(t,10);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const stats = () => ({ chads: readInt($('chadCount')), gen: readInt($('genRate')) });
-
-  /* ===== state ===== */
-  const st = { unlocked: Array(TOTAL).fill(false), current: 1, lastChest: 0 };
-  function save(){ localStorage.setItem(STORE, JSON.stringify(st)); }
-  function load(){
-    try {
-      const raw = localStorage.getItem(STORE);
-      if (!raw) return;
-      const o = JSON.parse(raw);
-      if (Array.isArray(o.unlocked)) st.unlocked = o.unlocked.slice(0,TOTAL).map(Boolean);
-      if (typeof o.current === 'number') st.current = Math.max(1, Math.min(TOTAL, o.current));
-      if (typeof o.lastChest === 'number') st.lastChest = o.lastChest;
-    } catch {}
-  }
-
-  /* ===== ui ===== */
-  function setBadge(n){
-    badgeImg.src = imgLevel(n);
-    badgeImg.alt = `Level ${n} badge`;
-  }
-
-  function buildGrid(){
-    grid.innerHTML = '';
-    for(let i=1;i<=TOTAL;i++){
-      const cfg = LV[i-1];
-      const unlocked = !!st.unlocked[i-1];
-      const card = document.createElement('div');
-      card.className = `lv-card${unlocked ? '' : ' locked'}`;
-      card.innerHTML = `
-        <div class="lv-thumb">
-          <img src="${imgLevel(i)}" alt="Level ${i}">
-          ${unlocked ? '' : `<div class="lv-lock"><img src="img/lock.png" alt="Locked"></div>`}
-        </div>
-        <div class="lv-row">
-          <div class="lv-name">Level ${i}</div>
-          <div class="lv-status">${unlocked ? 'Unlocked' : 'Locked'}</div>
-        </div>
-        <div class="lv-req">
-          ${i===1 ? 'Starting level' : `Reach ${fmt(cfg.chads)} CHADs AND ${fmt(cfg.gen)} generation/hr`}
-        </div>
-        <div class="lv-reward">${i===1 ? '—' : `Reward: +${fmt(cfg.tap)} chad tap`}</div>
-      `;
-      grid.appendChild(card);
-    }
-  }
-
-  const highestUnlocked = () => {
-    for(let i=TOTAL-1;i>=0;i--) if(st.unlocked[i]) return i+1;
-    return 1;
-  };
-
-  function checkUnlocks(){
-    const s = stats();
-    const newly = [];
-    for(let i=0;i<TOTAL;i++){
-      if (!st.unlocked[i]) {
-        const cfg = LV[i];
-        if (s.chads >= cfg.chads && s.gen >= cfg.gen) {
-          st.unlocked[i] = true;
-          newly.push(i+1);
-        }
-      }
-    }
-    if (newly.length){
-      st.current = highestUnlocked();
-      setBadge(st.current);
-      buildGrid();
-      save();
-      showChest(Math.max(...newly));
-    }
-  }
-
-  function showChest(level){
-    if (st.lastChest >= level) return;
-    st.lastChest = level; save();
-    const n = Math.max(2, Math.min(level, 19));
-    upImg.src = imgChest(n);
-    upImg.alt = `Level ${level} chest`;
-    upTitle.textContent = `Congrats, You Have Reached Level ${level} 🎉`;
-    openUp();
-  }
-
-  /* ===== modal a11y (focus trap + escape) ===== */
-  let keyTrap = null, lastFocus = null;
-  function openLevels(){
-    lastFocus = document.activeElement;
-    buildGrid();
-    modal.setAttribute('aria-hidden','false');
-    closeBtn.focus();
-    keyTrap = (e) => {
-      if (e.key === 'Escape') return closeLevels();
-      if (e.key !== 'Tab') return;
-      const f = modal.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])');
-      const list = Array.from(f).filter(el => el.offsetParent !== null);
-      if (!list.length) return;
-      const first = list[0], last = list[list.length-1];
-      if (e.shiftKey && document.activeElement === first){ last.focus(); e.preventDefault(); }
-      else if (!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
-    };
-    modal.addEventListener('keydown', keyTrap);
-  }
-  function closeLevels(){
-    modal.setAttribute('aria-hidden','true');
-    if (keyTrap){ modal.removeEventListener('keydown', keyTrap); keyTrap=null; }
-    lastFocus?.focus?.();
-  }
-  function openUp(){ upModal.setAttribute('aria-hidden','false'); upOk.focus(); }
-  function closeUp(){ upModal.setAttribute('aria-hidden','true'); }
-
-  /* ===== observers: recompute as numbers change ===== */
-  function observe(){
-    const targets = ['chadCount','genRate'].map($).filter(Boolean);
-    const obs = new MutationObserver(checkUnlocks);
-    targets.forEach(el => obs.observe(el, {childList:true, subtree:true, characterData:true}));
-  }
-
-  /* ===== init ===== */
-  function init(){
-    load();
-    if (!st.unlocked.some(Boolean)) st.unlocked[0] = true;
-    st.current = highestUnlocked();
-    setBadge(st.current);
-
-    // open/close handlers (stop old "level" click listeners)
-    tile?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openLevels(); });
-    tile?.addEventListener('keydown', (e)=>{ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); openLevels(); } });
-    closeBtn?.addEventListener('click', closeLevels);
-    modal?.addEventListener('click', (e)=>{ if (e.target === modal) closeLevels(); });
-
-    upOk?.addEventListener('click', closeUp);
-
-    // live updates and first pass
-    observe();
-    checkUnlocks();
-
-    // expose minimal API for your tap logic (optional)
-    window.LV = {
-      currentLevel: () => highestUnlocked(),
-      currentTapPower: () => LV[highestUnlocked()-1].tap
-    };
-  }
-
-  if (document.readyState !== 'loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-})();
 
 /* ===== VERTICAL JUMPER (Doodle-style, fixed reach + session chads) ===== */
 let VJ = null;      // handle for this mini-game instance (for Quit, etc.)
@@ -6641,7 +6409,246 @@ updateHUD();
   window.openNightGrid = ()=>{ closeOverlay('playOverlay'); openOverlay('nightGridModal'); start(); };
 })();
 
+(() => {
+  /*** ---------- CONFIG ---------- ***/
+  const TOTAL = 19;
+  const imgLevel = (n) => `img/level${n}.png`;
+  const imgChest = (n) => `img/chest${n}.png`; // chest2..chest19
+  const STORAGE = 'levels.v1';
 
+  // Requirements + tap reward (tap is the total per tap for that level).
+  // Level 1 = base (1). Levels unlock when BOTH chads and gen/hr meet/exceed.
+  const LEVELS = [
+    { id:1,  chads:0,             gen:0,           tap:1 },
+    { id:2,  chads:5_000,         gen:100,         tap:3 },
+    { id:3,  chads:20_000,        gen:1_000,       tap:9 },
+    { id:4,  chads:30_000,        gen:4_000,       tap:20 },
+    { id:5,  chads:60_000,        gen:8_000,       tap:60 },
+    { id:6,  chads:120_000,       gen:14_000,      tap:120 },
+    { id:7,  chads:300_000,       gen:25_000,      tap:200 },
+    { id:8,  chads:600_000,       gen:45_000,      tap:300 },
+    { id:9,  chads:1_000_000,     gen:60_000,      tap:400 },
+    { id:10, chads:1_300_000,     gen:80_000,      tap:600 },
+    { id:11, chads:3_000_000,     gen:190_000,     tap:700 },
+    { id:12, chads:10_000_000,    gen:600_000,     tap:1_000 },
+    { id:13, chads:90_000_000,    gen:4_000_000,   tap:4_000 },
+    { id:14, chads:40_000_000,    gen:8_000_000,   tap:5_000 },
+    { id:15, chads:100_000_000,   gen:16_000_000,  tap:8_000 },
+    { id:16, chads:1_000_000_000, gen:23_000_000,  tap:10_000 },
+    { id:17, chads:12_000_000_000,gen:40_000_000,  tap:40_000 },
+    { id:18, chads:80_000_000_000,gen:100_000_000, tap:60_000 },
+    { id:19, chads:100_000_000_000, gen:300_000_000, tap:120_000 },
+  ];
+
+  /*** ---------- DOM ---------- ***/
+  const $ = (id) => document.getElementById(id);
+  const badge  = $('levelBadge');
+  const btn    = $('levelBtn');
+  const grid   = $('levelsGrid');
+  const modal  = $('levelsModal');
+  const close  = $('levelsClose');
+  const luModal= $('levelUpModal');
+  const luImg  = $('levelUpImg');
+  const luTitle= $('levelUpTitle');
+  const luOk   = $('levelUpOk');
+  const orbEl  = $('orb'); // existing orb button
+
+  /*** ---------- HELPERS ---------- ***/
+  const readInt = (el) => {
+    if (!el) return 0;
+    const t = el.textContent.replace(/[,\s]/g,'').trim();
+    const n = parseInt(t,10);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const fmt = (n) => n.toLocaleString();
+
+  const getStats = () => ({
+    chads:   readInt($('chadCount')),
+    genRate: readInt($('genRate')),
+  });
+
+  /*** ---------- STATE ---------- ***/
+  const state = {
+    unlocked: Array(TOTAL).fill(false),
+    current: 1,            // highest unlocked
+    lastShownChest: 0      // avoid re-showing old chest popups
+  };
+
+  function save(){ localStorage.setItem(STORAGE, JSON.stringify(state)); }
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (Array.isArray(s.unlocked)) state.unlocked = s.unlocked.slice(0,TOTAL).map(Boolean);
+      if (typeof s.current === 'number') state.current = Math.max(1, Math.min(TOTAL, s.current));
+      if (typeof s.lastShownChest === 'number') state.lastShownChest = s.lastShownChest;
+    }catch{}
+  }
+
+  /*** ---------- UI BUILD ---------- ***/
+  function updateBadge(){
+    const cur = state.current;
+    badge.src = imgLevel(cur);
+    badge.alt = `Level ${cur} badge`;
+  }
+
+  function buildGrid(){
+    grid.innerHTML = '';
+    for (let i=1;i<=TOTAL;i++){
+      const unlocked = !!state.unlocked[i-1];
+      const cfg = LEVELS[i-1];
+      const card = document.createElement('div');
+      card.className = `level-card${unlocked ? '' : ' locked'}`;
+      const reqText = i===1
+        ? 'Starting level'
+        : `Reach ${fmt(cfg.chads)} CHADs AND ${fmt(cfg.gen)} generation/hr`;
+      const rewardText = i===1 ? '—' : `+${fmt(cfg.tap)} chad tap`;
+
+      card.innerHTML = `
+        <div class="level-thumb">
+          <img src="${imgLevel(i)}" alt="Level ${i}">
+          ${unlocked ? '' : `<div class="level-lock"><img src="img/lock.png" alt=""></div>`}
+        </div>
+        <div class="level-head">
+          <div class="level-name">Level ${i}</div>
+          <div class="level-status">${unlocked ? 'Unlocked' : 'Locked'}</div>
+        </div>
+        <div class="level-reqs">${reqText}</div>
+        <div class="level-achs">Reward: ${rewardText}</div>
+      `;
+
+      // Home tile must always show latest unlocked -> no manual override
+      grid.appendChild(card);
+    }
+  }
+
+  /*** ---------- UNLOCK LOGIC ---------- ***/
+  function highestUnlockedIndex(){
+    for (let i=TOTAL-1;i>=0;i--) if (state.unlocked[i]) return i;
+    return 0;
+  }
+
+  function checkUnlocks(){
+    const s = getStats();
+    const newly = [];
+    for (let i=0;i<TOTAL;i++){
+      if (!state.unlocked[i]){
+        const cfg = LEVELS[i];
+        if (s.chads >= cfg.chads && s.genRate >= cfg.gen){
+          state.unlocked[i] = true;
+          newly.push(i+1);
+        }
+      }
+    }
+    if (newly.length){
+      state.current = highestUnlockedIndex() + 1;
+      updateBadge(); buildGrid(); save();
+
+      // also mirror into your existing app state if present
+      if (window.state && typeof window.state.level === 'number'){
+        window.state.level = state.current;
+        if (window.saveStateLocal) try{ window.saveStateLocal(window.state); }catch{}
+      }
+
+      // show chest for the highest level just unlocked
+      const lv = Math.max(...newly);
+      showLevelUp(lv);
+    }
+  }
+
+  /*** ---------- OBSERVE COUNTERS ---------- ***/
+  function observeCounters(){
+    const targets = ['chadCount','genRate'].map($).filter(Boolean);
+    const obs = new MutationObserver(() => checkUnlocks());
+    targets.forEach(el => obs.observe(el, {childList:true, characterData:true, subtree:true}));
+  }
+
+  /*** ---------- MODALS ---------- ***/
+  let lastFocusBtn = null;
+  function openLevels(){
+    lastFocusBtn = document.activeElement;
+    buildGrid();
+    modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+    close.focus();
+    const trap = (e) => {
+      if (e.key === 'Escape') closeLevels();
+      if (e.key !== 'Tab') return;
+      const focusables = modal.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])');
+      const list = Array.from(focusables).filter(el => el.offsetParent !== null);
+      if (!list.length) return;
+      const first = list[0], last = list[list.length-1];
+      if (e.shiftKey && document.activeElement === first){ last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+    };
+    modal._trap = trap;
+    modal.addEventListener('keydown', trap);
+  }
+  function closeLevels(){
+    modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
+    if (modal._trap){ modal.removeEventListener('keydown', modal._trap); modal._trap=null; }
+    lastFocusBtn?.focus?.();
+  }
+
+  function showLevelUp(levelNum){
+    if (state.lastShownChest >= levelNum) return; // show once
+    state.lastShownChest = levelNum; save();
+
+    const chestN = Math.max(2, Math.min(levelNum, 19)); // chest2..chest19
+    luImg.src = imgChest(chestN);
+    luImg.alt = `Level ${levelNum} chest`;
+    luTitle.textContent = `Congrats, You Have Reached Level ${levelNum} 🎉`;
+
+    luModal.classList.add('show');
+    luModal.setAttribute('aria-hidden','false');
+    luOk.focus();
+  }
+  function closeLevelUp(){
+    luModal.classList.remove('show');
+    luModal.setAttribute('aria-hidden','true');
+  }
+
+  /*** ---------- TAP POWER (adds bonus on top of your app’s +1) ---------- ***/
+  function currentTapValue(){
+    const idx = highestUnlockedIndex();
+    return LEVELS[idx].tap || 1;
+  }
+  function addTapBonusOnce(){
+    if (!orbEl || orbEl.dataset.tapBonusWired === '1') return;
+    orbEl.dataset.tapBonusWired = '1';
+    orbEl.addEventListener('click', () => {
+      const want = currentTapValue();
+      const bonus = Math.max(0, want - 1); // your app already adds +1
+      const cnt = $('chadCount');
+      if (!cnt || bonus === 0) return;
+      const v = readInt(cnt) + bonus;
+      cnt.textContent = v.toLocaleString();
+    });
+  }
+
+  /*** ---------- INIT ---------- ***/
+  function init(){
+    load();
+    // ensure level 1 unlocked
+    if (!state.unlocked.some(Boolean)) state.unlocked[0] = true;
+    state.current = highestUnlockedIndex() + 1;
+    updateBadge();
+
+    btn?.addEventListener('click', openLevels);
+    close?.addEventListener('click', closeLevels);
+    luOk?.addEventListener('click', closeLevelUp);
+
+    observeCounters();
+    addTapBonusOnce();
+    checkUnlocks(); // first pass
+  }
+
+  if (document.readyState !== 'loading') init();
+  else document.addEventListener('DOMContentLoaded', init);
+
+  // expose for debugging if needed
+  window.Levels = { state, checkUnlocks };
+})();
 
 /* ===== SIMON (Sequence, luxe visuals) ===== */
 (function(){
