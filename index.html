@@ -1115,66 +1115,81 @@ canvas{ display:block }
 
 /* Hidden helpers */
 .hidden{ display:none !important }
-/* Home badge (middle tile) */
-.level-badge{
-  width:100%;
-  aspect-ratio:1/1;
-  display:block;
-  border-radius:12px;
-  object-fit:cover;
+/* ------ Center tile: square image + white/blue glow ------ */
+.level-badge { display:grid; place-items:center; padding:10px; }
+.level-badge-box{
+  width:100%; aspect-ratio:1/1; /* keeps it perfectly square */ /* MDN */
+  border-radius:12px; overflow:hidden; position:relative;
   border:1px solid rgba(255,255,255,.08);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  background:linear-gradient(180deg,#16181b,#0f1012);
 }
-.level-badge.glow{
-  box-shadow:
-    0 0 0 2px rgba(220,235,255,.45),
-    0 0 18px rgba(140,190,255,.55),
-    0 0 42px rgba(140,190,255,.35);
+.level-badge-box img{ width:100%; height:100%; object-fit:cover; display:block; }
+.level-badge-label{
+  position:absolute; left:8px; bottom:8px; font:900 12px/1 system-ui,Segoe UI,Roboto,sans-serif;
+  color:#cfe4ff; text-shadow:0 1px 0 rgba(0,0,0,.55);
+}
+.level-badge-box.current{
+  /* drop-shadow hugs the image silhouette; box-shadow gives soft bloom */ /* MDN */
+  filter: drop-shadow(0 0 14px rgba(168,210,255,.55)) drop-shadow(0 0 28px rgba(168,210,255,.35));
+  box-shadow: 0 0 16px rgba(160,200,255,.45), 0 0 36px rgba(160,200,255,.30);
 }
 
-/* Levels modal grid/cards */
-.levels-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (min-width:520px){ .levels-grid{ grid-template-columns:1fr 1fr 1fr; } }
+/* ------ Levels overlay grid ------ */
+.levels-grid{ display:grid; gap:12px; grid-template-columns:repeat(2,1fr); }
+@media (min-width:520px){ .levels-grid{ grid-template-columns:repeat(3,1fr); } }
 
-.level-card{
+.lvl-card{
   background:#0f0f0f; border:2px solid #2b2b2b; border-radius:12px;
-  padding:10px; display:grid; gap:8px;
+  display:grid; grid-template-rows:auto auto auto; gap:8px; padding:10px; position:relative;
 }
-.level-thumb{
-  position:relative; aspect-ratio:1/1; overflow:hidden; border-radius:10px;
+.lvl-imgbox{
+  position:relative; border-radius:8px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.08); aspect-ratio:1/1;
+  background:linear-gradient(180deg,#16181b,#0f1012);
+}
+.lvl-imgbox img{ width:100%; height:100%; object-fit:cover; display:block; }
+.lvl-tag{
+  position:absolute; left:8px; top:8px; z-index:2; padding:4px 8px; border-radius:999px;
+  background:linear-gradient(180deg,#181b20,#0f1114); border:1px solid rgba(255,255,255,.12);
+  color:#eaf1f8; font:900 11px/1 system-ui,Segoe UI,Roboto,sans-serif;
+}
+.lvl-req{ font-size:12px; color:#9aa3ab; line-height:1.35; }
+.lvl-reward{ font-size:12px; color:#cfe4ff; font-weight:800; }
+
+/* Locked: grey the level image only; lock icon stays colored */
+.lvl-card.locked .lvl-imgbox img{ filter:grayscale(100%) brightness(.72); } /* MDN */
+.lvl-card.locked .lock{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(48%,120px); height:auto; opacity:.9; pointer-events:none;
+}
+
+.lvl-card.current{ outline:2px solid #4aa3ff; }
+.lvl-card.unlocked:not(.current){ outline:2px solid #22ff88; }
+
+/* ------ Level-Up modal ------ */
+.levelup-modal{
+  position:fixed; inset:0; display:none; place-items:center; z-index:10000;
+  background:radial-gradient(80% 80% at 50% 20%, #0009, #000e);
+  backdrop-filter: blur(4px);
+}
+.levelup-modal.show{ display:grid; }
+.lu-card{
+  width:min(92vw, 520px);
+  padding:18px; border-radius:16px;
+  background:linear-gradient(180deg,#0e1116,#090b0e);
   border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 30px 80px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05);
+  display:grid; gap:12px; justify-items:center; text-align:center;
 }
-.level-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-/* Locked = greyscale image + centered colored lock */
-.level-card.locked .level-thumb img{ filter: grayscale(100%) brightness(.74); }
-.level-lock{
-  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
+.lu-img{ width:min(340px, 80%); height:auto; display:block; filter: drop-shadow(0 14px 36px rgba(0,0,0,.55)); }
+.lu-title{ font-weight:900; letter-spacing:.2px; }
+.lu-ok{
+  padding:12px 22px; border-radius:14px; border:0; cursor:pointer; font-weight:900;
+  color:#061018;
+  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa);
+  box-shadow:0 0 0 2px rgba(90,170,255,.55), 0 0 16px rgba(90,170,255,.65), 0 0 36px rgba(90,170,255,.4);
 }
-.level-lock img{ width:46%; height:auto; opacity:.95; }
-
-.level-head{ display:flex; justify-content:space-between; align-items:center; }
-.level-name{ font-weight:900; }
-.level-status{ font-weight:900; color:#9ee081; }
-.level-card.locked .level-status{ color:#ff8b8b; }
-
-.level-reqs{ font-size:12px; color:#9aa3ab; line-height:1.35; }
-.level-achs{ font-size:12px; color:#e7f2ff; font-weight:800; }
-
-/* Level-up modal visuals */
-.levelup-panel{ display:grid; gap:14px; justify-items:center; text-align:center; }
-.levelup-imgwrap{ width:min(360px, 80vw); aspect-ratio:1/1; border-radius:14px; overflow:hidden; }
-.levelup-imgwrap img{ width:100%; height:100%; object-fit:cover; display:block; }
-.levelup-title{ font-weight:900; margin:6px 0 0; }
-
-/* Blue glowing OK button */
-.btn-blueglow{
-  padding:12px 16px; border-radius:14px; border:0; cursor:pointer;
-  font-weight:900; letter-spacing:.2px; color:#eaf1ff;
-  background:linear-gradient(180deg,#2c6cf0,#244ec9);
-  box-shadow: 0 0 0 2px rgba(120,160,255,.35), 0 10px 26px rgba(40,80,220,.55), inset 0 1px 0 rgba(255,255,255,.25);
-}
-.btn-blueglow:active{ transform: translateY(1px); }
+.lu-ok:active{ transform: translateY(1px); }
 
 </style>
 </head>
@@ -1337,9 +1352,12 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <!-- Middle tile (replace your current #levelBtn contents) -->
-<div class="tile level" id="levelBtn" aria-haspopup="dialog" aria-controls="levelsModal" title="View levels">
-  <img id="levelBadge" class="level-badge glow" src="img/level1.png" alt="Level 1 badge" loading="lazy">
+        <!-- CENTER: Levels tile (shows latest unlocked) -->
+<div class="tile level level-badge" id="levelBtn" role="button" aria-label="Open Levels">
+  <div class="level-badge-box current">
+    <img id="currentLevelImg" src="img/level1.png" alt="Level 1" loading="eager">
+    <div class="level-badge-label">LEVELS</div>
+  </div>
 </div>
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
@@ -1506,30 +1524,26 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- LEVELS MODAL -->
-<div class="overlay" id="levelsModal" role="dialog" aria-modal="true" aria-labelledby="levelsTitle" aria-hidden="true">
+<!-- LEVELS Overlay -->
+<div class="overlay" id="levelsOverlay" aria-hidden="true">
   <div class="panel">
     <div class="row">
-      <h2 id="levelsTitle">Levels</h2>
-      <button class="tile level" style="padding:8px 12px" id="levelsClose">Close</button>
+      <h2>Levels</h2>
+      <button class="tile level" style="padding:8px 12px" onclick="LevelSystem.close()">Close</button>
     </div>
-    <div class="row" style="gap:12px">
-      <div class="note">Unlock levels to change the badge on the home screen. Requirements & rewards are shown under each image.</div>
-    </div>
-    <div id="levelsGrid" class="levels-grid"></div>
+    <p class="note">Unlock levels by meeting both requirements. The highest unlocked image appears on the home tile.</p>
+    <div class="levels-grid" id="levelsGrid"></div>
+  </div>
+</div>
+<!-- LEVEL-UP Modal -->
+<div id="levelUpModal" class="levelup-modal" aria-hidden="true">
+  <div class="lu-card">
+    <img id="luImg" class="lu-img" src="img/chest2.png" alt="" />
+    <div id="luTitle" class="lu-title">Congrats, You Have Reached Level 2 🎉</div>
+    <button id="luOk" class="lu-ok">OK</button>
   </div>
 </div>
 
-<!-- LEVEL-UP (Congrats) MODAL -->
-<div class="overlay" id="levelUpModal" role="dialog" aria-modal="true" aria-labelledby="levelUpTitle" aria-hidden="true">
-  <div class="panel levelup-panel">
-    <div class="levelup-imgwrap">
-      <img id="levelUpImg" alt="Level chest">
-    </div>
-    <h3 id="levelUpTitle" class="levelup-title">Congrats, You Have Reached Level X 🎉</h3>
-    <button id="levelUpOk" class="btn btn-blueglow" aria-label="Close">OK</button>
-  </div>
-</div>
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -1983,62 +1997,90 @@ function markUsernameTaken(name){
 
 /* ===== particles + orb ===== */
 const pLayer = document.getElementById('pLayer');
+
 function spawnParticlesOnOrb(clientX, clientY){
-  const rect = document.querySelector('.orb-inner').getBoundingClientRect(); const x = clientX - rect.left, y = clientY - rect.top;
-  const cx = rect.width/2, cy = rect.height/2, dx = x - cx, dy = y - cy, r = Math.sqrt(dx*dx+dy*dy), maxR = rect.width/2 - 4;
-  const px = (r>maxR) ? cx + dx * (maxR/r) : x; const py = (r>maxR) ? cy + dy * (maxR/r) : y;
-  const count = 8 + Math.floor(Math.random()*6);
-  for(let i=0;i<count;i++){
-    const s = document.createElement('span'); s.className = 'p'; const a = Math.random()*Math.PI*2, d = 22 + Math.random()*36;
-    s.style.left = `${px}px`; s.style.top = `${py}px`; s.style.setProperty('--dx', `${Math.cos(a)*d}px`); s.style.setProperty('--dy', `${Math.sin(a)*d}px`);
-    pLayer.appendChild(s); setTimeout(()=> s.remove(), 620);
+  const rect = document.querySelector('.orb-inner').getBoundingClientRect();
+  const x = clientX - rect.left, y = clientY - rect.top;
+  const cx = rect.width/2, cy = rect.height/2, dx = x - cx, dy = y - cy;
+  const r = Math.sqrt(dx*dx + dy*dy), maxR = rect.width/2 - 4;
+  const px = (r > maxR) ? cx + dx * (maxR / r) : x;
+  const py = (r > maxR) ? cy + dy * (maxR / r) : y;
+
+  const count = 8 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('span');
+    s.className = 'p';
+    const a = Math.random() * Math.PI * 2, d = 22 + Math.random() * 36;
+    s.style.left = `${px}px`;
+    s.style.top = `${py}px`;
+    s.style.setProperty('--dx', `${Math.cos(a) * d}px`);
+    s.style.setProperty('--dy', `${Math.sin(a) * d}px`);
+    pLayer.appendChild(s);
+    setTimeout(() => s.remove(), 620);
   }
 }
-function pulse(){ const pulse = document.getElementById('pulse'); pulse.style.transition='none'; pulse.style.background='radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,200,140,0.04))'; pulse.style.opacity='1'; pulse.style.transform='scale(0.02)';
-  setTimeout(()=>{ pulse.style.transition='transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease'; pulse.style.transform='scale(1)'; pulse.style.opacity='0.6'; setTimeout(()=>{ pulse.style.opacity='0'; pulse.style.transform='scale(1.4)'; }, 420); }, 20); }
-// --- Orb tap (cooldown + level tap power + BigInt-safe) ---
+
+function pulse(){
+  const pulse = document.getElementById('pulse');
+  pulse.style.transition = 'none';
+  pulse.style.background = 'radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,200,140,0.04))';
+  pulse.style.opacity = '1';
+  pulse.style.transform = 'scale(0.02)';
+  setTimeout(() => {
+    pulse.style.transition = 'transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease';
+    pulse.style.transform = 'scale(1)';
+    pulse.style.opacity = '0.6';
+    setTimeout(() => {
+      pulse.style.opacity = '0';
+      pulse.style.transform = 'scale(1.4)';
+    }, 420);
+  }, 20);
+}
+
 let lastTap = 0;
 const COOLDOWN_MS = 500;
-
-function getTapPower() {
-  try {
-    // from the Levels module I gave you; falls back to 1 if not loaded
-    const p = (window.LV?.currentTapPower?.() ?? 1);
-    return Math.max(1, Number(p) || 1);
-  } catch { return 1; }
-}
 
 async function handleOrbTap(e){
   const now = Date.now();
   if (now - lastTap < COOLDOWN_MS) return;
   lastTap = now;
 
-  const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
-  const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
+  const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth / 2);
+  const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight / 2);
 
   spawnParticlesOnOrb(cx, cy);
   pulse();
   playTap();
 
-  const tapPower = getTapPower();          // total per tap at current level
-  const bonus    = Math.max(0, tapPower-1); // your API already counts +1
+  // NEW: level-based tap value (falls back to 1 if Levels isn’t loaded)
+  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1);
 
   try {
-    // keep your existing API name; if your function is apiClickLoop, rename here
-    const data = await apiClickLogo?.() ?? await apiClickLoop?.();
-    // server returns the new total (already includes +1). Add our bonus safely as BigInt.
-    const serverTotal = BigInt(data.total_points);
-    state.chads = serverTotal + BigInt(bonus);
+    // If your backend can accept a tap amount, try this:
+    // (If it throws because it doesn't accept params, we fall back below.)
+    try {
+      const data = await apiClickLogo({ tap: Number(tapVal) });
+      state.chads = BigInt(data.total_points);
+    } catch {
+      // Legacy endpoint without parameters
+      const data = await apiClickLogo();
+      state.chads = BigInt(data.total_points);
+      // NOTE: If the server still only applies +1 per tap,
+      // the local display will match the server here.
+      // (Your backend should be updated to apply the correct tap bonus.)
+    }
   } catch {
-    // offline or API error: add the full tapPower locally
-    state.chads = (state.chads ?? 0n) + BigInt(tapPower);
+    // Fallback (offline / API error): apply the level tap value locally
+    state.chads += tapVal;
   }
 
   saveStateLocal(state);
   refreshUI();
 }
-document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
-document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {passive:true});
+
+document.getElementById('orb').addEventListener('click', handleOrbTap, { passive: true });
+document.getElementById('orb').addEventListener('touchstart', handleOrbTap, { passive: true });
+
 
 /* ===== overlays ===== */
 function openOverlay(id){ document.getElementById(id)?.classList.add('show'); }
@@ -5127,7 +5169,181 @@ function openBreaker(){
   canvas.addEventListener('touchmove', pointerMove, {passive:false});
   canvas.addEventListener('touchend', pointerUp);
 })();
+(() => {
+  const TOTAL = 19;
+  const levelImg = (n) => `img/level${n}.png`;
+  const chestImg = (n) => `img/chest${n}.png`;
+  const LOCK_IMG = 'img/lock.png';
 
+  // DOM
+  const els = {
+    btn: document.getElementById('levelBtn'),
+    badgeImg: document.getElementById('currentLevelImg'),
+    badgeBox: document.querySelector('.level-badge-box'),
+    overlay: document.getElementById('levelsOverlay'),
+    grid: document.getElementById('levelsGrid'),
+    luModal: document.getElementById('levelUpModal'),
+    luImg: document.getElementById('luImg'),
+    luTitle: document.getElementById('luTitle'),
+    luOk: document.getElementById('luOk'),
+    chads: document.getElementById('chadCount'),
+    gen: document.getElementById('genRate'),
+  };
+
+  // persistence: prefer your existing state.level, fall back to localStorage
+  const FALLBACK_KEY = 'chad_level';
+  const getLevel = () => {
+    if (typeof window.state?.level === 'number') return clamp(window.state.level, 1, TOTAL);
+    return clamp(Number(localStorage.getItem(FALLBACK_KEY) || 1), 1, TOTAL);
+  };
+  const setLevel = (lv) => {
+    const v = clamp(lv, 1, TOTAL);
+    if (window.state) { window.state.level = v; try { saveStateLocal(state); } catch(e){} }
+    localStorage.setItem(FALLBACK_KEY, String(v));
+  };
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+  // metrics helpers (read from state if available; else fallback to DOM)
+  const readChads = () => {
+    if (typeof window.state?.chads === 'bigint') return Number(window.state.chads);
+    return Number(els.chads?.textContent || 0);
+  };
+  const readGen = () => {
+    if (typeof window.state?.gen === 'bigint') return Number(window.state.gen);
+    return Number(els.gen?.textContent || 0);
+  };
+
+  // ======= Level table (requirements: BOTH chads & gen/hr; rewards: tapValue) =======
+  const L = (level, chads, gen, tap) => ({
+    level, img: levelImg(level),
+    requirementText: `Reach ≥ ${chads.toLocaleString()} CHADs AND ≥ ${gen.toLocaleString()} generation/hr.`,
+    rewardText: `Achievement: Tap becomes +${tap} CHAD`,
+    needChads: chads, needGen: gen, tapValue: tap,
+    check: (m) => (m.chadsTotal || 0) >= chads && (m.genPerHour || 0) >= gen
+  });
+
+  const defs = [
+    { level:1, img:levelImg(1), requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD", tapValue:1, check:()=>true },
+    L(2, 5_000, 100, 3),
+    L(3, 20_000, 1_000, 9),
+    L(4, 30_000, 4_000, 20),
+    L(5, 60_000, 8_000, 60),
+    L(6, 120_000, 14_000, 120),
+    L(7, 300_000, 25_000, 200),
+    L(8, 600_000, 45_000, 300),
+    L(9, 1_000_000, 60_000, 400),
+    L(10, 1_300_000, 80_000, 600),
+    L(11, 3_000_000, 190_000, 700),
+    L(12, 10_000_000, 600_000, 1_000),
+    L(13, 90_000_000, 4_000_000, 4_000),
+    L(14, 40_000_000, 8_000_000, 5_000),
+    L(15, 100_000_000, 16_000_000, 8_000),
+    L(16, 1_000_000_000, 23_000_000, 10_000),
+    L(17, 12_000_000_000, 40_000_000, 40_000),
+    L(18, 80_000_000_000, 100_000_000, 60_000),
+    L(19, 100_000_000_000, 300_000_000, 120_000),
+  ];
+
+  // compute highest level whose checks pass
+  const highestUnlocked = (m) => defs.reduce((h,d)=> d.check(m) ? Math.max(h, d.level) : h, 1);
+
+  // tap value for current level (stacked to the latest tapValue)
+  function getTapValue(lv = getLevel()){
+    let v = 1;
+    for (const d of defs) if (d.level <= lv && typeof d.tapValue === 'number') v = d.tapValue;
+    return v;
+  }
+
+  // ---------- rendering ----------
+  function renderBadge() {
+    const lv = getLevel();
+    if (els.badgeImg) { els.badgeImg.src = levelImg(lv); els.badgeImg.alt = `Level ${lv}`; }
+    els.badgeBox?.classList.add('current');
+  }
+
+  function renderGrid() {
+    if (!els.grid) return;
+    const current = getLevel();
+    els.grid.innerHTML = defs.map(d => {
+      const unlocked = d.level <= current;
+      return `
+        <div class="lvl-card ${unlocked ? 'unlocked' : 'locked'} ${d.level === current ? 'current' : ''}" data-level="${d.level}">
+          <div class="lvl-imgbox">
+            <img src="${d.img}" alt="Level ${d.level}" loading="lazy" width="400" height="400">
+            ${unlocked ? '' : `<img class="lock" src="${LOCK_IMG}" alt="Locked">`}
+            <span class="lvl-tag">${d.level === current ? 'CURRENT' : (unlocked ? 'UNLOCKED' : 'LOCKED')}</span>
+          </div>
+          <div class="lvl-req">${d.requirementText}</div>
+          <div class="lvl-reward">${d.rewardText}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------- overlay ----------
+  function open(){ els.overlay?.classList.add('show'); els.overlay?.setAttribute('aria-hidden','false'); }
+  function close(){ els.overlay?.classList.remove('show'); els.overlay?.setAttribute('aria-hidden','true'); }
+
+  // ---------- level-up modal (queues if multiple unlocks at once) ----------
+  const luQueue = [];
+  function queueLevelUp(level){
+    luQueue.push(level);
+    if (els.luModal?.classList.contains('show')) return;
+    showNextLevelUp();
+  }
+  function showNextLevelUp(){
+    const next = luQueue.shift();
+    if (!next) return;
+    els.luImg.src = chestImg(next);
+    els.luImg.alt = `Level ${next} chest`;
+    els.luTitle.textContent = `Congrats, You Have Reached Level ${next} 🎉`;
+    els.luModal.classList.add('show');
+    els.luModal.setAttribute('aria-hidden','false');
+  }
+  function hideLevelUp(){
+    els.luModal.classList.remove('show');
+    els.luModal.setAttribute('aria-hidden','true');
+    // show next if queued
+    if (luQueue.length) requestAnimationFrame(showNextLevelUp);
+  }
+  els.luOk?.addEventListener('click', hideLevelUp);
+
+  // ---------- progress hook ----------
+  function notifyProgress(metrics){
+    const newHi = highestUnlocked(metrics);
+    const old = getLevel();
+    if (newHi > old){
+      // queue popups for each newly reached level
+      for (let lv = old + 1; lv <= newHi; lv++) queueLevelUp(lv);
+      setLevel(newHi);
+      renderBadge(); renderGrid();
+    }
+  }
+
+  // observe CHADs/gen updates in DOM as a safety net
+  function observe(id, cb){
+    const el = document.getElementById(id);
+    if (!el || !('MutationObserver' in window)) return;
+    const mo = new MutationObserver(() => cb(Number(el.textContent) || 0));
+    mo.observe(el, { childList:true, characterData:true, subtree:true });
+  }
+  const metrics = { chadsTotal: readChads(), genPerHour: readGen() };
+  observe('chadCount', v => { metrics.chadsTotal = v; notifyProgress(metrics); });
+  observe('genRate',  v => { metrics.genPerHour = v;  notifyProgress(metrics); });
+
+  // boot
+  function init(){
+    // auto-evaluate on load
+    notifyProgress(metrics);
+    renderBadge();
+    renderGrid();
+    els.btn?.addEventListener('click', open);
+  }
+  document.addEventListener('DOMContentLoaded', init);
+
+  // expose API for your game code (especially for the orb tap integration)
+  window.LevelSystem = { open, close, notifyProgress, getTapValue };
+})();
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
 (function(){
   const wrap = document.getElementById('trWrap');
@@ -6409,246 +6625,7 @@ updateHUD();
   window.openNightGrid = ()=>{ closeOverlay('playOverlay'); openOverlay('nightGridModal'); start(); };
 })();
 
-(() => {
-  /*** ---------- CONFIG ---------- ***/
-  const TOTAL = 19;
-  const imgLevel = (n) => `img/level${n}.png`;
-  const imgChest = (n) => `img/chest${n}.png`; // chest2..chest19
-  const STORAGE = 'levels.v1';
 
-  // Requirements + tap reward (tap is the total per tap for that level).
-  // Level 1 = base (1). Levels unlock when BOTH chads and gen/hr meet/exceed.
-  const LEVELS = [
-    { id:1,  chads:0,             gen:0,           tap:1 },
-    { id:2,  chads:5_000,         gen:100,         tap:3 },
-    { id:3,  chads:20_000,        gen:1_000,       tap:9 },
-    { id:4,  chads:30_000,        gen:4_000,       tap:20 },
-    { id:5,  chads:60_000,        gen:8_000,       tap:60 },
-    { id:6,  chads:120_000,       gen:14_000,      tap:120 },
-    { id:7,  chads:300_000,       gen:25_000,      tap:200 },
-    { id:8,  chads:600_000,       gen:45_000,      tap:300 },
-    { id:9,  chads:1_000_000,     gen:60_000,      tap:400 },
-    { id:10, chads:1_300_000,     gen:80_000,      tap:600 },
-    { id:11, chads:3_000_000,     gen:190_000,     tap:700 },
-    { id:12, chads:10_000_000,    gen:600_000,     tap:1_000 },
-    { id:13, chads:90_000_000,    gen:4_000_000,   tap:4_000 },
-    { id:14, chads:40_000_000,    gen:8_000_000,   tap:5_000 },
-    { id:15, chads:100_000_000,   gen:16_000_000,  tap:8_000 },
-    { id:16, chads:1_000_000_000, gen:23_000_000,  tap:10_000 },
-    { id:17, chads:12_000_000_000,gen:40_000_000,  tap:40_000 },
-    { id:18, chads:80_000_000_000,gen:100_000_000, tap:60_000 },
-    { id:19, chads:100_000_000_000, gen:300_000_000, tap:120_000 },
-  ];
-
-  /*** ---------- DOM ---------- ***/
-  const $ = (id) => document.getElementById(id);
-  const badge  = $('levelBadge');
-  const btn    = $('levelBtn');
-  const grid   = $('levelsGrid');
-  const modal  = $('levelsModal');
-  const close  = $('levelsClose');
-  const luModal= $('levelUpModal');
-  const luImg  = $('levelUpImg');
-  const luTitle= $('levelUpTitle');
-  const luOk   = $('levelUpOk');
-  const orbEl  = $('orb'); // existing orb button
-
-  /*** ---------- HELPERS ---------- ***/
-  const readInt = (el) => {
-    if (!el) return 0;
-    const t = el.textContent.replace(/[,\s]/g,'').trim();
-    const n = parseInt(t,10);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const fmt = (n) => n.toLocaleString();
-
-  const getStats = () => ({
-    chads:   readInt($('chadCount')),
-    genRate: readInt($('genRate')),
-  });
-
-  /*** ---------- STATE ---------- ***/
-  const state = {
-    unlocked: Array(TOTAL).fill(false),
-    current: 1,            // highest unlocked
-    lastShownChest: 0      // avoid re-showing old chest popups
-  };
-
-  function save(){ localStorage.setItem(STORAGE, JSON.stringify(state)); }
-  function load(){
-    try{
-      const raw = localStorage.getItem(STORAGE);
-      if (!raw) return;
-      const s = JSON.parse(raw);
-      if (Array.isArray(s.unlocked)) state.unlocked = s.unlocked.slice(0,TOTAL).map(Boolean);
-      if (typeof s.current === 'number') state.current = Math.max(1, Math.min(TOTAL, s.current));
-      if (typeof s.lastShownChest === 'number') state.lastShownChest = s.lastShownChest;
-    }catch{}
-  }
-
-  /*** ---------- UI BUILD ---------- ***/
-  function updateBadge(){
-    const cur = state.current;
-    badge.src = imgLevel(cur);
-    badge.alt = `Level ${cur} badge`;
-  }
-
-  function buildGrid(){
-    grid.innerHTML = '';
-    for (let i=1;i<=TOTAL;i++){
-      const unlocked = !!state.unlocked[i-1];
-      const cfg = LEVELS[i-1];
-      const card = document.createElement('div');
-      card.className = `level-card${unlocked ? '' : ' locked'}`;
-      const reqText = i===1
-        ? 'Starting level'
-        : `Reach ${fmt(cfg.chads)} CHADs AND ${fmt(cfg.gen)} generation/hr`;
-      const rewardText = i===1 ? '—' : `+${fmt(cfg.tap)} chad tap`;
-
-      card.innerHTML = `
-        <div class="level-thumb">
-          <img src="${imgLevel(i)}" alt="Level ${i}">
-          ${unlocked ? '' : `<div class="level-lock"><img src="img/lock.png" alt=""></div>`}
-        </div>
-        <div class="level-head">
-          <div class="level-name">Level ${i}</div>
-          <div class="level-status">${unlocked ? 'Unlocked' : 'Locked'}</div>
-        </div>
-        <div class="level-reqs">${reqText}</div>
-        <div class="level-achs">Reward: ${rewardText}</div>
-      `;
-
-      // Home tile must always show latest unlocked -> no manual override
-      grid.appendChild(card);
-    }
-  }
-
-  /*** ---------- UNLOCK LOGIC ---------- ***/
-  function highestUnlockedIndex(){
-    for (let i=TOTAL-1;i>=0;i--) if (state.unlocked[i]) return i;
-    return 0;
-  }
-
-  function checkUnlocks(){
-    const s = getStats();
-    const newly = [];
-    for (let i=0;i<TOTAL;i++){
-      if (!state.unlocked[i]){
-        const cfg = LEVELS[i];
-        if (s.chads >= cfg.chads && s.genRate >= cfg.gen){
-          state.unlocked[i] = true;
-          newly.push(i+1);
-        }
-      }
-    }
-    if (newly.length){
-      state.current = highestUnlockedIndex() + 1;
-      updateBadge(); buildGrid(); save();
-
-      // also mirror into your existing app state if present
-      if (window.state && typeof window.state.level === 'number'){
-        window.state.level = state.current;
-        if (window.saveStateLocal) try{ window.saveStateLocal(window.state); }catch{}
-      }
-
-      // show chest for the highest level just unlocked
-      const lv = Math.max(...newly);
-      showLevelUp(lv);
-    }
-  }
-
-  /*** ---------- OBSERVE COUNTERS ---------- ***/
-  function observeCounters(){
-    const targets = ['chadCount','genRate'].map($).filter(Boolean);
-    const obs = new MutationObserver(() => checkUnlocks());
-    targets.forEach(el => obs.observe(el, {childList:true, characterData:true, subtree:true}));
-  }
-
-  /*** ---------- MODALS ---------- ***/
-  let lastFocusBtn = null;
-  function openLevels(){
-    lastFocusBtn = document.activeElement;
-    buildGrid();
-    modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
-    close.focus();
-    const trap = (e) => {
-      if (e.key === 'Escape') closeLevels();
-      if (e.key !== 'Tab') return;
-      const focusables = modal.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])');
-      const list = Array.from(focusables).filter(el => el.offsetParent !== null);
-      if (!list.length) return;
-      const first = list[0], last = list[list.length-1];
-      if (e.shiftKey && document.activeElement === first){ last.focus(); e.preventDefault(); }
-      else if (!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
-    };
-    modal._trap = trap;
-    modal.addEventListener('keydown', trap);
-  }
-  function closeLevels(){
-    modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
-    if (modal._trap){ modal.removeEventListener('keydown', modal._trap); modal._trap=null; }
-    lastFocusBtn?.focus?.();
-  }
-
-  function showLevelUp(levelNum){
-    if (state.lastShownChest >= levelNum) return; // show once
-    state.lastShownChest = levelNum; save();
-
-    const chestN = Math.max(2, Math.min(levelNum, 19)); // chest2..chest19
-    luImg.src = imgChest(chestN);
-    luImg.alt = `Level ${levelNum} chest`;
-    luTitle.textContent = `Congrats, You Have Reached Level ${levelNum} 🎉`;
-
-    luModal.classList.add('show');
-    luModal.setAttribute('aria-hidden','false');
-    luOk.focus();
-  }
-  function closeLevelUp(){
-    luModal.classList.remove('show');
-    luModal.setAttribute('aria-hidden','true');
-  }
-
-  /*** ---------- TAP POWER (adds bonus on top of your app’s +1) ---------- ***/
-  function currentTapValue(){
-    const idx = highestUnlockedIndex();
-    return LEVELS[idx].tap || 1;
-  }
-  function addTapBonusOnce(){
-    if (!orbEl || orbEl.dataset.tapBonusWired === '1') return;
-    orbEl.dataset.tapBonusWired = '1';
-    orbEl.addEventListener('click', () => {
-      const want = currentTapValue();
-      const bonus = Math.max(0, want - 1); // your app already adds +1
-      const cnt = $('chadCount');
-      if (!cnt || bonus === 0) return;
-      const v = readInt(cnt) + bonus;
-      cnt.textContent = v.toLocaleString();
-    });
-  }
-
-  /*** ---------- INIT ---------- ***/
-  function init(){
-    load();
-    // ensure level 1 unlocked
-    if (!state.unlocked.some(Boolean)) state.unlocked[0] = true;
-    state.current = highestUnlockedIndex() + 1;
-    updateBadge();
-
-    btn?.addEventListener('click', openLevels);
-    close?.addEventListener('click', closeLevels);
-    luOk?.addEventListener('click', closeLevelUp);
-
-    observeCounters();
-    addTapBonusOnce();
-    checkUnlocks(); // first pass
-  }
-
-  if (document.readyState !== 'loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-
-  // expose for debugging if needed
-  window.Levels = { state, checkUnlocks };
-})();
 
 /* ===== SIMON (Sequence, luxe visuals) ===== */
 (function(){
