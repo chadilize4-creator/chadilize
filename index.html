@@ -415,10 +415,6 @@
 }
 .ng-cell:active{ transform: translateY(1px) scale(.99); }
 
-/* OFF look */
-.ng-cell.off{
-  filter:saturate(.8) brightness(.9);
-}
 
 /* ON look: glossy neon tile */
 .ng-cell.on{
@@ -1012,43 +1008,7 @@ body{
 .card-row .value { font-weight:900; }
 
 .level-row {
-  text-align: center; font-weight: 900; background:#0f0f0f; border:2px solid #2e2e2e; border-radius:8px; padding:8px 10px; 
- /* NEW: blue pulsing glow */
-  position: relative;         /* needed for the pseudo glow */
-  overflow: visible;          /* let the glow bleed outside */
-  animation: bluePulse 1.8s ease-in-out infinite;
-  box-shadow:
-    0 0 0 0 rgba(74,163,255,.0),
-    0 0 18px 6px rgba(74,163,255,.28); /* base, subtle */
-}
-
-/* optional: stronger glow when pressed/hovered */
-.level-row:hover,
-.level-row:active{
-  animation-duration: 1.2s;
-}
-
-/* the pulse animation */
-@keyframes bluePulse{
-  0%{
-    box-shadow:
-      0 0 0 0 rgba(74,163,255,.18),
-      0 0 18px 6px rgba(74,163,255,.32),
-      0 0 0 1px rgba(255,255,255,.05) inset;
-  }
-  50%{
-    box-shadow:
-      0 0 0 0 rgba(74,163,255,.30),
-      0 0 34px 14px rgba(74,163,255,.55),
-      0 0 0 1px rgba(255,255,255,.06) inset;
-  }
-  100%{
-    box-shadow:
-      0 0 0 0 rgba(74,163,255,.18),
-      0 0 18px 6px rgba(74,163,255,.32),
-      0 0 0 1px rgba(255,255,255,.05) inset;
-  }
-}
+  text-align: center; font-weight: 900; background:#0f0f0f; border:2px solid #2e2e2e; border-radius:8px; padding:8px 10px;
 }
 
 .card.disabled { opacity: .6; filter: grayscale(100%); }
@@ -1151,87 +1111,6 @@ canvas{ display:block }
 
 /* Hidden helpers */
 .hidden{ display:none !important }
-<style>
-/* —— LEVEL HOME BADGE (no tile markup changes) —— */
-.tile.level { position: relative; overflow: hidden; }
-.tile.level img#levelBadge{
-  position:absolute; inset:6px; border-radius:12px; object-fit:cover;
-  box-shadow:
-    0 0 0 2px rgba(170,200,255,.85),
-    0 0 26px rgba(120,180,255,.55),
-    0 14px 40px rgba(0,0,0,.35);
-  pointer-events:none; /* keep tile clickable */
-}
-
-/* —— LEVELS MODAL —— */
-.levels-modal,.levelup-modal{
-  position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.55); backdrop-filter: blur(6px);
-  z-index:9999;
-}
-.levels-modal.show,.levelup-modal.show{ display:flex; }
-
-.levels-panel{
-  width:min(980px,92vw); max-height:88vh; overflow:auto;
-  border-radius:18px; padding:18px;
-  background: radial-gradient(900px 450px at 10% 0, rgba(75,150,255,.10), transparent 40%),
-              linear-gradient(180deg,#0c121a,#0b0f14);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 30px 100px rgba(0,0,0,.55);
-  color:#eaf0f6;
-}
-.levels-head{
-  display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;
-}
-.levels-title{ font-size:28px; font-weight:900; letter-spacing:.5px; }
-.levels-close{
-  appearance:none; border:1px solid rgba(255,255,255,.12);
-  background:linear-gradient(180deg,#0f1722,#0a0f16);
-  color:#fff; /* requested: white text */
-  border-radius:14px; padding:8px 14px; font-weight:800; cursor:pointer;
-}
-
-/* grid of cards */
-#levelsGrid{
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
-  gap:14px; padding-bottom:6px;
-}
-.level-card{
-  background:linear-gradient(180deg,#0f1720,#0b0f14);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:16px; padding:10px; box-shadow: 0 12px 30px rgba(0,0,0,.40);
-}
-.level-thumb{ position:relative; border-radius:12px; overflow:hidden; }
-.level-thumb>img{ width:100%; height:160px; object-fit:cover; display:block; }
-.level-card.locked .level-thumb>img{ filter: grayscale(1) brightness(.78); } /* lock stays colored */
-.level-lock{
-  position:absolute; inset:0; display:grid; place-items:center; pointer-events:none;
-}
-.level-lock img{ width:64px; height:64px; filter: drop-shadow(0 8px 24px rgba(0,0,0,.6)); }
-.level-head{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
-.level-name{ font-weight:900; }
-.level-status{ font-size:12px; opacity:.75; }
-.level-reqs{ margin-top:8px; font-size:13px; opacity:.9; }
-.level-achs{ margin-top:8px; font-size:13px; font-weight:900; }
-
-/* —— LEVEL UP POPUP —— */
-.levelup-card{
-  width:min(520px,92vw); text-align:center;
-  border-radius:18px; padding:20px 16px;
-  background:linear-gradient(180deg,#0f1720,#0a0f15);
-  border:1px solid rgba(255,255,255,.1);
-  color:#eaf0f6; box-shadow:0 30px 110px rgba(0,0,0,.6);
-}
-.levelup-card img{ width:220px; height:auto; display:block; margin:0 auto 10px; }
-#levelUpTitle{ font-size:18px; font-weight:900; margin:4px 0 14px; }
-#levelUpOk{
-  appearance:none; cursor:pointer; font-weight:900;
-  border-radius:14px; padding:12px 18px; border:0;
-  color:#051022; background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa);
-  box-shadow: 0 0 2px rgba(255,255,255,.5), 0 0 22px rgba(120,180,255,.5), 0 18px 50px rgba(0,0,0,.6);
-}
-</style>
-
 </style>
 </head>
 <body>
@@ -1559,26 +1438,6 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Levels modal -->
-<div id="levelsModal" class="levels-modal" aria-hidden="true">
-  <div class="levels-panel" role="dialog" aria-modal="true" aria-labelledby="levelsTitle">
-    <div class="levels-head">
-      <div id="levelsTitle" class="levels-title">Levels</div>
-      <button id="levelsClose" class="levels-close" type="button">Close</button>
-    </div>
-    <p style="opacity:.9;margin:0 0 12px 2px">Unlock levels by meeting both requirements. The latest unlocked image appears on the home tile.</p>
-    <div id="levelsGrid"></div>
-  </div>
-</div>
-
-<!-- Level-up popup -->
-<div id="levelUpModal" class="levelup-modal" aria-hidden="true">
-  <div class="levelup-card" role="alertdialog" aria-labelledby="levelUpTitle">
-    <img id="levelUpImg" alt="">
-    <div id="levelUpTitle"></div>
-    <button id="levelUpOk" type="button">OK</button>
-  </div>
-</div>
 
 
     <!-- SNAKE Modal -->
@@ -2012,7 +1871,7 @@ function refreshOrbImage(){ const img = document.getElementById('orbImg'); const
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
-  document.getElementById('levelText').textContent = 'Lize';
+  document.getElementById('levelText').textContent = 'OFF';
   setUserPill(state.name, state.avatarIdx); refreshOrbImage();
 }
 
@@ -4174,232 +4033,7 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-(() => {
-  /* ========= CONFIG ========= */
-  const TOTAL = 19;
-  const imgLevel = n => `img/level${n}.png`;
-  const imgChest = n => `img/chest${n}.png`;  // chest2..chest19
-  const STORAGE = 'levels.v1';
 
-  // requirements & tap value (total per tap for that level)
-  const LEVELS = [
-    {id:1,  chads:0,               gen:0,           tap:1},
-    {id:2,  chads:5_000,           gen:100,         tap:3},
-    {id:3,  chads:20_000,          gen:1_000,       tap:9},
-    {id:4,  chads:30_000,          gen:4_000,       tap:20},
-    {id:5,  chads:60_000,          gen:8_000,       tap:60},
-    {id:6,  chads:120_000,         gen:14_000,      tap:120},
-    {id:7,  chads:300_000,         gen:25_000,      tap:200},
-    {id:8,  chads:600_000,         gen:45_000,      tap:300},
-    {id:9,  chads:1_000_000,       gen:60_000,      tap:400},
-    {id:10, chads:1_300_000,       gen:80_000,      tap:600},
-    {id:11, chads:3_000_000,       gen:190_000,     tap:700},
-    {id:12, chads:10_000_000,      gen:600_000,     tap:1_000},
-    {id:13, chads:90_000_000,      gen:4_000_000,   tap:4_000},
-    {id:14, chads:40_000_000,      gen:8_000_000,   tap:5_000},
-    {id:15, chads:100_000_000,     gen:16_000_000,  tap:8_000},
-    {id:16, chads:1_000_000_000,   gen:23_000_000,  tap:10_000},
-    {id:17, chads:12_000_000_000,  gen:40_000_000,  tap:40_000},
-    {id:18, chads:80_000_000_000,  gen:100_000_000, tap:60_000},
-    {id:19, chads:100_000_000_000, gen:300_000_000, tap:120_000},
-  ];
-
-  /* ========= DOM ========= */
-  const $ = id => document.getElementById(id);
-  const levelBtn = $('levelBtn');      // your untouched tile
-  const grid = $('levelsGrid');
-  const modal = $('levelsModal');
-  const btnClose = $('levelsClose');
-  const luModal = $('levelUpModal');
-  const luImg = $('levelUpImg');
-  const luTitle = $('levelUpTitle');
-  const luOk = $('levelUpOk');
-  const orb = $('orb');
-
-  /* ========= HELPERS ========= */
-  const readInt = el => {
-    if (!el) return 0;
-    const t = el.textContent.replace(/[,\s]/g,'').trim();
-    const n = parseInt(t,10);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const fmt = n => Number(n).toLocaleString();
-
-  // Prefer your state object if present, otherwise read UI counters
-  function getStats(){
-    if (window.state){
-      try{
-        const ch = typeof state.chads === 'bigint' ? Number(state.chads) : Number(state.chads||0);
-        const gn = typeof state.gen === 'bigint' ? Number(state.gen) : Number(state.gen||0);
-        return { chads: ch || readInt($('chadCount')), genRate: gn || readInt($('genRate')) };
-      }catch{}
-    }
-    return { chads: readInt($('chadCount')), genRate: readInt($('genRate')) };
-  }
-
-  /* ========= STATE ========= */
-  const levels = {
-    unlocked: Array(TOTAL).fill(false),
-    current: 1,
-    lastShownChest: 0
-  };
-  function save(){ localStorage.setItem(STORAGE, JSON.stringify(levels)); }
-  function load(){
-    try{
-      const raw = localStorage.getItem(STORAGE); if(!raw) return;
-      const s = JSON.parse(raw);
-      if (Array.isArray(s.unlocked)) levels.unlocked = s.unlocked.slice(0,TOTAL).map(Boolean);
-      if (typeof s.current==='number') levels.current = Math.max(1,Math.min(TOTAL,s.current));
-      if (typeof s.lastShownChest==='number') levels.lastShownChest = s.lastShownChest;
-    }catch{}
-  }
-
-  /* ========= HOME TILE BADGE (injected, tile HTML untouched) ========= */
-  function ensureBadge(){
-    if (!levelBtn) return;
-    if (!$('levelBadge')){
-      const img = document.createElement('img');
-      img.id = 'levelBadge';
-      levelBtn.appendChild(img);
-    }
-  }
-  function updateBadge(){
-    ensureBadge();
-    const img = $('levelBadge'); if(!img) return;
-    img.src = imgLevel(levels.current);
-    img.alt = `Level ${levels.current}`;
-  }
-
-  /* ========= LIST UI ========= */
-  function buildGrid(){
-    grid.innerHTML = '';
-    for(let i=1;i<=TOTAL;i++){
-      const unlocked = !!levels.unlocked[i-1];
-      const cfg = LEVELS[i-1];
-      const card = document.createElement('div');
-      card.className = `level-card${unlocked ? '' : ' locked'}`;
-      const reqText = i===1 ? 'Starter — unlocked by default.'
-        : `Reach ≥ ${fmt(cfg.chads)} CHADs AND ≥ ${fmt(cfg.gen)} generation/hr.`;
-      const rewardText = i===1 ? 'Tap: +1 CHAD'
-        : `Achievement: Tap becomes +${fmt(cfg.tap)} CHAD`;
-
-      card.innerHTML = `
-        <div class="level-thumb">
-          <img src="${imgLevel(i)}" alt="Level ${i}">
-          ${unlocked ? '' : `<div class="level-lock"><img src="img/lock.png" alt=""></div>`}
-        </div>
-        <div class="level-head">
-          <div class="level-name">Lvl ${i}</div>
-          <div class="level-status">${unlocked ? 'UNLOCKED' : 'LOCKED'}</div>
-        </div>
-        <div class="level-reqs">${reqText}</div>
-        <div class="level-achs">${rewardText}</div>
-      `;
-      grid.appendChild(card);
-    }
-  }
-
-  /* ========= UNLOCK LOGIC ========= */
-  const highestUnlockedIndex = () => {
-    for(let i=TOTAL-1;i>=0;i--) if(levels.unlocked[i]) return i;
-    return 0;
-  };
-
-  function checkUnlocks(){
-    const s = getStats();
-    const before = levels.current;
-    for (let i=0;i<TOTAL;i++){
-      if (!levels.unlocked[i]){
-        const cfg = LEVELS[i];
-        if (s.chads >= cfg.chads && s.genRate >= cfg.gen) levels.unlocked[i] = true;
-      }
-    }
-    levels.current = highestUnlockedIndex()+1;
-    if (levels.current > before){
-      updateBadge(); buildGrid(); save();
-
-      // mirror into your existing app state if present
-      if (window.state && typeof window.state.level==='number'){
-        window.state.level = levels.current;
-        if (window.saveStateLocal) try{ window.saveStateLocal(window.state); }catch{}
-      }
-
-      // chest popup (only once per level)
-      const lv = levels.current;
-      if (levels.lastShownChest < lv){
-        levels.lastShownChest = lv; save();
-        const chestN = Math.max(2, Math.min(lv,19));
-        luImg.src = imgChest(chestN);
-        luImg.alt = `Level ${lv} chest`;
-        luTitle.textContent = `Congrats, You Have Reached Level ${lv} 🎉`;
-        luModal.classList.add('show'); luModal.setAttribute('aria-hidden','false');
-        luOk.focus();
-      }
-    }else{
-      // just refresh visuals if nothing new
-      updateBadge();
-    }
-  }
-
-  /* ========= OBSERVE COUNTERS (react to DOM updates) ========= */
-  function observeCounters(){
-    const targets = ['chadCount','genRate'].map($).filter(Boolean);
-    if (!targets.length) return;
-    const obs = new MutationObserver(checkUnlocks);
-    targets.forEach(el => obs.observe(el, {childList:true, characterData:true, subtree:true}));
-  }
-
-  /* ========= MODAL WIRES ========= */
-  function openLevels(){
-    buildGrid();
-    modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
-    btnClose.focus();
-  }
-  function closeLevels(){
-    modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
-  }
-  function closeLevelUp(){
-    luModal.classList.remove('show'); luModal.setAttribute('aria-hidden','true');
-  }
-
-  /* ========= TAP BONUS (adds on top of server +1) ========= */
-  function currentTapValue(){
-    const idx = highestUnlockedIndex();
-    return LEVELS[idx].tap || 1;
-  }
-  function wireTapBonus(){
-    if (!orb || orb.dataset.tapBonusWired==='1') return;
-    orb.dataset.tapBonusWired='1';
-    orb.addEventListener('click', () => {
-      const want = currentTapValue();
-      const bonus = Math.max(0, want - 1);  // server already adds +1
-      if (!bonus) return;
-      const cnt = $('chadCount'); if (!cnt) return;
-      const v = readInt(cnt) + bonus;
-      cnt.textContent = v.toLocaleString();
-    }, {passive:true});
-  }
-
-  /* ========= INIT ========= */
-  function init(){
-    load();
-    if (!levels.unlocked.some(Boolean)) levels.unlocked[0] = true; // level 1
-    levels.current = highestUnlockedIndex()+1;
-    updateBadge();
-
-    levelBtn?.addEventListener('click', openLevels, {passive:true});
-    btnClose?.addEventListener('click', closeLevels, {passive:true});
-    luOk?.addEventListener('click', closeLevelUp, {passive:true});
-    luModal?.addEventListener('click', (e)=>{ if(e.target===luModal) closeLevelUp(); });
-
-    observeCounters();    // listen for UI count changes (uses MutationObserver)
-    wireTapBonus();       // attach once
-    checkUnlocks();       // first pass
-  }
-
-  if (document.readyState !== 'loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-})();
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
 
