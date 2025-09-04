@@ -415,7 +415,10 @@
 }
 .ng-cell:active{ transform: translateY(1px) scale(.99); }
 
-
+/* OFF look */
+.ng-cell.off{
+  filter:saturate(.8) brightness(.9);
+}
 
 /* ON look: glossy neon tile */
 .ng-cell.on{
@@ -1273,7 +1276,13 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Chadi</div><div id="levelText" style="font-weight:900;font-size:18px">Lize</div></div></div>
+        <div class="tile level" id="levelBtn">
+  <div>
+    <div style="font-size:12px;color:#9aa3ab">Chadi</div>
+    <div id="levelText" style="font-weight:900;font-size:18px">Lize</div>
+  </div>
+</div>
+
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
