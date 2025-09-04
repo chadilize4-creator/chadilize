@@ -6,7 +6,79 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+:root{
+    --bg: var(--tg-theme-bg-color, #0b0e14);
+    --fg: var(--tg-theme-text-color, #eaf2ff);
+    --muted: #9aa3ad;
+    --card: color-mix(in oklab, var(--bg) 60%, #121826 40%);
+    --border: color-mix(in oklab, var(--fg) 10%, transparent);
+    --glow: 0 12px 40px rgba(91,140,255,.35);
+    --radius-xl: 20px; --radius: 14px; --yellow: #ffd84d;
+  }
 
+  /* Square launcher fixed on the right */
+  #inviteRewardsBtn{
+    position: fixed; right: 16px; bottom: 24px; z-index: 900;
+    width: 72px; height: 72px; border-radius: 16px; object-fit: cover;
+    cursor: pointer; border: 1px solid var(--border); box-shadow: var(--glow);
+    background: #0c1220;
+  }
+
+  .invite-overlay{ position:fixed; inset:0; z-index:9999; display:none;
+    background: radial-gradient(1200px 800px at 20% -10%, rgba(91,140,255,.18), transparent 60%),
+                radial-gradient(1200px 800px at 120% 110%, rgba(255,119,199,.15), transparent 60%),
+                rgba(2,4,10,.55);
+    backdrop-filter: blur(6px); padding:24px; overflow:auto; }
+  .invite-overlay.show{ display:block; }
+
+  .invite-modal{ margin:0 auto; max-width:980px; border-radius:var(--radius-xl);
+    position:relative; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.45); }
+  .invite-modal::before{ content:""; position:absolute; inset:-2px; z-index:0;
+    border-radius:calc(var(--radius-xl)+2px);
+    background: conic-gradient(from 200deg at 50% 50%, #6da3ff, #9f7fff, #ff77c7, #6da3ff);
+    animation: spin 8s linear infinite; filter: blur(6px); }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .invite-shell{ position:relative; z-index:1; display:flex; flex-direction:column;
+    background: linear-gradient(180deg, rgba(14,18,28,.9), rgba(10,13,20,.92));
+    border:1px solid var(--border); border-radius:inherit; max-height:88dvh; }
+
+  .invite-head{ display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; border-bottom:1px solid var(--border); }
+  .invite-title{ font-size:20px; font-weight:800; }
+  .invite-close{ border:1px solid var(--border); background:transparent; color:#fff;
+    padding:10px 12px; border-radius:12px; cursor:pointer; }
+
+  .invite-body{ padding:16px; display:grid; gap:16px; grid-template-columns:1.2fr .8fr;
+    overflow-y:auto; max-height:100%; }
+  @media (max-width: 860px){ .invite-body{ grid-template-columns:1fr; } }
+
+  .card{ background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+    border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:var(--glow); }
+  .muted{ color:var(--muted); font-size:13px; }
+
+  .linkline{ display:grid; grid-template-columns:1fr auto auto; gap:8px; margin-top:8px; }
+  .linkinput{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+    background:#05070d; color:#fff; font:500 13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .btn{ padding:11px 14px; border-radius:12px; border:1px solid var(--border); background:#121826; color:#fff; cursor:pointer; }
+  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+  .btn.accent{ background: linear-gradient(135deg, #6da3ff, #ff77c7); border:none; color:#0b0e14; }
+
+  .rewards{ display:grid; gap:14px; grid-template-columns:1fr; }
+  .reward-card{ position:relative; overflow:hidden; border-radius:16px; padding:14px;
+    background: radial-gradient(1200px 600px at -20% -40%, rgba(109,163,255,.15), transparent 60%),
+               radial-gradient(1200px 600px at 120% 140%, rgba(255,119,199,.12), transparent 60%),
+               #0e1422; border:1px solid var(--border); box-shadow:var(--glow); }
+  .reward-row{ display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; }
+  .reward-label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .reward-amt{ font-size:22px; font-weight:900; letter-spacing:.3px; }
+  .reward-desc{ font-size:13px; color:var(--muted); }
+  .status{ font-size:13px; margin-top:6px; }
+  .status.pending{ color: var(--yellow); }
+
+  .reward-card.locked::after{ content:"🔒 Locked"; position:absolute; top:10px; right:10px;
+    font-size:12px; color:var(--muted); background:rgba(255,255,255,.06);
+    border:1px solid var(--border); padding:4px 8px; border-radius:999px; }
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1112,126 +1184,6 @@ canvas{ display:block }
 
 /* Hidden helpers */
 .hidden{ display:none !important }
- :root{
-    --bg: var(--tg-theme-bg-color, #0b0e14);
-    --fg: var(--tg-theme-text-color, #eaf2ff);
-    --muted: color-mix(in oklab, var(--fg) 65%, transparent);
-    --card: color-mix(in oklab, var(--bg) 60%, #121826 40%);
-    --border: color-mix(in oklab, var(--fg) 10%, transparent);
-    --accent: var(--tg-theme-button-color, #5b8cff);
-    --accent-text: var(--tg-theme-button-text-color, #080b12);
-    --glow: 0 12px 40px rgba(91,140,255,.35);
-    --radius-xl: 20px;
-    --radius: 14px;
-  }
-
-  /* Launcher image */
-  #inviteRewardsBtn{
-    height: 72px; cursor: pointer; display: inline-block;
-    border-radius: 18px; border: 1px solid var(--border);
-    box-shadow: var(--glow);
-    transition: transform .15s ease, box-shadow .2s ease;
-  }
-  #inviteRewardsBtn:hover{ transform: translateY(-1px) scale(1.01); box-shadow: 0 18px 60px rgba(91,140,255,.45); }
-
-  /* Overlay + Modal (scrollable body!) */
-  .invite-overlay{
-    position: fixed; inset: 0; display: none; z-index: 9999;
-    background: radial-gradient(1200px 800px at 20% -10%, rgba(91,140,255,.18), transparent 60%),
-                radial-gradient(1200px 800px at 120% 110%, rgba(255,119,199,.15), transparent 60%),
-                rgba(2,4,10,.55);
-    backdrop-filter: blur(6px);
-    padding: 24px;
-    overflow: auto;
-  }
-  .invite-overlay.show{ display: block; }
-
-  .invite-modal{
-    margin: 0 auto; max-width: 1000px; 
-    border-radius: var(--radius-xl); position: relative; overflow: hidden;
-    box-shadow: 0 24px 80px rgba(0,0,0,.45);
-  }
-  .invite-modal::before{
-    content:""; position:absolute; inset:-2px; z-index:0; border-radius: calc(var(--radius-xl) + 2px);
-    background: conic-gradient(from 200deg at 50% 50%, #6da3ff, #9f7fff, #ff77c7, #6da3ff);
-    animation: spin 8s linear infinite; filter: blur(6px);
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .invite-shell{
-    position: relative; z-index: 1; display: flex; flex-direction: column;
-    background: linear-gradient(180deg, rgba(14,18,28,.85), rgba(10,13,20,.85));
-    border: 1px solid var(--border); border-radius: inherit; max-height: 88dvh;
-  }
-
-  .invite-head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 16px 18px; background: linear-gradient(90deg, rgba(91,140,255,.08), transparent);
-    border-bottom: 1px solid var(--border);
-  }
-  .invite-title{ font-size: 20px; font-weight: 800; letter-spacing:.2px; }
-  .invite-close{ border:1px solid var(--border); background:transparent; color:var(--fg);
-    padding:10px 12px; border-radius:12px; cursor:pointer; }
-
-  .invite-body{
-    padding: 16px; display: grid; gap: 16px; grid-template-columns: 1.2fr .8fr;
-    overflow-y: auto; overscroll-behavior: contain; max-height: 100%;
-  }
-  @media (max-width: 860px){ .invite-body{ grid-template-columns: 1fr; } }
-
-  /* Link card */
-  .card{
-    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
-    border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: var(--glow); padding: 14px;
-  }
-  .muted{ color: var(--muted); font-size: 13px; }
-  .linkline{ display:grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-top:8px; }
-  .linkinput{
-    width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
-    background:#05070d; color:var(--fg); font: 500 13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  }
-  .btn{
-    padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border);
-    background: #121826; color: var(--fg); cursor: pointer;
-    transition: transform .1s ease, box-shadow .2s ease, opacity .2s;
-  }
-  .btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
-  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
-  .btn.accent{
-    background: linear-gradient(135deg, #6da3ff, #ff77c7); color: var(--accent-text); border: none;
-    box-shadow: 0 8px 26px rgba(109,163,255,.35);
-  }
-  .btn.ghost{ background: transparent; }
-
-  /* Rewards grid */
-  .rewards{ display:grid; gap: 14px; grid-template-columns: 1fr; }
-  @media (min-width: 960px){ .rewards{ grid-template-columns: 1fr; } } /* single column for easy scroll */
-
-  .reward-card{
-    position:relative; overflow:hidden; border-radius:16px; padding:16px;
-    background:
-      radial-gradient(1200px 600px at -20% -40%, rgba(109,163,255,.15), transparent 60%),
-      radial-gradient(1200px 600px at 120% 140%, rgba(255,119,199,.12), transparent 60%),
-      #0e1422;
-    border: 1px solid var(--border); box-shadow: var(--glow); display: grid; gap: 10px;
-  }
-  .reward-row{ display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
-  .reward-label{ font-size:12px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; }
-  .reward-amt{ font-size: clamp(22px, 3.3vw, 28px); font-weight: 900; letter-spacing:.3px; }
-  .reward-desc{ font-size: 13px; color: var(--muted); }
-  .share-btn{ min-width: 90px; }
-
-  .reward-card.locked::after{
-    content:"🔒 Locked"; position:absolute; top:10px; right:10px;
-    font-size:12px; color: var(--muted); background: rgba(255,255,255,.05);
-    border:1px solid var(--border); padding:4px 8px; border-radius: 999px;
-  }
-
-  .progress{ margin-top: 10px; height: 6px; background: rgba(255,255,255,.06);
-    border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
-  .progress > i{ display:block; height:100%; background: linear-gradient(90deg, #6da3ff, #ff77c7);
-    width: 0%; transition: width .35s ease; }
 </style>
 </head>
 <body>
@@ -1346,10 +1298,10 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- Launcher image button from your repo -->
-<img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Get Rewards" />
+<!-- Square launcher aligned right -->
+<img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Invite & Rewards" />
 
-<!-- Invite modal (scrollable) -->
+<!-- Invite modal -->
 <div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="invite-modal">
     <div class="invite-shell">
@@ -1367,49 +1319,45 @@ canvas{ display:block }
             <button class="btn" id="copyLinkBtn">Copy</button>
             <button class="btn accent" id="shareLinkBtn">Share</button>
           </div>
-          <div id="inviteStats" class="muted" style="margin-top:6px">Invites: 0 • Earned: 0 CHADs</div>
-          <div class="progress"><i id="inviteProgress"></i></div>
+          <div id="inviteStats" class="muted" style="margin-top:6px">Invites: — • Earned: 0 CHADs</div>
         </section>
 
-        <!-- Right: rewards (single column = always reachable with scroll) -->
+        <!-- Right: rewards (per-tier Share + status) -->
         <section class="rewards">
-          <!-- Tier 1 -->
-          <article class="reward-card" id="tier1" data-tier="1">
+          <article class="reward-card" id="tier1">
             <div class="reward-row">
-              <button class="btn ghost share-btn" data-share="1">Share</button>
+              <button class="btn" id="share1" data-tier="1">Share</button>
               <div>
                 <div class="reward-label">Option 1</div>
                 <div class="reward-amt">+500,000 CHADs</div>
               </div>
-              <button class="btn accent redeem-btn" data-tier="1">Get 500k</button>
             </div>
-            <div class="reward-desc">Kickstart bonus for inviting your first friends.</div>
+            <div class="reward-desc">Share to a friend. When they join & play, you’re rewarded.</div>
+            <div class="status" id="status1"></div>
           </article>
 
-          <!-- Tier 2 -->
-          <article class="reward-card locked" id="tier2" data-tier="2">
+          <article class="reward-card locked" id="tier2">
             <div class="reward-row">
-              <button class="btn ghost share-btn" data-share="2">Share</button>
+              <button class="btn" id="share2" data-tier="2" disabled>Share</button>
               <div>
                 <div class="reward-label">Option 2</div>
                 <div class="reward-amt">+5,000,000 CHADs</div>
               </div>
-              <button class="btn accent redeem-btn" data-tier="2" disabled>Get 5M</button>
             </div>
-            <div class="reward-desc">Bigger boost for spreading the word.</div>
+            <div class="reward-desc">Unlocks after Option 1 completes.</div>
+            <div class="status" id="status2"></div>
           </article>
 
-          <!-- Tier 3 -->
-          <article class="reward-card locked" id="tier3" data-tier="3">
+          <article class="reward-card locked" id="tier3">
             <div class="reward-row">
-              <button class="btn ghost share-btn" data-share="3">Share</button>
+              <button class="btn" id="share3" data-tier="3" disabled>Share</button>
               <div>
                 <div class="reward-label">Option 3</div>
                 <div class="reward-amt">+3,000,000,000 CHADs</div>
               </div>
-              <button class="btn accent redeem-btn" data-tier="3" disabled>Get 3B</button>
             </div>
-            <div class="reward-desc">Legendary bonus for top inviters.</div>
+            <div class="reward-desc">Unlocks after Option 2 completes.</div>
+            <div class="status" id="status3"></div>
           </article>
         </section>
       </div>
@@ -2000,183 +1948,188 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- Telegram Mini App API -->
+<!-- Telegram Web App API -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
-  // Mini App identity → builds your deep link
+  // —— Config
   const BOT_USERNAME = "chadilizebot";
   const APP_NAME     = "chadilize";
+  const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+
+  const AMTS = {1: 500_000, 2: 5_000_000, 3: 3_000_000_000}; // rewards per tier
 
   const tg = window.Telegram?.WebApp;
   try { tg?.expand?.(); } catch {}
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const $  = (s, r=document) => r.querySelector(s);
-  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+  // DOM
+  const $ = (s, r=document) => r.querySelector(s);
+  const overlay=$("#inviteOverlay"), openBtn=$("#inviteRewardsBtn"), closeBtn=$("#inviteCloseBtn");
+  const linkEl=$("#inviteLink"), copyBtn=$("#copyLinkBtn"), shareGlobal=$("#shareLinkBtn");
+  const shareBtns=[$("#share1"),$("#share2"),$("#share3")];
+  const statusEls=[$("#status1"),$("#status2"),$("#status3")];
+  const tierCards=[$("#tier1"),$("#tier2"),$("#tier3")];
+  const statsEl=$("#inviteStats");
 
-  const overlay  = $("#inviteOverlay");
-  const openBtn  = $("#inviteRewardsBtn");
-  const closeBtn = $("#inviteCloseBtn");
-  const linkEl   = $("#inviteLink");
-  const copyBtn  = $("#copyLinkBtn");
-  const shareBtn = $("#shareLinkBtn");
-  const statsEl  = $("#inviteStats");
-  const progBar  = $("#inviteProgress");
+  const STARTED_KEY = "invite_prev_tiers_v1"; // to detect transitions → credit balance
 
-  const tierCards = [$("#tier1"), $("#tier2"), $("#tier3")];
-  const rewardButtons = $$(".redeem-btn");
-  const shareButtons  = $$(".share-btn");
+  const buildLinkFromToken = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`;
 
-  // Rewards & progressive unlock
-  const REWARDS = { 1: 500_000, 2: 5_000_000, 3: 3_000_000_000 };
-  const PROG_KEY = "inviteRewardProgress"; // 0..3 tiers completed
-  const getProg = () => Number(localStorage.getItem(PROG_KEY) || "0");
-  const setProg = (v) => localStorage.setItem(PROG_KEY, String(Math.max(0, Math.min(3, v))));
+  const msgForTier = (link, tier) =>
+    `🚀 ChadiliZe on Telegram!\nHelp me unlock +${AMTS[tier].toLocaleString()} CHADs — tap to join & play:\n${link}\n\n(You'll get a welcome boost too!)`;
 
-  // ——— Your referral link ———
-  function myReferralCode() {
-    const uid = tg?.initDataUnsafe?.user?.id;
-    return uid ? Number(uid).toString(36) : "dev";
-  }
-  function buildLink(code) {
-    return `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(code)}`;
-  }
-  function shareMessage(link, tier){
-    const nice = (n)=> n.toLocaleString();
-    const want = {1: 500000, 2: 5000000, 3: 3000000000}[tier] || 500000;
-    return `🚀 ChadiliZe on Telegram!\nHelp me unlock +${nice(want)} CHADs — tap to join & play:\n${link}\n\n(You'll get a welcome boost too!)`;
+  function toast(m){ try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch {}; alert(m); }
+
+  // —— Supabase Edge Function invoke (invite)
+  async function fx(op, body = {}) {
+    const initData = tg?.initData || ""; // signed bundle (validate server-side). :contentReference[oaicite:4]{index=4}
+    const { data, error } = await supabase.functions.invoke("invite", { body: { op, initData, ...body } });
+    if (error) throw error;
+    return data;
   }
 
-  function loadMe(){
-    const code = myReferralCode();
-    const link = buildLink(code);
-    if (linkEl) linkEl.value = link;
-    if (statsEl) statsEl.textContent = `Invites: 0 • Earned: 0 CHADs`; // hook to your backend later
-  }
+  // Session open: attach startapp to this user if present
+  (async function sessionOpen(){
+    const params = new URLSearchParams(location.search);
+    const startParam = params.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null; // passed from direct link. :contentReference[oaicite:5]{index=5}
+    try { await fx("session_open", { startParam }); } catch {}
+  })();
 
-  // ——— Unlock UI ———
-  function syncProgressUI(){
-    const p = getProg(); // how many tiers completed
-    const pct = [0, 33, 66, 100][p] || 0;
-    if (progBar) progBar.style.width = pct + "%";
-
-    rewardButtons.forEach(btn => {
-      const tier = Number(btn.dataset.tier);
-      const enable =
-        (tier === 1 && p < 1) ||
-        (tier === 2 && p >= 1 && p < 2) ||
-        (tier === 3 && p >= 2 && p < 3);
-      btn.disabled = !enable;
-    });
-
-    tierCards.forEach((card, idx) => {
-      const tier = idx + 1;
-      const nextLocked = (tier === 2 && p < 1) || (tier === 3 && p < 2);
-      card.classList.toggle("locked", nextLocked);
-      card.style.opacity = p >= tier ? .65 : 1;
-    });
-  }
-
-  // ——— Balance credit shim (fix: CHADs weren't adding) ———
-  // Call your game function if present; otherwise update localStorage + any visible balance element.
-  window.creditChads = window.creditChads || function creditChads(amount){
-    // 1) If your app already exposes a function, prefer it.
-    if (typeof window.addChads === "function") { try { return window.addChads(amount); } catch{} }
-    if (typeof window.addCHADs === "function") { try { return window.addCHADs(amount); } catch{} }
-    if (typeof window.updateChadBalance === "function") { try { return window.updateChadBalance(amount); } catch{} }
-
-    // 2) Local store fallback
-    const K = "chadsBalance";
-    const now = (Number(localStorage.getItem(K)) || 0) + Number(amount || 0);
-    localStorage.setItem(K, String(now));
-
-    // 3) Update any visible balance text if it exists
-    const el = document.getElementById("chadBalance")
-           || document.querySelector("[data-chads-balance]")
-           || Array.from(document.querySelectorAll("span,div,b,strong"))
-                .find(n => /^\d[\d,]*$/.test(n.textContent.trim()) && /chad/i.test(n?.previousSibling?.textContent || ""));
-    if (el) el.textContent = now.toLocaleString();
-  };
-
-  function toast(msg){ try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch {}; alert(msg); }
-
-  // Copy & Share (global share)
-  copyBtn?.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(linkEl.value); toast("Link copied"); } catch {}
-  });
-  shareBtn?.addEventListener("click", () => {
-    const url = linkEl.value, text = shareMessage(url, 1);
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-    tg?.openTelegramLink?.(shareUrl);
-  });
-
-  // Per-option Share buttons (before each option, as requested)
-  shareButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tier = Number(btn.dataset.share);
-      const url = linkEl.value, text = shareMessage(url, tier);
-      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
-      tg?.openTelegramLink?.(shareUrl);
-    });
-  });
-
-  // Redeem buttons (dev fallback): credit + unlock next tier
-  rewardButtons.forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const tier = Number(btn.dataset.tier);
-      const amount = REWARDS[tier];
-      if (!amount) return;
-
-      // If you add backend auto-award, disable this manual button and rely on server.
-      // For now we keep it so you can test the UI and see balance increase.
-      window.creditChads(amount);
-      toast(`+${amount.toLocaleString()} CHADs`);
-
-      const p = getProg();
-      if (tier === 1 && p < 1) setProg(1);
-      if (tier === 2 && p < 2) setProg(2);
-      if (tier === 3 && p < 3) setProg(3);
-      syncProgressUI();
-    });
-  });
-
-  // Auto-award hook (so a friend must actually play):
-  // When a new user starts any game for the FIRST time, call your backend once to confirm referral and credit inviter.
-  // This call is here for you to wire to your existing game start/quit handlers.
-  window.invitesSignalGamePlayed = async function(){
+  // Prime default link from Tier 1 (idempotent: server reuses active token)
+  async function primeDefaultLink() {
     try {
-      const initData = tg?.initData || "";
-      await fetch("/api/referrals/played", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ initData })
+      const res = await fx("share", { tier: 1 }); // returns {token,status}
+      const link = buildLinkFromToken(res.token);
+      if (linkEl) linkEl.value = link;
+      if (res.status !== "shared") showPending(1);
+    } catch { if (linkEl) linkEl.value = "https://t.me/"; }
+  }
+
+  // Share per tier → reuses the one active token (prevents multiple distinct links for same tier)
+  function wireShares(){
+    shareBtns.forEach((btn, idx) => {
+      const tier = idx+1;
+      btn?.addEventListener("click", async () => {
+        try {
+          const res  = await fx("share", { tier }); // one active token per (inviter,tier)
+          const link = buildLinkFromToken(res.token);
+          const text = msgForTier(link, tier);
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`; // share modal. :contentReference[oaicite:6]{index=6}
+          tg?.openTelegramLink?.(shareUrl); // open inside Telegram WebApp. :contentReference[oaicite:7]{index=7}
+          showPending(tier);
+          if (tier === 1 && linkEl) linkEl.value = link;
+        } catch { toast("Share failed. Try again."); }
       });
-      // Your backend should: validate initData → see if this user was referred → auto-credit inviter’s current tier → respond.
-    } catch {}
+    });
+  }
+
+  function showPending(tier){
+    const el = statusEls[tier-1];
+    el.textContent = "Waiting for friend to join…";
+    el.classList.add("pending");
+  }
+
+  // Poll status → when tier flips to done, credit balance on this device
+  let pollTimer = null;
+  function startPolling(){
+    stopPolling();
+    pollTimer = setInterval(checkStatus, 6000);
+  }
+  function stopPolling(){ if (pollTimer) clearInterval(pollTimer), pollTimer=null; }
+
+  function readPrev(){ try { return JSON.parse(localStorage.getItem(STARTED_KEY)) || {1:"idle",2:"idle",3:"idle"} } catch { return {1:"idle",2:"idle",3:"idle"} } }
+  function savePrev(x){ localStorage.setItem(STARTED_KEY, JSON.stringify(x)); }
+
+  async function checkStatus(){
+    try{
+      const res = await fx("status"); // {tiers, earned}
+      if (statsEl) statsEl.textContent = `Earned: ${(res.earned||0).toLocaleString()} CHADs`;
+
+      const t = res.tiers || {1:"idle",2:"idle",3:"idle"};
+      // update UI
+      shareBtns[0].disabled = false;
+      shareBtns[1].disabled = t[1] !== "done";
+      shareBtns[2].disabled = t[2] !== "done";
+      tierCards[1].classList.toggle("locked", t[1] !== "done");
+      tierCards[2].classList.toggle("locked", t[2] !== "done");
+      [1,2,3].forEach(i => {
+        const el = statusEls[i-1];
+        el.classList.toggle("pending", t[i]==="pending");
+        el.textContent = t[i]==="done" ? "Completed ✔" : (t[i]==="pending" ? "Waiting for friend to join…" : "");
+      });
+
+      // detect transitions pending->done and credit locally
+      const prev = readPrev();
+      [1,2,3].forEach(i => {
+        if ((prev[i]==="pending" || prev[i]==="idle") && t[i]==="done"){
+          addChadsToBalance(AMTS[i]);
+          toast(`+${AMTS[i].toLocaleString()} CHADs`);
+        }
+      });
+      savePrev(t);
+    }catch{}
+  }
+
+  // Add CHADs to your existing BigInt state (matches your localStorage schema)
+  function addChadsToBalance(amount){
+    try{
+      if (typeof window.loadStateLocal === "function" && typeof window.saveStateLocal === "function"){
+        const s = window.loadStateLocal();
+        s.chads = (typeof s.chads === "bigint" ? s.chads : BigInt(s.chads||0)) + BigInt(amount);
+        window.saveStateLocal(s);
+      } else {
+        const uid = tg?.initDataUnsafe?.user?.id || "guest";
+        const STORAGE_KEY = `chad_state_${uid}`;
+        const raw = localStorage.getItem(STORAGE_KEY);
+        let s = raw ? JSON.parse(raw) : { chads:"0", gen:"0", acc:"0", last: Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false };
+        s.chads = (BigInt(s.chads||"0") + BigInt(amount)).toString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      }
+      const el = document.getElementById("chadBalance") || document.querySelector("[data-chads-balance]");
+      if (el){
+        // read back
+        let v = "0";
+        if (typeof window.loadStateLocal === "function"){ v = (window.loadStateLocal().chads ?? 0n).toString(); }
+        else {
+          const uid = tg?.initDataUnsafe?.user?.id || "guest";
+          const STORAGE_KEY = `chad_state_${uid}`;
+          v = (JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}").chads || "0");
+        }
+        el.textContent = BigInt(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
+    }catch{}
+  }
+
+  // Invitee’s game should call this ONCE on first real play
+  window.invitesSignalGamePlayed = async function(){
+    try { await fx("played"); } catch {}
   };
 
-  // Optional heuristic: fire the hook the first time the player hits Start/Tap to play (in case you can't edit your game code).
-  let playedSent = false;
-  document.addEventListener("click", (e) => {
-    if (playedSent) return;
-    const t = (e.target.closest("button, a, div")?.textContent || "").toLowerCase();
-    if (t.includes("start") || t.includes("tap to play")) {
-      playedSent = true;
-      window.invitesSignalGamePlayed();
-    }
-  }, { capture: true });
-
-  // Modal behavior
+  // open/close modal
   const open = () => overlay?.classList.add("show");
   const close = () => overlay?.classList.remove("show");
   openBtn?.addEventListener("click", open);
   closeBtn?.addEventListener("click", close);
   overlay?.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-  addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 
-  // Init
-  loadMe();
-  syncProgressUI();
+  // header copy/share
+  copyBtn?.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(linkEl.value); toast("Link copied"); } catch {}
+  });
+  shareGlobal?.addEventListener("click", () => {
+    const url = linkEl.value, text = `🚀 ChadiliZe on Telegram!\nJoin with my link:\n${url}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    tg?.openTelegramLink?.(shareUrl);
+  });
+
+  // init
+  primeDefaultLink();
+  wireShares();
+  startPolling();
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
