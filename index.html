@@ -1113,100 +1113,66 @@ canvas{ display:block }
 .toast{ pointer-events:auto; background: radial-gradient(600px 300px at -10% -30%, rgba(120,180,255,.10), transparent 35%), linear-gradient(180deg,#0a1117,#0a0d11); border:1px solid rgba(255,255,255,.08); color:#eaf1f8; padding:12px 14px; border-radius:14px; box-shadow:0 28px 80px rgba(0,0,0,.6); display:flex; align-items:center; gap:10px; }
 .toast .accent{ font-weight:900; color:#ffd86b }
 
-/* ===== Levels skin ===== */
-.glass-xl{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
-    radial-gradient(140% 100% at 0% -40%, rgba(255,255,255,.10), transparent 45%),
-    linear-gradient(180deg,#0f141a,#0a0e12);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow: 0 30px 100px rgba(0,0,0,.60), inset 0 1px 0 rgba(255,255,255,.04);
-  border-radius: 16px;
-}
-
-/* Home badge with white/blue glow that hugs the PNG edge */
-.level-badge{ display:grid; place-items:center; padding:10px; }
-.level-badge-box{
-  width:100%; aspect-ratio:1/1; border-radius:14px; overflow:hidden; position:relative;
-  border:1px solid rgba(255,255,255,.08);
-  background:linear-gradient(180deg,#16181b,#0f1012);
-  transition: transform .15s ease, filter .25s ease, box-shadow .25s ease;
-}
-.level-badge-box:hover{ transform: translateY(-1px) scale(1.01); }
-.level-badge-box img{ width:100%; height:100%; object-fit:cover; display:block; }
-.level-badge-label{
-  position:absolute; left:10px; bottom:10px; font:900 12px/1 system-ui,Segoe UI,Roboto,sans-serif;
-  color:#dff0ff; letter-spacing:.28px; text-shadow:0 1px 0 rgba(0,0,0,.55);
-}
-.level-badge-box.current{
-  /* drop-shadow follows the image alpha, unlike box-shadow */
-  filter: drop-shadow(0 0 16px rgba(168,210,255,.55)) drop-shadow(0 0 36px rgba(168,210,255,.35));
-  box-shadow: 0 0 18px rgba(160,200,255,.35), 0 0 40px rgba(160,200,255,.25);
-}
-
-/* Overlay grid */
-.levels-grid{ display:grid; gap:14px; grid-template-columns:repeat(2,1fr); }
-@media (min-width:520px){ .levels-grid{ grid-template-columns:repeat(3,1fr); } }
-
-.lvl-card{
-  border-radius:14px; position:relative; display:grid; gap:10px;
-  padding:12px; background:linear-gradient(180deg,#0e1116,#0a0d11);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
-  transition: transform .15s ease, box-shadow .25s ease, outline-color .25s ease;
-}
-.lvl-card:hover{ transform: translateY(-2px); box-shadow: 0 26px 70px rgba(0,0,0,.6); }
-
-.lvl-imgbox{
-  position:relative; border-radius:10px; overflow:hidden; aspect-ratio:1/1;
-  border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg,#16181b,#0f1012);
-}
-.lvl-imgbox img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-.lvl-tag{
-  position:absolute; left:10px; top:10px; padding:5px 9px; border-radius:999px; z-index:2;
-  background:linear-gradient(180deg,#181b20,#0f1114); border:1px solid rgba(255,255,255,.12);
-  color:#eaf1f8; font:900 11px/1 system-ui,Segoe UI,Roboto,sans-serif; letter-spacing:.3px;
-}
-
-.lvl-card.locked .lvl-imgbox img{ filter: grayscale(100%) brightness(.72); }
-.lvl-card.locked .lock{
-  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(46%,120px);
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,.45)); opacity:.95; pointer-events:none;
-}
-
-.lvl-card.current{ outline:2px solid #4aa3ff; outline-offset:2px; }
-.lvl-card.unlocked:not(.current){ outline:2px solid #22ff88; outline-offset:2px; }
-
-.lvl-req{ font-size:12px; color:#9aa3ab; line-height:1.35; }
-.lvl-reward{ font-size:12px; color:#cfe4ff; font-weight:800; }
-
-/* Chest popup */
-.levelup-modal{
-  position:fixed; inset:0; display:none; place-items:center; z-index:10000;
-  background:radial-gradient(80% 80% at 50% 20%, #0009, #000e);
-  backdrop-filter: blur(4px);
-}
-.levelup-modal.show{ display:grid; }
-.lu-card{
-  width:min(92vw, 540px); padding:22px; border-radius:18px;
-  background:linear-gradient(180deg,#0f1319,#0b0f12);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 30px 100px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.04);
-  display:grid; gap:14px; justify-items:center; text-align:center;
-}
-.lu-img{ width:min(360px, 82%); height:auto; display:block; filter: drop-shadow(0 16px 40px rgba(0,0,0,.55)); }
-.lu-title{ font-weight:900; letter-spacing:.2px; color:#eaf1f8; }
-.lu-ok{
-  padding:12px 22px; border-radius:14px; border:0; cursor:pointer; font-weight:900; color:#061018;
-  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa);
-  box-shadow: 0 0 0 2px rgba(90,170,255,.55), 0 0 16px rgba(90,170,255,.65), 0 0 36px rgba(90,170,255,.45);
-}
-.lu-ok:active{ transform: translateY(1px); }
-
-
 /* Hidden helpers */
 .hidden{ display:none !important }
+/* ---------- Current-level badge tile ---------- */
+#levelBtn{ padding:12px 10px; background:linear-gradient(180deg,#0f1114,#0a0d11); }
+.level-badge{ position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.08); display:grid; place-items:center; background:#0c0f12; }
+.level-badge img{ width:100%; height:100%; object-fit:cover; display:block; }
+.level-badge .level-badge-ring{
+  position:absolute; inset:0; border-radius:12px; pointer-events:none;
+  /* white–bluish halo that matches PNG alpha nicely */
+  filter: drop-shadow(0 0 4px rgba(160,200,255,.85))
+          drop-shadow(0 0 16px rgba(120,180,255,.55));
+}
+
+/* ---------- Levels overlay ---------- */
+.levels-panel{ max-width:880px; }
+.levels-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.levels-close{ color:#fff !important; } /* make the Close text white */
+.levels-sub{ color:#aeb6bf; margin:6px 0 12px; }
+.levels-grid{
+  display:grid; grid-template-columns: repeat(2, 1fr); gap:14px;
+}
+@media (min-width:560px){ .levels-grid{ grid-template-columns: repeat(3, 1fr); } }
+@media (min-width:820px){ .levels-grid{ grid-template-columns: repeat(4, 1fr); } }
+
+.lvl-card{
+  background:linear-gradient(180deg,#12161b,#0b0f12); border:1px solid rgba(255,255,255,.08);
+  border-radius:14px; overflow:hidden; box-shadow:0 14px 42px rgba(0,0,0,.45);
+}
+.lvl-thumb{ position:relative; aspect-ratio:16/9; overflow:hidden; }
+.lvl-thumb img{ width:100%; height:100%; object-fit:cover; display:block; transition:filter .2s ease; }
+.lvl-thumb .ring{ position:absolute; inset:0; pointer-events:none; border-radius:10px;
+  filter: drop-shadow(0 0 10px rgba(150,200,255,.65));
+}
+.lvl-body{ padding:10px 12px; }
+.lvl-title{ font-weight:900; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+.badge{ font-size:12px; font-weight:900; color:#eaf2ff; background:#1b2636; border:1px solid #2b3b52; padding:4px 8px; border-radius:999px; }
+.badge.locked{ background:#3a2626; border-color:#5c3737; }
+.lvl-req, .lvl-reward{ font-size:13px; color:#cfd6de; line-height:1.35; margin:6px 0; }
+.lvl-reward b{ color:#ffd86b; }
+
+/* Locked: greyscale + centered lock */
+.lvl-locked .lvl-thumb img{ filter: grayscale(100%) brightness(.7) contrast(1.05); }
+.lvl-lock{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:36%; max-width:96px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.55));
+}
+
+/* ---------- Level-up popup ---------- */
+.levelup-card{ max-width:480px; text-align:center; }
+.levelup-img{ width:min(62vw, 260px); height:auto; display:block; margin:0 auto 8px; }
+.btn-primary{
+  padding:12px 16px; border-radius:12px; font-weight:900; border:0; cursor:pointer;
+  background:linear-gradient(180deg,#9ed2ff,#4aa3ff 60%, #1e55aa); color:#051022;
+  box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 24px rgba(90,160,255,.45);
+}
+
+/* Tighter white label style if you re-use .tile.level as a generic button inside panels */
+#levelsOverlay .tile.level{ color:#fff; }
+
 </style>
 </head>
 <body>
@@ -1368,11 +1334,11 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <!-- CENTER tile inside .controls -->
-<div class="tile level level-badge" id="levelBtn" role="button" aria-label="Open Levels">
-  <div class="level-badge-box current">
-    <img id="currentLevelImg" src="img/level1.png" alt="Level 1" loading="eager">
-    <div class="level-badge-label">LEVEL</div>
+        <!-- ===== CURRENT LEVEL TILE (replaces old grey Level tile) ===== -->
+<div class="tile level" id="levelBtn" aria-label="Open Levels">
+  <div class="level-badge">
+    <img id="levelBadgeImg" alt="Current level" src="img/level1.png" loading="lazy">
+    <div class="level-badge-ring"></div>
   </div>
 </div>
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
@@ -1540,25 +1506,24 @@ canvas{ display:block }
       </div>
     </div>
 
-
-<!-- LEVELS overlay -->
-<div class="overlay" id="levelsOverlay" aria-hidden="true">
-  <div class="panel glass-xl">
-    <div class="row">
-      <h2 style="margin:0">Levels</h2>
-      <button class="tile level" style="padding:8px 12px" onclick="LevelSystem.close()">Close</button>
+<!-- ===== LEVELS OVERLAY ===== -->
+<div id="levelsOverlay" class="overlay" hidden>
+  <div class="panel levels-panel">
+    <div class="levels-head">
+      <h2>Levels</h2>
+      <button id="levelsClose" class="tile level levels-close">Close</button>
     </div>
-    <p class="note">Unlock levels by meeting both requirements. The highest unlocked image appears on the home tile.</p>
-    <div class="levels-grid" id="levelsGrid"></div>
+    <p class="levels-sub">Unlock levels by meeting both requirements. The highest unlocked image appears on the home tile.</p>
+    <div id="levelsGrid" class="levels-grid" aria-live="polite"></div>
   </div>
 </div>
 
-<!-- Chest popup -->
-<div id="levelUpModal" class="levelup-modal" aria-hidden="true">
-  <div class="lu-card">
-    <img id="luImg" class="lu-img" src="img/chest2.png" alt="">
-    <div id="luTitle" class="lu-title">Congrats, You Have Reached Level 2 🎉</div>
-    <button id="luOk" class="lu-ok">OK</button>
+<!-- ===== LEVEL-UP POPUP ===== -->
+<div id="levelUpModal" class="overlay" hidden>
+  <div class="panel levelup-card">
+    <img id="levelUpImg" class="levelup-img" src="img/chest2.png" alt="">
+    <h3 id="levelUpTitle">Congrats! You reached Level 2 🎉</h3>
+    <button id="levelUpOk" class="btn btn-primary">OK</button>
   </div>
 </div>
 
@@ -2062,6 +2027,9 @@ async function handleOrbTap(e){
   if (now - lastTap < COOLDOWN_MS) return;
   lastTap = now;
 
+  // NEW: allow the system to show any deferred congrats only after user action
+  window.LevelSystem?.onPlayerAction?.();
+
   const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth / 2);
   const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight / 2);
 
@@ -2069,32 +2037,28 @@ async function handleOrbTap(e){
   pulse();
   playTap();
 
-  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1); // +CHAD per tap for current level
-  const prev = BigInt(state.chads || 0n);                        // previous local total
+  // NEW: level-based tap value (falls back to 1 if module isn’t ready)
+  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1);
 
   try {
-    // Try API that accepts an amount first:
+    // If your backend accepts a tap amount:
     try {
       const data = await apiClickLogo({ tap: Number(tapVal) });
       state.chads = BigInt(data.total_points);
     } catch {
-      // Legacy endpoint (no params). Server likely applied +1.
+      // Legacy endpoint; server still applies +1. Keep UI consistent with server.
       const data = await apiClickLogo();
       state.chads = BigInt(data.total_points);
-      // ---- RECONCILE: add the missing delta locally if server added less than tapVal
-      const serverApplied = state.chads - prev;                  // e.g., 1n
-      const missing = tapVal - (serverApplied > 0n ? serverApplied : 0n);
-      if (missing > 0n) state.chads += missing;
     }
   } catch {
-    // Offline/API error: apply full tap locally
-    state.chads = prev + tapVal;
+    // Offline/API error: apply locally so the UI still feels right.
+    state.chads += tapVal;
   }
 
-  // Persist & refresh UI
   saveStateLocal(state);
-  window.LevelSystem?.onProgress();
-  if (typeof refreshUI === 'function') refreshUI();
+  // Ask Levels to re-evaluate after state changes
+  window.LevelSystem?.refresh?.();
+  refreshUI();
 }
 
 
@@ -4219,172 +4183,7 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
-(() => {
-  const TOTAL = 19;
-  const LIMG = (n) => `img/level${n}.png`;
-  const CIMG = (n) => `img/chest${n}.png`;
-  const LOCK = 'img/lock.png';
 
-  const $ = (id) => document.getElementById(id);
-  const ui = {
-    btn: $('levelBtn'),
-    badgeBox: document.querySelector('.level-badge-box'),
-    badgeImg: $('currentLevelImg'),
-    overlay: $('levelsOverlay'),
-    grid: $('levelsGrid'),
-    lu: $('levelUpModal'),
-    luImg: $('luImg'),
-    luTitle: $('luTitle'),
-    luOk: $('luOk')
-  };
-
-  // ---------- Level table ----------
-  const mk = (lvl, chads, gen, tap) => ({
-    level: lvl, needChads: chads, needGen: gen, tapValue: tap, img: LIMG(lvl),
-    requirementText: `Reach ≥ ${chads.toLocaleString()} CHADs AND ≥ ${gen.toLocaleString()} generation/hr.`,
-    rewardText: `Achievement: Tap becomes +${tap.toLocaleString()} CHAD`,
-    check: m => (m.chadsTotal||0) >= chads && (m.genPerHour||0) >= gen
-  });
-
-  const LVLS = [
-    {level:1, img:LIMG(1), tapValue:1,
-     requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD", check:()=>true},
-    mk( 2,    5_000,            100,           3),
-    mk( 3,   20_000,          1_000,           9),
-    mk( 4,   30_000,          4_000,          20),
-    mk( 5,   60_000,          8_000,          60),
-    mk( 6,  120_000,         14_000,         120),
-    mk( 7,  300_000,         25_000,         200),
-    mk( 8,  600_000,         45_000,         300),
-    mk( 9,1_000_000,         60_000,         400),
-    mk(10,1_300_000,         80_000,         600),
-    mk(11,3_000_000,        190_000,         700),
-    mk(12,10_000_000,       600_000,       1_000),
-    mk(13,90_000_000,     4_000_000,       4_000),
-    mk(14,40_000_000,     8_000_000,       5_000),
-    mk(15,100_000_000,   16_000_000,       8_000),
-    mk(16,1_000_000_000, 23_000_000,      10_000),
-    mk(17,12_000_000_000,40_000_000,      40_000),
-    mk(18,80_000_000_000,100_000_000,     60_000),
-    mk(19,100_000_000_000,300_000_000,   120_000)
-  ];
-
-  const BOOT_T = Date.now();
-  let lastSig = '';
-
-  // ---------- Storage helpers ----------
-  function pickKey(){
-    if (typeof window.STORAGE_KEY === 'string') return window.STORAGE_KEY;
-    let best=null, bestC=-1n;
-    for (let i=0;i<localStorage.length;i++){
-      const k = localStorage.key(i); if (!k || !k.startsWith('chad_state_')) continue;
-      try { const o = JSON.parse(localStorage.getItem(k)||'{}'); const c = BigInt(o.chads||"0"); if (c>bestC){bestC=c;best=k;} } catch {}
-    }
-    return best;
-  }
-
-  function readPersist(){
-    try{
-      if (window.state && typeof state.chads==='bigint' && typeof state.gen==='bigint'){
-        return { key: window.STORAGE_KEY || pickKey(), chads:state.chads, gen:state.gen,
-                 level:Number(state.level||1), lvl_seen:Number(state.lvl_seen||state.level||1),
-                 last:Number(state.last||0) };
-      }
-    }catch{}
-    const key = pickKey() || 'chad_state_guest';
-    try{
-      const o = JSON.parse(localStorage.getItem(key)||'{}');
-      return { key,
-        chads:BigInt(o.chads||"0"), gen:BigInt(o.gen||"0"),
-        level:Number(o.level||1),  lvl_seen:Number(o.lvl_seen||o.level||1),
-        last:Number(o.last||0)
-      };
-    }catch{ return { key, chads:0n, gen:0n, level:1, lvl_seen:1, last:0 }; }
-  }
-
-  function writePatch(patch){
-    try{ if (window.state){ Object.assign(state, patch); if (typeof saveStateLocal==='function') saveStateLocal(state); } }catch{}
-    const key = readPersist().key;
-    try{ const o = JSON.parse(localStorage.getItem(key)||'{}'); Object.assign(o, patch);
-         localStorage.setItem(key, JSON.stringify(o)); }catch{}
-  }
-
-  const metrics = () => { const r=readPersist(); return { chadsTotal:Number(r.chads||0n), genPerHour:Number(r.gen||0n) }; };
-  const highestUnlocked = (m) => { let hi=1; for (const d of LVLS) if (d.check(m)) hi=d.level; return hi; };
-  const getLevel = () => Math.max(1, Math.min(TOTAL, Number(readPersist().level||1)));
-  const getSeen  = () => Math.max(1, Math.min(TOTAL, Number(readPersist().lvl_seen||1)));
-
-  // ---------- UI ----------
-  function renderBadge(){
-    const lv = getLevel(); if (ui.badgeImg){ ui.badgeImg.src = LIMG(lv); ui.badgeImg.alt = `Level ${lv}`; }
-    ui.badgeBox?.classList.add('current');
-  }
-  function renderGrid(){
-    const cur = getLevel(); if (!ui.grid) return;
-    ui.grid.innerHTML = LVLS.map(d=>{
-      const u = d.level<=cur;
-      return `
-        <div class="lvl-card ${u?'unlocked':'locked'} ${d.level===cur?'current':''}" data-level="${d.level}">
-          <div class="lvl-imgbox">
-            <img src="${d.img}" alt="Level ${d.level}" loading="lazy">
-            ${u?'':`<img class="lock" src="${LOCK}" alt="Locked">`}
-            <span class="lvl-tag">${d.level===cur?'CURRENT':u?'UNLOCKED':'LOCKED'}</span>
-          </div>
-          <div class="lvl-req">${d.requirementText}</div>
-          <div class="lvl-reward">${d.rewardText}</div>
-        </div>`;
-    }).join('');
-  }
-
-  // ---------- Chest popups ----------
-  const q=[]; function pushChest(lv){ q.push(lv); if (!ui.lu?.classList.contains('show')) showNext(); }
-  function showNext(){
-    const lv=q.shift(); if (!lv || !ui.lu) return;
-    ui.luImg.src=CIMG(lv); ui.luImg.alt=`Level ${lv} chest`;
-    ui.luTitle.textContent=`Congrats, You Have Reached Level ${lv} 🎉`;
-    ui.lu.classList.add('show'); ui.lu.setAttribute('aria-hidden','false');
-  }
-  function hideChest(){ ui.lu?.classList.remove('show'); ui.lu?.setAttribute('aria-hidden','true'); if (q.length) requestAnimationFrame(showNext); }
-  ui.luOk?.addEventListener('click', hideChest);
-
-  // ---------- Overlay ----------
-  ui.btn?.addEventListener('click', ()=>{ ui.overlay?.classList.add('show'); ui.overlay?.setAttribute('aria-hidden','false'); });
-  window.LevelSystem = window.LevelSystem || {};
-  window.LevelSystem.close = ()=>{ ui.overlay?.classList.remove('show'); ui.overlay?.setAttribute('aria-hidden','true'); };
-
-  // ---------- Boot normalize (NO popup) ----------
-  function normalizeOnBoot(){
-    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
-    if (hi>cur || hi>seen) writePatch({ level:hi, lvl_seen:hi, last:Math.floor(Date.now()/1000) });
-    renderBadge(); renderGrid();
-    lastSig = signature();
-  }
-
-  function onProgress(){
-    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
-    if (hi>cur) writePatch({ level:hi });
-    if (hi>seen && Date.now()>BOOT_T+1000){
-      for (let lv=seen+1; lv<=hi; lv++) pushChest(lv);
-      writePatch({ lvl_seen:hi });
-    }
-    renderBadge(); renderGrid();
-  }
-
-  function signature(){ const r=readPersist(); return `${r.chads}-${r.gen}-${r.level}-${r.lvl_seen}`; }
-  setInterval(()=>{ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } }, 1200);
-
-  try{ if (typeof saveStateLocal==='function'){ const _orig=saveStateLocal; window.saveStateLocal=function(...a){ const r=_orig.apply(this,a); try{ onProgress(); }catch{} return r; }; } }catch{}
-
-  window.addEventListener('storage', (e)=>{ if (e.key?.startsWith('chad_state_')){ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } } });
-
-  window.LevelSystem.open = ()=>ui.btn?.click();
-  window.LevelSystem.getTapValue = (lv=getLevel()) => { let v=1; for (const d of LVLS) if (d.level<=lv) v=d.tapValue; return v; };
-  window.LevelSystem.onProgress = onProgress;
-  window.LevelSystem.forceSync = onProgress;
-
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', normalizeOnBoot);
-  else normalizeOnBoot();
-})();
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
 
@@ -5354,7 +5153,225 @@ function openBreaker(){
   canvas.addEventListener('touchmove', pointerMove, {passive:false});
   canvas.addEventListener('touchend', pointerUp);
 })();
+/* ================= Levels System ================= */
+(function(){
+  const REQ = [
+    // lvl, chads, gen/hr, tap
+    [ 1, 0n,                0n,          1n  ],
+    [ 2, 5000n,             100n,        3n  ],
+    [ 3, 20000n,            1000n,       9n  ],
+    [ 4, 30000n,            4000n,       20n ],
+    [ 5, 60000n,            8000n,       60n ],
+    [ 6, 120000n,           14000n,      120n],
+    [ 7, 300000n,           25000n,      200n],
+    [ 8, 600000n,           45000n,      300n],
+    [ 9, 1000000n,          60000n,      400n],
+    [10, 1300000n,          80000n,      600n],
+    [11, 3000000n,          190000n,     700n],
+    [12, 10000000n,         600000n,     1000n],
+    [13, 90000000n,         4000000n,    4000n],
+    [14, 40000000n,         8000000n,    5000n],
+    [15, 100000000n,        16000000n,   8000n],
+    [16, 1000000000n,       23000000n,   10000n],
+    [17, 12000000000n,      40000000n,   40000n],
+    [18, 80000000000n,      100000000n,  60000n],
+    [19, 100000000000n,     300000000n,  120000n],
+  ];
+  const IMG = level => `img/level${level}.png`;
+  const CHEST = level => `img/chest${level}.png`;
+  const LOCK = `img/lock.png`;
 
+  /* -------- read/write your persisted state safely -------- */
+  function skey(){
+    return (window.STORAGE_KEY && typeof window.STORAGE_KEY === 'string')
+      ? window.STORAGE_KEY
+      : (Object.keys(localStorage).find(k => /^chad_state_/.test(k)) || null);
+  }
+  function readPersist(){
+    const key = skey();
+    let raw = key ? localStorage.getItem(key) : null;
+    if(!raw){ return { chads:0n, gen:0n, name:null, avatarIdx:null, level:1 }; }
+    try{
+      const o = JSON.parse(raw);
+      return {
+        chads: BigInt(o.chads ?? "0"),
+        gen:   BigInt(o.gen   ?? "0"),
+        name:  o.name ?? null,
+        avatarIdx: (typeof o.avatarIdx === 'number') ? o.avatarIdx : null,
+        level: o.level || 1
+      };
+    }catch{
+      return { chads:0n, gen:0n, name:null, avatarIdx:null, level:1 };
+    }
+  }
+  function writePersist(patch){
+    const key = skey(); if(!key) return;
+    try{
+      const o = JSON.parse(localStorage.getItem(key) || "{}");
+      const merged = { ...o, ...patch };
+      localStorage.setItem(key, JSON.stringify(merged)); /* standard Storage.setItem */ /* :contentReference[oaicite:2]{index=2} */
+    }catch{}
+  }
+
+  /* -------- compute highest unlocked -------- */
+  function computeLevel(chads, gen){
+    let lvl = 1;
+    for(const [L, needC, needG] of REQ){
+      if(chads >= needC && gen >= needG) lvl = L;
+      else break;
+    }
+    return lvl;
+  }
+  function tapFor(level){
+    const row = REQ.find(r => r[0] === level) || REQ[0];
+    return row[3];
+  }
+
+  /* -------- DOM helpers -------- */
+  const els = {
+    badge:   () => document.getElementById('levelBadgeImg'),
+    tile:    () => document.getElementById('levelBtn'),
+    grid:    () => document.getElementById('levelsGrid'),
+    overlay: () => document.getElementById('levelsOverlay'),
+    close:   () => document.getElementById('levelsClose'),
+    up:      () => document.getElementById('levelUpModal'),
+    upImg:   () => document.getElementById('levelUpImg'),
+    upTitle: () => document.getElementById('levelUpTitle'),
+    upOk:    () => document.getElementById('levelUpOk'),
+  };
+
+  function fmt(n){ try{ return Number(n).toLocaleString(); }catch{ return String(n); } }
+
+  function renderGrid(currentLevel){
+    const grid = els.grid(); if(!grid) return;
+    grid.innerHTML = '';
+    const { chads, gen } = readPersist();
+
+    for(const [L, needC, needG, tap] of REQ){
+      const card = document.createElement('div');
+      const unlocked = L <= currentLevel;
+      card.className = 'lvl-card' + (unlocked ? '' : ' lvl-locked');
+
+      const thumb = document.createElement('div'); thumb.className = 'lvl-thumb';
+      const img = document.createElement('img'); img.src = IMG(L); img.alt = `Level ${L}`;
+      thumb.appendChild(img);
+      const ring = document.createElement('div'); ring.className = 'ring'; thumb.appendChild(ring);
+
+      if(!unlocked){
+        const lk = document.createElement('img');
+        lk.src = LOCK; lk.alt = 'Locked'; lk.className = 'lvl-lock';
+        thumb.appendChild(lk);
+      }
+
+      const body = document.createElement('div'); body.className = 'lvl-body';
+
+      const title = document.createElement('div'); title.className = 'lvl-title';
+      const b = document.createElement('span');
+      b.className = 'badge ' + (unlocked ? '' : 'locked');
+      b.textContent = unlocked ? (L === currentLevel ? 'CURRENT' : 'UNLOCKED') : 'LOCKED';
+      title.append(b);
+      const t = document.createElement('span');
+      t.textContent = `Lvl ${L}`;
+      title.append(t);
+
+      const req = document.createElement('div'); req.className = 'lvl-req';
+      req.innerHTML = unlocked
+        ? `Requirements met.`
+        : `Reach ≥ <b>${fmt(needC)}</b> CHADs<br>AND ≥ <b>${fmt(needG)}</b> generation/hr.`;
+
+      const reward = document.createElement('div'); reward.className = 'lvl-reward';
+      reward.innerHTML = `<span>Achievement:</span> Tap becomes <b>+${fmt(tap)}</b> CHAD`;
+
+      body.append(title, req, reward);
+      card.append(thumb, body);
+      grid.append(card);
+    }
+  }
+
+  function setBadge(level){
+    const im = els.badge(); if(im) im.src = IMG(level);
+  }
+
+  /* -------- level-up popup (deferred) -------- */
+  const FLAG_KEY = 'level_notified_upto';
+  let pendingPopup = 0;
+
+  function scheduleCongrats(level){
+    // don’t spam: only if we haven’t shown this level yet
+    const seen = parseInt(localStorage.getItem(FLAG_KEY) || '1', 10);
+    if(level > seen){ pendingPopup = level; }
+  }
+  function maybeShowCongrats(){
+    if(!pendingPopup) return;
+    const up = els.up(); if(!up) return;
+    const L = pendingPopup;
+    els.upImg().src = CHEST(L);
+    els.upTitle().textContent = `Congrats! You reached Level ${L} 🎉`;
+    up.hidden = false;
+    localStorage.setItem(FLAG_KEY, String(L));
+    pendingPopup = 0;
+  }
+
+  /* -------- public API -------- */
+  const API = {
+    init(){
+      // compute and reconcile without spamming dialogs on boot
+      const p = readPersist();
+      const computed = computeLevel(p.chads, p.gen);
+      setBadge(computed);
+      renderGrid(computed);
+
+      // if new level > stored level, bump stored level but show popup later (on action)
+      if((p.level||1) < computed){
+        writePersist({ level: computed });
+        scheduleCongrats(computed);
+      }
+
+      // re-apply user pill if app didn’t yet
+      try{
+        if(typeof setUserPill === 'function'){
+          setUserPill(p.name, p.avatarIdx);
+        }else{
+          // minimal fallback
+          const nameEl = document.getElementById('userName');
+          if(nameEl && p.name) nameEl.textContent = p.name;
+        }
+      }catch{}
+
+      // wire UI
+      els.tile()?.addEventListener('click', ()=>{ els.overlay().hidden = false; });
+      els.close()?.addEventListener('click', ()=>{ els.overlay().hidden = true; });
+      els.upOk()?.addEventListener('click', ()=>{ els.up().hidden = true; });
+
+      // Also refresh when your app state changes and calls saveStateLocal(...)
+      // You can call LevelSystem.refresh() from there.
+    },
+
+    refresh(){
+      const p = readPersist();
+      const L = computeLevel(p.chads, p.gen);
+      setBadge(L);
+      renderGrid(L);
+
+      // if climbed, schedule a popup (shown on next user action)
+      if((p.level||1) < L){ writePersist({ level: L }); scheduleCongrats(L); }
+    },
+
+    getTapValue(){
+      const p = readPersist();
+      const L = computeLevel(p.chads, p.gen);
+      return Number(tapFor(L));
+    },
+
+    onPlayerAction(){
+      // show any deferred congrats only after the user interacts (e.g., first orb tap)
+      maybeShowCongrats();
+    }
+  };
+
+  window.LevelSystem = API;
+  document.addEventListener('DOMContentLoaded', API.init);
+})();
 /* ===== TILE RUSH (audio always on, fever 4x longer, 2.5x chads, mid-fever difficulty bump) ===== */
 (function(){
   const wrap = document.getElementById('trWrap');
