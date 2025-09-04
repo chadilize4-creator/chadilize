@@ -415,10 +415,7 @@
 }
 .ng-cell:active{ transform: translateY(1px) scale(.99); }
 
-/* OFF look */
-.ng-cell.off{
-  filter:saturate(.8) brightness(.9);
-}
+
 
 /* ON look: glossy neon tile */
 .ng-cell.on{
@@ -1875,7 +1872,7 @@ function refreshOrbImage(){ const img = document.getElementById('orbImg'); const
 function refreshUI(){
   document.getElementById('chadCount').textContent = fmt(state.chads);
   document.getElementById('genRate').textContent = fmt(state.gen);
-  document.getElementById('levelText').textContent = 'OFF';
+  document.getElementById('levelText').textContent = 'Lize';
   setUserPill(state.name, state.avatarIdx); refreshOrbImage();
 }
 
@@ -1931,7 +1928,7 @@ document.getElementById('buyBtn')?.addEventListener('click', ()=>{
   if(!state?.name || typeof state.avatarIdx!=='number'){ showToast('Choose username & profile first.'); ensureFirstRunFlow(); return; }
   openOverlay('buyOverlay');
 }, {passive:true});
-document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Level is OFF for now ✨'), {passive:true});
+document.getElementById('levelBtn')?.addEventListener('click', ()=> showToast('Chadilize ✨'), {passive:true});
 
 /* ===== Name & Avatar ===== */
 function setUserPill(name, avatarIdx){
