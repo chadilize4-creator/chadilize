@@ -2006,13 +2006,41 @@ function spawnParticlesOnOrb(clientX, clientY){
 }
 function pulse(){ const pulse = document.getElementById('pulse'); pulse.style.transition='none'; pulse.style.background='radial-gradient(circle, rgba(255,255,255,0.10), rgba(255,200,140,0.04))'; pulse.style.opacity='1'; pulse.style.transform='scale(0.02)';
   setTimeout(()=>{ pulse.style.transition='transform 420ms cubic-bezier(.2,.9,.2,1), opacity 420ms ease'; pulse.style.transform='scale(1)'; pulse.style.opacity='0.6'; setTimeout(()=>{ pulse.style.opacity='0'; pulse.style.transform='scale(1.4)'; }, 420); }, 20); }
-let lastTap = 0; const COOLDOWN_MS = 500;
+let lastTap = 0;
+const COOLDOWN_MS = 500;
+
 async function handleOrbTap(e){
-  const now = Date.now(); if (now - lastTap < COOLDOWN_MS) return; lastTap = now;
-  const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2); const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
+  const now = Date.now();
+  if (now - lastTap < COOLDOWN_MS) return;
+  lastTap = now;
+
+  window.LevelSystem?.onPlayerAction?.();
+
+  const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (document.body.clientWidth/2);
+  const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (document.body.clientHeight/2);
   spawnParticlesOnOrb(cx, cy); pulse(); playTap();
-  try{ const data = await apiClickLogo(); state.chads = BigInt(data.total_points); } catch{ state.chads += 1n; }
-  saveStateLocal(state); refreshUI();
+
+  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1);
+  const before = BigInt(state.chads || 0n);
+
+  try {
+    try {
+      const data = await apiClickLogo({ tap: Number(tapVal) });
+      state.chads = BigInt(data.total_points);
+    } catch {
+      const data = await apiClickLogo();             // legacy +1
+      state.chads = BigInt(data.total_points);
+      const applied = state.chads - before;          // what server added
+      const missing = tapVal - (applied > 0n ? applied : 0n);
+      if (missing > 0n) state.chads += missing;      // reconcile locally
+    }
+  } catch {
+    state.chads = before + tapVal;                   // offline fallback
+  }
+
+  saveStateLocal(state);
+  window.LevelSystem?.refresh?.();
+  if (typeof refreshUI === 'function') refreshUI();
 }
 document.getElementById('orb').addEventListener('click', handleOrbTap, {passive:true});
 document.getElementById('orb').addEventListener('touchstart', handleOrbTap, {passive:true});
