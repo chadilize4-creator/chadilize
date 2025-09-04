@@ -10,13 +10,14 @@
     --bg: var(--tg-theme-bg-color, #0b0e14);
     --fg: var(--tg-theme-text-color, #eaf2ff);
     --muted: #9aa3ad;
-    --card: color-mix(in oklab, var(--bg) 60%, #121826 40%);
     --border: color-mix(in oklab, var(--fg) 10%, transparent);
     --glow: 0 12px 40px rgba(91,140,255,.35);
-    --radius-xl: 20px; --radius: 14px; --yellow: #ffd84d;
+    --radius-xl: 20px; --radius: 14px; --yellow:#ffd84d;
   }
 
-  /* Square launcher fixed on the right */
+  body{ margin:0; background:var(--bg); color:var(--fg); font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+  /* Square launcher fixed right */
   #inviteRewardsBtn{
     position: fixed; right: 16px; bottom: 24px; z-index: 900;
     width: 72px; height: 72px; border-radius: 16px; object-fit: cover;
@@ -24,6 +25,7 @@
     background: #0c1220;
   }
 
+  /* Overlay + scrollable modal */
   .invite-overlay{ position:fixed; inset:0; z-index:9999; display:none;
     background: radial-gradient(1200px 800px at 20% -10%, rgba(91,140,255,.18), transparent 60%),
                 radial-gradient(1200px 800px at 120% 110%, rgba(255,119,199,.15), transparent 60%),
@@ -32,37 +34,26 @@
   .invite-overlay.show{ display:block; }
 
   .invite-modal{ margin:0 auto; max-width:980px; border-radius:var(--radius-xl);
-    position:relative; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.45); }
-  .invite-modal::before{ content:""; position:absolute; inset:-2px; z-index:0;
-    border-radius:calc(var(--radius-xl)+2px);
-    background: conic-gradient(from 200deg at 50% 50%, #6da3ff, #9f7fff, #ff77c7, #6da3ff);
-    animation: spin 8s linear infinite; filter: blur(6px); }
-  @keyframes spin{ to{ transform: rotate(360deg); } }
-
-  .invite-shell{ position:relative; z-index:1; display:flex; flex-direction:column;
-    background: linear-gradient(180deg, rgba(14,18,28,.9), rgba(10,13,20,.92));
-    border:1px solid var(--border); border-radius:inherit; max-height:88dvh; }
-
+    position:relative; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.45); border:1px solid var(--border); }
   .invite-head{ display:flex; align-items:center; justify-content:space-between;
-    padding:16px 18px; border-bottom:1px solid var(--border); }
+    padding:16px 18px; background:linear-gradient(90deg, rgba(91,140,255,.08), transparent); }
   .invite-title{ font-size:20px; font-weight:800; }
-  .invite-close{ border:1px solid var(--border); background:transparent; color:#fff;
-    padding:10px 12px; border-radius:12px; cursor:pointer; }
+  .invite-close{ border:1px solid var(--border); background:transparent; color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer; }
 
   .invite-body{ padding:16px; display:grid; gap:16px; grid-template-columns:1.2fr .8fr;
-    overflow-y:auto; max-height:100%; }
+    overflow-y:auto; max-height: 88dvh; background: linear-gradient(180deg, rgba(14,18,28,.9), rgba(10,13,20,.92)); }
   @media (max-width: 860px){ .invite-body{ grid-template-columns:1fr; } }
 
   .card{ background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
     border:1px solid var(--border); border-radius:var(--radius); padding:14px; box-shadow:var(--glow); }
   .muted{ color:var(--muted); font-size:13px; }
+  .btn{ padding:11px 14px; border-radius:12px; border:1px solid var(--border); background:#121826; color:#fff; cursor:pointer; }
+  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+  .btn.accent{ background: linear-gradient(135deg, #6da3ff, #ff77c7); border:none; color:#0b0e14; }
 
   .linkline{ display:grid; grid-template-columns:1fr auto auto; gap:8px; margin-top:8px; }
   .linkinput{ width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--border);
     background:#05070d; color:#fff; font:500 13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-  .btn{ padding:11px 14px; border-radius:12px; border:1px solid var(--border); background:#121826; color:#fff; cursor:pointer; }
-  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
-  .btn.accent{ background: linear-gradient(135deg, #6da3ff, #ff77c7); border:none; color:#0b0e14; }
 
   .rewards{ display:grid; gap:14px; grid-template-columns:1fr; }
   .reward-card{ position:relative; overflow:hidden; border-radius:16px; padding:14px;
@@ -75,7 +66,6 @@
   .reward-desc{ font-size:13px; color:var(--muted); }
   .status{ font-size:13px; margin-top:6px; }
   .status.pending{ color: var(--yellow); }
-
   .reward-card.locked::after{ content:"🔒 Locked"; position:absolute; top:10px; right:10px;
     font-size:12px; color:var(--muted); background:rgba(255,255,255,.06);
     border:1px solid var(--border); padding:4px 8px; border-radius:999px; }
@@ -1304,63 +1294,61 @@ canvas{ display:block }
 <!-- Invite modal -->
 <div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="invite-modal">
-    <div class="invite-shell">
-      <div class="invite-head">
-        <div class="invite-title">Invite friends → win huge CHADs</div>
-        <button class="invite-close" id="inviteCloseBtn">Close</button>
-      </div>
+    <div class="invite-head">
+      <div class="invite-title">Invite friends → win huge CHADs</div>
+      <button class="invite-close" id="inviteCloseBtn">Close</button>
+    </div>
 
-      <div class="invite-body">
-        <!-- Left: link + actions -->
-        <section class="card">
-          <div class="muted">Your personal invite link</div>
-          <div class="linkline">
-            <input id="inviteLink" class="linkinput" type="text" readonly value="Generating…">
-            <button class="btn" id="copyLinkBtn">Copy</button>
-            <button class="btn accent" id="shareLinkBtn">Share</button>
+    <div class="invite-body">
+      <!-- left: my link -->
+      <section class="card">
+        <div class="muted">Your personal invite link</div>
+        <div class="linkline">
+          <input id="inviteLink" class="linkinput" type="text" readonly value="Generating…">
+          <button class="btn" id="copyLinkBtn">Copy</button>
+          <button class="btn accent" id="shareLinkBtn">Share</button>
+        </div>
+        <div id="inviteStats" class="muted" style="margin-top:6px">Earned: 0 CHADs</div>
+      </section>
+
+      <!-- right: tiers -->
+      <section class="rewards">
+        <article class="reward-card" id="tier1">
+          <div class="reward-row">
+            <button class="btn" id="share1" data-tier="1">Share</button>
+            <div>
+              <div class="reward-label">Option 1</div>
+              <div class="reward-amt">+500,000 CHADs</div>
+            </div>
           </div>
-          <div id="inviteStats" class="muted" style="margin-top:6px">Invites: — • Earned: 0 CHADs</div>
-        </section>
+          <div class="reward-desc">Share to a friend. When they join & play, you’re rewarded.</div>
+          <div class="status" id="status1"></div>
+        </article>
 
-        <!-- Right: rewards (per-tier Share + status) -->
-        <section class="rewards">
-          <article class="reward-card" id="tier1">
-            <div class="reward-row">
-              <button class="btn" id="share1" data-tier="1">Share</button>
-              <div>
-                <div class="reward-label">Option 1</div>
-                <div class="reward-amt">+500,000 CHADs</div>
-              </div>
+        <article class="reward-card locked" id="tier2">
+          <div class="reward-row">
+            <button class="btn" id="share2" data-tier="2" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 2</div>
+              <div class="reward-amt">+5,000,000 CHADs</div>
             </div>
-            <div class="reward-desc">Share to a friend. When they join & play, you’re rewarded.</div>
-            <div class="status" id="status1"></div>
-          </article>
+          </div>
+          <div class="reward-desc">Unlocks after Option 1 completes.</div>
+          <div class="status" id="status2"></div>
+        </article>
 
-          <article class="reward-card locked" id="tier2">
-            <div class="reward-row">
-              <button class="btn" id="share2" data-tier="2" disabled>Share</button>
-              <div>
-                <div class="reward-label">Option 2</div>
-                <div class="reward-amt">+5,000,000 CHADs</div>
-              </div>
+        <article class="reward-card locked" id="tier3">
+          <div class="reward-row">
+            <button class="btn" id="share3" data-tier="3" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 3</div>
+              <div class="reward-amt">+3,000,000,000 CHADs</div>
             </div>
-            <div class="reward-desc">Unlocks after Option 1 completes.</div>
-            <div class="status" id="status2"></div>
-          </article>
-
-          <article class="reward-card locked" id="tier3">
-            <div class="reward-row">
-              <button class="btn" id="share3" data-tier="3" disabled>Share</button>
-              <div>
-                <div class="reward-label">Option 3</div>
-                <div class="reward-amt">+3,000,000,000 CHADs</div>
-              </div>
-            </div>
-            <div class="reward-desc">Unlocks after Option 2 completes.</div>
-            <div class="status" id="status3"></div>
-          </article>
-        </section>
-      </div>
+          </div>
+          <div class="reward-desc">Unlocks after Option 2 completes.</div>
+          <div class="status" id="status3"></div>
+        </article>
+      </section>
     </div>
   </div>
 </div>
@@ -1948,25 +1936,31 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- Telegram Web App API -->
+<!-- Telegram / Supabase SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
-  // —— Config
+  // -------- CONFIG --------
   const BOT_USERNAME = "chadilizebot";
   const APP_NAME     = "chadilize";
+
+  // Supabase (public keys — safe)
   const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
 
-  const AMTS = {1: 500_000, 2: 5_000_000, 3: 3_000_000_000}; // rewards per tier
+  // Edge Function name (change only if you deployed with a different name)
+  const FUNCTION_NAME = "invite";
 
+  // Rewards
+  const AMTS = {1: 500_000, 2: 5_000_000, 3: 3_000_000_000};
+
+  // -------- SDKs --------
   const tg = window.Telegram?.WebApp;
   try { tg?.expand?.(); } catch {}
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // DOM
+  // -------- DOM --------
   const $ = (s, r=document) => r.querySelector(s);
   const overlay=$("#inviteOverlay"), openBtn=$("#inviteRewardsBtn"), closeBtn=$("#inviteCloseBtn");
   const linkEl=$("#inviteLink"), copyBtn=$("#copyLinkBtn"), shareGlobal=$("#shareLinkBtn");
@@ -1975,82 +1969,82 @@ canvas{ display:block }
   const tierCards=[$("#tier1"),$("#tier2"),$("#tier3")];
   const statsEl=$("#inviteStats");
 
-  const STARTED_KEY = "invite_prev_tiers_v1"; // to detect transitions → credit balance
+  // -------- Helpers --------
+  const buildDirectLink = (token) =>
+    // Correct format for Mini App direct link with startapp (passed to start_param & tgWebAppStartParam) :contentReference[oaicite:1]{index=1}
+    `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`;
 
-  const buildLinkFromToken = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`;
-
-  const msgForTier = (link, tier) =>
+  const shareText = (link, tier) =>
     `🚀 ChadiliZe on Telegram!\nHelp me unlock +${AMTS[tier].toLocaleString()} CHADs — tap to join & play:\n${link}\n\n(You'll get a welcome boost too!)`;
 
   function toast(m){ try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch {}; alert(m); }
 
-  // —— Supabase Edge Function invoke (invite)
+  // Call Supabase Edge Function (server validates initData HMAC — required) :contentReference[oaicite:2]{index=2}
   async function fx(op, body = {}) {
-    const initData = tg?.initData || ""; // signed bundle (validate server-side). :contentReference[oaicite:4]{index=4}
-    const { data, error } = await supabase.functions.invoke("invite", { body: { op, initData, ...body } });
+    const initData = tg?.initData || "";  // signed payload (NEVER trust initDataUnsafe on server)
+    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: { op, initData, ...body } });
     if (error) throw error;
     return data;
   }
 
-  // Session open: attach startapp to this user if present
+  // ----- Session open: bind startapp token if present -----
   (async function sessionOpen(){
     const params = new URLSearchParams(location.search);
-    const startParam = params.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null; // passed from direct link. :contentReference[oaicite:5]{index=5}
+    // iOS sometimes missed the GET param in older builds; we also read start_param from initDataUnsafe. :contentReference[oaicite:3]{index=3}
+    const startParam = params.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
     try { await fx("session_open", { startParam }); } catch {}
   })();
 
-  // Prime default link from Tier 1 (idempotent: server reuses active token)
+  // ----- Prime default link (Tier 1 token) -----
   async function primeDefaultLink() {
     try {
-      const res = await fx("share", { tier: 1 }); // returns {token,status}
-      const link = buildLinkFromToken(res.token);
+      const res = await fx("share", { tier: 1 }); // idempotent: same token reused
+      const link = buildDirectLink(res.token);
       if (linkEl) linkEl.value = link;
-      if (res.status !== "shared") showPending(1);
+      if (res.status !== "shared") markPending(1);
     } catch { if (linkEl) linkEl.value = "https://t.me/"; }
   }
 
-  // Share per tier → reuses the one active token (prevents multiple distinct links for same tier)
+  // ----- Share handlers -----
   function wireShares(){
-    shareBtns.forEach((btn, idx) => {
-      const tier = idx+1;
+    shareBtns.forEach((btn, i) => {
+      const tier = i+1;
       btn?.addEventListener("click", async () => {
         try {
-          const res  = await fx("share", { tier }); // one active token per (inviter,tier)
-          const link = buildLinkFromToken(res.token);
-          const text = msgForTier(link, tier);
-          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`; // share modal. :contentReference[oaicite:6]{index=6}
-          tg?.openTelegramLink?.(shareUrl); // open inside Telegram WebApp. :contentReference[oaicite:7]{index=7}
-          showPending(tier);
-          if (tier === 1 && linkEl) linkEl.value = link;
+          const res  = await fx("share", { tier });   // server gives ONE active token per tier
+          const link = buildDirectLink(res.token);
+
+          // Use official Telegram share URL + openTelegramLink to show the native picker. :contentReference[oaicite:4]{index=4}
+          const text = shareText(link, tier);
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+          tg?.openTelegramLink?.(shareUrl);
+
+          markPending(tier);
+          if (tier === 1 && linkEl) linkEl.value = link; // keep header link useful
         } catch { toast("Share failed. Try again."); }
       });
     });
   }
 
-  function showPending(tier){
+  function markPending(tier){
     const el = statusEls[tier-1];
     el.textContent = "Waiting for friend to join…";
     el.classList.add("pending");
   }
 
-  // Poll status → when tier flips to done, credit balance on this device
-  let pollTimer = null;
-  function startPolling(){
-    stopPolling();
-    pollTimer = setInterval(checkStatus, 6000);
-  }
-  function stopPolling(){ if (pollTimer) clearInterval(pollTimer), pollTimer=null; }
-
-  function readPrev(){ try { return JSON.parse(localStorage.getItem(STARTED_KEY)) || {1:"idle",2:"idle",3:"idle"} } catch { return {1:"idle",2:"idle",3:"idle"} } }
-  function savePrev(x){ localStorage.setItem(STARTED_KEY, JSON.stringify(x)); }
+  // ----- Poll server for status & credit balance locally when a tier completes -----
+  const PREV_KEY = "invite_prev_tiers_v1";
+  const readPrev = () => { try { return JSON.parse(localStorage.getItem(PREV_KEY)) || {1:"idle",2:"idle",3:"idle"} } catch { return {1:"idle",2:"idle",3:"idle"} } };
+  const savePrev = (x) => localStorage.setItem(PREV_KEY, JSON.stringify(x));
 
   async function checkStatus(){
     try{
-      const res = await fx("status"); // {tiers, earned}
+      const res = await fx("status"); // { tiers, earned }
       if (statsEl) statsEl.textContent = `Earned: ${(res.earned||0).toLocaleString()} CHADs`;
 
       const t = res.tiers || {1:"idle",2:"idle",3:"idle"};
-      // update UI
+
+      // UI enable/lock
       shareBtns[0].disabled = false;
       shareBtns[1].disabled = t[1] !== "done";
       shareBtns[2].disabled = t[2] !== "done";
@@ -2062,7 +2056,7 @@ canvas{ display:block }
         el.textContent = t[i]==="done" ? "Completed ✔" : (t[i]==="pending" ? "Waiting for friend to join…" : "");
       });
 
-      // detect transitions pending->done and credit locally
+      // detect transitions pending/idle -> done and add CHADs
       const prev = readPrev();
       [1,2,3].forEach(i => {
         if ((prev[i]==="pending" || prev[i]==="idle") && t[i]==="done"){
@@ -2073,8 +2067,9 @@ canvas{ display:block }
       savePrev(t);
     }catch{}
   }
+  setInterval(checkStatus, 6000);
 
-  // Add CHADs to your existing BigInt state (matches your localStorage schema)
+  // Add CHADs into your existing BigInt state (compatible with your localStorage schema)
   function addChadsToBalance(amount){
     try{
       if (typeof window.loadStateLocal === "function" && typeof window.saveStateLocal === "function"){
@@ -2089,27 +2084,26 @@ canvas{ display:block }
         s.chads = (BigInt(s.chads||"0") + BigInt(amount)).toString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
       }
-      const el = document.getElementById("chadBalance") || document.querySelector("[data-chads-balance]");
-      if (el){
-        // read back
-        let v = "0";
+      const balEl = document.getElementById("chadBalance") || document.querySelector("[data-chads-balance]");
+      if (balEl){
+        let v="0";
         if (typeof window.loadStateLocal === "function"){ v = (window.loadStateLocal().chads ?? 0n).toString(); }
         else {
           const uid = tg?.initDataUnsafe?.user?.id || "guest";
           const STORAGE_KEY = `chad_state_${uid}`;
           v = (JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}").chads || "0");
         }
-        el.textContent = BigInt(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        balEl.textContent = BigInt(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       }
     }catch{}
   }
 
-  // Invitee’s game should call this ONCE on first real play
+  // Invitee should call this ONCE when they actually start playing (wire to “Tap to Play”)
   window.invitesSignalGamePlayed = async function(){
     try { await fx("played"); } catch {}
   };
 
-  // open/close modal
+  // open/close
   const open = () => overlay?.classList.add("show");
   const close = () => overlay?.classList.remove("show");
   openBtn?.addEventListener("click", open);
@@ -2121,15 +2115,15 @@ canvas{ display:block }
     try { await navigator.clipboard.writeText(linkEl.value); toast("Link copied"); } catch {}
   });
   shareGlobal?.addEventListener("click", () => {
-    const url = linkEl.value, text = `🚀 ChadiliZe on Telegram!\nJoin with my link:\n${url}`;
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    const url = linkEl.value;
+    const text = `🚀 ChadiliZe on Telegram!\nJoin with my link:\n${url}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`; // official sharing URL. :contentReference[oaicite:5]{index=5}
     tg?.openTelegramLink?.(shareUrl);
   });
 
   // init
   primeDefaultLink();
-  wireShares();
-  startPolling();
+  checkStatus();
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
