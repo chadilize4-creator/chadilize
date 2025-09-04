@@ -1113,9 +1113,7 @@ canvas{ display:block }
 .toast{ pointer-events:auto; background: radial-gradient(600px 300px at -10% -30%, rgba(120,180,255,.10), transparent 35%), linear-gradient(180deg,#0a1117,#0a0d11); border:1px solid rgba(255,255,255,.08); color:#eaf1f8; padding:12px 14px; border-radius:14px; box-shadow:0 28px 80px rgba(0,0,0,.6); display:flex; align-items:center; gap:10px; }
 .toast .accent{ font-weight:900; color:#ffd86b }
 
-/* Hidden helpers */
-.hidden{ display:none !important }
-/* ===== Levels – visual skin ===== */
+/* ===== Levels skin ===== */
 .glass-xl{
   background:
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
@@ -1126,10 +1124,10 @@ canvas{ display:block }
   border-radius: 16px;
 }
 
-/* Home badge */
+/* Home badge with white/blue glow that hugs the PNG edge */
 .level-badge{ display:grid; place-items:center; padding:10px; }
 .level-badge-box{
-  width:100%; aspect-ratio:1 / 1; border-radius:14px; overflow:hidden; position:relative;
+  width:100%; aspect-ratio:1/1; border-radius:14px; overflow:hidden; position:relative;
   border:1px solid rgba(255,255,255,.08);
   background:linear-gradient(180deg,#16181b,#0f1012);
   transition: transform .15s ease, filter .25s ease, box-shadow .25s ease;
@@ -1137,17 +1135,16 @@ canvas{ display:block }
 .level-badge-box:hover{ transform: translateY(-1px) scale(1.01); }
 .level-badge-box img{ width:100%; height:100%; object-fit:cover; display:block; }
 .level-badge-label{
-  position:absolute; left:10px; bottom:10px;
-  font:900 12px/1 system-ui,Segoe UI,Roboto,sans-serif; letter-spacing:.28px;
-  color:#dff0ff; text-shadow:0 1px 0 rgba(0,0,0,.55);
+  position:absolute; left:10px; bottom:10px; font:900 12px/1 system-ui,Segoe UI,Roboto,sans-serif;
+  color:#dff0ff; letter-spacing:.28px; text-shadow:0 1px 0 rgba(0,0,0,.55);
 }
-/* halo that follows PNG shape (drop-shadow follows alpha) */
 .level-badge-box.current{
+  /* drop-shadow follows the image alpha, unlike box-shadow */
   filter: drop-shadow(0 0 16px rgba(168,210,255,.55)) drop-shadow(0 0 36px rgba(168,210,255,.35));
   box-shadow: 0 0 18px rgba(160,200,255,.35), 0 0 40px rgba(160,200,255,.25);
 }
 
-/* Levels overlay grid */
+/* Overlay grid */
 .levels-grid{ display:grid; gap:14px; grid-template-columns:repeat(2,1fr); }
 @media (min-width:520px){ .levels-grid{ grid-template-columns:repeat(3,1fr); } }
 
@@ -1161,25 +1158,23 @@ canvas{ display:block }
 .lvl-card:hover{ transform: translateY(-2px); box-shadow: 0 26px 70px rgba(0,0,0,.6); }
 
 .lvl-imgbox{
-  position:relative; border-radius:10px; overflow:hidden; aspect-ratio:1 / 1;
+  position:relative; border-radius:10px; overflow:hidden; aspect-ratio:1/1;
   border:1px solid rgba(255,255,255,.10); background:linear-gradient(180deg,#16181b,#0f1012);
 }
 .lvl-imgbox img{ width:100%; height:100%; object-fit:cover; display:block; }
 
 .lvl-tag{
-  position:absolute; left:10px; top:10px; z-index:2; padding:5px 9px; border-radius:999px;
+  position:absolute; left:10px; top:10px; padding:5px 9px; border-radius:999px; z-index:2;
   background:linear-gradient(180deg,#181b20,#0f1114); border:1px solid rgba(255,255,255,.12);
   color:#eaf1f8; font:900 11px/1 system-ui,Segoe UI,Roboto,sans-serif; letter-spacing:.3px;
 }
 
-/* Locked look: grey image + centered lock icon (lock is NOT grey) */
 .lvl-card.locked .lvl-imgbox img{ filter: grayscale(100%) brightness(.72); }
 .lvl-card.locked .lock{
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(46%,120px);
   filter: drop-shadow(0 8px 16px rgba(0,0,0,.45)); opacity:.95; pointer-events:none;
 }
 
-/* Outlines */
 .lvl-card.current{ outline:2px solid #4aa3ff; outline-offset:2px; }
 .lvl-card.unlocked:not(.current){ outline:2px solid #22ff88; outline-offset:2px; }
 
@@ -1209,6 +1204,9 @@ canvas{ display:block }
 }
 .lu-ok:active{ transform: translateY(1px); }
 
+
+/* Hidden helpers */
+.hidden{ display:none !important }
 </style>
 </head>
 <body>
@@ -1370,7 +1368,7 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <!-- CENTER: Levels tile (shows latest unlocked) -->
+        <!-- CENTER tile inside .controls -->
 <div class="tile level level-badge" id="levelBtn" role="button" aria-label="Open Levels">
   <div class="level-badge-box current">
     <img id="currentLevelImg" src="img/level1.png" alt="Level 1" loading="eager">
@@ -1542,7 +1540,8 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- LEVELS Overlay -->
+
+<!-- LEVELS overlay -->
 <div class="overlay" id="levelsOverlay" aria-hidden="true">
   <div class="panel glass-xl">
     <div class="row">
@@ -1554,7 +1553,7 @@ canvas{ display:block }
   </div>
 </div>
 
-<!-- LEVEL-UP (chest) Modal -->
+<!-- Chest popup -->
 <div id="levelUpModal" class="levelup-modal" aria-hidden="true">
   <div class="lu-card">
     <img id="luImg" class="lu-img" src="img/chest2.png" alt="">
@@ -1562,7 +1561,6 @@ canvas{ display:block }
     <button id="luOk" class="lu-ok">OK</button>
   </div>
 </div>
-
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -2071,31 +2069,34 @@ async function handleOrbTap(e){
   pulse();
   playTap();
 
-  // NEW: level-based tap value (falls back to 1 if Levels isn’t loaded)
-  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1);
+  const tapVal = BigInt(window.LevelSystem?.getTapValue() || 1); // +CHAD per tap for current level
+  const prev = BigInt(state.chads || 0n);                        // previous local total
 
   try {
-    // If your backend can accept a tap amount, try this:
-    // (If it throws because it doesn't accept params, we fall back below.)
+    // Try API that accepts an amount first:
     try {
       const data = await apiClickLogo({ tap: Number(tapVal) });
       state.chads = BigInt(data.total_points);
     } catch {
-      // Legacy endpoint without parameters
+      // Legacy endpoint (no params). Server likely applied +1.
       const data = await apiClickLogo();
       state.chads = BigInt(data.total_points);
-      // NOTE: If the server still only applies +1 per tap,
-      // the local display will match the server here.
-      // (Your backend should be updated to apply the correct tap bonus.)
+      // ---- RECONCILE: add the missing delta locally if server added less than tapVal
+      const serverApplied = state.chads - prev;                  // e.g., 1n
+      const missing = tapVal - (serverApplied > 0n ? serverApplied : 0n);
+      if (missing > 0n) state.chads += missing;
     }
   } catch {
-    // Fallback (offline / API error): apply the level tap value locally
-    state.chads += tapVal;
+    // Offline/API error: apply full tap locally
+    state.chads = prev + tapVal;
   }
 
+  // Persist & refresh UI
   saveStateLocal(state);
-  refreshUI();
+  window.LevelSystem?.onProgress();
+  if (typeof refreshUI === 'function') refreshUI();
 }
+
 
 document.getElementById('orb').addEventListener('click', handleOrbTap, { passive: true });
 document.getElementById('orb').addEventListener('touchstart', handleOrbTap, { passive: true });
@@ -3105,186 +3106,7 @@ function buildGrid(container, cols, rows){
   });
 })();
 
-(() => {
-  /* ================= Levels System (stable) ================= */
 
-  const TOTAL = 19;
-  const LIMG = (n) => `img/level${n}.png`;
-  const CIMG = (n) => `img/chest${n}.png`;
-  const LOCK = 'img/lock.png';
-
-  // DOM refs
-  const $ = (id) => document.getElementById(id);
-  const ui = {
-    btn: $('levelBtn'),
-    badgeBox: document.querySelector('.level-badge-box'),
-    badgeImg: $('currentLevelImg'),
-    overlay: $('levelsOverlay'),
-    grid: $('levelsGrid'),
-    lu: $('levelUpModal'),
-    luImg: $('luImg'),
-    luTitle: $('luTitle'),
-    luOk: $('luOk')
-  };
-
-  // ---------------- level table ----------------
-  const mk = (lvl, chads, gen, tap) => ({
-    level: lvl, needChads: chads, needGen: gen, tapValue: tap,
-    img: LIMG(lvl),
-    requirementText: `Reach ≥ ${chads.toLocaleString()} CHADs AND ≥ ${gen.toLocaleString()} generation/hr.`,
-    rewardText: `Achievement: Tap becomes +${tap.toLocaleString()} CHAD`,
-    check: m => (m.chadsTotal||0) >= chads && (m.genPerHour||0) >= gen
-  });
-
-  const LVLS = [
-    {level:1, img:LIMG(1), tapValue:1, requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD", check:()=>true},
-    mk( 2,    5_000,            100,           3),
-    mk( 3,   20_000,          1_000,           9),
-    mk( 4,   30_000,          4_000,          20),
-    mk( 5,   60_000,          8_000,          60),
-    mk( 6,  120_000,         14_000,         120),
-    mk( 7,  300_000,         25_000,         200),
-    mk( 8,  600_000,         45_000,         300),
-    mk( 9,1_000_000,         60_000,         400),
-    mk(10,1_300_000,         80_000,         600),
-    mk(11,3_000_000,        190_000,         700),
-    mk(12,10_000_000,       600_000,       1_000),
-    mk(13,90_000_000,     4_000_000,       4_000),
-    mk(14,40_000_000,     8_000_000,       5_000),
-    mk(15,100_000_000,   16_000_000,       8_000),
-    mk(16,1_000_000_000, 23_000_000,      10_000),
-    mk(17,12_000_000_000,40_000_000,      40_000),
-    mk(18,80_000_000_000,100_000_000,     60_000),
-    mk(19,100_000_000_000,300_000_000,   120_000)
-  ];
-
-  const BOOT_T = Date.now();
-  let lastSig = '';
-
-  // ---------------- storage helpers ----------------
-  function pickKey(){
-    if (typeof window.STORAGE_KEY === 'string') return window.STORAGE_KEY;
-    let best=null, bestC=-1n;
-    for (let i=0;i<localStorage.length;i++){
-      const k = localStorage.key(i); if (!k || !k.startsWith('chad_state_')) continue;
-      try { const o = JSON.parse(localStorage.getItem(k)||'{}'); const c = BigInt(o.chads||"0"); if (c>bestC){bestC=c;best=k;} } catch {}
-    }
-    return best;
-  }
-
-  function readPersist(){
-    // Prefer your live state if available
-    try{
-      if (window.state && typeof state.chads==='bigint' && typeof state.gen==='bigint'){
-        return { key: window.STORAGE_KEY || pickKey(), chads:state.chads, gen:state.gen,
-                 level:Number(state.level||1), lvl_seen:Number(state.lvl_seen||state.level||1),
-                 last:Number(state.last||0) };
-      }
-    }catch{}
-
-    const key = pickKey();
-    if (!key) return { key:null, chads:0n, gen:0n, level:1, lvl_seen:1, last:0 };
-    try{
-      const o = JSON.parse(localStorage.getItem(key)||'{}');
-      return { key,
-        chads:BigInt(o.chads||"0"), gen:BigInt(o.gen||"0"),
-        level:Number(o.level||1),  lvl_seen:Number(o.lvl_seen||o.level||1),
-        last:Number(o.last||0)
-      };
-    }catch{
-      return { key, chads:0n, gen:0n, level:1, lvl_seen:1, last:0 };
-    }
-  }
-
-  function writePatch(patch){
-    try{ if (window.state){ Object.assign(state, patch); if (typeof saveStateLocal==='function') saveStateLocal(state); } }catch{}
-    const key = readPersist().key; if (!key) return;
-    try{ const o = JSON.parse(localStorage.getItem(key)||'{}'); Object.assign(o, patch); localStorage.setItem(key, JSON.stringify(o)); }catch{}
-  }
-
-  // ---------------- metrics/level math ----------------
-  const metrics = () => { const r=readPersist(); return { chadsTotal:Number(r.chads||0n), genPerHour:Number(r.gen||0n) }; };
-  const highestUnlocked = (m) => { let hi=1; for (const d of LVLS) if (d.check(m)) hi=d.level; return hi; };
-  const getLevel = () => Math.max(1, Math.min(TOTAL, Number(readPersist().level||1)));
-  const getSeen  = () => Math.max(1, Math.min(TOTAL, Number(readPersist().lvl_seen||1)));
-
-  // ---------------- UI render ----------------
-  function renderBadge(){
-    const lv = getLevel(); if (ui.badgeImg){ ui.badgeImg.src = LIMG(lv); ui.badgeImg.alt = `Level ${lv}`; }
-    ui.badgeBox?.classList.add('current');
-  }
-  function renderGrid(){
-    const cur = getLevel(); if (!ui.grid) return;
-    ui.grid.innerHTML = LVLS.map(d=>{
-      const u = d.level<=cur;
-      return `
-        <div class="lvl-card ${u?'unlocked':'locked'} ${d.level===cur?'current':''}" data-level="${d.level}">
-          <div class="lvl-imgbox">
-            <img src="${d.img}" alt="Level ${d.level}" loading="lazy">
-            ${u?'':`<img class="lock" src="${LOCK}" alt="Locked">`}
-            <span class="lvl-tag">${d.level===cur?'CURRENT':u?'UNLOCKED':'LOCKED'}</span>
-          </div>
-          <div class="lvl-req">${d.requirementText}</div>
-          <div class="lvl-reward">${d.rewardText}</div>
-        </div>`;
-    }).join('');
-  }
-
-  // ---------------- chest popups ----------------
-  const q=[]; function pushChest(lv){ q.push(lv); if (!ui.lu?.classList.contains('show')) showNext(); }
-  function showNext(){
-    const lv=q.shift(); if (!lv || !ui.lu) return;
-    ui.luImg.src=CIMG(lv); ui.luImg.alt=`Level ${lv} chest`;
-    ui.luTitle.textContent=`Congrats, You Have Reached Level ${lv} 🎉`;
-    ui.lu.classList.add('show'); ui.lu.setAttribute('aria-hidden','false');
-  }
-  function hideChest(){ ui.lu?.classList.remove('show'); ui.lu?.setAttribute('aria-hidden','true'); if (q.length) requestAnimationFrame(showNext); }
-  ui.luOk?.addEventListener('click', hideChest);
-
-  // ---------------- overlay controls ----------------
-  ui.btn?.addEventListener('click', ()=>{ ui.overlay?.classList.add('show'); ui.overlay?.setAttribute('aria-hidden','false'); });
-  window.LevelSystem = window.LevelSystem || {};
-  window.LevelSystem.close = ()=>{ ui.overlay?.classList.remove('show'); ui.overlay?.setAttribute('aria-hidden','true'); };
-
-  // ---------------- boot normalize (NO popups) ----------------
-  function normalizeOnBoot(){
-    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
-    if (hi>cur || hi>seen) writePatch({ level:hi, lvl_seen:hi, last:Math.floor(Date.now()/1000) });
-    renderBadge(); renderGrid();
-    lastSig = signature();
-  }
-
-  // Will only popup on true progress after boot
-  function onProgress(){
-    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
-    if (hi>cur) writePatch({ level:hi });                 // keep storage in sync
-    if (hi>seen && Date.now()>BOOT_T+1000){              // guard against boot tick
-      for (let lv=seen+1; lv<=hi; lv++) pushChest(lv);
-      writePatch({ lvl_seen:hi });
-    }
-    renderBadge(); renderGrid();
-  }
-
-  // small safety net (paths that bypass saveStateLocal)
-  function signature(){ const r=readPersist(); return `${r.chads}-${r.gen}-${r.level}-${r.lvl_seen}`; }
-  setInterval(()=>{ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } }, 1200);
-
-  // Hook into your saver so we re-evaluate immediately
-  try{ if (typeof saveStateLocal==='function'){ const _orig=saveStateLocal; window.saveStateLocal=function(...a){ const r=_orig.apply(this,a); try{ onProgress(); }catch{} return r; }; } }catch{}
-
-  // Cross-tab updates: fires only in *other* tabs
-  window.addEventListener('storage', (e)=>{ if (e.key?.startsWith('chad_state_')){ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } } });
-
-  // expose tiny API
-  window.LevelSystem.open = ()=>ui.btn?.click();
-  window.LevelSystem.getTapValue = (lv=getLevel()) => { let v=1; for (const d of LVLS) if (d.level<=lv) v=d.tapValue; return v; };
-  window.LevelSystem.onProgress = onProgress;
-  window.LevelSystem.forceSync = onProgress;
-
-  // start when DOM ready
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', normalizeOnBoot);
-  else normalizeOnBoot();
-})();
 
 /* ===== Snake ===== */
 const snakeGridEl = document.getElementById('snakeGrid'); let S=null, sLoop=null;
@@ -4397,7 +4219,172 @@ function quitVJ(){
   VJ = null;
   closeOverlay('vjModal');
 }
+(() => {
+  const TOTAL = 19;
+  const LIMG = (n) => `img/level${n}.png`;
+  const CIMG = (n) => `img/chest${n}.png`;
+  const LOCK = 'img/lock.png';
 
+  const $ = (id) => document.getElementById(id);
+  const ui = {
+    btn: $('levelBtn'),
+    badgeBox: document.querySelector('.level-badge-box'),
+    badgeImg: $('currentLevelImg'),
+    overlay: $('levelsOverlay'),
+    grid: $('levelsGrid'),
+    lu: $('levelUpModal'),
+    luImg: $('luImg'),
+    luTitle: $('luTitle'),
+    luOk: $('luOk')
+  };
+
+  // ---------- Level table ----------
+  const mk = (lvl, chads, gen, tap) => ({
+    level: lvl, needChads: chads, needGen: gen, tapValue: tap, img: LIMG(lvl),
+    requirementText: `Reach ≥ ${chads.toLocaleString()} CHADs AND ≥ ${gen.toLocaleString()} generation/hr.`,
+    rewardText: `Achievement: Tap becomes +${tap.toLocaleString()} CHAD`,
+    check: m => (m.chadsTotal||0) >= chads && (m.genPerHour||0) >= gen
+  });
+
+  const LVLS = [
+    {level:1, img:LIMG(1), tapValue:1,
+     requirementText:"Starter — unlocked by default.", rewardText:"Tap: +1 CHAD", check:()=>true},
+    mk( 2,    5_000,            100,           3),
+    mk( 3,   20_000,          1_000,           9),
+    mk( 4,   30_000,          4_000,          20),
+    mk( 5,   60_000,          8_000,          60),
+    mk( 6,  120_000,         14_000,         120),
+    mk( 7,  300_000,         25_000,         200),
+    mk( 8,  600_000,         45_000,         300),
+    mk( 9,1_000_000,         60_000,         400),
+    mk(10,1_300_000,         80_000,         600),
+    mk(11,3_000_000,        190_000,         700),
+    mk(12,10_000_000,       600_000,       1_000),
+    mk(13,90_000_000,     4_000_000,       4_000),
+    mk(14,40_000_000,     8_000_000,       5_000),
+    mk(15,100_000_000,   16_000_000,       8_000),
+    mk(16,1_000_000_000, 23_000_000,      10_000),
+    mk(17,12_000_000_000,40_000_000,      40_000),
+    mk(18,80_000_000_000,100_000_000,     60_000),
+    mk(19,100_000_000_000,300_000_000,   120_000)
+  ];
+
+  const BOOT_T = Date.now();
+  let lastSig = '';
+
+  // ---------- Storage helpers ----------
+  function pickKey(){
+    if (typeof window.STORAGE_KEY === 'string') return window.STORAGE_KEY;
+    let best=null, bestC=-1n;
+    for (let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i); if (!k || !k.startsWith('chad_state_')) continue;
+      try { const o = JSON.parse(localStorage.getItem(k)||'{}'); const c = BigInt(o.chads||"0"); if (c>bestC){bestC=c;best=k;} } catch {}
+    }
+    return best;
+  }
+
+  function readPersist(){
+    try{
+      if (window.state && typeof state.chads==='bigint' && typeof state.gen==='bigint'){
+        return { key: window.STORAGE_KEY || pickKey(), chads:state.chads, gen:state.gen,
+                 level:Number(state.level||1), lvl_seen:Number(state.lvl_seen||state.level||1),
+                 last:Number(state.last||0) };
+      }
+    }catch{}
+    const key = pickKey() || 'chad_state_guest';
+    try{
+      const o = JSON.parse(localStorage.getItem(key)||'{}');
+      return { key,
+        chads:BigInt(o.chads||"0"), gen:BigInt(o.gen||"0"),
+        level:Number(o.level||1),  lvl_seen:Number(o.lvl_seen||o.level||1),
+        last:Number(o.last||0)
+      };
+    }catch{ return { key, chads:0n, gen:0n, level:1, lvl_seen:1, last:0 }; }
+  }
+
+  function writePatch(patch){
+    try{ if (window.state){ Object.assign(state, patch); if (typeof saveStateLocal==='function') saveStateLocal(state); } }catch{}
+    const key = readPersist().key;
+    try{ const o = JSON.parse(localStorage.getItem(key)||'{}'); Object.assign(o, patch);
+         localStorage.setItem(key, JSON.stringify(o)); }catch{}
+  }
+
+  const metrics = () => { const r=readPersist(); return { chadsTotal:Number(r.chads||0n), genPerHour:Number(r.gen||0n) }; };
+  const highestUnlocked = (m) => { let hi=1; for (const d of LVLS) if (d.check(m)) hi=d.level; return hi; };
+  const getLevel = () => Math.max(1, Math.min(TOTAL, Number(readPersist().level||1)));
+  const getSeen  = () => Math.max(1, Math.min(TOTAL, Number(readPersist().lvl_seen||1)));
+
+  // ---------- UI ----------
+  function renderBadge(){
+    const lv = getLevel(); if (ui.badgeImg){ ui.badgeImg.src = LIMG(lv); ui.badgeImg.alt = `Level ${lv}`; }
+    ui.badgeBox?.classList.add('current');
+  }
+  function renderGrid(){
+    const cur = getLevel(); if (!ui.grid) return;
+    ui.grid.innerHTML = LVLS.map(d=>{
+      const u = d.level<=cur;
+      return `
+        <div class="lvl-card ${u?'unlocked':'locked'} ${d.level===cur?'current':''}" data-level="${d.level}">
+          <div class="lvl-imgbox">
+            <img src="${d.img}" alt="Level ${d.level}" loading="lazy">
+            ${u?'':`<img class="lock" src="${LOCK}" alt="Locked">`}
+            <span class="lvl-tag">${d.level===cur?'CURRENT':u?'UNLOCKED':'LOCKED'}</span>
+          </div>
+          <div class="lvl-req">${d.requirementText}</div>
+          <div class="lvl-reward">${d.rewardText}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ---------- Chest popups ----------
+  const q=[]; function pushChest(lv){ q.push(lv); if (!ui.lu?.classList.contains('show')) showNext(); }
+  function showNext(){
+    const lv=q.shift(); if (!lv || !ui.lu) return;
+    ui.luImg.src=CIMG(lv); ui.luImg.alt=`Level ${lv} chest`;
+    ui.luTitle.textContent=`Congrats, You Have Reached Level ${lv} 🎉`;
+    ui.lu.classList.add('show'); ui.lu.setAttribute('aria-hidden','false');
+  }
+  function hideChest(){ ui.lu?.classList.remove('show'); ui.lu?.setAttribute('aria-hidden','true'); if (q.length) requestAnimationFrame(showNext); }
+  ui.luOk?.addEventListener('click', hideChest);
+
+  // ---------- Overlay ----------
+  ui.btn?.addEventListener('click', ()=>{ ui.overlay?.classList.add('show'); ui.overlay?.setAttribute('aria-hidden','false'); });
+  window.LevelSystem = window.LevelSystem || {};
+  window.LevelSystem.close = ()=>{ ui.overlay?.classList.remove('show'); ui.overlay?.setAttribute('aria-hidden','true'); };
+
+  // ---------- Boot normalize (NO popup) ----------
+  function normalizeOnBoot(){
+    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
+    if (hi>cur || hi>seen) writePatch({ level:hi, lvl_seen:hi, last:Math.floor(Date.now()/1000) });
+    renderBadge(); renderGrid();
+    lastSig = signature();
+  }
+
+  function onProgress(){
+    const m=metrics(), hi=highestUnlocked(m), cur=getLevel(), seen=getSeen();
+    if (hi>cur) writePatch({ level:hi });
+    if (hi>seen && Date.now()>BOOT_T+1000){
+      for (let lv=seen+1; lv<=hi; lv++) pushChest(lv);
+      writePatch({ lvl_seen:hi });
+    }
+    renderBadge(); renderGrid();
+  }
+
+  function signature(){ const r=readPersist(); return `${r.chads}-${r.gen}-${r.level}-${r.lvl_seen}`; }
+  setInterval(()=>{ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } }, 1200);
+
+  try{ if (typeof saveStateLocal==='function'){ const _orig=saveStateLocal; window.saveStateLocal=function(...a){ const r=_orig.apply(this,a); try{ onProgress(); }catch{} return r; }; } }catch{}
+
+  window.addEventListener('storage', (e)=>{ if (e.key?.startsWith('chad_state_')){ const s=signature(); if (s!==lastSig){ lastSig=s; onProgress(); } } });
+
+  window.LevelSystem.open = ()=>ui.btn?.click();
+  window.LevelSystem.getTapValue = (lv=getLevel()) => { let v=1; for (const d of LVLS) if (d.level<=lv) v=d.tapValue; return v; };
+  window.LevelSystem.onProgress = onProgress;
+  window.LevelSystem.forceSync = onProgress;
+
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', normalizeOnBoot);
+  else normalizeOnBoot();
+})();
 /* ===== BRICK BREAKER+ — Harder, denser grid, neon FX, finger-follow paddle ===== */
 let BB = null;
 
