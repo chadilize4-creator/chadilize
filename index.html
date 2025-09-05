@@ -10,7 +10,7 @@
     --bg: var(--tg-theme-bg-color, #0b0e14);
     --fg: var(--tg-theme-text-color, #eaf2ff);
     --muted:#9aa3ad; --border: color-mix(in oklab, var(--fg) 10%, transparent);
-    --glow: 0 12px 40px rgba(91,140,255,.35); --radius-xl: 20px; --radius: 14px; --yellow:#ffd84d;
+    --glow: 0 12px 40px rgba(91,140,255,.35); --radius-xl: 20px; --radius: 14px; --yellow:#ffd84d; --ok:#3df57c;
   }
   body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
 
@@ -29,10 +29,12 @@
 
   .invite-modal{margin:0 auto;max-width:980px;border-radius:var(--radius-xl);
     overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border);}
-  .invite-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
+  .invite-head{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:16px 18px;
     background:linear-gradient(90deg, rgba(91,140,255,.08), transparent);}
   .invite-title{font-size:20px;font-weight:800;}
-  .invite-close{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
+  .invite-actions{display:flex; gap:8px;}
+  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
+  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;padding:0;border-radius:10px}
 
   .invite-body{padding:16px;display:grid;gap:16px;grid-template-columns:1fr;
     background:linear-gradient(180deg, rgba(14,18,28,.92), rgba(10,13,20,.95));max-height:88dvh;overflow:auto;}
@@ -55,11 +57,19 @@
   .reward-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .reward-amt{font-size:22px;font-weight:900;letter-spacing:.3px;}
   .reward-desc{font-size:13px;color:var(--muted);margin-top:2px;}
-  .status{font-size:13px;margin-top:6px;}
-  .status.pending{color:var(--yellow);}
+  .status{font-size:13px;margin-top:6px;min-height:18px;}
   .pill.locked{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);
     border:1px solid var(--border);padding:4px 8px;border-radius:999px;}
-  @media (max-width:480px){ .reward-row{grid-template-columns:auto 1fr;} .pill.locked{display:none;} }
+  .tick{color:var(--ok); font-weight:800; display:none;}
+  .tick.show{display:inline;}
+
+  /* Rules modal (second layer) */
+  .rules-overlay{position:fixed;inset:0;z-index:10000;display:none;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);}
+  .rules-overlay.show{display:grid;place-items:center;}
+  .rules{width:min(680px,92vw);border:1px solid var(--border);border-radius:16px;padding:16px;background:#0d1321;box-shadow:var(--glow);}
+  .rules h3{margin:6px 0 12px 0}
+  .rules ol{margin:0 0 12px 18px;line-height:1.55}
+  .rules .ok{display:block;margin-left:auto}
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1279,7 +1289,7 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- This image opens the modal; it now scrolls with the page -->
+<!-- Launcher image (scrolls with the page) -->
 <img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Invite & Rewards"/>
 <!-- ===== Test Your Luck (scrolls with page) ===== -->
 <div id="luckBtnWrap" class="luck-btn-wrap">
@@ -1289,12 +1299,15 @@ canvas{ display:block }
 
 
 
-<!-- Modal -->
+<!-- Invite modal -->
 <div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="invite-modal">
     <div class="invite-head">
       <div class="invite-title">Invite friends → win huge CHADs</div>
-      <button class="invite-close" id="inviteCloseBtn">Close</button>
+      <div class="invite-actions">
+        <button class="head-btn icon" id="rulesBtn" title="Rules">?</button>
+        <button class="head-btn" id="inviteCloseBtn">Close</button>
+      </div>
     </div>
 
     <div class="invite-body">
@@ -1304,7 +1317,7 @@ canvas{ display:block }
         <div class="muted" style="margin-top:6px">Earned via invites</div>
       </section>
 
-      <!-- Tiers -->
+      <!-- Tiers 1..3 (share-gated) -->
       <section class="rewards">
         <article class="reward-card" id="tier1">
           <div class="reward-row">
@@ -1325,7 +1338,7 @@ canvas{ display:block }
             <div>
               <div class="reward-label">Option 2</div>
               <div class="reward-amt">+5,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after Option 1 completes.</div>
+              <div class="reward-desc">Unlocks after you share Option 1.</div>
             </div>
             <div class="pill locked" id="lock2">Locked</div>
           </div>
@@ -1338,14 +1351,56 @@ canvas{ display:block }
             <div>
               <div class="reward-label">Option 3</div>
               <div class="reward-amt">+3,000,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after Option 2 completes.</div>
+              <div class="reward-desc">Unlocks after you share Option 2.</div>
             </div>
             <div class="pill locked" id="lock3">Locked</div>
           </div>
           <div class="status" id="status3"></div>
         </article>
+
+        <!-- Option 4: X -->
+        <article class="reward-card" id="tier4">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
+            <div>
+              <div class="reward-label">Option 4</div>
+              <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
+              <div class="reward-desc">Open the profile, come back — we’ll credit you.</div>
+            </div>
+            <div><span class="tick" id="tick4">✔</span></div>
+          </div>
+          <div class="status" id="status4"></div>
+        </article>
+
+        <!-- Option 5: YouTube -->
+        <article class="reward-card" id="tier5">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://www.youtube.com/@Chadilize" data-amount="600000">Open</button>
+            <div>
+              <div class="reward-label">Option 5</div>
+              <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
+              <div class="reward-desc">Open the channel, come back — we’ll credit you.</div>
+            </div>
+            <div><span class="tick" id="tick5">✔</span></div>
+          </div>
+          <div class="status" id="status5"></div>
+        </article>
       </section>
     </div>
+  </div>
+</div>
+
+<!-- Rules window -->
+<div class="rules-overlay" id="rulesOverlay">
+  <div class="rules">
+    <h3>📜 Invite Rules</h3>
+    <ol>
+      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> multiple times — you won’t be rewarded.</li>
+      <li>🎮 Rewards are granted after the invited friend <b>opens & plays</b> the game.</li>
+      <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
+      <li>✅ No more rules. Have fun!</li>
+    </ol>
+    <button class="btn ok" id="rulesOkBtn">OK</button>
   </div>
 </div>
 <!-- ===== Lucky Wheel Modal ===== -->
@@ -1934,7 +1989,7 @@ canvas{ display:block }
   // ===== Config
   const BOT_USERNAME = "chadilizebot";
   const APP_NAME     = "chadilize";
-  const FUNCTION_NAME = "invite"; // change if you deployed with another name
+  const FUNCTION_NAME = "invite"; // change if needed
 
   const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
@@ -1947,35 +2002,30 @@ canvas{ display:block }
   // ===== DOM
   const $ = (s, r=document) => r.querySelector(s);
   const overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn"), launcher=$("#inviteRewardsBtn");
+  const rulesBtn=$("#rulesBtn"), rulesOverlay=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
   const shareBtns=[...document.querySelectorAll(".share-btn")];
-  const statusEls=[$("#status1"),$("#status2"),$("#status3")];
-  const locks=[$("#lock1"),$("#lock2"),$("#lock3")];
   const earnedEl=$("#earnedValue");
+  const lock2=$("#lock2"), lock3=$("#lock3");
+  const share2=$("#share2"), share3=$("#share3");
 
   // ===== Helpers
   const nice = (n)=> Number(n||0).toLocaleString();
-  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct link. :contentReference[oaicite:2]{index=2}
-  const inviteText = (link, tier) =>
+  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct link (startapp).  :contentReference[oaicite:1]{index=1}
+  const inviteText = (link) =>
 `🚀 Welcome to ChadiliZe!
-Play Snake & Flappy Birl to farm CHADs. Join through my invite and get a boost:
+Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
 👉 ${link}
 
 Let’s race the leaderboard — every tap counts!`;
 
   function openShare(url){
-    // Same behavior as your working pink button
-    if (tg?.openTelegramLink) tg.openTelegramLink(url);          // best in Mini Apps. :contentReference[oaicite:3]{index=3}
+    // Same behavior as your pink button — official share endpoint + openTelegramLink.
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);      // :contentReference[oaicite:2]{index=2}
     else if (tg?.openLink) tg.openLink(url);
     else window.location.href = url;
   }
 
-  // Fallback code if backend can’t give a token (never share a blank link)
-  const fallbackCode = () => {
-    const uid = tg?.initDataUnsafe?.user?.id;
-    return uid ? Number(uid).toString(36) : "dev";
-  };
-
-  // Credit CHADs exactly like your games do
+  // unified awards (same path as your games)
   window.awardChads = window.awardChads || function(amount){
     try{
       const plus = BigInt(amount||0);
@@ -1988,7 +2038,7 @@ Let’s race the leaderboard — every tap counts!`;
     }catch(e){ console.warn("awardChads failed", e); }
   };
 
-  // Supabase Edge Function invoke (server validates initData HMAC)  :contentReference[oaicite:4]{index=4}
+  // Supabase Edge Function invoke (server validates initData HMAC)
   async function fx(op, body = {}) {
     const initData = tg?.initData || "";
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: { op, initData, ...body } });
@@ -1996,83 +2046,95 @@ Let’s race the leaderboard — every tap counts!`;
     return data;
   }
 
-  // Bind startapp token when this app opens (handles both GET and initData)  :contentReference[oaicite:5]{index=5}
+  // Bind startapp token on open (covers GET & initDataUnsafe)
   (async function sessionOpen(){
     const q = new URLSearchParams(location.search);
     const startParam = q.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
     try { await fx("session_open", { startParam }); } catch (e){ console.warn("session_open:",e); }
   })();
 
-  // Share: works like your pink button (uses share URL + openTelegramLink)
+  // ===== SHARE TIERS (unlock next when used)
+  const SHARED_KEY = "invite_shared_flags_v1"; // {1:bool,2:bool}
+  const flags = JSON.parse(localStorage.getItem(SHARED_KEY) || "{}");
+  function persistFlags(){ localStorage.setItem(SHARED_KEY, JSON.stringify(flags)); }
+  function applyUnlocks(){
+    share2.disabled = !flags[1]; lock2.style.display = flags[1] ? "none" : "inline-flex";
+    share3.disabled = !flags[2]; lock3.style.display = flags[2] ? "none" : "inline-flex";
+  }
+  applyUnlocks();
+
   async function shareTier(tier){
     let token = null;
     try {
-      const res = await fx("share", { tier }); // { token, status }
+      const res = await fx("share", { tier });  // { token, status }
       token = res?.token || null;
     } catch (e) {
-      console.warn("share op failed, using fallback:", e);
+      console.warn("share op failed:", e);
     }
-    if (!token) token = fallbackCode(); // never blank
+    if (!token) {
+      // deterministic fallback so there's never a blank link
+      const uid = tg?.initDataUnsafe?.user?.id;
+      token = uid ? Number(uid).toString(36) : "dev";
+    }
 
     const link = directLink(token);
-    const text = inviteText(link, tier);
-    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`; // official share URL. :contentReference[oaicite:6]{index=6}
+    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`; // official share URL. :contentReference[oaicite:3]{index=3}
     openShare(url);
 
-    // UI pending note
-    const el = statusEls[tier-1];
-    el.textContent = "Waiting for friend to join…";
-    el.classList.add("pending");
+    // mark shared → unlock next option immediately
+    flags[tier] = true; persistFlags(); applyUnlocks();
+    const sEl = document.getElementById(`status${tier}`);
+    if (sEl) sEl.textContent = "Shared!";
   }
-
-  // Wire buttons
   shareBtns.forEach(btn => btn.addEventListener("click", () => shareTier(Number(btn.dataset.tier))));
 
-  // Poll status → unlock tiers + credit CHADs
-  const PREV_KEY = "invite_prev_tiers_v4";
-  const readPrev = () => { try { return JSON.parse(localStorage.getItem(PREV_KEY)) || {1:"idle",2:"idle",3:"idle"} } catch { return {1:"idle",2:"idle",3:"idle"} } };
-  const savePrev = (x) => localStorage.setItem(PREV_KEY, JSON.stringify(x));
+  // ===== FOLLOW OPTIONS (4 & 5)
+  let pendingFollow = null;
+  document.querySelectorAll(".follow-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const url = btn.dataset.url;
+      const amt = Number(btn.dataset.amount||0);
+      pendingFollow = { id: btn.closest(".reward-card").id, amt };
+      // Open external link (X / YouTube) in Telegram
+      if (tg?.openLink) tg.openLink(url); else window.open(url, "_blank");
+    });
+  });
+  // When user returns to app, award once and show green tick
+  document.addEventListener("visibilitychange", ()=>{
+    if (document.visibilityState === "visible" && pendingFollow){
+      const id = pendingFollow.id;
+      const doneKey = `done_${id}`;
+      if (!localStorage.getItem(doneKey)){
+        localStorage.setItem(doneKey, "1");
+        window.awardChads(pendingFollow.amt, id);
+        const tick = document.querySelector(`#${id} .tick`);
+        if (tick) tick.classList.add("show");
+        const sEl = document.querySelector(`#${id} .status`);
+        if (sEl) sEl.textContent = "Completed ✔";
+      }
+      pendingFollow = null;
+    }
+  });
 
+  // ===== Status (earned only; no gating by status)
   async function checkStatus(){
     try{
       const res = await fx("status"); // { tiers, earned }
       earnedEl.textContent = nice(res.earned||0);
-
-      const t = res.tiers || {1:"idle",2:"idle",3:"idle"};
-      // unlock order
-      document.getElementById("share2").disabled = (t[1] !== "done");
-      document.getElementById("share3").disabled = (t[2] !== "done");
-      document.getElementById("lock2").style.display = (t[1] !== "done") ? "inline-flex" : "none";
-      document.getElementById("lock3").style.display = (t[2] !== "done") ? "inline-flex" : "none";
-      [1,2,3].forEach(i => {
-        statusEls[i-1].classList.toggle("pending", t[i]==="pending");
-        statusEls[i-1].textContent = t[i]==="done" ? "Completed ✔" : (t[i]==="pending" ? "Waiting for friend to join…" : "");
-      });
-
-      // transitions → add CHADs (same path as games)
-      const prev = readPrev();
-      [1,2,3].forEach(i => {
-        if ((prev[i]==="pending" || prev[i]==="idle") && t[i]==="done"){
-          window.awardChads(AMTS[i], `referral-tier-${i}`);
-        }
-      });
-      savePrev(t);
     }catch(e){ console.warn("status:", e); }
   }
   setInterval(checkStatus, 6000);
+  checkStatus();
 
   // Invitee: call once when they actually start playing
-  window.invitesSignalGamePlayed = async function(){
-    try { await fx("played"); } catch {}
-  };
+  window.invitesSignalGamePlayed = async function(){ try { await fx("played"); } catch {} };
 
-  // Open/close modal
+  // Open/close & Rules
   launcher?.addEventListener("click", ()=> overlay.classList.add("show"));
   closeBtn?.addEventListener("click", ()=> overlay.classList.remove("show"));
   overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) overlay.classList.remove("show"); });
-
-  // First paint
-  checkStatus();
+  rulesBtn?.addEventListener("click", ()=> rulesOverlay.classList.add("show"));
+  rulesOk?.addEventListener("click", ()=> rulesOverlay.classList.remove("show"));
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
