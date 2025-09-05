@@ -6,37 +6,31 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
- :root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
-    --muted:#9aa3ad;--border:color-mix(in oklab,var(--fg) 10%,transparent);
-    --glow:0 12px 40px rgba(91,140,255,.35)}
+:root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
+    --muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
   #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:72px;height:72px;border-radius:16px;
     object-fit:cover;cursor:pointer;border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220}
-  .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;
-    background:radial-gradient(1200px 800px at 20% -10%,rgba(91,140,255,.18),transparent 60%),
-               radial-gradient(1200px 800px at 120% 110%,rgba(255,119,199,.15),transparent 60%),
-               rgba(2,4,10,.55);backdrop-filter:blur(6px);padding:24px;overflow:auto}
+  .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;background:rgba(2,4,10,.55);
+    backdrop-filter:blur(6px);padding:24px;overflow:auto}
   .invite-overlay.show{display:block}
   .invite-modal{margin:0 auto;max-width:980px;border-radius:20px;overflow:hidden;
     box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border)}
-  .invite-head{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:16px 18px;
+  .invite-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;
     background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
   .invite-title{font:800 20px/1.1 system-ui,sans-serif}
   .invite-actions{display:flex;gap:8px}
   .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
   .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%}
   .head-btn.icon#rulesBtn{background:#ffd84d;color:#121212;border-color:#ffd84d;box-shadow:0 0 12px rgba(255,216,77,.45);font-weight:900}
-  .invite-body{padding:16px;display:grid;gap:16px;grid-template-columns:1fr;
-    background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));max-height:88dvh;overflow:auto}
+  .invite-body{padding:16px;display:grid;gap:16px;background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));
+    max-height:88dvh;overflow:auto}
   .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--glow)}
   .muted{color:#9aa3ad;font-size:13px}
   .earnedRow{display:flex;align-items:center;gap:10px;font:800 18px/1.2 system-ui,sans-serif}
   .rewards{display:grid;gap:14px}
   .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer}
   .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .reward-card{position:relative;overflow:hidden;border-radius:16px;padding:14px;
-    background:radial-gradient(1200px 600px at -20% -40%,rgba(109,163,255,.15),transparent 60%),
-               radial-gradient(1200px 600px at 120% 140%,rgba(255,119,199,.12),transparent 60%),#0e1422;
-    border:1px solid var(--border);box-shadow:var(--glow)}
+  .reward-card{position:relative;border-radius:16px;padding:14px;background:#0e1422;border:1px solid var(--border);box-shadow:var(--glow)}
   .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
   .reward-label{font:600 12px/1.1 system-ui,sans-serif;color:#9aa3ad;text-transform:uppercase;letter-spacing:.4px}
   .reward-amt{font:900 22px/1.1 system-ui,sans-serif}
@@ -1276,7 +1270,6 @@ canvas{ display:block }
 
 
 
-
 <!-- Modal -->
 <div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
   <div class="invite-modal">
@@ -1321,6 +1314,7 @@ canvas{ display:block }
           </div><div class="status" id="status3"></div>
         </article>
 
+        <!-- Instant tasks -->
         <article class="reward-card" id="tier4">
           <div class="reward-row">
             <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
@@ -1934,153 +1928,208 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Load SDKs BEFORE the main script -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ========= Robust, no-throw module ========= */
 (function(){
-  /* ===== Config ===== */
-  const BOT="chadilizebot", APP="chadilize";                       // if you remove APP, link becomes .../bot?startapp=
-  const SUPABASE_URL="https://jwrvlaxfrnglaxueqgdx.supabase.co";
-  const SUPABASE_ANON="sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
-  const FX="invite";
-  const TIER_AMTS={1:500_000,2:5_000_000,3:3_000_000_000};
+  'use strict';
 
-  const tg = window.Telegram?.WebApp; try{tg?.expand?.()}catch{}
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  /* Config */
+  var BOT = "chadilizebot";
+  var APP = "chadilize";               // if you remove this, deep links use .../bot?startapp=
+  var SUPABASE_URL  = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
+  var SUPABASE_ANON = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+  var FX_NAME = "invite";              // Edge Function name
+  var TIER_AMTS = {1:500000, 2:5000000, 3:3000000000};
 
-  /* ===== DOM ===== */
-  const $=(s,r=document)=>r.querySelector(s);
-  const openBtn=$("#inviteRewardsBtn"), overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn");
-  const rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
-  const earnedEl=$("#earnedValue"), share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
+  var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+  try{ tg && tg.expand && tg.expand(); }catch(e){}
 
-  /* ===== Earned counter (local) ===== */
-  const EARN_KEY="invite_earned_local_v3";
-  const getEarn = ()=> Number(localStorage.getItem(EARN_KEY)||"0");
-  const setEarn = v => { localStorage.setItem(EARN_KEY,String(v)); earnedEl.textContent = v.toLocaleString(); };
-  const addEarn = n => setEarn(getEarn()+Number(n||0));
+  /* DOM helpers (never throw) */
+  function $(sel, r){ return (r||document).querySelector(sel); }
+  var overlay   = $("#inviteOverlay");
+  var openBtn   = $("#inviteRewardsBtn");
+  var closeBtn  = $("#inviteCloseBtn");
+  var rulesBtn  = $("#rulesBtn");
+  var rulesOv   = $("#rulesOverlay");
+  var rulesOk   = $("#rulesOkBtn");
+  var earnedEl  = $("#earnedValue");
+  var share2    = $("#share2");
+  var share3    = $("#share3");
+  var lock2     = $("#lock2");
+  var lock3     = $("#lock3");
+
+  /* ===== Safe Supabase wrapper (no global -> stub) ===== */
+  var sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+  async function fx(op, body){
+    if (!sb) return {}; // SDK not present – silently skip
+    var initData = (tg && tg.initData) ? tg.initData : "";
+    try{
+      var res = await sb.functions.invoke(FX_NAME, { body: Object.assign({ op:op, initData:initData }, body||{}) });
+      if (res.error) throw res.error;
+      return res.data || {};
+    }catch(err){ console.warn("[invite.fx]", err.message||err); return {}; }
+  }
+
+  /* ===== Earned display (local only; server sum optional) ===== */
+  var EARN_KEY = "invite_earned_local_v3";
+  function getEarn(){ return Number(localStorage.getItem(EARN_KEY) || "0"); }
+  function setEarn(v){ try{ localStorage.setItem(EARN_KEY, String(v)); }catch(e){} if (earnedEl) earnedEl.textContent = Number(v).toLocaleString(); }
+  function addEarn(n){ setEarn(getEarn() + Number(n||0)); }
   setEarn(getEarn());
 
-  /* ===== Balance credit that NEVER fails (queues until bootstrap ready) ===== */
-  const QKEY="invite_credit_queue_v2";
-  function queue(amt){ const q=JSON.parse(localStorage.getItem(QKEY)||"[]"); q.push(Number(amt)); localStorage.setItem(QKEY,JSON.stringify(q)); drain(); }
-  function drain(){
-    // need your helpers to exist
-    if (typeof loadStateLocal!=="function" || typeof saveStateLocal!=="function"){ schedule(); return; }
+  /* ===== Credit queue → applies when your bootstrap is ready ===== */
+  var QKEY = "invite_credit_queue_v2";
+  function queueCredit(amount){
     try{
-      const s = (window.state && typeof window.state==="object") ? window.state : loadStateLocal();
-      let q = JSON.parse(localStorage.getItem(QKEY)||"[]"); if(!q.length) return;
-      const add = q.reduce((a,b)=> a + BigInt(String(b)), 0n);
-      const cur = (typeof s.chads==="bigint") ? s.chads : BigInt(s.chads||0);
+      var list = JSON.parse(localStorage.getItem(QKEY) || "[]");
+      list.push(Number(amount||0));
+      localStorage.setItem(QKEY, JSON.stringify(list));
+    }catch(e){}
+    drainQueue(); // try now
+  }
+  function drainQueue(){
+    // Wait for your helpers (no throw if missing)
+    if (typeof window.loadStateLocal !== "function" || typeof window.saveStateLocal !== "function"){ scheduleDrain(); return; }
+    try{
+      var s = (window.state && typeof window.state === "object") ? window.state : window.loadStateLocal();
+      var list = JSON.parse(localStorage.getItem(QKEY) || "[]");
+      if (!list.length) return;
+      var add = list.reduce(function(a,b){ return a + BigInt(String(b)); }, 0n);
+      var cur = (typeof s.chads === "bigint") ? s.chads : BigInt(s.chads || 0);
       s.chads = cur + add;
-      saveStateLocal(s);
-      if (typeof refreshUI==="function") refreshUI();
-      if (typeof showToast==="function") showToast(`<span class="accent">+${Number(add).toLocaleString()}</span> chads added to balance.`);
+      window.saveStateLocal(s);
+      if (typeof window.refreshUI === "function") window.refreshUI();
+      if (typeof window.showToast === "function") window.showToast("<span class=\"accent\">+"+ Number(add).toLocaleString() +"</span> chads added to balance.");
       localStorage.removeItem(QKEY);
-    }catch(e){ /* keep retrying */ }
-    schedule();
+    }catch(e){ /* swallow & retry */ }
+    scheduleDrain();
   }
-  let timer=null; function schedule(){ if(!timer) timer=setInterval(()=>{ drain(); if(!JSON.parse(localStorage.getItem(QKEY)||"[]").length) { clearInterval(timer); timer=null; } }, 800); }
-  // sync once at load
-  drain();
+  var drainTimer=null;
+  function scheduleDrain(){ if (drainTimer) return; drainTimer = setInterval(function(){ var q = []; try{ q = JSON.parse(localStorage.getItem(QKEY)||"[]"); }catch(e){} drainQueue(); if (!q.length && typeof window.loadStateLocal==="function") { clearInterval(drainTimer); drainTimer=null; } }, 800); }
+  // kick once on load
+  drainQueue();
 
-  /* ===== Supabase Edge Function (non-blocking) ===== */
-  async function fx(op, body={}){
-    try{
-      const initData = tg?.initData || "";
-      const { data, error } = await sb.functions.invoke(FX, { body:{ op, initData, ...body } });
-      if (error) throw error;
-      return data||{};
-    }catch(e){ console.warn("fx:", e.message||e); return {}; }
-  }
-  // bind incoming token if present
-  (async()=>{
-    const qs=new URLSearchParams(location.search);
-    const startParam = qs.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
-    if (startParam) await fx("session_open",{ startParam });
-  })();
-
-  /* ===== Share → unlock next ===== */
-  const FLAGS_KEY="invite_shared_flags_v7";
-  const flags = JSON.parse(localStorage.getItem(FLAGS_KEY)||"{}");
-  function saveFlags(){ localStorage.setItem(FLAGS_KEY, JSON.stringify(flags)); }
-  function apply(){
-    if (share2) share2.disabled=!flags[1]; if (lock2) lock2.style.display = flags[1]?"none":"inline-flex";
-    if (share3) share3.disabled=!flags[2]; if (lock3) lock3.style.display = flags[2]?"none":"inline-flex";
-  }
-  apply();
-
+  /* ===== Deep link builder & share ===== */
   function directLink(token){
-    // Both forms are valid; use /appname style since you have one (docs cover both). :contentReference[oaicite:3]{index=3}
-    return APP ? `https://t.me/${BOT}/${APP}?startapp=${encodeURIComponent(token)}`
-               : `https://t.me/${BOT}?startapp=${encodeURIComponent(token)}`;
+    // Official: startapp param is returned as tgWebAppStartParam/start_param. :contentReference[oaicite:3]{index=3}
+    return APP
+      ? ("https://t.me/" + BOT + "/" + APP + "?startapp=" + encodeURIComponent(token||""))
+      : ("https://t.me/" + BOT + "?startapp=" + encodeURIComponent(token||""));
   }
-  function shareMsg(link){
-    return `🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs. Join with my invite:\n👉 ${link}\n\nLet’s race the leaderboard!`;
+  function inviteMsg(link){
+    return "🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs. Join with my invite:\n👉 " + link + "\n\nLet\u2019s race the leaderboard!";
   }
-  function openShare(link,text){
-    const u=`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`; // official share endpoint
-    if (tg?.openTelegramLink) tg.openTelegramLink(u); else if (tg?.openLink) tg.openLink(u); else location.href=u;
+  function openShare(link, text){
+    // Official share endpoint; open with WebApp.openTelegramLink inside Mini Apps. :contentReference[oaicite:4]{index=4}
+    var u = "https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent(text||"");
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(u);
+    else if (tg && tg.openLink) tg.openLink(u);
+    else location.href = u;
   }
 
-  async function shareTier(tier){
-    let token=null;
-    const r = await fx("share",{ tier });
-    token = r?.token || null;
-    if (!token){ const uid=tg?.initDataUnsafe?.user?.id; token = uid ? Number(uid).toString(36) : "dev"; }
-    const link = directLink(token);
-    openShare(link, shareMsg(link));
-    flags[tier]=true; saveFlags(); apply();
-    const sEl=$("#status"+tier); if (sEl) sEl.textContent="Shared!";
-  }
-  document.querySelectorAll(".share-btn").forEach(b=>{
-    b.addEventListener("click", ()=> shareTier(Number(b.dataset.tier)));
-  });
-
-  /* ===== X / YouTube — award immediately (once) ===== */
+  /* ===== Bind incoming token (non-blocking) ===== */
   (function(){
-    const tasks=[
-      { id:"tier4", tick:"#tick4", key:"task_x_done", amt:400000, sel:"#tier4 .follow-btn" },
-      { id:"tier5", tick:"#tick5", key:"task_yt_done", amt:600000, sel:"#tier5 .follow-btn" },
-    ];
-    tasks.forEach(t=>{
-      if (localStorage.getItem(t.key)==="1"){ $(t.tick)?.classList.add("show"); $("#"+t.id+" .status")?.textContent="Completed ✔"; }
-      const btn=$(t.sel);
-      btn?.addEventListener("click", ()=>{
-        if (localStorage.getItem(t.key)!=="1"){
-          localStorage.setItem(t.key,"1");
-          addEarn(t.amt);        // show immediately
-          queue(t.amt);          // credit to balance now or when bootstrap is ready
-          $(t.tick)?.classList.add("show");
-          $("#"+t.id+" .status")?.textContent="Completed ✔";
-        }
-        const url=btn.dataset.url; if (tg?.openLink) tg.openLink(url); else window.open(url,"_blank");
-      });
-    });
+    try{
+      var qs = new URLSearchParams(location.search);
+      var startParam = qs.get("tgWebAppStartParam") || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || null;
+      if (startParam) fx("session_open", { startParam:startParam });
+    }catch(e){}
   })();
 
-  /* ===== Poll server for tier completions (optional) ===== */
-  const PREV_KEY="invite_prev_tiers_v8";
-  const readPrev=()=>{ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}")}catch{return{}} };
-  const savePrev=x=> localStorage.setItem(PREV_KEY, JSON.stringify(x));
+  /* ===== Share tiers (unlock next after share) ===== */
+  var FLAGS_KEY = "invite_shared_flags_v7";
+  function loadFlags(){ try{ return JSON.parse(localStorage.getItem(FLAGS_KEY) || "{}"); }catch(e){ return {}; } }
+  function saveFlags(x){ try{ localStorage.setItem(FLAGS_KEY, JSON.stringify(x||{})); }catch(e){} }
+  var flags = loadFlags();
+  function applyUnlocks(){
+    if (share2) share2.disabled = !flags[1];
+    if (lock2)  lock2.style.display = flags[1] ? "none" : "inline-flex";
+    if (share3) share3.disabled = !flags[2];
+    if (lock3)  lock3.style.display = flags[2] ? "none" : "inline-flex";
+  }
+  applyUnlocks();
+
+  function wireSharing(){
+    var buttons = document.querySelectorAll(".share-btn");
+    for (var i=0;i<buttons.length;i++){
+      (function(btn){
+        btn.addEventListener("click", async function(){
+          var tier = Number(btn.getAttribute("data-tier") || "0");
+          var token = null;
+          try{ var r = await fx("share", { tier:tier }); token = r && r.token || null; }catch(e){}
+          if (!token){
+            var uid = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) ? tg.initDataUnsafe.user.id : null;
+            token = uid ? Number(uid).toString(36) : "dev";
+          }
+          var link = directLink(token);
+          openShare(link, inviteMsg(link));
+          flags[tier] = true; saveFlags(flags); applyUnlocks();
+          var sEl = $("#status"+tier); if (sEl) sEl.textContent = "Shared!";
+        });
+      })(buttons[i]);
+    }
+  }
+  wireSharing();
+
+  /* ===== Instant tasks (X / YouTube) — credit once, immediately ===== */
+  (function(){
+    function done(key){ try{ return localStorage.getItem(key) === "1"; }catch(e){ return false; } }
+    function mark(key){ try{ localStorage.setItem(key, "1"); }catch(e){} }
+
+    var tasks = [
+      { id:"tier4", tick:"#tick4", key:"task_x_done",  amt:400000, sel:"#tier4 .follow-btn" },
+      { id:"tier5", tick:"#tick5", key:"task_yt_done", amt:600000, sel:"#tier5 .follow-btn" }
+    ];
+    for (var i=0;i<tasks.length;i++){
+      (function(t){
+        if (done(t.key)){ var tEl = $(t.tick); if (tEl) tEl.classList.add("show"); var st = $("#"+t.id+" .status"); if (st) st.textContent="Completed ✔"; }
+        var b = $(t.sel);
+        if (!b) return;
+        b.addEventListener("click", function(){
+          if (!done(t.key)){
+            mark(t.key);
+            addEarn(t.amt);       // UI counter
+            queueCredit(t.amt);   // balance (applied now or when bootstrap is ready)
+            var tEl = $(t.tick); if (tEl) tEl.classList.add("show");
+            var st = $("#"+t.id+" .status"); if (st) st.textContent="Completed ✔";
+          }
+          var url = b.getAttribute("data-url");
+          if (tg && tg.openLink) tg.openLink(url); else window.open(url, "_blank");
+        });
+      })(tasks[i]);
+    }
+  })();
+
+  /* ===== Optional: poll server for tier completion and credit automatically ===== */
+  var PREV_KEY = "invite_prev_tiers_v8";
+  function getPrev(){ try{ return JSON.parse(localStorage.getItem(PREV_KEY) || "{}"); }catch(e){ return {}; } }
+  function setPrev(x){ try{ localStorage.setItem(PREV_KEY, JSON.stringify(x||{})); }catch(e){} }
   async function poll(){
-    const res = await fx("status"); // { earned, tiers:{1|2|3:'idle|pending|done'} }
-    const prev = readPrev(), tiers = res.tiers||{};
-    [1,2,3].forEach(i=>{
-      if (tiers[i]==="done" && prev[i]!=="done"){ addEarn(TIER_AMTS[i]); queue(TIER_AMTS[i]); $("#status"+i)?.textContent="Completed ✔"; }
+    var res = await fx("status"); // expect { tiers:{1|2|3:'idle|pending|done'}, earned?:number }
+    var prev = getPrev();
+    var tiers = (res && res.tiers) || {};
+    [1,2,3].forEach(function(k){
+      if (tiers[k] === "done" && prev[k] !== "done"){
+        addEarn(TIER_AMTS[k]);
+        queueCredit(TIER_AMTS[k]);
+        var sEl = $("#status"+k); if (sEl) sEl.textContent = "Completed ✔";
+      }
     });
-    savePrev(tiers);
+    setPrev(tiers);
   }
   setInterval(poll, 6000);
 
-  /* ===== Open/close & rules ===== */
-  const open = ()=> overlay.classList.add("show");
-  const close= ()=> overlay.classList.remove("show");
-  openBtn?.addEventListener("click", open);
-  closeBtn?.addEventListener("click", close);
-  overlay?.addEventListener("click",(e)=>{ if(e.target===overlay) close(); });
-  rulesBtn?.addEventListener("click",()=>{ rulesOv.style.display='grid'; });
-  rulesOk ?.addEventListener("click",()=>{ rulesOv.style.display='none'; });
+  /* ===== Open/close & rules (safe) ===== */
+  function open(){ overlay && overlay.classList.add("show"); }
+  function close(){ overlay && overlay.classList.remove("show"); }
+  if (openBtn)  openBtn.addEventListener("click", open);
+  if (closeBtn) closeBtn.addEventListener("click", close);
+  if (overlay) overlay.addEventListener("click", function(e){ if (e.target === overlay) close(); });
+  if (rulesBtn) rulesBtn.addEventListener("click", function(){ rulesOv && (rulesOv.style.display = "grid"); });
+  if (rulesOk)  rulesOk.addEventListener("click", function(){ rulesOv && (rulesOv.style.display = "none"); });
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
