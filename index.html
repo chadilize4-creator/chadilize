@@ -6,14 +6,15 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{
+ :root{
     --bg: var(--tg-theme-bg-color, #0b0e14);
     --fg: var(--tg-theme-text-color, #eaf2ff);
     --muted:#9aa3ad; --border: color-mix(in oklab, var(--fg) 10%, transparent);
     --glow: 0 12px 40px rgba(91,140,255,.35); --radius-xl: 20px; --radius: 14px; --yellow:#ffd84d;
   }
   body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
-  /* launcher that SCROLLS with the page (no fixed) */
+
+  /* Launcher that SCROLLS with page */
   #inviteRewardsBtn{
     display:block; margin:24px 16px 0 auto; width:72px; height:72px;
     border-radius:16px; object-fit:cover; cursor:pointer;
@@ -41,9 +42,11 @@
   .muted{color:var(--muted);font-size:13px;}
   .earnedRow{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;}
   .coin{font-size:22px;}
+
+  .rewards{display:grid;gap:14px;}
   .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer;}
   .btn[disabled]{opacity:.5;cursor:not-allowed;}
-  .rewards{display:grid;gap:14px;}
+
   .reward-card{position:relative;overflow:hidden;border-radius:16px;padding:14px;
     background:radial-gradient(1200px 600px at -20% -40%, rgba(109,163,255,.15), transparent 60%),
                radial-gradient(1200px 600px at 120% 140%, rgba(255,119,199,.12), transparent 60%),
@@ -1276,7 +1279,7 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- Put this image somewhere in your layout; it will scroll normally -->
+<!-- This image opens the modal; it now scrolls with the page -->
 <img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Invite & Rewards"/>
 <!-- ===== Test Your Luck (scrolls with page) ===== -->
 <div id="luckBtnWrap" class="luck-btn-wrap">
@@ -1284,6 +1287,67 @@ canvas{ display:block }
   <div id="luckBtnTimer" class="luck-btn-timer" hidden>00:00:00</div>
 </div>
 
+
+
+<!-- Modal -->
+<div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="invite-modal">
+    <div class="invite-head">
+      <div class="invite-title">Invite friends → win huge CHADs</div>
+      <button class="invite-close" id="inviteCloseBtn">Close</button>
+    </div>
+
+    <div class="invite-body">
+      <!-- Earned summary only -->
+      <section class="card">
+        <div class="earnedRow"><span class="coin">🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
+        <div class="muted" style="margin-top:6px">Earned via invites</div>
+      </section>
+
+      <!-- Tiers -->
+      <section class="rewards">
+        <article class="reward-card" id="tier1">
+          <div class="reward-row">
+            <button class="btn share-btn" data-tier="1">Share</button>
+            <div>
+              <div class="reward-label">Option 1</div>
+              <div class="reward-amt">+500,000 CHADs</div>
+              <div class="reward-desc">Send your link. When they join & play, you’re rewarded.</div>
+            </div>
+            <div class="pill locked" id="lock1" style="display:none">Locked</div>
+          </div>
+          <div class="status" id="status1"></div>
+        </article>
+
+        <article class="reward-card" id="tier2">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share2" data-tier="2" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 2</div>
+              <div class="reward-amt">+5,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after Option 1 completes.</div>
+            </div>
+            <div class="pill locked" id="lock2">Locked</div>
+          </div>
+          <div class="status" id="status2"></div>
+        </article>
+
+        <article class="reward-card" id="tier3">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share3" data-tier="3" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 3</div>
+              <div class="reward-amt">+3,000,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after Option 2 completes.</div>
+            </div>
+            <div class="pill locked" id="lock3">Locked</div>
+          </div>
+          <div class="status" id="status3"></div>
+        </article>
+      </section>
+    </div>
+  </div>
+</div>
 <!-- ===== Lucky Wheel Modal ===== -->
 <div id="luckModal" class="luck-modal" aria-hidden="true">
   <div class="luck-card">
@@ -1491,65 +1555,7 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Modal -->
-<div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="invite-modal">
-    <div class="invite-head">
-      <div class="invite-title">Invite friends → win huge CHADs</div>
-      <button class="invite-close" id="inviteCloseBtn">Close</button>
-    </div>
 
-    <div class="invite-body">
-      <!-- Earned summary -->
-      <section class="card">
-        <div class="earnedRow"><span class="coin">🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
-        <div class="muted" style="margin-top:6px">Earned via invites</div>
-      </section>
-
-      <!-- Tiers -->
-      <section class="rewards">
-        <article class="reward-card" id="tier1">
-          <div class="reward-row">
-            <button class="btn" id="share1" data-tier="1">Share</button>
-            <div>
-              <div class="reward-label">Option 1</div>
-              <div class="reward-amt">+500,000 CHADs</div>
-              <div class="reward-desc">Send your link. When they join & play, you’re rewarded.</div>
-            </div>
-            <div class="pill locked" id="lock1" style="display:none">Locked</div>
-          </div>
-          <div class="status" id="status1"></div>
-        </article>
-
-        <article class="reward-card" id="tier2">
-          <div class="reward-row">
-            <button class="btn" id="share2" data-tier="2" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 2</div>
-              <div class="reward-amt">+5,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after Option 1 completes.</div>
-            </div>
-            <div class="pill locked" id="lock2">Locked</div>
-          </div>
-          <div class="status" id="status2"></div>
-        </article>
-
-        <article class="reward-card" id="tier3">
-          <div class="reward-row">
-            <button class="btn" id="share3" data-tier="3" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 3</div>
-              <div class="reward-amt">+3,000,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after Option 2 completes.</div>
-            </div>
-            <div class="pill locked" id="lock3">Locked</div>
-          </div>
-          <div class="status" id="status3"></div>
-        </article>
-      </section>
-    </div>
-  </div>
-</div>
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -1928,35 +1934,48 @@ canvas{ display:block }
   // ===== Config
   const BOT_USERNAME = "chadilizebot";
   const APP_NAME     = "chadilize";
-  const FUNCTION_NAME = "invite";
+  const FUNCTION_NAME = "invite"; // change if you deployed with another name
 
   const SUPABASE_URL = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
   const AMTS = {1: 500_000, 2: 5_000_000, 3: 3_000_000_000};
 
   const tg = window.Telegram?.WebApp;
+  try { tg?.expand?.(); } catch {}
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // ===== DOM
   const $ = (s, r=document) => r.querySelector(s);
-  const launcher=$("#inviteRewardsBtn");
-  const overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn");
-  const shareBtns=[$("#share1"),$("#share2"),$("#share3")];
+  const overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn"), launcher=$("#inviteRewardsBtn");
+  const shareBtns=[...document.querySelectorAll(".share-btn")];
   const statusEls=[$("#status1"),$("#status2"),$("#status3")];
   const locks=[$("#lock1"),$("#lock2"),$("#lock3")];
   const earnedEl=$("#earnedValue");
 
   // ===== Helpers
-  function toast(m){ try{ tg?.showPopup?.({ title:"ChadiliZe", message:m, buttons:[{id:"ok", type:"default", text:"OK"}] }); }catch{ alert(m); } }
-  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct-link format. :contentReference[oaicite:4]{index=4}
-  const inviteText = (link) =>
+  const nice = (n)=> Number(n||0).toLocaleString();
+  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct link. :contentReference[oaicite:2]{index=2}
+  const inviteText = (link, tier) =>
 `🚀 Welcome to ChadiliZe!
 Play Snake & Flappy Birl to farm CHADs. Join through my invite and get a boost:
 👉 ${link}
 
 Let’s race the leaderboard — every tap counts!`;
 
-  // Your unified balance writer (same as games)
+  function openShare(url){
+    // Same behavior as your working pink button
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);          // best in Mini Apps. :contentReference[oaicite:3]{index=3}
+    else if (tg?.openLink) tg.openLink(url);
+    else window.location.href = url;
+  }
+
+  // Fallback code if backend can’t give a token (never share a blank link)
+  const fallbackCode = () => {
+    const uid = tg?.initDataUnsafe?.user?.id;
+    return uid ? Number(uid).toString(36) : "dev";
+  };
+
+  // Credit CHADs exactly like your games do
   window.awardChads = window.awardChads || function(amount){
     try{
       const plus = BigInt(amount||0);
@@ -1964,12 +1983,12 @@ Let’s race the leaderboard — every tap counts!`;
         window.state.chads = (window.state.chads ?? 0n) + plus;
         if (typeof window.refreshUI === "function") window.refreshUI();
         if (typeof window.saveStateLocal === "function") window.saveStateLocal(window.state);
-        if (typeof window.showToast === "function") window.showToast(`<span class="accent">+${Number(amount).toLocaleString()}</span> chads added to balance.`);
+        if (typeof window.showToast === "function") window.showToast(`<span class="accent">+${nice(amount)}</span> chads added to balance.`);
       }
     }catch(e){ console.warn("awardChads failed", e); }
   };
 
-  // Supabase Edge Function invoke (server validates initData) :contentReference[oaicite:5]{index=5}
+  // Supabase Edge Function invoke (server validates initData HMAC)  :contentReference[oaicite:4]{index=4}
   async function fx(op, body = {}) {
     const initData = tg?.initData || "";
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: { op, initData, ...body } });
@@ -1977,62 +1996,60 @@ Let’s race the leaderboard — every tap counts!`;
     return data;
   }
 
-  // Bind startapp on session open (covers both GET and initDataUnsafe) :contentReference[oaicite:6]{index=6}
+  // Bind startapp token when this app opens (handles both GET and initData)  :contentReference[oaicite:5]{index=5}
   (async function sessionOpen(){
     const q = new URLSearchParams(location.search);
     const startParam = q.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
     try { await fx("session_open", { startParam }); } catch (e){ console.warn("session_open:",e); }
   })();
 
-  // Share per tier — only share AFTER getting a token
-  function wireShares(){
-    shareBtns.forEach((btn, i) => {
-      const tier = i+1;
-      btn?.addEventListener("click", async () => {
-        try {
-          const res = await fx("share", { tier }); // { token, status }
-          if (!res?.token){ toast("Couldn’t get invite token. Try again."); return; }
-          const link = directLink(res.token);
-          const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`; // official share URL. :contentReference[oaicite:7]{index=7}
+  // Share: works like your pink button (uses share URL + openTelegramLink)
+  async function shareTier(tier){
+    let token = null;
+    try {
+      const res = await fx("share", { tier }); // { token, status }
+      token = res?.token || null;
+    } catch (e) {
+      console.warn("share op failed, using fallback:", e);
+    }
+    if (!token) token = fallbackCode(); // never blank
 
-          // Open via Telegram method; fallback if unavailable
-          if (tg?.openTelegramLink) tg.openTelegramLink(url);
-          else if (tg?.openLink) tg.openLink(url);
-          else window.location.href = url;
+    const link = directLink(token);
+    const text = inviteText(link, tier);
+    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`; // official share URL. :contentReference[oaicite:6]{index=6}
+    openShare(url);
 
-          markPending(tier);
-        } catch (e) {
-          console.warn(e);
-          toast("Share failed. Please try again.");
-        }
-      });
-    });
-  }
-  function markPending(tier){
+    // UI pending note
     const el = statusEls[tier-1];
     el.textContent = "Waiting for friend to join…";
     el.classList.add("pending");
   }
 
+  // Wire buttons
+  shareBtns.forEach(btn => btn.addEventListener("click", () => shareTier(Number(btn.dataset.tier))));
+
   // Poll status → unlock tiers + credit CHADs
-  const PREV_KEY = "invite_prev_tiers_v3";
+  const PREV_KEY = "invite_prev_tiers_v4";
   const readPrev = () => { try { return JSON.parse(localStorage.getItem(PREV_KEY)) || {1:"idle",2:"idle",3:"idle"} } catch { return {1:"idle",2:"idle",3:"idle"} } };
   const savePrev = (x) => localStorage.setItem(PREV_KEY, JSON.stringify(x));
 
   async function checkStatus(){
     try{
       const res = await fx("status"); // { tiers, earned }
-      earnedEl.textContent = (res.earned||0).toLocaleString();
+      earnedEl.textContent = nice(res.earned||0);
 
       const t = res.tiers || {1:"idle",2:"idle",3:"idle"};
-      shareBtns[0].disabled = false; locks[0].style.display="none";
-      shareBtns[1].disabled = t[1] !== "done"; locks[1].style.display = (t[1] !== "done") ? "inline-flex" : "none";
-      shareBtns[2].disabled = t[2] !== "done"; locks[2].style.display = (t[2] !== "done") ? "inline-flex" : "none";
+      // unlock order
+      document.getElementById("share2").disabled = (t[1] !== "done");
+      document.getElementById("share3").disabled = (t[2] !== "done");
+      document.getElementById("lock2").style.display = (t[1] !== "done") ? "inline-flex" : "none";
+      document.getElementById("lock3").style.display = (t[2] !== "done") ? "inline-flex" : "none";
       [1,2,3].forEach(i => {
         statusEls[i-1].classList.toggle("pending", t[i]==="pending");
         statusEls[i-1].textContent = t[i]==="done" ? "Completed ✔" : (t[i]==="pending" ? "Waiting for friend to join…" : "");
       });
 
+      // transitions → add CHADs (same path as games)
       const prev = readPrev();
       [1,2,3].forEach(i => {
         if ((prev[i]==="pending" || prev[i]==="idle") && t[i]==="done"){
@@ -2045,14 +2062,16 @@ Let’s race the leaderboard — every tap counts!`;
   setInterval(checkStatus, 6000);
 
   // Invitee: call once when they actually start playing
-  window.invitesSignalGamePlayed = async function(){ try { await fx("played"); } catch {} };
+  window.invitesSignalGamePlayed = async function(){
+    try { await fx("played"); } catch {}
+  };
 
   // Open/close modal
   launcher?.addEventListener("click", ()=> overlay.classList.add("show"));
   closeBtn?.addEventListener("click", ()=> overlay.classList.remove("show"));
   overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) overlay.classList.remove("show"); });
 
-  wireShares();
+  // First paint
   checkStatus();
 })();
 /* ===== Telegram + loader ===== */
