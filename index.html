@@ -15,7 +15,7 @@
   }
   body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
 
-  /* Launcher that SCROLLS with page */
+  /* Launcher that SCROLLS with the page */
   #inviteRewardsBtn{
     display:block; margin:24px 16px 0 auto; width:72px; height:72px;
     border-radius:16px; object-fit:cover; cursor:pointer;
@@ -37,11 +37,8 @@
   .invite-actions{display:flex; gap:8px;}
   .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
   .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;padding:0;border-radius:50%;}
-  .head-btn.icon#rulesBtn{ position:relative; }
-  .head-btn.icon#rulesBtn::before{
-    content:""; position:absolute; inset:-4px; border-radius:50%;
-    box-shadow: 0 0 0 2px var(--ring) inset, 0 0 12px 2px rgba(255,216,77,.4);
-  }
+  /* Yellow circle around ? */
+  .head-btn.icon#rulesBtn{ background:#ffd84d; color:#121212; border-color:#ffd84d; box-shadow:0 0 12px rgba(255,216,77,.45); font-weight:900; }
 
   .invite-body{padding:16px;display:grid;gap:16px;grid-template-columns:1fr;
     background:linear-gradient(180deg, rgba(14,18,28,.92), rgba(10,13,20,.95));max-height:88dvh;overflow:auto;}
@@ -1297,6 +1294,7 @@ canvas{ display:block }
         </div>
       </div>
     </div>
+
 <!-- Launcher image (scrolls with the page) -->
 <img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Invite & Rewards"/>
 <!-- ===== Test Your Luck (scrolls with page) ===== -->
@@ -1405,8 +1403,8 @@ canvas{ display:block }
   <div class="rules">
     <h3>📜 Invite Rules</h3>
     <ol>
-      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> multiple times — you won’t be rewarded.</li>
-      <li>🎮 Rewards are granted after the invited friend <b>opens & plays</b> the game.</li>
+      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> more than once — you won’t be rewarded.</li>
+      <li>🎮 CHADs are awarded after the invited friend <b>opens & plays</b> the game.</li>
       <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
       <li>✅ No more rules. Have fun!</li>
     </ol>
@@ -1991,6 +1989,7 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
 <!-- SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2013,44 +2012,39 @@ canvas{ display:block }
   const $ = (s, r=document) => r.querySelector(s);
   const overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn"), launcher=$("#inviteRewardsBtn");
   const rulesBtn=$("#rulesBtn"), rulesOverlay=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
+
   const shareBtns=[...document.querySelectorAll(".share-btn")];
-  const earnedEl=$("#earnedValue");
   const lock2=$("#lock2"), lock3=$("#lock3");
   const share2=$("#share2"), share3=$("#share3");
+  const earnedEl=$("#earnedValue");
 
-  // ===== Balance writer (exact same path as your games)
-  function ensureAppState(){
+  // ===== Robust CHAD credit (uses your exact state helpers)
+  function awardChads(amount){
     try{
-      if (typeof window.state !== "undefined") return window.state;
-      if (typeof window.loadStateLocal === "function"){
-        window.state = window.loadStateLocal(); // hydrate global for consistency
-        return window.state;
-      }
-      return (window.state ||= { chads:0n });
-    }catch{ return (window.state ||= { chads:0n }); }
-  }
-  window.awardChads = function(amount, reason){
-    try{
-      const s = ensureAppState();
       const plus = BigInt(amount||0);
-      s.chads = (s.chads ?? 0n) + plus;
-      if (typeof window.refreshUI === "function") window.refreshUI();
+      // 1) ensure we have a state object; hydrate if needed
+      let s = (typeof window.state === "object" && window.state) ? window.state :
+              (typeof window.loadStateLocal === "function" ? window.loadStateLocal() : { chads:0n, gen:0n, acc:0n, last: Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false });
+      // 2) add
+      const cur = (typeof s.chads === "bigint") ? s.chads : BigInt(s.chads || 0);
+      s.chads = cur + plus;
+      // 3) persist + sync global
       if (typeof window.saveStateLocal === "function") window.saveStateLocal(s);
+      window.state = s;
+      // 4) UI refresh paths
+      if (typeof window.refreshUI === "function") window.refreshUI();
       if (typeof window.showToast === "function"){
         window.showToast(`<span class="accent">+${Number(amount).toLocaleString()}</span> chads added to balance.`);
       }
-      // Visible fallback if your UI label exists
-      const label = document.getElementById("chadBalance") || document.querySelector("[data-chads-balance]");
-      if (label){
-        const v = (typeof s.chads === "bigint" ? s.chads : BigInt(s.chads||0));
-        label.textContent = Number(v).toLocaleString();
-      }
+      const lbl = document.getElementById("chadBalance") || document.querySelector("[data-chads-balance]");
+      if (lbl) lbl.textContent = Number((typeof s.chads==="bigint"? s.chads : BigInt(s.chads||0))).toLocaleString();
     }catch(e){ console.warn("awardChads failed", e); }
-  };
+  }
+  window.awardChads = awardChads; // expose globally for games if needed
 
   // ===== Helpers
   const nice = (n)=> Number(n||0).toLocaleString();
-  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct link. :contentReference[oaicite:1]{index=1}
+  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // official direct link (startapp). 
   const inviteText = (link) =>
 `🚀 Welcome to ChadiliZe!
 Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
@@ -2059,13 +2053,13 @@ Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
 Let’s race the leaderboard — every tap counts!`;
 
   function openShare(url){
-    // Same as your working "pink share" behavior
-    if (tg?.openTelegramLink) tg.openTelegramLink(url);        // official in-app share. :contentReference[oaicite:2]{index=2}
+    // Official approach inside Mini Apps: open Telegram link to the Share URL.
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);  // uses Telegram behavior. 
     else if (tg?.openLink) tg.openLink(url);
     else window.location.href = url;
   }
 
-  // ===== Supabase Edge Function invoke
+  // ===== Supabase Edge Function invoke (server validates initData)
   async function fx(op, body = {}) {
     const initData = tg?.initData || "";
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: { op, initData, ...body } });
@@ -2081,7 +2075,7 @@ Let’s race the leaderboard — every tap counts!`;
   })();
 
   // ===== SHARE tiers (unlock next after share)
-  const SHARED_KEY = "invite_shared_flags_v2"; // {1:true,2:true}
+  const SHARED_KEY = "invite_shared_flags_final"; // {1:true,2:true}
   const flags = JSON.parse(localStorage.getItem(SHARED_KEY) || "{}");
   const persistFlags = ()=> localStorage.setItem(SHARED_KEY, JSON.stringify(flags));
   function applyUnlocks(){
@@ -2105,7 +2099,8 @@ Let’s race the leaderboard — every tap counts!`;
     }
 
     const link = directLink(token);
-    const url  = `https://t.me/share?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`; // official share endpoint. :contentReference[oaicite:3]{index=3}
+    // Official share URL format (url + text)
+    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`;
     openShare(url);
 
     // unlock next option immediately after sharing
@@ -2142,7 +2137,7 @@ Let’s race the leaderboard — every tap counts!`;
         if (localStorage.getItem(`${t.key}_pending`) === "1" && localStorage.getItem(t.key) !== "1"){
           localStorage.removeItem(`${t.key}_pending`);
           localStorage.setItem(t.key, "1");
-          window.awardChads(t.amt, t.id);
+          awardChads(t.amt, t.id);
           const tick = document.querySelector(t.tick); if (tick) tick.classList.add("show");
           const sEl = document.querySelector(`#${t.id} .status`); if (sEl) sEl.textContent = "Completed ✔";
         }
@@ -2156,8 +2151,8 @@ Let’s race the leaderboard — every tap counts!`;
     try{
       const res = await fx("status"); // { tiers, earned }
       earnedEl.textContent = nice(res.earned||0);
-      // When a friend actually plays, your backend marks tier as completed;
-      // if you want to auto-credit here too, add: awardChads(AMTS[i]) when a tier transitions to done.
+      // If you want to also auto-credit tiers here on transition to 'done',
+      // add a prev-state tracker and call awardChads(AMTS[i]) like we did earlier.
     }catch(e){ console.warn("status:", e); }
   }
   setInterval(checkStatus, 6000);
@@ -2167,9 +2162,11 @@ Let’s race the leaderboard — every tap counts!`;
   window.invitesSignalGamePlayed = async function(){ try { await fx("played"); } catch {} };
 
   // Open/close & Rules
-  launcher?.addEventListener("click", ()=> overlay.classList.add("show"));
-  closeBtn?.addEventListener("click", ()=> overlay.classList.remove("show"));
-  overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) overlay.classList.remove("show"); });
+  const open = ()=> overlay.classList.add("show");
+  const close = ()=> overlay.classList.remove("show");
+  launcher?.addEventListener("click", open);
+  closeBtn?.addEventListener("click", close);
+  overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) close(); });
   rulesBtn?.addEventListener("click", ()=> rulesOverlay.classList.add("show"));
   rulesOk?.addEventListener("click", ()=> rulesOverlay.classList.remove("show"));
 })();
