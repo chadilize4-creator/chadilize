@@ -6,75 +6,45 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
- :root{
-    --bg: var(--tg-theme-bg-color, #0b0e14);
-    --fg: var(--tg-theme-text-color, #eaf2ff);
-    --muted:#9aa3ad; --border: color-mix(in oklab, var(--fg) 10%, transparent);
-    --glow: 0 12px 40px rgba(91,140,255,.35); --radius-xl: 20px; --radius: 14px;
-    --ok:#3df57c; --ring:#ffd84d;
-  }
-  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
-
-  /* Launcher (scrolls with page) */
-  #inviteRewardsBtn{
-    display:block; margin:24px 16px 0 auto; width:72px; height:72px;
-    border-radius:16px; object-fit:cover; cursor:pointer;
-    border:1px solid var(--border); box-shadow:var(--glow); background:#0c1220;
-  }
-
-  /* Overlay + modal */
+:root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
+    --muted:#9aa3ad;--border:color-mix(in oklab,var(--fg) 10%,transparent);
+    --glow:0 12px 40px rgba(91,140,255,.35)}
+  #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:72px;height:72px;border-radius:16px;
+    object-fit:cover;cursor:pointer;border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220}
   .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;
-    background:radial-gradient(1200px 800px at 20% -10%, rgba(91,140,255,.18), transparent 60%),
-               radial-gradient(1200px 800px at 120% 110%, rgba(255,119,199,.15), transparent 60%),
-               rgba(2,4,10,.55); backdrop-filter:blur(6px); padding:24px; overflow:auto;}
-  .invite-overlay.show{display:block;}
-
-  .invite-modal{margin:0 auto;max-width:980px;border-radius:var(--radius-xl);
-    overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border);}
+    background:radial-gradient(1200px 800px at 20% -10%,rgba(91,140,255,.18),transparent 60%),
+               radial-gradient(1200px 800px at 120% 110%,rgba(255,119,199,.15),transparent 60%),
+               rgba(2,4,10,.55);backdrop-filter:blur(6px);padding:24px;overflow:auto}
+  .invite-overlay.show{display:block}
+  .invite-modal{margin:0 auto;max-width:980px;border-radius:20px;overflow:hidden;
+    box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border)}
   .invite-head{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:16px 18px;
-    background:linear-gradient(90deg, rgba(91,140,255,.08), transparent);}
-  .invite-title{font-size:20px;font-weight:800;}
-  .invite-actions{display:flex; gap:8px;}
-  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
-  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;padding:0;border-radius:50%;}
-  /* Yellow ? */
-  .head-btn.icon#rulesBtn{ background:#ffd84d; color:#121212; border-color:#ffd84d; box-shadow:0 0 12px rgba(255,216,77,.45); font-weight:900; }
-
+    background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
+  .invite-title{font:800 20px/1.1 system-ui,sans-serif}
+  .invite-actions{display:flex;gap:8px}
+  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
+  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%}
+  .head-btn.icon#rulesBtn{background:#ffd84d;color:#121212;border-color:#ffd84d;box-shadow:0 0 12px rgba(255,216,77,.45);font-weight:900}
   .invite-body{padding:16px;display:grid;gap:16px;grid-template-columns:1fr;
-    background:linear-gradient(180deg, rgba(14,18,28,.92), rgba(10,13,20,.95));max-height:88dvh;overflow:auto;}
-
-  .card{background:linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-    border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--glow);}
-  .muted{color:var(--muted);font-size:13px;}
-  .earnedRow{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;}
-  .coin{font-size:22px;}
-
-  .rewards{display:grid;gap:14px;}
-  .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer;}
-  .btn[disabled]{opacity:.5;cursor:not-allowed;}
-
+    background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));max-height:88dvh;overflow:auto}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--glow)}
+  .muted{color:#9aa3ad;font-size:13px}
+  .earnedRow{display:flex;align-items:center;gap:10px;font:800 18px/1.2 system-ui,sans-serif}
+  .rewards{display:grid;gap:14px}
+  .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
   .reward-card{position:relative;overflow:hidden;border-radius:16px;padding:14px;
-    background:radial-gradient(1200px 600px at -20% -40%, rgba(109,163,255,.15), transparent 60%),
-               radial-gradient(1200px 600px at 120% 140%, rgba(255,119,199,.12), transparent 60%),
-               #0e1422;border:1px solid var(--border);box-shadow:var(--glow);}
-  .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;}
-  .reward-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-  .reward-amt{font-size:22px;font-weight:900;letter-spacing:.3px;}
-  .reward-desc{font-size:13px;color:var(--muted);margin-top:2px;}
-  .status{font-size:13px;margin-top:6px;min-height:18px;}
-  .pill.locked{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);
-    border:1px solid var(--border);padding:4px 8px;border-radius:999px;}
-  .tick{color:var(--ok); font-weight:800; display:none;}
-  .tick.show{display:inline;}
-  @media (max-width:480px){ .reward-row{grid-template-columns:auto 1fr;} .pill.locked{display:none;} }
-
-  /* Rules overlay */
-  .rules-overlay{position:fixed;inset:0;z-index:10000;display:none;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);}
-  .rules-overlay.show{display:grid;place-items:center;}
-  .rules{width:min(680px,92vw);border:1px solid var(--border);border-radius:16px;padding:16px;background:#0d1321;box-shadow:var(--glow);}
-  .rules h3{margin:6px 0 12px 0}
-  .rules ol{margin:0 0 12px 18px;line-height:1.55}
-  .rules .ok{display:block;margin-left:auto}
+    background:radial-gradient(1200px 600px at -20% -40%,rgba(109,163,255,.15),transparent 60%),
+               radial-gradient(1200px 600px at 120% 140%,rgba(255,119,199,.12),transparent 60%),#0e1422;
+    border:1px solid var(--border);box-shadow:var(--glow)}
+  .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  .reward-label{font:600 12px/1.1 system-ui,sans-serif;color:#9aa3ad;text-transform:uppercase;letter-spacing:.4px}
+  .reward-amt{font:900 22px/1.1 system-ui,sans-serif}
+  .reward-desc{font-size:13px;color:#9aa3ad;margin-top:2px}
+  .status{font-size:13px;margin-top:6px;min-height:18px}
+  .pill.locked{font-size:12px;color:#9aa3ad;background:rgba(255,255,255,.06);border:1px solid var(--border);
+    padding:4px 8px;border-radius:999px}
+  .tick{color:#3df57c;font-weight:800;display:none}.tick.show{display:inline}
 /* ===== Overlay + HUD ================================================= */
 .tt-overlay{
   position:fixed; inset:0; display:none; z-index:9999; background:#000;
@@ -1294,7 +1264,6 @@ canvas{ display:block }
         </div>
       </div>
     </div>
-<!-- Launcher image -->
 <img id="inviteRewardsBtn" src="./img/getrewards.png" alt="Invite & Rewards"/>
 <!-- ===== Test Your Luck (scrolls with page) ===== -->
 <div id="luckBtnWrap" class="luck-btn-wrap">
@@ -1307,108 +1276,82 @@ canvas{ display:block }
 
 
 
-<!-- Invite modal -->
-<div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
   <div class="invite-modal">
     <div class="invite-head">
       <div class="invite-title">Invite friends → win huge CHADs</div>
       <div class="invite-actions">
-        <button class="head-btn icon" id="rulesBtn" title="Rules">?</button>
+        <button class="head-btn icon" id="rulesBtn">?</button>
         <button class="head-btn" id="inviteCloseBtn">Close</button>
       </div>
     </div>
-
     <div class="invite-body">
-      <!-- Earned summary -->
       <section class="card">
-        <div class="earnedRow"><span class="coin">🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
+        <div class="earnedRow"><span>🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
         <div class="muted" style="margin-top:6px">Earned via invites</div>
       </section>
 
-      <!-- Tiers 1..3 -->
       <section class="rewards">
         <article class="reward-card" id="tier1">
           <div class="reward-row">
             <button class="btn share-btn" data-tier="1">Share</button>
-            <div>
-              <div class="reward-label">Option 1</div>
-              <div class="reward-amt">+500,000 CHADs</div>
-              <div class="reward-desc">Share your link. When they join & play, you’re rewarded.</div>
-            </div>
+            <div><div class="reward-label">Option 1</div><div class="reward-amt">+500,000 CHADs</div>
+              <div class="reward-desc">Share your link. When they join & play, you’re rewarded.</div></div>
             <div class="pill locked" id="lock1" style="display:none">Locked</div>
-          </div>
-          <div class="status" id="status1"></div>
+          </div><div class="status" id="status1"></div>
         </article>
 
         <article class="reward-card" id="tier2">
           <div class="reward-row">
             <button class="btn share-btn" id="share2" data-tier="2" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 2</div>
-              <div class="reward-amt">+5,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after you share Option 1.</div>
-            </div>
+            <div><div class="reward-label">Option 2</div><div class="reward-amt">+5,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 1.</div></div>
             <div class="pill locked" id="lock2">Locked</div>
-          </div>
-          <div class="status" id="status2"></div>
+          </div><div class="status" id="status2"></div>
         </article>
 
         <article class="reward-card" id="tier3">
           <div class="reward-row">
             <button class="btn share-btn" id="share3" data-tier="3" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 3</div>
-              <div class="reward-amt">+3,000,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after you share Option 2.</div>
-            </div>
+            <div><div class="reward-label">Option 3</div><div class="reward-amt">+3,000,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 2.</div></div>
             <div class="pill locked" id="lock3">Locked</div>
-          </div>
-          <div class="status" id="status3"></div>
+          </div><div class="status" id="status3"></div>
         </article>
 
-        <!-- Option 4: X -->
         <article class="reward-card" id="tier4">
           <div class="reward-row">
             <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
-            <div>
-              <div class="reward-label">Option 4</div>
-              <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
-              <div class="reward-desc">Tap Open to earn instantly. (Subscription not enforced)</div>
-            </div>
+            <div><div class="reward-label">Option 4</div><div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div></div>
             <div><span class="tick" id="tick4">✔</span></div>
-          </div>
-          <div class="status" id="status4"></div>
+          </div><div class="status" id="status4"></div>
         </article>
 
-        <!-- Option 5: YouTube -->
         <article class="reward-card" id="tier5">
           <div class="reward-row">
             <button class="btn follow-btn" data-url="https://www.youtube.com/@Chadilize" data-amount="600000">Open</button>
-            <div>
-              <div class="reward-label">Option 5</div>
-              <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
-              <div class="reward-desc">Tap Open to earn instantly. (Subscription not enforced)</div>
-            </div>
+            <div><div class="reward-label">Option 5</div><div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div></div>
             <div><span class="tick" id="tick5">✔</span></div>
-          </div>
-          <div class="status" id="status5"></div>
+          </div><div class="status" id="status5"></div>
         </article>
       </section>
     </div>
   </div>
 </div>
 
-<!-- Rules window -->
-<div class="rules-overlay" id="rulesOverlay">
-  <div class="rules">
-    <h3>📜 Invite Rules</h3>
-    <ol>
+<!-- Simple rules popover -->
+<div class="invite-overlay" id="rulesOverlay" style="background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;place-items:center;">
+  <div class="card" style="width:min(680px,92vw);">
+    <h3 style="margin:6px 0 12px 0">📜 Invite Rules</h3>
+    <ol style="margin:0 0 12px 18px;line-height:1.55">
       <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> more than once — you won’t be rewarded.</li>
       <li>🎮 CHADs are awarded after the invited friend <b>opens & plays</b> the game.</li>
       <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
       <li>✅ No more rules. Have fun!</li>
     </ol>
-    <button class="btn ok" id="rulesOkBtn">OK</button>
+    <button class="btn" id="rulesOkBtn" style="display:block;margin-left:auto">OK</button>
   </div>
 </div>
 <!-- ===== Lucky Wheel Modal ===== -->
@@ -1989,195 +1932,151 @@ canvas{ display:block }
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<!-- SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-(() => {
-  /* ===== Config ===== */
-  const BOT_USERNAME   = "chadilizebot";
-  const APP_NAME       = "chadilize";
-  const FUNCTION_NAME  = "invite"; // change if different
-  const SUPABASE_URL   = "https://jwrvlaxfrnglaxueqgdx.supabase.co";
-  const SUPABASE_ANON  = "sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+(function(){
+  const BOT_USERNAME="chadilizebot", APP_NAME="chadilize";
+  const SUPABASE_URL="https://jwrvlaxfrnglaxueqgdx.supabase.co";
+  const SUPABASE_ANON="sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+  const FX_NAME="invite"; // your Edge Function name
+  const TIER_AMTS={1:500_000,2:5_000_000,3:3_000_000_000};
 
-  const TIER_AMTS = {1: 500_000, 2: 5_000_000, 3: 3_000_000_000};
+  const tg = window.Telegram?.WebApp; try{tg?.expand?.()}catch{}
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  const tg = window.Telegram?.WebApp;
-  try { tg?.expand?.(); } catch {}
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  /* ===== DOM ===== */
-  const $ = (s, r=document) => r.querySelector(s);
-  const overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn"), launcher=$("#inviteRewardsBtn");
-  const rulesBtn=$("#rulesBtn"), rulesOverlay=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
-  const earnedEl=$("#earnedValue");
+  const $=(s,r=document)=>r.querySelector(s);
+  const overlay=$("#inviteOverlay"), openBtn=$("#inviteRewardsBtn"), closeBtn=$("#inviteCloseBtn");
+  const earnedEl=$("#earnedValue"), rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
   const share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
 
-  /* ===== EXACT Shop-compatible credit (BigInt + save + refresh) ===== */
-  function ensureState(){
-    try{
-      if (!window.state || typeof window.state !== 'object') {
-        window.state = (typeof loadStateLocal === 'function') ? loadStateLocal() : { chads:0n, gen:0n, acc:0n, last: Math.floor(Date.now()/1000), level:1, purchases:{}, name:null, avatarIdx:null, avatarLocked:false };
-      }
-    }catch{ window.state = { chads:0n }; }
-    return window.state;
-  }
-  function addChads(amount){
-    try{
-      const s = ensureState();
-      const plus = BigInt(String(amount));
-      const cur  = (typeof s.chads === 'bigint') ? s.chads : BigInt(s.chads || 0);
-      s.chads = cur + plus;
-      if (typeof saveStateLocal === 'function') saveStateLocal(s);
-      if (typeof refreshUI      === 'function') refreshUI();
-      if (typeof showToast      === 'function') showToast(`<span class="accent">+${Number(plus).toLocaleString()}</span> chads added to balance.`);
-    }catch(e){ console.warn('addChads failed', e); }
-  }
-  window.addChadsFromInvites = addChads;
-
-  /* ===== Earned counter (local + remote) ===== */
-  const EARNED_LOCAL_KEY = "invite_local_earned_v1";
-  function getLocalEarned(){ return Number(localStorage.getItem(EARNED_LOCAL_KEY) || "0"); }
-  function addLocalEarned(n){
-    const v = getLocalEarned() + Number(n || 0);
-    localStorage.setItem(EARNED_LOCAL_KEY, String(v));
+  /* ========== CREDIT QUEUE: never lose rewards even if state isn't ready yet ========== */
+  const QKEY="invite_credit_queue_v1";                 // [numbers...]
+  const L_EARN_KEY="invite_local_earned_v2";           // number
+  function queueCredit(amount){
+    const list=JSON.parse(localStorage.getItem(QKEY)||"[]"); list.push(Number(amount));
+    localStorage.setItem(QKEY, JSON.stringify(list));
+    // also reflect immediately in “earned via invites” box:
+    localStorage.setItem(L_EARN_KEY, String((Number(localStorage.getItem(L_EARN_KEY)||"0") + Number(amount))));
     renderEarned();
+    processQueue(); // try now
   }
-  let remoteEarned = 0;
-  function renderEarned(){ earnedEl.textContent = (getLocalEarned() + (remoteEarned||0)).toLocaleString(); }
-
-  /* ===== Helpers ===== */
-  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // Mini App deep link with startapp. 
-  const inviteText = (link) =>
-`🚀 Welcome to ChadiliZe!
-Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
-👉 ${link}
-
-Let’s race the leaderboard — every tap counts!`;
-
-  function openShare(url){
-    // Official share opener inside Mini Apps (docs: Widgets/Sharing + WebApp.openTelegramLink).
-    if (tg?.openTelegramLink) tg.openTelegramLink(url);
-    else if (tg?.openLink)   tg.openLink(url);
-    else window.location.href = url;
+  function processQueue(){
+    if (typeof loadStateLocal!=="function" || typeof saveStateLocal!=="function") return; // wait
+    let list=JSON.parse(localStorage.getItem(QKEY)||"[]"); if(!list.length) return;
+    try{
+      const s = (window.state && typeof window.state==="object") ? window.state : loadStateLocal();
+      const add = list.reduce((a,b)=> a + BigInt(String(b)), 0n);
+      const cur = (typeof s.chads==="bigint") ? s.chads : BigInt(s.chads||0);
+      s.chads = cur + add;
+      saveStateLocal(s);
+      if (typeof refreshUI==="function") refreshUI();
+      if (typeof showToast==="function") showToast(`<span class="accent">+${Number(add).toLocaleString()}</span> chads added to balance.`);
+      localStorage.removeItem(QKEY); // drained
+    }catch(e){ console.warn("processQueue failed", e); }
   }
+  // keep trying until your bootstrap is ready
+  setInterval(processQueue, 800);
 
-  /* ===== Supabase Edge Function invoke ===== */
-  async function fx(op, body = {}) {
-    const initData = tg?.initData || "";
-    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, { body: { op, initData, ...body } });
-    if (error) throw new Error(error.message || "invoke failed");
-    return data;
+  function renderEarned(){
+    const local = Number(localStorage.getItem(L_EARN_KEY)||"0");
+    earnedEl.textContent = local.toLocaleString();
   }
 
-  /* Bind any startapp token we were launched with */
-  (async function sessionOpen(){
-    const q = new URLSearchParams(location.search);
-    const startParam = q.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
-    try { await fx("session_open", { startParam }); } catch (e){ console.warn("session_open:",e); }
+  /* ========== Telegram share helpers ========== */
+  const directLink = (token)=> `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // startapp → tgWebAppStartParam. 
+  function openShare(url, text){
+    const u = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`; // official share endpoint
+    if (tg?.openTelegramLink) tg.openTelegramLink(u);
+    else if (tg?.openLink) tg.openLink(u);
+    else location.href = u;
+  }
+  function inviteMessage(link){
+    return `🚀 Welcome to ChadiliZe!\nPlay Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:\n👉 ${link}\n\nLet’s race the leaderboard — every tap counts!`;
+  }
+
+  /* ========== Supabase Edge Function (non-blocking) ========== */
+  async function fx(op, body={}){
+    try{
+      const initData=tg?.initData||"";
+      const { data, error } = await sb.functions.invoke(FX_NAME, { body:{ op, initData, ...body } });
+      if (error) throw error;
+      return data||{};
+    }catch(e){ console.warn("fx:", e.message||e); return {}; }
+  }
+
+  // bind incoming token on open
+  (async ()=>{
+    const qs=new URLSearchParams(location.search);
+    const startParam = qs.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
+    if (startParam) { try { await fx("session_open", { startParam }); } catch{} }
   })();
 
-  /* ===== Share tiers (unlock next after you share) ===== */
-  const SHARED_KEY = "invite_shared_flags_v5"; // {1:true,2:true}
-  const flags = JSON.parse(localStorage.getItem(SHARED_KEY) || "{}");
-  const persistFlags = ()=> localStorage.setItem(SHARED_KEY, JSON.stringify(flags));
+  /* ========== Share tiers (unlock next after share) ========== */
+  const FLAG_KEY="invite_shared_flags_v6"; const flags=JSON.parse(localStorage.getItem(FLAG_KEY)||"{}");
+  function saveFlags(){ localStorage.setItem(FLAG_KEY, JSON.stringify(flags)); }
   function applyUnlocks(){
-    share2.disabled = !flags[1]; lock2.style.display = flags[1] ? "none" : "inline-flex";
-    share3.disabled = !flags[2]; lock3.style.display = flags[2] ? "none" : "inline-flex";
+    if (share2) share2.disabled = !flags[1]; if (lock2) lock2.style.display = flags[1]?"none":"inline-flex";
+    if (share3) share3.disabled = !flags[2]; if (lock3) lock3.style.display = flags[2]?"none":"inline-flex";
   }
   applyUnlocks();
 
   async function shareTier(tier){
-    let token=null;
-    try { const r = await fx("share", { tier }); token = r?.token || null; }
-    catch(e){ console.warn("share op:", e); }
-    if (!token){ // deterministic fallback so we never share a blank link
-      const uid = tg?.initDataUnsafe?.user?.id;
-      token = uid ? Number(uid).toString(36) : "dev";
-    }
+    let token=null; const r = await fx("share",{ tier }); token = r?.token || null;
+    if (!token){ const uid = tg?.initDataUnsafe?.user?.id; token = uid ? Number(uid).toString(36) : "dev"; }
     const link = directLink(token);
-    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`;
-    openShare(url);
-
-    // Unlock next after share
-    flags[tier] = true; persistFlags(); applyUnlocks();
-    const sEl = document.getElementById(`status${tier}`); if (sEl) sEl.textContent = "Shared!";
+    openShare(link, inviteMessage(link));
+    flags[tier]=true; saveFlags(); applyUnlocks();
+    const sEl = $("#status"+tier); if (sEl) sEl.textContent="Shared!";
   }
-  document.querySelectorAll(".share-btn").forEach(btn =>
-    btn.addEventListener("click", ()=> shareTier(Number(btn.dataset.tier)))
-  );
+  document.querySelectorAll(".share-btn").forEach(b=> b.addEventListener("click",()=>shareTier(Number(b.dataset.tier))));
 
-  /* ===== X & YouTube tasks — award IMMEDIATELY on click (one time) ===== */
-  (function wireFollowTasks(){
-    const tasks = [
-      { id:"tier4", tick:"#tick4", amt:400000, btn:"#tier4 .follow-btn", key:"task_x_done" },
-      { id:"tier5", tick:"#tick5", amt:600000, btn:"#tier5 .follow-btn", key:"task_yt_done" }
+  /* ========== X & YouTube — award immediately, once ========== */
+  (function(){
+    const tasks=[
+      { id:"tier4", tick:"#tick4", amt:400000, sel:"#tier4 .follow-btn", key:"task_x_done" },
+      { id:"tier5", tick:"#tick5", amt:600000, sel:"#tier5 .follow-btn", key:"task_yt_done" },
     ];
-    tasks.forEach(t => {
-      if (localStorage.getItem(t.key) === "1"){
-        document.querySelector(t.tick)?.classList.add("show");
-        const sEl = document.querySelector(`#${t.id} .status`); if (sEl) sEl.textContent = "Completed ✔";
-      }
-      const b = document.querySelector(t.btn);
-      b?.addEventListener("click", ()=>{
-        // CREDIT NOW (one-time)
-        if (localStorage.getItem(t.key) !== "1"){
-          localStorage.setItem(t.key, "1");
-          addChads(t.amt);        // balance
-          addLocalEarned(t.amt);  // earned via invites box
-          document.querySelector(t.tick)?.classList.add("show");
-          const sEl = document.querySelector(`#${t.id} .status`); if (sEl) sEl.textContent = "Completed ✔";
+    tasks.forEach(t=>{
+      if (localStorage.getItem(t.key)==="1"){ $(t.tick)?.classList.add("show"); $("#"+t.id+" .status")?.textContent="Completed ✔"; }
+      const btn=$(t.sel);
+      btn?.addEventListener("click", ()=>{
+        if (localStorage.getItem(t.key)!=="1"){
+          localStorage.setItem(t.key,"1");
+          queueCredit(t.amt);                // <-- goes straight to balance via queue
+          $(t.tick)?.classList.add("show");
+          $("#"+t.id+" .status")?.textContent="Completed ✔";
         }
-        // still open the link for convenience
-        const url = b.dataset.url;
-        if (tg?.openLink) tg.openLink(url); else window.open(url, "_blank");
+        const url = btn.dataset.url; if (tg?.openLink) tg.openLink(url); else window.open(url,"_blank");
       });
     });
   })();
 
-  /* ===== Poll earned total + credit share tiers on completion (server marks “done”) ===== */
-  const PREV_TIERS_KEY = "invite_prev_tiers_v6";
-  function readPrev(){ try{ return JSON.parse(localStorage.getItem(PREV_TIERS_KEY) || "{}"); }catch{ return {}; } }
-  function savePrev(x){ localStorage.setItem(PREV_TIERS_KEY, JSON.stringify(x)); }
-
-  async function checkStatus(){
-    try{
-      const res = await fx("status"); // { earned, tiers:{1:'idle|pending|done',2:...,3:...} }
-      remoteEarned = Number(res.earned || 0);
-      renderEarned();
-
-      const tiers = res.tiers || {};
-      const prev  = readPrev();
-      [1,2,3].forEach(i=>{
-        const now = tiers[i];
-        if (now === "done" && prev[i] !== "done"){
-          // credit balance and earned counter once per tier
-          addChads(TIER_AMTS[i]);
-          addLocalEarned(TIER_AMTS[i]);
-          const sEl = document.getElementById(`status${i}`); if (sEl) sEl.textContent = "Completed ✔";
-        }
-      });
-      savePrev(tiers);
-    }catch(e){ console.warn("status:", e); }
+  /* ========== Periodic server status (optional) ========== */
+  const PREV_KEY="invite_prev_tiers_v7";
+  function readPrev(){ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}")}catch{return{}} }
+  function savePrev(x){ localStorage.setItem(PREV_KEY, JSON.stringify(x)); }
+  async function poll(){
+    const res = await fx("status"); // expected: { earned, tiers:{1|2|3:'idle|pending|done'} }
+    // If your function returns an 'earned' sum, you could show it here too (we already count local tasks).
+    const prev = readPrev(); const tiers = res.tiers||{};
+    [1,2,3].forEach(i=>{
+      if (tiers[i]==="done" && prev[i]!=="done"){ queueCredit(TIER_AMTS[i]); $("#status"+i)?.textContent="Completed ✔"; }
+    });
+    savePrev(tiers);
   }
-  setInterval(checkStatus, 6000);
-  checkStatus();
+  setInterval(poll, 6000);
 
-  /* ===== Invitee hook: call once when they actually start playing ===== */
-  window.invitesSignalGamePlayed = async function(){ try { await fx("played"); } catch {} };
-
-  /* ===== Open/close & Rules ===== */
+  /* ========== Open/close & rules ========== */
   const open = ()=> overlay.classList.add("show");
-  const close = ()=> overlay.classList.remove("show");
-  launcher?.addEventListener("click", open);
+  const close= ()=> overlay.classList.remove("show");
+  openBtn?.addEventListener("click", open);
   closeBtn?.addEventListener("click", close);
-  overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) close(); });
-  rulesBtn?.addEventListener("click", ()=> rulesOverlay.classList.add("show"));
-  rulesOk?.addEventListener("click", ()=> rulesOverlay.classList.remove("show"));
+  overlay?.addEventListener("click",(e)=>{ if(e.target===overlay) close(); });
+  rulesBtn?.addEventListener("click",()=>{ rulesOv.style.display='grid'; });
+  rulesOk ?.addEventListener("click",()=>{ rulesOv.style.display='none'; });
 
-  // first render
-  renderEarned();
+  renderEarned(); // initial
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
