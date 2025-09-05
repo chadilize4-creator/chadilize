@@ -6,7 +6,7 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{
+ :root{
     --bg: var(--tg-theme-bg-color, #0b0e14);
     --fg: var(--tg-theme-text-color, #eaf2ff);
     --muted:#9aa3ad; --border: color-mix(in oklab, var(--fg) 10%, transparent);
@@ -37,7 +37,7 @@
   .invite-actions{display:flex; gap:8px;}
   .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;}
   .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;padding:0;border-radius:50%;}
-  /* Yellow circle around ? */
+  /* Yellow ? */
   .head-btn.icon#rulesBtn{ background:#ffd84d; color:#121212; border-color:#ffd84d; box-shadow:0 0 12px rgba(255,216,77,.45); font-weight:900; }
 
   .invite-body{padding:16px;display:grid;gap:16px;grid-template-columns:1fr;
@@ -1306,6 +1306,7 @@ canvas{ display:block }
 
 
 
+
 <!-- Invite modal -->
 <div class="invite-overlay" id="inviteOverlay" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="invite-modal">
@@ -1372,7 +1373,7 @@ canvas{ display:block }
             <div>
               <div class="reward-label">Option 4</div>
               <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
-              <div class="reward-desc">We’ll credit you when you tap Open (no verification).</div>
+              <div class="reward-desc">Tap Open to earn instantly. (Subscription not enforced)</div>
             </div>
             <div><span class="tick" id="tick4">✔</span></div>
           </div>
@@ -1386,7 +1387,7 @@ canvas{ display:block }
             <div>
               <div class="reward-label">Option 5</div>
               <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
-              <div class="reward-desc">We’ll credit you when you tap Open (no verification).</div>
+              <div class="reward-desc">Tap Open to earn instantly. (Subscription not enforced)</div>
             </div>
             <div><span class="tick" id="tick5">✔</span></div>
           </div>
@@ -2035,9 +2036,19 @@ canvas{ display:block }
   }
   window.addChadsFromInvites = addChads;
 
+  /* ===== Earned counter (local + remote) ===== */
+  const EARNED_LOCAL_KEY = "invite_local_earned_v1";
+  function getLocalEarned(){ return Number(localStorage.getItem(EARNED_LOCAL_KEY) || "0"); }
+  function addLocalEarned(n){
+    const v = getLocalEarned() + Number(n || 0);
+    localStorage.setItem(EARNED_LOCAL_KEY, String(v));
+    renderEarned();
+  }
+  let remoteEarned = 0;
+  function renderEarned(){ earnedEl.textContent = (getLocalEarned() + (remoteEarned||0)).toLocaleString(); }
+
   /* ===== Helpers ===== */
-  const nice = (n)=> Number(n||0).toLocaleString();
-  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // Mini-App deep link with startapp. 
+  const directLink = (token) => `https://t.me/${BOT_USERNAME}/${APP_NAME}?startapp=${encodeURIComponent(token)}`; // Mini App deep link with startapp. 
   const inviteText = (link) =>
 `🚀 Welcome to ChadiliZe!
 Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
@@ -2046,7 +2057,7 @@ Play Snake & Flappy Birl to farm CHADs. Join with my invite and get a boost:
 Let’s race the leaderboard — every tap counts!`;
 
   function openShare(url){
-    // Open Telegram’s native share sheet (official). 
+    // Official share opener inside Mini Apps (docs: Widgets/Sharing + WebApp.openTelegramLink).
     if (tg?.openTelegramLink) tg.openTelegramLink(url);
     else if (tg?.openLink)   tg.openLink(url);
     else window.location.href = url;
@@ -2068,7 +2079,7 @@ Let’s race the leaderboard — every tap counts!`;
   })();
 
   /* ===== Share tiers (unlock next after you share) ===== */
-  const SHARED_KEY = "invite_shared_flags_v4"; // {1:true,2:true}
+  const SHARED_KEY = "invite_shared_flags_v5"; // {1:true,2:true}
   const flags = JSON.parse(localStorage.getItem(SHARED_KEY) || "{}");
   const persistFlags = ()=> localStorage.setItem(SHARED_KEY, JSON.stringify(flags));
   function applyUnlocks(){
@@ -2081,16 +2092,15 @@ Let’s race the leaderboard — every tap counts!`;
     let token=null;
     try { const r = await fx("share", { tier }); token = r?.token || null; }
     catch(e){ console.warn("share op:", e); }
-    if (!token){ // never share blank link – fallback to base36 of user id
+    if (!token){ // deterministic fallback so we never share a blank link
       const uid = tg?.initDataUnsafe?.user?.id;
       token = uid ? Number(uid).toString(36) : "dev";
     }
-
     const link = directLink(token);
-    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`; // official share URL.
+    const url  = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(inviteText(link))}`;
     openShare(url);
 
-    // unlock next after share
+    // Unlock next after share
     flags[tier] = true; persistFlags(); applyUnlocks();
     const sEl = document.getElementById(`status${tier}`); if (sEl) sEl.textContent = "Shared!";
   }
@@ -2111,25 +2121,44 @@ Let’s race the leaderboard — every tap counts!`;
       }
       const b = document.querySelector(t.btn);
       b?.addEventListener("click", ()=>{
-        // CREDIT NOW (only once)
+        // CREDIT NOW (one-time)
         if (localStorage.getItem(t.key) !== "1"){
           localStorage.setItem(t.key, "1");
-          addChads(t.amt);
+          addChads(t.amt);        // balance
+          addLocalEarned(t.amt);  // earned via invites box
           document.querySelector(t.tick)?.classList.add("show");
           const sEl = document.querySelector(`#${t.id} .status`); if (sEl) sEl.textContent = "Completed ✔";
         }
-        // still open the external link for convenience
+        // still open the link for convenience
         const url = b.dataset.url;
         if (tg?.openLink) tg.openLink(url); else window.open(url, "_blank");
       });
     });
   })();
 
-  /* ===== Poll earned total from backend (optional) ===== */
+  /* ===== Poll earned total + credit share tiers on completion (server marks “done”) ===== */
+  const PREV_TIERS_KEY = "invite_prev_tiers_v6";
+  function readPrev(){ try{ return JSON.parse(localStorage.getItem(PREV_TIERS_KEY) || "{}"); }catch{ return {}; } }
+  function savePrev(x){ localStorage.setItem(PREV_TIERS_KEY, JSON.stringify(x)); }
+
   async function checkStatus(){
     try{
-      const res = await fx("status"); // { earned, tiers:{...} }
-      earnedEl.textContent = nice(res.earned || 0);
+      const res = await fx("status"); // { earned, tiers:{1:'idle|pending|done',2:...,3:...} }
+      remoteEarned = Number(res.earned || 0);
+      renderEarned();
+
+      const tiers = res.tiers || {};
+      const prev  = readPrev();
+      [1,2,3].forEach(i=>{
+        const now = tiers[i];
+        if (now === "done" && prev[i] !== "done"){
+          // credit balance and earned counter once per tier
+          addChads(TIER_AMTS[i]);
+          addLocalEarned(TIER_AMTS[i]);
+          const sEl = document.getElementById(`status${i}`); if (sEl) sEl.textContent = "Completed ✔";
+        }
+      });
+      savePrev(tiers);
     }catch(e){ console.warn("status:", e); }
   }
   setInterval(checkStatus, 6000);
@@ -2146,6 +2175,9 @@ Let’s race the leaderboard — every tap counts!`;
   overlay?.addEventListener("click", (e)=>{ if (e.target === overlay) close(); });
   rulesBtn?.addEventListener("click", ()=> rulesOverlay.classList.add("show"));
   rulesOk?.addEventListener("click", ()=> rulesOverlay.classList.remove("show"));
+
+  // first render
+  renderEarned();
 })();
 /* ===== Telegram + loader ===== */
 const tg = window.Telegram?.WebApp ?? null;
