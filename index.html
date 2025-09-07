@@ -6,6 +6,102 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ===== Layout hook ===== */
+.levels-section { margin: 16px 0; }
+
+/* ===== Current level tile with white–blue glow ===== */
+.levels-current{
+  position: relative; display:block; width:100%;
+  border-radius:16px; overflow:hidden; background:#0b0f14;
+  box-shadow:
+    0 0 0 2px rgba(210,235,255,.9) inset,
+    0 0 28px rgba(160,205,255,.55),
+    0 0 80px rgba(140,200,255,.25);
+}
+.levels-current img{
+  width:100%; height:auto; aspect-ratio:1/1; object-fit:cover; display:block;
+}
+.levels-badge{
+  position:absolute; left:10px; bottom:10px; padding:6px 10px;
+  background:#e9f3ff; color:#06203a; font-weight:800; border-radius:999px;
+  box-shadow:0 0 16px rgba(160,205,255,.8);
+  font-size:13px; letter-spacing:.3px;
+}
+
+/* ===== Dialog frame ===== */
+.levels-dialog, .levelup-dialog{
+  width:min(900px,92vw); border:1px solid #1f2a36; border-radius:16px; padding:0;
+  background:#0b0b0b; color:#eaeaea;
+}
+.levels-dialog::backdrop, .levelup-dialog::backdrop{ background:rgba(0,0,0,.6); }
+
+.levels-dialog__header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; border-bottom:1px solid #1d1d1d;
+}
+.levels-dialog__header h3{ margin:0; font-size:16px; letter-spacing:.5px; }
+.levels-dialog__header button{
+  background:transparent; color:#aaa; border:0; font-size:18px; cursor:pointer;
+}
+
+/* ===== Grid ===== */
+.levels-grid{
+  padding:12px; display:grid; gap:12px;
+  grid-template-columns:repeat(2,1fr);
+  max-height:min(70vh,560px); overflow:auto;
+}
+@media (min-width:640px){ .levels-grid{ grid-template-columns:repeat(3,1fr); } }
+@media (min-width:960px){ .levels-grid{ grid-template-columns:repeat(4,1fr); } }
+
+.level-card{
+  position:relative; border-radius:14px; overflow:hidden; background:#111;
+  border:1px solid #1f1f1f; transition:transform .12s ease;
+}
+.level-card:hover{ transform:translateY(-2px); }
+.level-card img.level-img{
+  width:100%; height:auto; aspect-ratio:1/1; object-fit:cover; display:block;
+}
+/* lock overlay (not greyed) */
+.level-card .lock{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:56px; height:56px; pointer-events:none; image-rendering:auto;
+}
+.level-card.locked img.level-img{ filter:grayscale(100%) brightness(.6); }
+.level-card.unlocked::after{
+  content:"Unlocked"; position:absolute; top:8px; right:8px; font-size:11px;
+  padding:4px 8px; border-radius:999px; background:#00ffc6; color:#001a12;
+}
+.level-card.locked::after{
+  content:"Locked"; position:absolute; top:8px; right:8px; font-size:11px;
+  padding:4px 8px; border-radius:999px; background:#2a2a2a; color:#bbb;
+}
+.level-meta{ padding:10px; font-size:12px; line-height:1.35; color:#cfd6dc; }
+.level-title{ color:#fff; font-weight:800; margin-bottom:4px; }
+.level-reqs{ color:#9fb1bf; }
+
+/* ===== Level-up popup ===== */
+.levelup-dialog .levelup-body{
+  padding:20px 16px; text-align:center;
+}
+.levelup-chest{
+  width:min(260px,60vw); height:auto; object-fit:contain; display:block; margin:0 auto 12px;
+}
+.levelup-dialog h4{
+  margin:6px 0 16px; font-size:16px; font-weight:800; color:#e9f3ff;
+  text-shadow:0 0 20px rgba(150,200,255,.45);
+}
+.btn-glow{
+  appearance:none; border:0; cursor:pointer;
+  padding:10px 16px; border-radius:999px; font-weight:800; letter-spacing:.2px;
+  background:linear-gradient(180deg,#98c6ff,#5aa3ff);
+  color:#051a33;
+  box-shadow:
+    0 0 0 2px rgba(210,235,255,.8) inset,
+    0 0 22px rgba(140,200,255,.7),
+    0 0 60px rgba(120,180,255,.4);
+}
+.btn-glow:active{ transform:translateY(1px); }
+
 :root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
     --muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
   #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:90px;height:80px;border-radius:16px;
@@ -1390,7 +1486,13 @@ canvas{ display:block }
     <div class="bottom" id="bottom">
       <div class="controls">
         <div class="tile play" id="playBtn">Play<br>Games</div>
-        <div class="tile level" id="levelBtn"><div><div style="font-size:12px;color:#9aa3ab">Chadi</div><div id="levelText" style="font-weight:900;font-size:18px">Lize</div></div></div>
+        <!-- ===== LEVELS: Current tile (between Buy Cards & Play Games) ===== -->
+<section id="levels-section" class="levels-section">
+  <button id="levelsOpen" class="levels-current" aria-haspopup="dialog" aria-controls="levelsDialog">
+    <img id="levelsCurrentImg" src="/img/level1.png" alt="Current Level 1" />
+    <span id="levelsCurrentBadge" class="levels-badge">Level 1</span>
+  </button>
+</section>
         <div class="tile buy" id="buyBtn">Buy<br>Cards</div>
       </div>
     </div>
@@ -1887,6 +1989,23 @@ canvas{ display:block }
   </div>
 </div>
 
+<!-- ===== LEVELS: Grid dialog ===== -->
+<dialog id="levelsDialog" class="levels-dialog" inert>
+  <form method="dialog" class="levels-dialog__header">
+    <h3>Levels</h3>
+    <button value="close" aria-label="Close">✕</button>
+  </form>
+  <div id="levelsGrid" class="levels-grid" role="list"></div>
+</dialog>
+
+<!-- ===== LEVEL UP: Congrats popup ===== -->
+<dialog id="levelUpDialog" class="levelup-dialog" inert>
+  <div class="levelup-body">
+    <img id="levelUpChest" class="levelup-chest" src="/img/chest2.png" alt="Level up reward" />
+    <h4 id="levelUpTitle">Congrats, You Have Reached Level 2 🎉</h4>
+    <button id="levelUpOk" class="btn-glow" value="close">OK</button>
+  </div>
+</dialog>
 
     <!-- HEXAGON (Hamster-style) -->
 <div class="overlay" id="hexModal">
@@ -5730,7 +5849,182 @@ function openBreaker(){
   // bootstrap
   resetGame();
 })();
+/**
+ * LEVELS SYSTEM
+ * - Images: /img/level1.png ... /img/level19.png
+ * - Lock overlay: /img/lock.png (stays colored while base is greyed)
+ * - Level-up chest images: /img/chest2.png ... /img/chest19.png
+ * - Progress source: defaults to localStorage ('chads', 'gph'), but you can call Levels.setProgress()
+ *
+ * Assumptions:
+ * - Level 1 is always unlocked.
+ * - Level 2 provisional requirement = 10,000 CHADs + 500 gen/hr (change below if different).
+ */
 
+(() => {
+  // ---------- CONFIG: requirements & rewards ----------
+  // Helper to format numbers with commas
+  const fmt = n => n.toLocaleString();
+
+  // Level 1 & 2 (you can change level 2 easily here)
+  const LEVELS = [
+    { id:1, chads:0, gph:0,   rewardTap:"+0 chad tap"  },
+    { id:2, chads:10000, gph:500, rewardTap:"+5 chad tap" } // <— adjust if needed
+  ];
+
+  // Your exact levels 3–19
+  LEVELS.push(
+    { id:3,  chads:  20000, gph:   1000,    rewardTap:"+9 chad tap"    },
+    { id:4,  chads:  30000, gph:   4000,    rewardTap:"+20 chad tap"   },
+    { id:5,  chads:  60000, gph:   8000,    rewardTap:"+60 chad tap"   },
+    { id:6,  chads: 120000, gph:  14000,    rewardTap:"+120 chad tap"  },
+    { id:7,  chads: 300000, gph:  25000,    rewardTap:"+200 chad tap"  },
+    { id:8,  chads: 600000, gph:  45000,    rewardTap:"+300 chad tap"  },
+    { id:9,  chads:1000000, gph:  60000,    rewardTap:"+400 chad tap"  },
+    { id:10, chads:1300000, gph:  80000,    rewardTap:"+600 chad tap"  },
+    { id:11, chads:3000000, gph: 190000,    rewardTap:"+700 chad tap"  },
+    { id:12, chads:10000000,gph: 600000,    rewardTap:"+1000 chad tap" },
+    { id:13, chads:90000000,gph:4000000,    rewardTap:"+4000 chad tap" },
+    { id:14, chads:40000000,gph:8000000,    rewardTap:"+5000 chad tap" },
+    { id:15, chads:100000000,gph:16000000,  rewardTap:"+8000 chad tap" },
+    { id:16, chads:1000000000,gph:23000000, rewardTap:"+10000 chad tap"},
+    { id:17, chads:12000000000,gph:40000000,rewardTap:"+40000 chad tap"},
+    { id:18, chads:80000000000,gph:100000000,rewardTap:"+60000 chad tap"},
+    { id:19, chads:100000000000,gph:300000000,rewardTap:"+120000 chad tap"}
+  );
+
+  const CHEST_IMG = id => `/img/chest${id}.png`; // chest2..chest19
+
+  // ---------- Progress (swap to your real source if you want) ----------
+  function getProgress(){
+    const chads = Number(localStorage.getItem('chads') || 0);
+    const gph   = Number(localStorage.getItem('gph')   || 0); // generation per hour
+    return { chads, gph };
+  }
+  function setProgress(chads, gph){
+    if (typeof chads === 'number') localStorage.setItem('chads', String(chads));
+    if (typeof gph   === 'number') localStorage.setItem('gph',   String(gph));
+  }
+
+  function getSavedHighest(){
+    return Number(localStorage.getItem('highestLevel') || 1);
+  }
+  function setSavedHighest(id){
+    localStorage.setItem('highestLevel', String(id));
+  }
+
+  // Compute highest level unlocked (AND logic: need both CHADs & GPH)
+  function highestUnlocked(progress){
+    let hi = 1;
+    for (const L of LEVELS){
+      if (progress.chads >= L.chads && progress.gph >= L.gph) hi = L.id;
+      else break;
+    }
+    return hi;
+  }
+
+  // ---------- DOM refs ----------
+  const $open   = document.getElementById('levelsOpen');
+  const $img    = document.getElementById('levelsCurrentImg');
+  const $badge  = document.getElementById('levelsCurrentBadge');
+  const $dlg    = document.getElementById('levelsDialog');
+  const $grid   = document.getElementById('levelsGrid');
+
+  const $lvlUp  = document.getElementById('levelUpDialog');
+  const $lvlUpImg = document.getElementById('levelUpChest');
+  const $lvlUpTitle = document.getElementById('levelUpTitle');
+  const $lvlUpOk = document.getElementById('levelUpOk');
+
+  // ---------- Renderers ----------
+  function renderCurrentTile(levelId){
+    $img.src = `/img/level${levelId}.png`;
+    $img.alt = `Current Level ${levelId}`;
+    $badge.textContent = `Level ${levelId}`;
+  }
+
+  function renderGrid(levelId, unlockedUpTo){
+    $grid.innerHTML = '';
+    for (const L of LEVELS){
+      const unlocked = L.id <= unlockedUpTo;
+      const card = document.createElement('div');
+      card.className = `level-card ${unlocked ? 'unlocked' : 'locked'}`;
+      card.setAttribute('role','listitem');
+
+      const img = document.createElement('img');
+      img.className = 'level-img';
+      img.loading = 'lazy';
+      img.src = `/img/level${L.id}.png`;
+      img.alt = `Level ${L.id}`;
+      card.appendChild(img);
+
+      if (!unlocked){
+        const lock = document.createElement('img');
+        lock.src = '/img/lock.png';
+        lock.alt = '';
+        lock.className = 'lock';
+        card.appendChild(lock);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'level-meta';
+      meta.innerHTML =
+        `<div class="level-title">Level ${L.id}</div>
+         <div class="level-reqs">Requirement: ${fmt(L.chads)} CHADs &nbsp;•&nbsp; ${fmt(L.gph)} gen/hr</div>
+         <div class="level-reqs">Reward: ${L.rewardTap}</div>`;
+      card.appendChild(meta);
+
+      $grid.appendChild(card);
+    }
+  }
+
+  // Show level-up popup with chestN
+  function showLevelUp(levelId){
+    if (levelId < 2) return; // no popup for level 1
+    $lvlUpImg.src = CHEST_IMG(levelId);
+    const emoji = levelId >= 10 ? '🚀' : '🎉';
+    $lvlUpTitle.textContent = `Congrats, You Have Reached Level ${levelId} ${emoji}`;
+    if (typeof $lvlUp.showModal === 'function') $lvlUp.showModal(); else $lvlUp.show();
+  }
+
+  // ---------- Flow ----------
+  function refresh(){
+    const progress = getProgress();
+    const unlockedTo = highestUnlocked(progress);
+    const saved = getSavedHighest();
+
+    // If newly unlocked, fire popup (handles multiple jumps by iterating)
+    if (unlockedTo > saved){
+      for (let lvl = saved + 1; lvl <= unlockedTo; lvl++){
+        setSavedHighest(lvl);
+        if (lvl >= 2) showLevelUp(lvl);
+      }
+    }
+
+    const current = Math.max(unlockedTo, getSavedHighest());
+    renderCurrentTile(current);
+    renderGrid(current, unlockedTo);
+  }
+
+  // Dialog wiring
+  $open.addEventListener('click', () => {
+    if (typeof $dlg.showModal === 'function') $dlg.showModal(); else $dlg.show();
+  });
+  $lvlUpOk.addEventListener('click', () => $lvlUp.close());
+
+  // Expose small API so your game can push progress when CHADs/gen/hr change
+  window.Levels = {
+    refresh,                 // recompute UI from stored progress
+    setProgress,             // Levels.setProgress(chads, gph)
+    debugAdd(chads=0, gph=0){ // quick helper for testing
+      const p = getProgress();
+      setProgress(p.chads + chads, p.gph + gph);
+      refresh();
+    }
+  };
+
+  // First paint
+  refresh();
+})();
 /* ===== Lane Hopper — Easier edition =====
    Changes vs previous:
    - Easier: slower cars, fewer spawns, extra safe rows (every 4th row), slower ramp
