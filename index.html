@@ -6,6 +6,48 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+:root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
+
+  /* Launcher: your class names, anchored to right/bottom */
+  .luck-btn-wrap{ position:relative; display:inline-block; }
+  .luck-btn-img{
+    width:90px;height:90px;border-radius:18px;object-fit:cover;cursor:pointer;
+    border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220;
+  }
+  /* Put this on the wrapper to pin it to screen-right */
+  .fixed-right{ position:fixed; right:16px; bottom:24px; z-index:1000; } /* right-side anchor */
+
+  /* Overlay & modal */
+  .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;background:rgba(2,4,10,.55);
+    backdrop-filter:blur(6px);padding:24px;overflow:auto}
+  .invite-overlay.show{display:block}
+  .invite-modal{margin:0 auto;max-width:980px;border-radius:20px;overflow:hidden;
+    box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border)}
+  .invite-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;
+    background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
+  .invite-title{font:800 20px/1.1 system-ui,sans-serif;color:#fff}
+  .invite-actions{display:flex;gap:8px}
+  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
+  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;
+    background:#ffd84d;color:#121212;border-color:#ffd84d;font-weight:900;box-shadow:0 0 12px rgba(255,216,77,.45)}
+
+  .invite-body{padding:16px;display:grid;gap:16px;background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));
+    max-height:88dvh;overflow:auto}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--glow)}
+  .muted{color:#9aa3ad;font-size:13px}
+  .earnedRow{display:flex;align-items:center;gap:10px;font:800 18px/1.2 system-ui,sans-serif;color:#fff}
+  .rewards{display:grid;gap:14px}
+  .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .reward-card{position:relative;border-radius:16px;padding:14px;background:#0e1422;border:1px solid var(--border);box-shadow:var(--glow)}
+  .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  .reward-label{font:600 12px/1.1 system-ui,sans-serif;color:#9aa3ad;text-transform:uppercase;letter-spacing:.4px}
+  .reward-amt{font:900 22px/1.1 system-ui,sans-serif;color:#fff}
+  .reward-desc{font-size:13px;color:#9aa3ad;margin-top:2px}
+  .status{font-size:13px;color:#fff;opacity:.85;margin-top:6px;min-height:18px}
+  .pill.locked{font-size:12px;color:#9aa3ad;background:rgba(255,255,255,.06);border:1px solid var(--border);
+    padding:4px 8px;border-radius:999px}
+  .tick{color:#3df57c;font-weight:800;display:none}.tick.show{display:inline}
 :root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
     --muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
   #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:90px;height:80px;border-radius:16px;
@@ -1260,8 +1302,8 @@ canvas{ display:block }
     </div>
 
 <!-- Launcher -->
-<!-- Launcher (no timer element) -->
-<div><div id="inviteBtnWrap" class="luck-btn-wrap">
+<!-- Launcher (no timer), pinned to right with .fixed-right -->
+<div><div id="inviteBtnWrap" class="luck-btn-wrap fixed-right">
   <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
 </div>
 <div id="luckBtnWrap" class="luck-btn-wrap">
@@ -1559,7 +1601,107 @@ canvas{ display:block }
       </div>
     </div>
 
+<!-- Modal -->
+<div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
+  <div class="invite-modal">
+    <div class="invite-head">
+      <div class="invite-title">Invite friends → win huge CHADs</div>
+      <div class="invite-actions">
+        <button class="head-btn icon" id="rulesBtn">?</button>
+        <button class="head-btn" id="inviteCloseBtn">Close</button>
+      </div>
+    </div>
 
+    <div class="invite-body">
+      <section class="card">
+        <div class="earnedRow"><span>🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
+        <div class="muted" style="margin-top:6px">Earned via invites</div>
+      </section>
+
+      <section class="rewards">
+        <article class="reward-card" id="tier1">
+          <div class="reward-row">
+            <button class="btn share-btn" data-tier="1">Share</button>
+            <div>
+              <div class="reward-label">Option 1</div>
+              <div class="reward-amt">+500,000 CHADs</div>
+              <div class="reward-desc">Share your link. When they join & play, you’re rewarded.</div>
+            </div>
+            <div class="pill locked" id="lock1" style="display:none">Locked</div>
+          </div>
+          <div class="status" id="status1"></div>
+        </article>
+
+        <article class="reward-card" id="tier2">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share2" data-tier="2" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 2</div>
+              <div class="reward-amt">+5,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 1.</div>
+            </div>
+            <div class="pill locked" id="lock2">Locked</div>
+          </div>
+          <div class="status" id="status2"></div>
+        </article>
+
+        <article class="reward-card" id="tier3">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share3" data-tier="3" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 3</div>
+              <div class="reward-amt">+3,000,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 2.</div>
+            </div>
+            <div class="pill locked" id="lock3">Locked</div>
+          </div>
+          <div class="status" id="status3"></div>
+        </article>
+
+        <!-- Instant tasks -->
+        <article class="reward-card" id="tier4">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
+            <div>
+              <div class="reward-label">Option 4</div>
+              <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div>
+            </div>
+            <div><span class="tick" id="tick4">✔</span></div>
+          </div>
+          <div class="status" id="status4"></div>
+        </article>
+
+        <article class="reward-card" id="tier5">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://www.youtube.com/@Chadilize" data-amount="600000">Open</button>
+            <div>
+              <div class="reward-label">Option 5</div>
+              <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div>
+            </div>
+            <div><span class="tick" id="tick5">✔</span></div>
+          </div>
+          <div class="status" id="status5"></div>
+        </article>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Rules popup -->
+<div class="invite-overlay" id="rulesOverlay" style="background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;place-items:center;">
+  <div class="card" style="width:min(680px,92vw);">
+    <h3 style="margin:6px 0 12px 0">📜 Invite Rules</h3>
+    <ol style="margin:0 0 12px 18px;line-height:1.55">
+      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> more than once — you won’t be rewarded.</li>
+      <li>🎮 CHADs are awarded after the invited friend <b>opens & plays</b> the game.</li>
+      <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
+      <li>✅ No more rules. Have fun!</li>
+    </ol>
+    <button class="btn" id="rulesOkBtn" style="display:block;margin-left:auto">OK</button>
+  </div>
+</div>
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -1933,7 +2075,11 @@ canvas{ display:block }
 <!-- Load SDKs BEFORE the main script -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SDKs -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+
 /* ========= Robust, no-throw module ========= */
 (function(){
   'use strict';
