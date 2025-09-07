@@ -8,52 +8,58 @@
 <style>
  :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
 
-  /* Launcher — same structure you use, but IN FLOW (not fixed) and right-aligned */
-  .luck-btn-wrap{
-    display:block;              /* keeps it in document flow so it scrolls */
-    width:fit-content;          /* shrink to image width */
-    margin-left:auto;           /* push to the right edge */
-    margin-right:16px;
-    margin-top:16px;
-    position:relative;
-    z-index:1;
+  /* Right-aligned launcher that stays in normal flow (scrolls away) */
+  #inviteBtnWrap.luck-btn-wrap{
+    display:block; width:100%;                /* span row */
+    margin:16px 16px 0 0;                     /* right gutter */
+    text-align:right;                          /* push child right in block context */
   }
-  .luck-btn-img{
-    width:90px;height:90px;border-radius:18px;object-fit:cover;cursor:pointer;
-    border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220;
+  /* Work across flex/grid parents too */
+  #inviteBtnWrap.luck-btn-wrap{ align-self:flex-end; justify-self:end; }
+  /* As a last resort in strange layouts */
+  #inviteBtnWrap.luck-btn-wrap{ float:right; clear:both; }
+
+  #inviteBtnImg.luck-btn-img{
+    width:90px; height:90px; border-radius:18px; object-fit:cover; cursor:pointer;
+    border:1px solid var(--border); box-shadow:var(--glow); background:#0c1220;
+    pointer-events:auto;
   }
 
   /* Overlay & modal */
-  .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;background:rgba(2,4,10,.55);
-    backdrop-filter:blur(6px);padding:24px;overflow:auto}
+  .invite-overlay{position:fixed; inset:0; z-index:9999; display:none;
+    background:rgba(2,4,10,.55); backdrop-filter:blur(6px); padding:24px; overflow:auto}
   .invite-overlay.show{display:block}
-  .invite-modal{margin:0 auto;max-width:980px;border-radius:20px;overflow:hidden;
-    box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border)}
-  .invite-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;
-    background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
-  .invite-title{font:800 20px/1.1 system-ui,sans-serif;color:#fff}
-  .invite-actions{display:flex;gap:8px}
-  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
-  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;
-    background:#ffd84d;color:#121212;border-color:#ffd84d;font-weight:900;box-shadow:0 0 12px rgba(255,216,77,.45)}
 
-  .invite-body{padding:16px;display:grid;gap:16px;background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));
-    max-height:88dvh;overflow:auto}
-  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--glow)}
-  .muted{color:#9aa3ad;font-size:13px}
-  .earnedRow{display:flex;align-items:center;gap:10px;font:800 18px/1.2 system-ui,sans-serif;color:#fff}
-  .rewards{display:grid;gap:14px}
-  .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .reward-card{position:relative;border-radius:16px;padding:14px;background:#0e1422;border:1px solid var(--border);box-shadow:var(--glow)}
-  .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
-  .reward-label{font:600 12px/1.1 system-ui,sans-serif;color:#9aa3ad;text-transform:uppercase;letter-spacing:.4px}
-  .reward-amt{font:900 22px/1.1 system-ui,sans-serif;color:#fff}
-  .reward-desc{font-size:13px;color:#9aa3ad;margin-top:2px}
-  .status{font-size:13px;color:#fff;opacity:.85;margin-top:6px;min-height:18px}
-  .pill.locked{font-size:12px;color:#9aa3ad;background:rgba(255,255,255,.06);border:1px solid var(--border);
-    padding:4px 8px;border-radius:999px}
-  .tick{color:#3df57c;font-weight:800;display:none}.tick.show{display:inline}
+  .invite-modal{margin:0 auto; max-width:980px; border-radius:20px; overflow:hidden;
+    box-shadow:0 24px 80px rgba(0,0,0,.45); border:1px solid var(--border)}
+  .invite-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 18px;
+    background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
+  .invite-title{font:800 20px/1.1 system-ui,sans-serif; color:#fff}
+  .invite-actions{display:flex; gap:8px}
+  .head-btn{border:1px solid var(--border); background:transparent; color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer}
+  .head-btn.icon{width:36px; height:36px; display:grid; place-items:center; border-radius:50%;
+    background:#ffd84d; color:#121212; border-color:#ffd84d; font-weight:900; box-shadow:0 0 12px rgba(255,216,77,.45)}
+
+  .invite-body{padding:16px; display:grid; gap:16px;
+    background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));
+    max-height:88dvh; overflow:auto}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent); border:1px solid var(--border);
+    border-radius:14px; padding:14px; box-shadow:var(--glow)}
+  .muted{color:#9aa3ad; font-size:13px}
+  .earnedRow{display:flex; align-items:center; gap:10px; font:800 18px/1.2 system-ui,sans-serif; color:#fff}
+
+  .rewards{display:grid; gap:14px}
+  .btn{padding:11px 14px; border-radius:12px; border:1px solid var(--border); background:#121826; color:#fff; cursor:pointer}
+  .btn[disabled]{opacity:.5; cursor:not-allowed}
+  .reward-card{position:relative; border-radius:16px; padding:14px; background:#0e1422; border:1px solid var(--border); box-shadow:var(--glow)}
+  .reward-row{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center}
+  .reward-label{font:600 12px/1.1 system-ui,sans-serif; color:#9aa3ad; text-transform:uppercase; letter-spacing:.4px}
+  .reward-amt{font:900 22px/1.1 system-ui,sans-serif; color:#fff}
+  .reward-desc{font-size:13px; color:#9aa3ad; margin-top:2px}
+  .status{font-size:13px; color:#fff; opacity:.85; margin-top:6px; min-height:18px}
+  .pill.locked{font-size:12px; color:#9aa3ad; background:rgba(255,255,255,.06); border:1px solid var(--border);
+    padding:4px 8px; border-radius:999px}
+  .tick{color:#3df57c; font-weight:800; display:none}.tick.show{display:inline}
 :root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
     --muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
   #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:90px;height:80px;border-radius:16px;
@@ -1308,14 +1314,17 @@ canvas{ display:block }
     </div>
 
 <!-- Launcher -->
-<!-- Launcher (no timer, scrollable, right-aligned) -->
-<div id="inviteBtnWrap" class="luck-btn-wrap">
+<!-- Launcher (same structure; right-aligned; no timer) -->
+<div><div id="inviteBtnWrap" class="luck-btn-wrap">
   <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
 </div>
 <div id="luckBtnWrap" class="luck-btn-wrap">
   <img id="luckBtnImg" class="luck-btn-img" src="img/testyourluck.png" alt="Test your luck">
   <div id="luckBtnTimer" class="luck-btn-timer" hidden>00:00:00</div>
-</div>
+</div></div>
+
+
+
 
 
 
@@ -2088,61 +2097,59 @@ canvas{ display:block }
 (function(){
   'use strict';
 
-  /* Config */
+  /* ===== Config ===== */
   var BOT="chadilizebot";
-  var APP="chadilize";                             // deep link: /<bot>/<app>?startapp=TOKEN
+  var APP="chadilize";                                        // /<bot>/<app>?startapp=TOKEN
   var SUPABASE_URL="https://jwrvlaxfrnglaxueqgdx.supabase.co";
   var SUPABASE_ANON="sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
   var FX="invite";
   var TIER_AMTS={1:500000,2:5000000,3:3000000000};
 
+  /* ===== Telegram ===== */
   var tg=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
   try{ tg && tg.expand && tg.expand(); }catch(e){}
 
-  /* DOM */
+  /* ===== DOM ===== */
   function $(s,r){return(r||document).querySelector(s);}
-  var launcherWrap=$("#inviteBtnWrap"), launcherImg=$("#inviteBtnImg");
+  var openWrap=$("#inviteBtnWrap"), openImg=$("#inviteBtnImg");
   var overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn");
   var earnedEl=$("#earnedValue"), rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
   var share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
 
-  /* Supabase (safe) */
+  /* ===== Supabase - optional (non-blocking) ===== */
   var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
   async function fx(op,body){
     if(!sb) return {};
-    var initData=(tg && tg.initData)? tg.initData : "";
+    var initData=tg?.initData||"";
     try{
-      var res=await sb.functions.invoke(FX,{ body:Object.assign({op:op, initData:initData}, body||{}) });
-      if(res.error) throw res.error;
-      return res.data||{};
+      var {data,error}=await sb.functions.invoke(FX,{body:Object.assign({op,initData},body||{})});
+      if(error) throw error; return data||{};
     }catch(e){ console.warn("[fx]", e.message||e); return {}; }
   }
 
-  /* Earned display (local) */
-  var EARN_KEY="invite_earned_local_v6";
+  /* ===== Earned counter (local) ===== */
+  var EARN_KEY="invite_earned_local_v7";
   function getEarn(){ return Number(localStorage.getItem(EARN_KEY)||"0"); }
   function setEarn(v){ try{localStorage.setItem(EARN_KEY,String(v));}catch(e){} if(earnedEl) earnedEl.textContent=Number(v).toLocaleString(); }
   function addEarn(n){ setEarn(getEarn()+Number(n||0)); }
-  setEarn(getEarn());
 
-  /* Credit queue → applies to state.chads (BigInt) once your helpers exist */
-  var QKEY="invite_credit_queue_v5";
+  /* ===== Credit queue → state.chads (BigInt) ===== */
+  var QKEY="invite_credit_queue_v6";
   function queueCredit(amt){
     try{ var q=JSON.parse(localStorage.getItem(QKEY)||"[]"); q.push(Number(amt||0)); localStorage.setItem(QKEY,JSON.stringify(q)); }catch(e){}
     drainQueue();
   }
   var drainTimer=null;
   function drainQueue(){
-    if(typeof window.loadStateLocal!=="function" || typeof window.saveStateLocal!=="function"){
+    if(typeof window.loadStateLocal!=="function"||typeof window.saveStateLocal!=="function"){
       if(!drainTimer) drainTimer=setInterval(drainQueue,800); return;
     }
     try{
-      var s=(window.state && typeof window.state==="object")? window.state : window.loadStateLocal();
+      var s=(window.state&&typeof window.state==="object")?window.state:window.loadStateLocal();
       var q=JSON.parse(localStorage.getItem(QKEY)||"[]");
       if(!q.length){ if(drainTimer){clearInterval(drainTimer);drainTimer=null;} return; }
-      var add=q.reduce(function(a,b){ return a + BigInt(String(b)); }, 0n);
-      var cur=(typeof s.chads==="bigint")? s.chads : BigInt(s.chads||0);
-      s.chads=cur+add;
+      var add=q.reduce(function(a,b){return a+BigInt(String(b));},0n);
+      s.chads=(typeof s.chads==="bigint"?s.chads:BigInt(s.chads||0))+add;
       window.saveStateLocal(s);
       if(typeof window.refreshUI==="function") window.refreshUI();
       if(typeof window.showToast==="function") window.showToast("<span class='accent'>+"+Number(add).toLocaleString()+"</span> chads added to balance.");
@@ -2150,9 +2157,8 @@ canvas{ display:block }
     }catch(e){}
     if(!drainTimer) drainTimer=setInterval(drainQueue,800);
   }
-  drainQueue();
 
-  /* Deep link + share */
+  /* ===== Deep link & Share ===== */
   function directLink(token){
     return APP?("https://t.me/"+BOT+"/"+APP+"?startapp="+encodeURIComponent(token||""))
               :("https://t.me/"+BOT+"?startapp="+encodeURIComponent(token||""));
@@ -2161,22 +2167,22 @@ canvas{ display:block }
     return "🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs.\nJoin with my invite:\n👉 "+link+"\n\nLet’s race the leaderboard!";
   }
   function openShare(link,text){
-    // t.me/share URL + WebApp.openTelegramLink
+    // Official share endpoint + Mini App opener
     var u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(text||"");
-    if(tg && tg.openTelegramLink) tg.openTelegramLink(u);
-    else if(tg && tg.openLink)   tg.openLink(u);
+    if(tg?.openTelegramLink) tg.openTelegramLink(u);
+    else if(tg?.openLink)   tg.openLink(u);
     else location.href=u;
   }
 
-  /* Bind startapp to server (optional) */
+  /* ===== Start param binding (optional) ===== */
   try{
     var qs=new URLSearchParams(location.search);
-    var sp=qs.get("tgWebAppStartParam") || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || null;
-    if(sp) fx("session_open",{ startParam:sp });
+    var sp=qs.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
+    if(sp) fx("session_open",{startParam:sp});
   }catch(e){}
 
-  /* Share tiers → unlock next */
-  var FLAGS_KEY="invite_shared_flags_v10";
+  /* ===== Progressive unlock (share 1 → unlock 2, share 2 → unlock 3) ===== */
+  var FLAGS_KEY="invite_shared_flags_v11";
   function loadFlags(){ try{return JSON.parse(localStorage.getItem(FLAGS_KEY)||"{}");}catch(e){return {};} }
   function saveFlags(x){ try{localStorage.setItem(FLAGS_KEY,JSON.stringify(x||{}));}catch(e){} }
   var flags=loadFlags();
@@ -2186,48 +2192,66 @@ canvas{ display:block }
   }
   applyUnlocks();
 
+  /* ===== Share buttons ===== */
   document.querySelectorAll(".share-btn").forEach(function(btn){
-    btn.addEventListener("click", async function(){
-      var tier=Number(btn.getAttribute("data-tier")||"0");
-      var token=null; try{ var r=await fx("share",{tier:tier}); token=r && r.token || null; }catch(e){}
-      if(!token){
-        var uid=(tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) ? tg.initDataUnsafe.user.id : null;
-        token = uid ? Number(uid).toString(36) : "dev";
-      }
-      var link=directLink(token); openShare(link, inviteText(link));
-      flags[tier]=true; saveFlags(flags); applyUnlocks();
-      var st=document.getElementById("status"+tier); if(st) st.textContent="Shared!";
+    var once=false;
+    ["click","pointerup","touchend"].forEach(function(ev){
+      btn.addEventListener(ev, async function(e){
+        if(once) return; once=true; e.stopPropagation();
+        var tier=Number(btn.getAttribute("data-tier")||"0");
+        var token=null; try{ var r=await fx("share",{tier}); token=r?.token||null; }catch(e){}
+        if(!token){
+          var uid=tg?.initDataUnsafe?.user?.id; token=uid?Number(uid).toString(36):"dev";
+        }
+        var link=directLink(token); openShare(link,inviteText(link));
+        flags[tier]=true; saveFlags(flags); applyUnlocks();
+        var st=$("#status"+tier); if(st) st.textContent="Shared!";
+        setTimeout(function(){ once=false; },250);
+      }, {passive:true});
     });
   });
 
-  /* Instant tasks: award once at tap */
+  /* ===== Instant tasks (X / YouTube) — credit immediately ===== */
   (function(){
     function done(k){ try{return localStorage.getItem(k)==="1";}catch(e){return false;} }
     function mark(k){ try{localStorage.setItem(k,"1");}catch(e){} }
+
     var tasks=[
       { id:"tier4", tick:"#tick4", key:"task_x_done",  amt:400000, sel:"#tier4 .follow-btn" },
       { id:"tier5", tick:"#tick5", key:"task_yt_done", amt:600000, sel:"#tier5 .follow-btn" },
     ];
+
     tasks.forEach(function(t){
-      if(done(t.key)){ var te=document.querySelector(t.tick); if(te) te.classList.add("show"); var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔"; }
+      // reflect previous state
+      if(done(t.key)){ var te=document.querySelector(t.tick); if(te) te.classList.add("show");
+        var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔"; }
+
       var b=document.querySelector(t.sel); if(!b) return;
-      b.addEventListener("click", function(){
+
+      var handler=function(){
         if(!done(t.key)){
-          mark(t.key); addEarn(t.amt); queueCredit(t.amt);
+          mark(t.key);           // permanently done
+          addEarn(t.amt);        // update earned box immediately
+          queueCredit(t.amt);    // schedule addition to main balance
           var te=document.querySelector(t.tick); if(te) te.classList.add("show");
           var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔";
         }
-        var url=b.getAttribute("data-url"); if(tg && tg.openLink) tg.openLink(url); else window.open(url,"_blank");
+        var url=b.getAttribute("data-url");
+        if(tg?.openLink) tg.openLink(url); else window.open(url,"_blank");
+      };
+
+      ["click","pointerup","touchend"].forEach(function(ev){
+        b.addEventListener(ev, handler, {passive:true});
       });
     });
   })();
 
-  /* Optional: poll server for completions */
-  var PREV_KEY="invite_prev_tiers_v11";
+  /* ===== Poll server for invite completions (optional) ===== */
+  var PREV_KEY="invite_prev_tiers_v12";
   function getPrev(){ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}");}catch(e){return {};} }
   function setPrev(x){ try{localStorage.setItem(PREV_KEY,JSON.stringify(x||{}));}catch(e){} }
   async function poll(){
-    var res=await fx("status"); var tiers=res && res.tiers || {}; var prev=getPrev();
+    var res=await fx("status"); var tiers=res?.tiers||{}; var prev=getPrev();
     [1,2,3].forEach(function(k){
       if(tiers[k]==="done" && prev[k]!=="done"){
         addEarn(TIER_AMTS[k]); queueCredit(TIER_AMTS[k]);
@@ -2238,15 +2262,24 @@ canvas{ display:block }
   }
   setInterval(poll,6000);
 
-  /* Open/close & rules — ensure the button opens the overlay */
-  function open(){ overlay && overlay.classList.add("show"); }
-  function close(){ overlay && overlay.classList.remove("show"); }
-  launcherWrap?.addEventListener("click", open);
-  launcherImg ?.addEventListener("click", open);
-  closeBtn    ?.addEventListener("click", close);
-  overlay     ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
-  rulesBtn    ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
-  rulesOk     ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
+  /* ===== Open/close & rules ===== */
+  function refreshEarnUI(){ setEarn(getEarn()); }         // always refresh from storage
+  function open(){ refreshEarnUI(); overlay?.classList.add("show"); }
+  function close(){ overlay?.classList.remove("show"); }
+
+  // make sure tapping the image OR its wrapper opens the modal
+  ["click","pointerup","touchend"].forEach(function(ev){
+    openWrap?.addEventListener(ev, open, {passive:true});
+    openImg ?.addEventListener(ev, open, {passive:true});
+  });
+
+  closeBtn   ?.addEventListener("click", close);
+  overlay    ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
+  rulesBtn   ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
+  rulesOk    ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
+
+  // initial UI sync and credit drainer start
+  refreshEarnUI(); drainQueue();
 })();
 /* ========= Robust, no-throw module ========= */
 (function(){
