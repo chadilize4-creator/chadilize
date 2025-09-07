@@ -6,30 +6,31 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
- :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
+  :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
+  /* Avoid horizontal scrollbars with full-bleed rows (Windows) */
+  body{overflow-x:hidden}
 
-  /* Right-aligned launcher that stays in normal flow (scrolls away) */
-  #inviteBtnWrap.luck-btn-wrap{
-    display:block; width:100%;                /* span row */
-    margin:16px 16px 0 0;                     /* right gutter */
-    text-align:right;                          /* push child right in block context */
+  /* --- Full-bleed row that breaks out of centered containers to touch the viewport edges --- */
+  .full-bleed{
+    position:relative;
+    left:50%; right:50%;
+    margin-left:-50vw; margin-right:-50vw;
+    width:100vw;          /* stretch to the screen */
   }
-  /* Work across flex/grid parents too */
-  #inviteBtnWrap.luck-btn-wrap{ align-self:flex-end; justify-self:end; }
-  /* As a last resort in strange layouts */
-  #inviteBtnWrap.luck-btn-wrap{ float:right; clear:both; }
+  /* Row content aligned to the very right */
+  .invite-row{display:flex; justify-content:flex-end; padding-right:16px}
 
+  /* Launcher (your structure & class names) — remains in normal flow so it scrolls */
+  #inviteBtnWrap.luck-btn-wrap{ display:inline-block }
   #inviteBtnImg.luck-btn-img{
     width:90px; height:90px; border-radius:18px; object-fit:cover; cursor:pointer;
     border:1px solid var(--border); box-shadow:var(--glow); background:#0c1220;
-    pointer-events:auto;
   }
 
   /* Overlay & modal */
   .invite-overlay{position:fixed; inset:0; z-index:9999; display:none;
     background:rgba(2,4,10,.55); backdrop-filter:blur(6px); padding:24px; overflow:auto}
   .invite-overlay.show{display:block}
-
   .invite-modal{margin:0 auto; max-width:980px; border-radius:20px; overflow:hidden;
     box-shadow:0 24px 80px rgba(0,0,0,.45); border:1px solid var(--border)}
   .invite-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 18px;
@@ -1314,17 +1315,16 @@ canvas{ display:block }
     </div>
 
 <!-- Launcher -->
-<!-- Launcher (same structure; right-aligned; no timer) -->
-<div><div id="inviteBtnWrap" class="luck-btn-wrap">
-  <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
+<!-- Full-bleed right-aligned row with your launcher inside -->
+<div><div class="full-bleed invite-row">
+  <div id="inviteBtnWrap" class="luck-btn-wrap">
+    <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
+  </div>
 </div>
 <div id="luckBtnWrap" class="luck-btn-wrap">
   <img id="luckBtnImg" class="luck-btn-img" src="img/testyourluck.png" alt="Test your luck">
   <div id="luckBtnTimer" class="luck-btn-timer" hidden>00:00:00</div>
 </div></div>
-
-
-
 
 
 
@@ -2116,7 +2116,7 @@ canvas{ display:block }
   var earnedEl=$("#earnedValue"), rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
   var share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
 
-  /* ===== Supabase - optional (non-blocking) ===== */
+  /* ===== Supabase (optional, non-blocking) ===== */
   var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
   async function fx(op,body){
     if(!sb) return {};
@@ -2128,7 +2128,7 @@ canvas{ display:block }
   }
 
   /* ===== Earned counter (local) ===== */
-  var EARN_KEY="invite_earned_local_v7";
+  var EARN_KEY="invite_earned_local_v8";
   function getEarn(){ return Number(localStorage.getItem(EARN_KEY)||"0"); }
   function setEarn(v){ try{localStorage.setItem(EARN_KEY,String(v));}catch(e){} if(earnedEl) earnedEl.textContent=Number(v).toLocaleString(); }
   function addEarn(n){ setEarn(getEarn()+Number(n||0)); }
@@ -2167,7 +2167,7 @@ canvas{ display:block }
     return "🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs.\nJoin with my invite:\n👉 "+link+"\n\nLet’s race the leaderboard!";
   }
   function openShare(link,text){
-    // Official share endpoint + Mini App opener
+    // Telegram's official share endpoint opened via the Mini App API
     var u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(text||"");
     if(tg?.openTelegramLink) tg.openTelegramLink(u);
     else if(tg?.openLink)   tg.openLink(u);
@@ -2181,8 +2181,8 @@ canvas{ display:block }
     if(sp) fx("session_open",{startParam:sp});
   }catch(e){}
 
-  /* ===== Progressive unlock (share 1 → unlock 2, share 2 → unlock 3) ===== */
-  var FLAGS_KEY="invite_shared_flags_v11";
+  /* ===== Progressive unlock ===== */
+  var FLAGS_KEY="invite_shared_flags_v12";
   function loadFlags(){ try{return JSON.parse(localStorage.getItem(FLAGS_KEY)||"{}");}catch(e){return {};} }
   function saveFlags(x){ try{localStorage.setItem(FLAGS_KEY,JSON.stringify(x||{}));}catch(e){} }
   var flags=loadFlags();
@@ -2194,10 +2194,8 @@ canvas{ display:block }
 
   /* ===== Share buttons ===== */
   document.querySelectorAll(".share-btn").forEach(function(btn){
-    var once=false;
     ["click","pointerup","touchend"].forEach(function(ev){
-      btn.addEventListener(ev, async function(e){
-        if(once) return; once=true; e.stopPropagation();
+      btn.addEventListener(ev, async function(){
         var tier=Number(btn.getAttribute("data-tier")||"0");
         var token=null; try{ var r=await fx("share",{tier}); token=r?.token||null; }catch(e){}
         if(!token){
@@ -2205,8 +2203,7 @@ canvas{ display:block }
         }
         var link=directLink(token); openShare(link,inviteText(link));
         flags[tier]=true; saveFlags(flags); applyUnlocks();
-        var st=$("#status"+tier); if(st) st.textContent="Shared!";
-        setTimeout(function(){ once=false; },250);
+        var st=document.getElementById("status"+tier); if(st) st.textContent="Shared!";
       }, {passive:true});
     });
   });
@@ -2222,31 +2219,25 @@ canvas{ display:block }
     ];
 
     tasks.forEach(function(t){
-      // reflect previous state
       if(done(t.key)){ var te=document.querySelector(t.tick); if(te) te.classList.add("show");
         var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔"; }
 
       var b=document.querySelector(t.sel); if(!b) return;
-
-      var handler=function(){
+      var go=function(){
         if(!done(t.key)){
-          mark(t.key);           // permanently done
-          addEarn(t.amt);        // update earned box immediately
-          queueCredit(t.amt);    // schedule addition to main balance
+          mark(t.key);
+          addEarn(t.amt);        // earned box now
+          queueCredit(t.amt);    // main balance via BigInt queue
           var te=document.querySelector(t.tick); if(te) te.classList.add("show");
           var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔";
         }
-        var url=b.getAttribute("data-url");
-        if(tg?.openLink) tg.openLink(url); else window.open(url,"_blank");
+        var url=b.getAttribute("data-url"); if(tg?.openLink) tg.openLink(url); else window.open(url,"_blank");
       };
-
-      ["click","pointerup","touchend"].forEach(function(ev){
-        b.addEventListener(ev, handler, {passive:true});
-      });
+      ["click","pointerup","touchend"].forEach(function(ev){ b.addEventListener(ev, go, {passive:true}); });
     });
   })();
 
-  /* ===== Poll server for invite completions (optional) ===== */
+  /* ===== Optional: poll server for completions ===== */
   var PREV_KEY="invite_prev_tiers_v12";
   function getPrev(){ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}");}catch(e){return {};} }
   function setPrev(x){ try{localStorage.setItem(PREV_KEY,JSON.stringify(x||{}));}catch(e){} }
@@ -2263,22 +2254,19 @@ canvas{ display:block }
   setInterval(poll,6000);
 
   /* ===== Open/close & rules ===== */
-  function refreshEarnUI(){ setEarn(getEarn()); }         // always refresh from storage
+  function refreshEarnUI(){ setEarn(getEarn()); }
   function open(){ refreshEarnUI(); overlay?.classList.add("show"); }
   function close(){ overlay?.classList.remove("show"); }
 
-  // make sure tapping the image OR its wrapper opens the modal
   ["click","pointerup","touchend"].forEach(function(ev){
     openWrap?.addEventListener(ev, open, {passive:true});
     openImg ?.addEventListener(ev, open, {passive:true});
   });
+  closeBtn ?.addEventListener("click", close);
+  overlay  ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
+  rulesBtn ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
+  rulesOk  ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
 
-  closeBtn   ?.addEventListener("click", close);
-  overlay    ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
-  rulesBtn   ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
-  rulesOk    ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
-
-  // initial UI sync and credit drainer start
   refreshEarnUI(); drainQueue();
 })();
 /* ========= Robust, no-throw module ========= */
