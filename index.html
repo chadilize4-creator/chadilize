@@ -6,16 +6,22 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
+ :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
 
-  /* Launcher: your class names, anchored to right/bottom */
-  .luck-btn-wrap{ position:relative; display:inline-block; }
+  /* Launcher — same structure you use, but IN FLOW (not fixed) and right-aligned */
+  .luck-btn-wrap{
+    display:block;              /* keeps it in document flow so it scrolls */
+    width:fit-content;          /* shrink to image width */
+    margin-left:auto;           /* push to the right edge */
+    margin-right:16px;
+    margin-top:16px;
+    position:relative;
+    z-index:1;
+  }
   .luck-btn-img{
     width:90px;height:90px;border-radius:18px;object-fit:cover;cursor:pointer;
     border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220;
   }
-  /* Put this on the wrapper to pin it to screen-right */
-  .fixed-right{ position:fixed; right:16px; bottom:24px; z-index:1000; } /* right-side anchor */
 
   /* Overlay & modal */
   .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;background:rgba(2,4,10,.55);
@@ -1302,8 +1308,8 @@ canvas{ display:block }
     </div>
 
 <!-- Launcher -->
-<!-- Launcher (no timer), pinned to right with .fixed-right -->
-<div><div id="inviteBtnWrap" class="luck-btn-wrap fixed-right">
+<!-- Launcher (no timer, scrollable, right-aligned) -->
+<div><div id="inviteBtnWrap" class="luck-btn-wrap">
   <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
 </div>
 <div id="luckBtnWrap" class="luck-btn-wrap">
@@ -1313,7 +1319,107 @@ canvas{ display:block }
 
 
 
+<!-- Modal -->
+<div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
+  <div class="invite-modal">
+    <div class="invite-head">
+      <div class="invite-title">Invite friends → win huge CHADs</div>
+      <div class="invite-actions">
+        <button class="head-btn icon" id="rulesBtn">?</button>
+        <button class="head-btn" id="inviteCloseBtn">Close</button>
+      </div>
+    </div>
 
+    <div class="invite-body">
+      <section class="card">
+        <div class="earnedRow"><span>🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
+        <div class="muted" style="margin-top:6px">Earned via invites</div>
+      </section>
+
+      <section class="rewards">
+        <article class="reward-card" id="tier1">
+          <div class="reward-row">
+            <button class="btn share-btn" data-tier="1">Share</button>
+            <div>
+              <div class="reward-label">Option 1</div>
+              <div class="reward-amt">+500,000 CHADs</div>
+              <div class="reward-desc">Share your link. When they join & play, you’re rewarded.</div>
+            </div>
+            <div class="pill locked" id="lock1" style="display:none">Locked</div>
+          </div>
+          <div class="status" id="status1"></div>
+        </article>
+
+        <article class="reward-card" id="tier2">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share2" data-tier="2" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 2</div>
+              <div class="reward-amt">+5,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 1.</div>
+            </div>
+            <div class="pill locked" id="lock2">Locked</div>
+          </div>
+          <div class="status" id="status2"></div>
+        </article>
+
+        <article class="reward-card" id="tier3">
+          <div class="reward-row">
+            <button class="btn share-btn" id="share3" data-tier="3" disabled>Share</button>
+            <div>
+              <div class="reward-label">Option 3</div>
+              <div class="reward-amt">+3,000,000,000 CHADs</div>
+              <div class="reward-desc">Unlocks after you share Option 2.</div>
+            </div>
+            <div class="pill locked" id="lock3">Locked</div>
+          </div>
+          <div class="status" id="status3"></div>
+        </article>
+
+        <!-- Instant tasks -->
+        <article class="reward-card" id="tier4">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
+            <div>
+              <div class="reward-label">Option 4</div>
+              <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div>
+            </div>
+            <div><span class="tick" id="tick4">✔</span></div>
+          </div>
+          <div class="status" id="status4"></div>
+        </article>
+
+        <article class="reward-card" id="tier5">
+          <div class="reward-row">
+            <button class="btn follow-btn" data-url="https://www.youtube.com/@Chadilize" data-amount="600000">Open</button>
+            <div>
+              <div class="reward-label">Option 5</div>
+              <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
+              <div class="reward-desc">Tap Open to earn instantly.</div>
+            </div>
+            <div><span class="tick" id="tick5">✔</span></div>
+          </div>
+          <div class="status" id="status5"></div>
+        </article>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Rules popup -->
+<div class="invite-overlay" id="rulesOverlay" style="background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;place-items:center;">
+  <div class="card" style="width:min(680px,92vw);">
+    <h3 style="margin:6px 0 12px 0">📜 Invite Rules</h3>
+    <ol style="margin:0 0 12px 18px;line-height:1.55">
+      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> more than once — you won’t be rewarded.</li>
+      <li>🎮 CHADs are awarded after the invited friend <b>opens & plays</b> the game.</li>
+      <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
+      <li>✅ No more rules. Have fun!</li>
+    </ol>
+    <button class="btn" id="rulesOkBtn" style="display:block;margin-left:auto">OK</button>
+  </div>
+</div>
 <!-- Modal -->
 <div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
   <div class="invite-modal">
@@ -1601,107 +1707,7 @@ canvas{ display:block }
       </div>
     </div>
 
-<!-- Modal -->
-<div class="invite-overlay" id="inviteOverlay" aria-hidden="true">
-  <div class="invite-modal">
-    <div class="invite-head">
-      <div class="invite-title">Invite friends → win huge CHADs</div>
-      <div class="invite-actions">
-        <button class="head-btn icon" id="rulesBtn">?</button>
-        <button class="head-btn" id="inviteCloseBtn">Close</button>
-      </div>
-    </div>
 
-    <div class="invite-body">
-      <section class="card">
-        <div class="earnedRow"><span>🪙</span><span id="earnedValue">0</span><span>&nbsp;CHADs</span></div>
-        <div class="muted" style="margin-top:6px">Earned via invites</div>
-      </section>
-
-      <section class="rewards">
-        <article class="reward-card" id="tier1">
-          <div class="reward-row">
-            <button class="btn share-btn" data-tier="1">Share</button>
-            <div>
-              <div class="reward-label">Option 1</div>
-              <div class="reward-amt">+500,000 CHADs</div>
-              <div class="reward-desc">Share your link. When they join & play, you’re rewarded.</div>
-            </div>
-            <div class="pill locked" id="lock1" style="display:none">Locked</div>
-          </div>
-          <div class="status" id="status1"></div>
-        </article>
-
-        <article class="reward-card" id="tier2">
-          <div class="reward-row">
-            <button class="btn share-btn" id="share2" data-tier="2" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 2</div>
-              <div class="reward-amt">+5,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after you share Option 1.</div>
-            </div>
-            <div class="pill locked" id="lock2">Locked</div>
-          </div>
-          <div class="status" id="status2"></div>
-        </article>
-
-        <article class="reward-card" id="tier3">
-          <div class="reward-row">
-            <button class="btn share-btn" id="share3" data-tier="3" disabled>Share</button>
-            <div>
-              <div class="reward-label">Option 3</div>
-              <div class="reward-amt">+3,000,000,000 CHADs</div>
-              <div class="reward-desc">Unlocks after you share Option 2.</div>
-            </div>
-            <div class="pill locked" id="lock3">Locked</div>
-          </div>
-          <div class="status" id="status3"></div>
-        </article>
-
-        <!-- Instant tasks -->
-        <article class="reward-card" id="tier4">
-          <div class="reward-row">
-            <button class="btn follow-btn" data-url="https://x.com/chadilize4" data-amount="400000">Open</button>
-            <div>
-              <div class="reward-label">Option 4</div>
-              <div class="reward-amt">Subscribe on X → +400,000 CHADs</div>
-              <div class="reward-desc">Tap Open to earn instantly.</div>
-            </div>
-            <div><span class="tick" id="tick4">✔</span></div>
-          </div>
-          <div class="status" id="status4"></div>
-        </article>
-
-        <article class="reward-card" id="tier5">
-          <div class="reward-row">
-            <button class="btn follow-btn" data-url="https://www.youtube.com/@Chadilize" data-amount="600000">Open</button>
-            <div>
-              <div class="reward-label">Option 5</div>
-              <div class="reward-amt">Subscribe on YouTube → +600,000 CHADs</div>
-              <div class="reward-desc">Tap Open to earn instantly.</div>
-            </div>
-            <div><span class="tick" id="tick5">✔</span></div>
-          </div>
-          <div class="status" id="status5"></div>
-        </article>
-      </section>
-    </div>
-  </div>
-</div>
-
-<!-- Rules popup -->
-<div class="invite-overlay" id="rulesOverlay" style="background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none;place-items:center;">
-  <div class="card" style="width:min(680px,92vw);">
-    <h3 style="margin:6px 0 12px 0">📜 Invite Rules</h3>
-    <ol style="margin:0 0 12px 18px;line-height:1.55">
-      <li>🚫 Don’t send the <b>same invite</b> to the <b>same person</b> more than once — you won’t be rewarded.</li>
-      <li>🎮 CHADs are awarded after the invited friend <b>opens & plays</b> the game.</li>
-      <li>⏳ CHADs may appear in your balance <b>within 1–2 days</b> after they play.</li>
-      <li>✅ No more rules. Have fun!</li>
-    </ol>
-    <button class="btn" id="rulesOkBtn" style="display:block;margin-left:auto">OK</button>
-  </div>
-</div>
 
     <!-- SNAKE Modal -->
     <div class="overlay" id="snakeModal">
@@ -2079,7 +2085,169 @@ canvas{ display:block }
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+(function(){
+  'use strict';
 
+  /* Config */
+  var BOT="chadilizebot";
+  var APP="chadilize";                             // deep link: /<bot>/<app>?startapp=TOKEN
+  var SUPABASE_URL="https://jwrvlaxfrnglaxueqgdx.supabase.co";
+  var SUPABASE_ANON="sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
+  var FX="invite";
+  var TIER_AMTS={1:500000,2:5000000,3:3000000000};
+
+  var tg=(window.Telegram&&window.Telegram.WebApp)?window.Telegram.WebApp:null;
+  try{ tg && tg.expand && tg.expand(); }catch(e){}
+
+  /* DOM */
+  function $(s,r){return(r||document).querySelector(s);}
+  var launcherWrap=$("#inviteBtnWrap"), launcherImg=$("#inviteBtnImg");
+  var overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn");
+  var earnedEl=$("#earnedValue"), rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
+  var share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
+
+  /* Supabase (safe) */
+  var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
+  async function fx(op,body){
+    if(!sb) return {};
+    var initData=(tg && tg.initData)? tg.initData : "";
+    try{
+      var res=await sb.functions.invoke(FX,{ body:Object.assign({op:op, initData:initData}, body||{}) });
+      if(res.error) throw res.error;
+      return res.data||{};
+    }catch(e){ console.warn("[fx]", e.message||e); return {}; }
+  }
+
+  /* Earned display (local) */
+  var EARN_KEY="invite_earned_local_v6";
+  function getEarn(){ return Number(localStorage.getItem(EARN_KEY)||"0"); }
+  function setEarn(v){ try{localStorage.setItem(EARN_KEY,String(v));}catch(e){} if(earnedEl) earnedEl.textContent=Number(v).toLocaleString(); }
+  function addEarn(n){ setEarn(getEarn()+Number(n||0)); }
+  setEarn(getEarn());
+
+  /* Credit queue → applies to state.chads (BigInt) once your helpers exist */
+  var QKEY="invite_credit_queue_v5";
+  function queueCredit(amt){
+    try{ var q=JSON.parse(localStorage.getItem(QKEY)||"[]"); q.push(Number(amt||0)); localStorage.setItem(QKEY,JSON.stringify(q)); }catch(e){}
+    drainQueue();
+  }
+  var drainTimer=null;
+  function drainQueue(){
+    if(typeof window.loadStateLocal!=="function" || typeof window.saveStateLocal!=="function"){
+      if(!drainTimer) drainTimer=setInterval(drainQueue,800); return;
+    }
+    try{
+      var s=(window.state && typeof window.state==="object")? window.state : window.loadStateLocal();
+      var q=JSON.parse(localStorage.getItem(QKEY)||"[]");
+      if(!q.length){ if(drainTimer){clearInterval(drainTimer);drainTimer=null;} return; }
+      var add=q.reduce(function(a,b){ return a + BigInt(String(b)); }, 0n);
+      var cur=(typeof s.chads==="bigint")? s.chads : BigInt(s.chads||0);
+      s.chads=cur+add;
+      window.saveStateLocal(s);
+      if(typeof window.refreshUI==="function") window.refreshUI();
+      if(typeof window.showToast==="function") window.showToast("<span class='accent'>+"+Number(add).toLocaleString()+"</span> chads added to balance.");
+      localStorage.removeItem(QKEY);
+    }catch(e){}
+    if(!drainTimer) drainTimer=setInterval(drainQueue,800);
+  }
+  drainQueue();
+
+  /* Deep link + share */
+  function directLink(token){
+    return APP?("https://t.me/"+BOT+"/"+APP+"?startapp="+encodeURIComponent(token||""))
+              :("https://t.me/"+BOT+"?startapp="+encodeURIComponent(token||""));
+  }
+  function inviteText(link){
+    return "🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs.\nJoin with my invite:\n👉 "+link+"\n\nLet’s race the leaderboard!";
+  }
+  function openShare(link,text){
+    // t.me/share URL + WebApp.openTelegramLink
+    var u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(text||"");
+    if(tg && tg.openTelegramLink) tg.openTelegramLink(u);
+    else if(tg && tg.openLink)   tg.openLink(u);
+    else location.href=u;
+  }
+
+  /* Bind startapp to server (optional) */
+  try{
+    var qs=new URLSearchParams(location.search);
+    var sp=qs.get("tgWebAppStartParam") || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || null;
+    if(sp) fx("session_open",{ startParam:sp });
+  }catch(e){}
+
+  /* Share tiers → unlock next */
+  var FLAGS_KEY="invite_shared_flags_v10";
+  function loadFlags(){ try{return JSON.parse(localStorage.getItem(FLAGS_KEY)||"{}");}catch(e){return {};} }
+  function saveFlags(x){ try{localStorage.setItem(FLAGS_KEY,JSON.stringify(x||{}));}catch(e){} }
+  var flags=loadFlags();
+  function applyUnlocks(){
+    if(share2) share2.disabled=!flags[1]; if(lock2) lock2.style.display=flags[1]?"none":"inline-flex";
+    if(share3) share3.disabled=!flags[2]; if(lock3) lock3.style.display=flags[2]?"none":"inline-flex";
+  }
+  applyUnlocks();
+
+  document.querySelectorAll(".share-btn").forEach(function(btn){
+    btn.addEventListener("click", async function(){
+      var tier=Number(btn.getAttribute("data-tier")||"0");
+      var token=null; try{ var r=await fx("share",{tier:tier}); token=r && r.token || null; }catch(e){}
+      if(!token){
+        var uid=(tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) ? tg.initDataUnsafe.user.id : null;
+        token = uid ? Number(uid).toString(36) : "dev";
+      }
+      var link=directLink(token); openShare(link, inviteText(link));
+      flags[tier]=true; saveFlags(flags); applyUnlocks();
+      var st=document.getElementById("status"+tier); if(st) st.textContent="Shared!";
+    });
+  });
+
+  /* Instant tasks: award once at tap */
+  (function(){
+    function done(k){ try{return localStorage.getItem(k)==="1";}catch(e){return false;} }
+    function mark(k){ try{localStorage.setItem(k,"1");}catch(e){} }
+    var tasks=[
+      { id:"tier4", tick:"#tick4", key:"task_x_done",  amt:400000, sel:"#tier4 .follow-btn" },
+      { id:"tier5", tick:"#tick5", key:"task_yt_done", amt:600000, sel:"#tier5 .follow-btn" },
+    ];
+    tasks.forEach(function(t){
+      if(done(t.key)){ var te=document.querySelector(t.tick); if(te) te.classList.add("show"); var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔"; }
+      var b=document.querySelector(t.sel); if(!b) return;
+      b.addEventListener("click", function(){
+        if(!done(t.key)){
+          mark(t.key); addEarn(t.amt); queueCredit(t.amt);
+          var te=document.querySelector(t.tick); if(te) te.classList.add("show");
+          var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔";
+        }
+        var url=b.getAttribute("data-url"); if(tg && tg.openLink) tg.openLink(url); else window.open(url,"_blank");
+      });
+    });
+  })();
+
+  /* Optional: poll server for completions */
+  var PREV_KEY="invite_prev_tiers_v11";
+  function getPrev(){ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}");}catch(e){return {};} }
+  function setPrev(x){ try{localStorage.setItem(PREV_KEY,JSON.stringify(x||{}));}catch(e){} }
+  async function poll(){
+    var res=await fx("status"); var tiers=res && res.tiers || {}; var prev=getPrev();
+    [1,2,3].forEach(function(k){
+      if(tiers[k]==="done" && prev[k]!=="done"){
+        addEarn(TIER_AMTS[k]); queueCredit(TIER_AMTS[k]);
+        var st=document.getElementById("status"+k); if(st) st.textContent="Completed ✔";
+      }
+    });
+    setPrev(tiers);
+  }
+  setInterval(poll,6000);
+
+  /* Open/close & rules — ensure the button opens the overlay */
+  function open(){ overlay && overlay.classList.add("show"); }
+  function close(){ overlay && overlay.classList.remove("show"); }
+  launcherWrap?.addEventListener("click", open);
+  launcherImg ?.addEventListener("click", open);
+  closeBtn    ?.addEventListener("click", close);
+  overlay     ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
+  rulesBtn    ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
+  rulesOk     ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
+})();
 /* ========= Robust, no-throw module ========= */
 (function(){
   'use strict';
