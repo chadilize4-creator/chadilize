@@ -7,60 +7,40 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
-  /* Avoid horizontal scrollbars with full-bleed rows (Windows) */
-  body{overflow-x:hidden}
-
-  /* --- Full-bleed row that breaks out of centered containers to touch the viewport edges --- */
-  .full-bleed{
-    position:relative;
-    left:50%; right:50%;
-    margin-left:-50vw; margin-right:-50vw;
-    width:100vw;          /* stretch to the screen */
-  }
-  /* Row content aligned to the very right */
-  .invite-row{display:flex; justify-content:flex-end; padding-right:16px}
-
-  /* Launcher (your structure & class names) — remains in normal flow so it scrolls */
-  #inviteBtnWrap.luck-btn-wrap{ display:inline-block }
+  /* launcher visuals (your classes preserved) */
   #inviteBtnImg.luck-btn-img{
-    width:90px; height:90px; border-radius:18px; object-fit:cover; cursor:pointer;
-    border:1px solid var(--border); box-shadow:var(--glow); background:#0c1220;
+    width:90px;height:90px;border-radius:18px;object-fit:cover;cursor:pointer;
+    border:1px solid var(--border);box-shadow:var(--glow);background:#0c1220
+  }
+  /* anchored state: sits above & aligned to the right of the Buy Cards parent */
+  .luck-btn-wrap.pos-anchored{
+    position:absolute; right:0; bottom:calc(100% + 12px); z-index:2; /* top-right above */
   }
 
-  /* Overlay & modal */
-  .invite-overlay{position:fixed; inset:0; z-index:9999; display:none;
-    background:rgba(2,4,10,.55); backdrop-filter:blur(6px); padding:24px; overflow:auto}
+  /* overlay + modal */
+  .invite-overlay{position:fixed;inset:0;z-index:9999;display:none;background:rgba(2,4,10,.55);backdrop-filter:blur(6px);padding:24px;overflow:auto}
   .invite-overlay.show{display:block}
-  .invite-modal{margin:0 auto; max-width:980px; border-radius:20px; overflow:hidden;
-    box-shadow:0 24px 80px rgba(0,0,0,.45); border:1px solid var(--border)}
-  .invite-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 18px;
-    background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
-  .invite-title{font:800 20px/1.1 system-ui,sans-serif; color:#fff}
-  .invite-actions{display:flex; gap:8px}
-  .head-btn{border:1px solid var(--border); background:transparent; color:#fff; padding:10px 12px; border-radius:12px; cursor:pointer}
-  .head-btn.icon{width:36px; height:36px; display:grid; place-items:center; border-radius:50%;
-    background:#ffd84d; color:#121212; border-color:#ffd84d; font-weight:900; box-shadow:0 0 12px rgba(255,216,77,.45)}
-
-  .invite-body{padding:16px; display:grid; gap:16px;
-    background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));
-    max-height:88dvh; overflow:auto}
-  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent); border:1px solid var(--border);
-    border-radius:14px; padding:14px; box-shadow:var(--glow)}
-  .muted{color:#9aa3ad; font-size:13px}
-  .earnedRow{display:flex; align-items:center; gap:10px; font:800 18px/1.2 system-ui,sans-serif; color:#fff}
-
-  .rewards{display:grid; gap:14px}
-  .btn{padding:11px 14px; border-radius:12px; border:1px solid var(--border); background:#121826; color:#fff; cursor:pointer}
-  .btn[disabled]{opacity:.5; cursor:not-allowed}
-  .reward-card{position:relative; border-radius:16px; padding:14px; background:#0e1422; border:1px solid var(--border); box-shadow:var(--glow)}
-  .reward-row{display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center}
-  .reward-label{font:600 12px/1.1 system-ui,sans-serif; color:#9aa3ad; text-transform:uppercase; letter-spacing:.4px}
-  .reward-amt{font:900 22px/1.1 system-ui,sans-serif; color:#fff}
-  .reward-desc{font-size:13px; color:#9aa3ad; margin-top:2px}
-  .status{font-size:13px; color:#fff; opacity:.85; margin-top:6px; min-height:18px}
-  .pill.locked{font-size:12px; color:#9aa3ad; background:rgba(255,255,255,.06); border:1px solid var(--border);
-    padding:4px 8px; border-radius:999px}
-  .tick{color:#3df57c; font-weight:800; display:none}.tick.show{display:inline}
+  .invite-modal{margin:0 auto;max-width:980px;border-radius:20px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.45);border:1px solid var(--border)}
+  .invite-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;background:linear-gradient(90deg,rgba(91,140,255,.08),transparent)}
+  .invite-title{font:800 20px/1.1 system-ui,sans-serif;color:#fff}
+  .invite-actions{display:flex;gap:8px}
+  .head-btn{border:1px solid var(--border);background:transparent;color:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
+  .head-btn.icon{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#ffd84d;color:#121212;border-color:#ffd84d;font-weight:900;box-shadow:0 0 12px rgba(255,216,77,.45)}
+  .invite-body{padding:16px;display:grid;gap:16px;background:linear-gradient(180deg,rgba(14,18,28,.92),rgba(10,13,20,.95));max-height:88dvh;overflow:auto}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--glow)}
+  .muted{color:#9aa3ad;font-size:13px}
+  .earnedRow{display:flex;align-items:center;gap:10px;font:800 18px/1.2 system-ui,sans-serif;color:#fff}
+  .rewards{display:grid;gap:14px}
+  .btn{padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:#121826;color:#fff;cursor:pointer}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .reward-card{position:relative;border-radius:16px;padding:14px;background:#0e1422;border:1px solid var(--border);box-shadow:var(--glow)}
+  .reward-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+  .reward-label{font:600 12px/1.1 system-ui,sans-serif;color:#9aa3ad;text-transform:uppercase;letter-spacing:.4px}
+  .reward-amt{font:900 22px/1.1 system-ui,sans-serif;color:#fff}
+  .reward-desc{font-size:13px;color:#9aa3ad;margin-top:2px}
+  .status{font-size:13px;color:#fff;opacity:.85;margin-top:6px;min-height:18px}
+  .pill.locked{font-size:12px;color:#9aa3ad;background:rgba(255,255,255,.06);border:1px solid var(--border);padding:4px 8px;border-radius:999px}
+  .tick{color:#3df57c;font-weight:800;display:none}.tick.show{display:inline}
 :root{--bg:var(--tg-theme-bg-color,#0b0e14);--fg:var(--tg-theme-text-color,#eaf2ff);
     --muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
   #inviteRewardsBtn{display:block;margin:24px 16px 0 auto;width:90px;height:80px;border-radius:16px;
@@ -1315,16 +1295,19 @@ canvas{ display:block }
     </div>
 
 <!-- Launcher -->
-<!-- Full-bleed right-aligned row with your launcher inside -->
-<div><div class="full-bleed invite-row">
-  <div id="inviteBtnWrap" class="luck-btn-wrap">
-    <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
-  </div>
+<!-- Launcher (we’ll programmatically move this above Buy Cards) -->
+<div><div id="inviteBtnWrap" class="luck-btn-wrap">
+  <img id="inviteBtnImg" class="luck-btn-img" src="img/getrewards.png" alt="Get rewards">
 </div>
 <div id="luckBtnWrap" class="luck-btn-wrap">
   <img id="luckBtnImg" class="luck-btn-img" src="img/testyourluck.png" alt="Test your luck">
   <div id="luckBtnTimer" class="luck-btn-timer" hidden>00:00:00</div>
 </div></div>
+
+
+
+
+
 
 
 
@@ -2099,7 +2082,7 @@ canvas{ display:block }
 
   /* ===== Config ===== */
   var BOT="chadilizebot";
-  var APP="chadilize";                                        // /<bot>/<app>?startapp=TOKEN
+  var APP="chadilize";
   var SUPABASE_URL="https://jwrvlaxfrnglaxueqgdx.supabase.co";
   var SUPABASE_ANON="sb_publishable_akCwSORrxdSOf0zHCU8NDw_y0Yvj3Wd";
   var FX="invite";
@@ -2111,12 +2094,22 @@ canvas{ display:block }
 
   /* ===== DOM ===== */
   function $(s,r){return(r||document).querySelector(s);}
-  var openWrap=$("#inviteBtnWrap"), openImg=$("#inviteBtnImg");
+  var wrap=$("#inviteBtnWrap"), img=$("#inviteBtnImg");
   var overlay=$("#inviteOverlay"), closeBtn=$("#inviteCloseBtn");
   var earnedEl=$("#earnedValue"), rulesBtn=$("#rulesBtn"), rulesOv=$("#rulesOverlay"), rulesOk=$("#rulesOkBtn");
   var share2=$("#share2"), share3=$("#share3"), lock2=$("#lock2"), lock3=$("#lock3");
 
-  /* ===== Supabase (optional, non-blocking) ===== */
+  /* ===== Anchor the launcher above Buy Cards ===== */
+  (function placeAboveBuy(){
+    var buy=document.getElementById('buyBtn');                 // your existing Buy Cards button id
+    if(!buy||!wrap) return;
+    var parent = buy.closest('.btn-row, .cta-row, .actions, .controls') || buy.parentElement || buy.offsetParent || buy;
+    parent.style.position = parent.style.position || 'relative';  // create "positioned ancestor" (MDN)
+    wrap.classList.add('pos-anchored');
+    parent.appendChild(wrap);                                   // move node next to Buy Cards (appendChild moves nodes) 
+  })();
+
+  /* ===== Supabase (optional) ===== */
   var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
   async function fx(op,body){
     if(!sb) return {};
@@ -2127,8 +2120,8 @@ canvas{ display:block }
     }catch(e){ console.warn("[fx]", e.message||e); return {}; }
   }
 
-  /* ===== Earned counter (local) ===== */
-  var EARN_KEY="invite_earned_local_v8";
+  /* ===== Earned counter ===== */
+  var EARN_KEY="invite_earned_local_v9";
   function getEarn(){ return Number(localStorage.getItem(EARN_KEY)||"0"); }
   function setEarn(v){ try{localStorage.setItem(EARN_KEY,String(v));}catch(e){} if(earnedEl) earnedEl.textContent=Number(v).toLocaleString(); }
   function addEarn(n){ setEarn(getEarn()+Number(n||0)); }
@@ -2167,19 +2160,9 @@ canvas{ display:block }
     return "🚀 ChadiliZe on Telegram!\nPlay Snake & Flappy Birl to farm CHADs.\nJoin with my invite:\n👉 "+link+"\n\nLet’s race the leaderboard!";
   }
   function openShare(link,text){
-    // Telegram's official share endpoint opened via the Mini App API
     var u="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent(text||"");
-    if(tg?.openTelegramLink) tg.openTelegramLink(u);
-    else if(tg?.openLink)   tg.openLink(u);
-    else location.href=u;
+    if(tg?.openTelegramLink) tg.openTelegramLink(u); else if(tg?.openLink) tg.openLink(u); else location.href=u;
   }
-
-  /* ===== Start param binding (optional) ===== */
-  try{
-    var qs=new URLSearchParams(location.search);
-    var sp=qs.get("tgWebAppStartParam") || tg?.initDataUnsafe?.start_param || null;
-    if(sp) fx("session_open",{startParam:sp});
-  }catch(e){}
 
   /* ===== Progressive unlock ===== */
   var FLAGS_KEY="invite_shared_flags_v12";
@@ -2198,9 +2181,7 @@ canvas{ display:block }
       btn.addEventListener(ev, async function(){
         var tier=Number(btn.getAttribute("data-tier")||"0");
         var token=null; try{ var r=await fx("share",{tier}); token=r?.token||null; }catch(e){}
-        if(!token){
-          var uid=tg?.initDataUnsafe?.user?.id; token=uid?Number(uid).toString(36):"dev";
-        }
+        if(!token){ var uid=tg?.initDataUnsafe?.user?.id; token=uid?Number(uid).toString(36):"dev"; }
         var link=directLink(token); openShare(link,inviteText(link));
         flags[tier]=true; saveFlags(flags); applyUnlocks();
         var st=document.getElementById("status"+tier); if(st) st.textContent="Shared!";
@@ -2225,9 +2206,7 @@ canvas{ display:block }
       var b=document.querySelector(t.sel); if(!b) return;
       var go=function(){
         if(!done(t.key)){
-          mark(t.key);
-          addEarn(t.amt);        // earned box now
-          queueCredit(t.amt);    // main balance via BigInt queue
+          mark(t.key); addEarn(t.amt); queueCredit(t.amt);
           var te=document.querySelector(t.tick); if(te) te.classList.add("show");
           var s=document.querySelector("#"+t.id+" .status"); if(s) s.textContent="Completed ✔";
         }
@@ -2237,35 +2216,18 @@ canvas{ display:block }
     });
   })();
 
-  /* ===== Optional: poll server for completions ===== */
-  var PREV_KEY="invite_prev_tiers_v12";
-  function getPrev(){ try{return JSON.parse(localStorage.getItem(PREV_KEY)||"{}");}catch(e){return {};} }
-  function setPrev(x){ try{localStorage.setItem(PREV_KEY,JSON.stringify(x||{}));}catch(e){} }
-  async function poll(){
-    var res=await fx("status"); var tiers=res?.tiers||{}; var prev=getPrev();
-    [1,2,3].forEach(function(k){
-      if(tiers[k]==="done" && prev[k]!=="done"){
-        addEarn(TIER_AMTS[k]); queueCredit(TIER_AMTS[k]);
-        var st=document.getElementById("status"+k); if(st) st.textContent="Completed ✔";
-      }
-    });
-    setPrev(tiers);
-  }
-  setInterval(poll,6000);
-
   /* ===== Open/close & rules ===== */
-  function refreshEarnUI(){ setEarn(getEarn()); }
+  function refreshEarnUI(){ setEarn(getEarn()); }  // sync earned box
   function open(){ refreshEarnUI(); overlay?.classList.add("show"); }
   function close(){ overlay?.classList.remove("show"); }
-
   ["click","pointerup","touchend"].forEach(function(ev){
-    openWrap?.addEventListener(ev, open, {passive:true});
-    openImg ?.addEventListener(ev, open, {passive:true});
+    wrap ?.addEventListener(ev, open, {passive:true});
+    img  ?.addEventListener(ev, open, {passive:true});
   });
-  closeBtn ?.addEventListener("click", close);
-  overlay  ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
-  rulesBtn ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
-  rulesOk  ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
+  closeBtn?.addEventListener("click", close);
+  overlay ?.addEventListener("click", function(e){ if(e.target===overlay) close(); });
+  rulesBtn?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='grid'; });
+  rulesOk ?.addEventListener("click", function(){ if(rulesOv) rulesOv.style.display='none'; });
 
   refreshEarnUI(); drainQueue();
 })();
