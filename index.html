@@ -6,6 +6,88 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Page framing (keeps things centered, dark bg like your app) */
+:root {
+  --icon-size: 72px;   /* tweak if you want larger/smaller icons */
+  --focus-ring: 0 0 0 3px rgba(255, 214, 10, 0.8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #0b0b0f;
+  color: #eee;
+}
+
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+/* The rectangle wrapper is exactly the image's size */
+.rect-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0; /* remove stray inline gaps */
+}
+
+/* Show the rectangle at its intrinsic size (no auto-scaling) */
+#rect {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;     /* override any global resets */
+  max-height: none;
+}
+
+/* Icon buttons positioned over the rectangle */
+.icon-btn {
+  position: absolute;
+  top: 50%;
+  /* left is set per-position class below */
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.icon-btn img {
+  display: block;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+/* Tactile feedback */
+.icon-btn:active img {
+  transform: scale(0.97);
+}
+.icon-btn:focus-visible img {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Place each icon at the center of its third */
+.at-left   { left: 16.6667%; }  /* center of 1st third  (1/6) */
+.at-middle { left: 50%; }       /* center of 2nd third  (3/6) */
+.at-right  { left: 83.3333%; }  /* center of 3rd third  (5/6) */
+
+/* Info bar */
+.info {
+  margin: 0;
+  font-size: 14px;
+  color: #cfcfcf;
+  opacity: 0.9;
+}
+
   :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
 
   /* Launcher visuals (keep your classes) */
@@ -1294,6 +1376,41 @@ canvas{ display:block }
       </div>
     </div>
 
+
+<main class="page">
+    <!-- Wrapper is exactly the rectangle's intrinsic size -->
+    <div class="rect-wrap" aria-label="Three-option panel">
+      <!-- The rectangle at its real size -->
+      <img id="rect"
+           src="img/greyrectangle.png"
+           alt="Three-section grey rectangle" />
+
+      <!-- Left: MAN -->
+      <button class="icon-btn at-left"
+              data-info="Man button pressed — hook up action later."
+              aria-label="Man">
+        <img src="img/sharpjaw.png" alt="" />
+      </button>
+
+      <!-- Middle: STRAWBERRY -->
+      <button class="icon-btn at-middle"
+              data-info="Strawberry button pressed — hook up action later."
+              aria-label="Strawberry">
+        <img src="img/strawberry.png" alt="" />
+      </button>
+
+      <!-- Right: THUNDERBOLT -->
+      <button class="icon-btn at-right"
+              data-info="Thunderbolt button pressed — hook up action later."
+              aria-label="Thunderbolt">
+        <img src="img/thunder.png" alt="" />
+      </button>
+    </div>
+
+    <p id="info" class="info">Tap an icon…</p>
+  </main>
+
+
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
 <div><div id="inviteBtnWrap" class="luck-btn-wrap">
@@ -2072,7 +2189,18 @@ canvas{ display:block }
 <!-- SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 <script>
+// Simple placeholder handlers so each image acts like a button.
+// Replace with your own logic later (e.g., open panels, set state, etc.).
+const info = document.getElementById('info');
+
+document.querySelectorAll('.icon-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    info.textContent = btn.dataset.info;
+  });
+});
+
 (function(){
   'use strict';
 
