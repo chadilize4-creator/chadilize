@@ -7,57 +7,55 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  /* Height of your fixed bottom row (buttons like "Get Rewards"). Tweak to your UI. */
-  --bottom-bar: 150px;
-
-  /* Padding inside the available area so the rectangle doesn't hug the edges. */
-  --panel-pad: 12px;
-
-  /* Icon size sitting on top of the rectangle. */
-  --icon-size: 72px;
-
-  /* Focus ring for accessibility. */
+  /* Icon diameter; adjusts nicely across devices */
+  --icon-size: clamp(56px, 10vw, 96px);
   --focus-ring: 0 0 0 3px rgba(255,214,10,0.85);
+
+  /* Optional breathing room around the panel block */
+  --panel-y: 16px;
+  --panel-x: 12px;
 }
 
-/* Full-screen slot ABOVE the bottom row, always visible. */
-.chad-panel-slot{
-  position: fixed;
-  /* keep clear of notches/system UI and bottom row */
-  inset: env(safe-area-inset-top) env(safe-area-inset-right)
-         calc(var(--bottom-bar) + env(safe-area-inset-bottom))
-         env(safe-area-inset-left);
-  display: grid;
-  place-items: center;            /* center horizontally & vertically */
-  padding: var(--panel-pad);
-  z-index: 20;                    /* above page bg, below any modals you open */
-  pointer-events: auto;
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: #0b0b0f; /* match your app */
+  color: #eee;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
-/* Wrapper takes only as much space as the rectangle (or its scaled size). */
+/* === Scrollable block that sits in the normal flow === */
+.chad-panel-block{
+  display: flex;
+  justify-content: center;      /* center horizontally within page */
+  padding: var(--panel-y) var(--panel-x);
+}
+
+/* Wrapper is only as big as the image (or its scaled size) */
 .chad-rect-wrap{
   position: relative;
   display: inline-block;
-  line-height: 0;                 /* remove inline gap */
+  line-height: 0;                /* remove inline gap */
   max-width: 100%;
-  max-height: 100%;
 }
 
-/* Show at real size unless it would overflow; then scale down to fit. */
+/* Show at real size unless it would overflow: then scale down to fit.
+   Keeps aspect ratio. Works on both portrait & landscape phones. */
 #chad-rect{
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;               /* prevents overflow horizontally */
-  max-height: 100%;              /* prevents overflow vertically   */
-  object-fit: contain;           /* preserve aspect if it scales   */
+  max-width: 100%;               /* prevents horizontal overflow */
+  max-height: 80dvh;             /* ensures whole rect fits on short screens */
+  object-fit: contain;           /* when scaled, preserve aspect ratio */
 }
 
-/* Icon buttons positioned over the rectangle */
+/* Icons overlayed on the rectangle */
 .chad-icon-btn{
   position: absolute;
   top: 50%;
-  transform: translate(-50%,-50%);
+  transform: translate(-50%, -50%);  /* precise centering on both axes */
   padding: 0;
   border: 0;
   background: none;
@@ -74,10 +72,10 @@
 }
 
 /* Feedback */
-.chad-icon-btn:active img{ transform: scale(0.97); }
-.chad-icon-btn:focus-visible img{ outline: none; box-shadow: var(--focus-ring); }
+.chad-icon-btn:active img { transform: scale(0.97); }
+.chad-icon-btn:focus-visible img { outline: none; box-shadow: var(--focus-ring); }
 
-/* Center each icon in its third (1/6, 3/6, 5/6) */
+/* Center each icon in its third (1/6, 3/6, 5/6 across the rectangle) */
 .chad-at-left   { left: 16.6667%; }
 .chad-at-middle { left: 50%; }
 .chad-at-right  { left: 83.3333%; }
@@ -1371,29 +1369,34 @@ canvas{ display:block }
     </div>
 
 
+ <!-- ✅ SCROLLABLE PANEL (in the normal flow) -->
+  <section class="chad-panel-block" aria-label="Three-option panel">
+    <div class="chad-rect-wrap">
+      <!-- Grey rectangle shows at intrinsic size, but will scale down to fit -->
+      <img
+        id="chad-rect"
+        src="img/greyrectangle.png"
+        alt="Three-section grey rectangle"
+        decoding="async"
+        fetchpriority="high"
+      />
 
-<!-- Put this near the end of your body (above your bottom buttons) -->
-<section class="chad-panel-slot" aria-label="Three-option panel">
-  <div class="chad-rect-wrap">
-    <img id="chad-rect" src="img/greyrectangle.png" alt="Three-section grey rectangle" />
+      <!-- Left: MAN -->
+      <button class="chad-icon-btn chad-at-left" data-id="man" aria-label="Man">
+        <img src="img/sharpjaw.png" alt="" />
+      </button>
 
-    <!-- Left: MAN -->
-    <button class="chad-icon-btn chad-at-left" data-id="man" aria-label="Man">
-      <img src="img/sharpjaw.png" alt="" />
-    </button>
+      <!-- Middle: STRAWBERRY -->
+      <button class="chad-icon-btn chad-at-middle" data-id="strawberry" aria-label="Strawberry">
+        <img src="img/strawberry.png" alt="" />
+      </button>
 
-    <!-- Middle: STRAWBERRY -->
-    <button class="chad-icon-btn chad-at-middle" data-id="strawberry" aria-label="Strawberry">
-      <img src="img/strawberry.png" alt="" />
-    </button>
-
-    <!-- Right: THUNDERBOLT -->
-    <button class="chad-icon-btn chad-at-right" data-id="thunder" aria-label="Thunderbolt">
-      <img src="img/thunder.png" alt="" />
-    </button>
-  </div>
-</section>
-
+      <!-- Right: THUNDERBOLT -->
+      <button class="chad-icon-btn chad-at-right" data-id="thunder" aria-label="Thunderbolt">
+        <img src="img/thunder.png" alt="" />
+      </button>
+    </div>
+  </section>
 
 
 
