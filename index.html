@@ -7,13 +7,14 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
-  /* Icon diameter; adjusts nicely across devices */
-  --icon-size: clamp(56px, 10vw, 96px);
-  --focus-ring: 0 0 0 3px rgba(255,214,10,0.85);
+  /* Space below the rectangle so it sits right ABOVE your "Get Rewards" row */
+  --gap-below: clamp(10px, 2.2vh, 20px);
 
-  /* Optional breathing room around the panel block */
-  --panel-y: 16px;
-  --panel-x: 12px;
+  /* Icon size adapts to screen size */
+  --icon-size: clamp(56px, 10vw, 96px);
+
+  --focus-ring: 0 0 0 3px rgba(255,214,10,0.85);
+  --base-shadow: 0 6px 14px rgba(0,0,0,0.35);
 }
 
 * { box-sizing: border-box; }
@@ -25,11 +26,13 @@ html, body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
-/* === Scrollable block that sits in the normal flow === */
+/* === Scrollable block in normal flow === */
 .chad-panel-block{
   display: flex;
-  justify-content: center;      /* center horizontally within page */
-  padding: var(--panel-y) var(--panel-x);
+  justify-content: center;      /* center horizontally */
+  padding: 12px 12px var(--gap-below); /* extra room UNDER the rectangle */
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Wrapper is only as big as the image (or its scaled size) */
@@ -40,15 +43,15 @@ html, body {
   max-width: 100%;
 }
 
-/* Show at real size unless it would overflow: then scale down to fit.
-   Keeps aspect ratio. Works on both portrait & landscape phones. */
+/* Show at real size unless it would overflow; then scale down.
+   Keeps aspect ratio. */
 #chad-rect{
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;               /* prevents horizontal overflow */
-  max-height: 80dvh;             /* ensures whole rect fits on short screens */
-  object-fit: contain;           /* when scaled, preserve aspect ratio */
+  max-width: 100%;               /* prevent horizontal overflow */
+  max-height: 70dvh;             /* ensure whole rect fits on short screens */
+  object-fit: contain;
 }
 
 /* Icons overlayed on the rectangle */
@@ -68,17 +71,36 @@ html, body {
   width: var(--icon-size);
   height: var(--icon-size);
   border-radius: 50%;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+  box-shadow: var(--base-shadow);
 }
 
-/* Feedback */
+/* Click/keyboard feedback */
 .chad-icon-btn:active img { transform: scale(0.97); }
 .chad-icon-btn:focus-visible img { outline: none; box-shadow: var(--focus-ring); }
 
-/* Center each icon in its third (1/6, 3/6, 5/6 across the rectangle) */
+/* Center each icon in its third (1/6, 3/6, 5/6) */
 .chad-at-left   { left: 16.6667%; }
 .chad-at-middle { left: 50%; }
 .chad-at-right  { left: 83.3333%; }
+
+/* ===== Subtle pulsing glows ===== */
+@keyframes pulse-red {
+  0%, 100% { box-shadow: var(--base-shadow), 0 0 0 0 rgba(255, 70, 70, 0.0); }
+  50%      { box-shadow: var(--base-shadow), 0 0 26px 10px rgba(255, 70, 70, 0.45); }
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: var(--base-shadow), 0 0 0 0 rgba(60, 220, 120, 0.0); }
+  50%      { box-shadow: var(--base-shadow), 0 0 26px 10px rgba(60, 220, 120, 0.45); }
+}
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: var(--base-shadow), 0 0 0 0 rgba(60, 150, 255, 0.0); }
+  50%      { box-shadow: var(--base-shadow), 0 0 26px 10px rgba(60, 150, 255, 0.45); }
+}
+
+/* Apply the animations (subtle, smooth) */
+.glow-red  img { animation: pulse-red   2.6s ease-in-out infinite; }
+.glow-green img { animation: pulse-green 2.6s ease-in-out infinite; }
+.glow-blue img { animation: pulse-blue  2.6s ease-in-out infinite; }
 
   :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
 
@@ -1369,10 +1391,11 @@ canvas{ display:block }
     </div>
 
 
- <!-- ✅ SCROLLABLE PANEL (in the normal flow) -->
+
+<!-- SCROLLABLE panel (normal flow) -->
   <section class="chad-panel-block" aria-label="Three-option panel">
     <div class="chad-rect-wrap">
-      <!-- Grey rectangle shows at intrinsic size, but will scale down to fit -->
+      <!-- Grey rectangle at intrinsic size, scales down if needed -->
       <img
         id="chad-rect"
         src="img/greyrectangle.png"
@@ -1381,18 +1404,18 @@ canvas{ display:block }
         fetchpriority="high"
       />
 
-      <!-- Left: MAN -->
-      <button class="chad-icon-btn chad-at-left" data-id="man" aria-label="Man">
+      <!-- Left: MAN (red glow) -->
+      <button class="chad-icon-btn chad-at-left glow-red" data-id="man" aria-label="Man">
         <img src="img/sharpjaw.png" alt="" />
       </button>
 
-      <!-- Middle: STRAWBERRY -->
-      <button class="chad-icon-btn chad-at-middle" data-id="strawberry" aria-label="Strawberry">
+      <!-- Middle: STRAWBERRY (green glow) -->
+      <button class="chad-icon-btn chad-at-middle glow-green" data-id="strawberry" aria-label="Strawberry">
         <img src="img/strawberry.png" alt="" />
       </button>
 
-      <!-- Right: THUNDERBOLT -->
-      <button class="chad-icon-btn chad-at-right" data-id="thunder" aria-label="Thunderbolt">
+      <!-- Right: THUNDERBOLT (blue glow) -->
+      <button class="chad-icon-btn chad-at-right glow-blue" data-id="thunder" aria-label="Thunderbolt">
         <img src="img/thunder.png" alt="" />
       </button>
     </div>
