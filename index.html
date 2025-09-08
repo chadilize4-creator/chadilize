@@ -6,50 +6,58 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Page framing (keeps things centered, dark bg like your app) */
+/* Tweak this to match the height of your bottom button area (e.g., the row with "Get Rewards"). */
 :root {
-  --icon-size: 72px;   /* tweak if you want larger/smaller icons */
-  --focus-ring: 0 0 0 3px rgba(255, 214, 10, 0.8);
+  --bottom-bar: 152px;           /* ← adjust if your bottom area is taller/shorter */
+  --icon-size: 72px;             /* icon diameter; adjust if needed */
+  --focus-ring: 0 0 0 3px rgba(255, 214, 10, 0.85);
 }
 
 * { box-sizing: border-box; }
 
-body {
+html, body {
+  height: 100%;
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: #0b0b0f;
+  background: #0b0b0f; /* match your app */
   color: #eee;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
 }
 
-.page {
-  min-height: 100dvh;
+/* The stage fills the screen EXCEPT the bottom bar area; the rectangle is
+   centered *in that space* and won’t have anything above or below it here. */
+.stage {
+  position: fixed;
+  /* respect notches / system bars */
+  left: env(safe-area-inset-left);
+  right: env(safe-area-inset-right);
+  top: env(safe-area-inset-top);
+  bottom: calc(var(--bottom-bar) + env(safe-area-inset-bottom));
   display: grid;
-  place-items: center;
-  gap: 16px;
-  padding: 24px;
+  place-items: center; /* center horizontally & vertically in the available area */
+  z-index: 1;          /* above page bg, below any floating overlays you might have */
 }
 
-/* The rectangle wrapper is exactly the image's size */
+/* The rectangle wrapper is exactly the image’s size */
 .rect-wrap {
   position: relative;
   display: inline-block;
-  line-height: 0; /* remove stray inline gaps */
+  line-height: 0; /* remove inline gap */
 }
 
-/* Show the rectangle at its intrinsic size (no auto-scaling) */
+/* Keep the rectangle at intrinsic size (no scaling) */
 #rect {
   display: block;
   width: auto;
   height: auto;
-  max-width: none;     /* override any global resets */
+  max-width: none;
   max-height: none;
+  image-rendering: auto;
 }
 
 /* Icon buttons positioned over the rectangle */
 .icon-btn {
   position: absolute;
   top: 50%;
-  /* left is set per-position class below */
   transform: translate(-50%, -50%);
   padding: 0;
   border: 0;
@@ -63,30 +71,17 @@ body {
   width: var(--icon-size);
   height: var(--icon-size);
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
 }
 
-/* Tactile feedback */
-.icon-btn:active img {
-  transform: scale(0.97);
-}
-.icon-btn:focus-visible img {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
+/* Feedback */
+.icon-btn:active img { transform: scale(0.97); }
+.icon-btn:focus-visible img { outline: none; box-shadow: var(--focus-ring); }
 
-/* Place each icon at the center of its third */
-.at-left   { left: 16.6667%; }  /* center of 1st third  (1/6) */
-.at-middle { left: 50%; }       /* center of 2nd third  (3/6) */
-.at-right  { left: 83.3333%; }  /* center of 3rd third  (5/6) */
-
-/* Info bar */
-.info {
-  margin: 0;
-  font-size: 14px;
-  color: #cfcfcf;
-  opacity: 0.9;
-}
+/* Center each icon in its third */
+.at-left   { left: 16.6667%; } /* 1/6 */
+.at-middle { left: 50%; }      /* 3/6 */
+.at-right  { left: 83.3333%; } /* 5/6 */
 
   :root{--muted:#9aa3ad;--border:rgba(255,255,255,.12);--glow:0 12px 40px rgba(91,140,255,.35)}
 
@@ -1377,38 +1372,29 @@ canvas{ display:block }
     </div>
 
 
-<main class="page">
-    <!-- Wrapper is exactly the rectangle's intrinsic size -->
-    <div class="rect-wrap" aria-label="Three-option panel">
-      <!-- The rectangle at its real size -->
-      <img id="rect"
-           src="img/greyrectangle.png"
-           alt="Three-section grey rectangle" />
+ <!-- Full-screen stage ABOVE your bottom buttons -->
+  <section class="stage" aria-label="Three-option panel">
+    <div class="rect-wrap">
+      <!-- Grey rectangle at intrinsic size -->
+      <img id="rect" src="img/greyrectangle.png" alt="Three-section grey rectangle" />
 
       <!-- Left: MAN -->
-      <button class="icon-btn at-left"
-              data-info="Man button pressed — hook up action later."
-              aria-label="Man">
+      <button class="icon-btn at-left" data-id="man" aria-label="Man">
         <img src="img/sharpjaw.png" alt="" />
       </button>
 
       <!-- Middle: STRAWBERRY -->
-      <button class="icon-btn at-middle"
-              data-info="Strawberry button pressed — hook up action later."
-              aria-label="Strawberry">
+      <button class="icon-btn at-middle" data-id="strawberry" aria-label="Strawberry">
         <img src="img/strawberry.png" alt="" />
       </button>
 
       <!-- Right: THUNDERBOLT -->
-      <button class="icon-btn at-right"
-              data-info="Thunderbolt button pressed — hook up action later."
-              aria-label="Thunderbolt">
+      <button class="icon-btn at-right" data-id="thunder" aria-label="Thunderbolt">
         <img src="img/thunder.png" alt="" />
       </button>
     </div>
+  </section>
 
-    <p id="info" class="info">Tap an icon…</p>
-  </main>
 
 
 <!-- Launcher -->
@@ -2189,18 +2175,7 @@ canvas{ display:block }
 <!-- SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
 <script>
-// Simple placeholder handlers so each image acts like a button.
-// Replace with your own logic later (e.g., open panels, set state, etc.).
-const info = document.getElementById('info');
-
-document.querySelectorAll('.icon-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    info.textContent = btn.dataset.info;
-  });
-});
-
 (function(){
   'use strict';
 
