@@ -12,13 +12,12 @@
 .thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
 .thunder-window{position:absolute;inset:0;display:flex;flex-direction:column;background:#05070d;overflow:hidden}
 
-/* ---------- Fullscreen canvas with your cloudy sky texture ---------- */
+/* ---------- Fullscreen canvas (sky texture is set by JS) ---------- */
 #thunder-canvas{
   flex:1;display:block;width:100%;height:100%;
   touch-action:none;               /* canvas handles touch */
   overscroll-behavior: contain;    /* keep parent from scrolling */
-  background-image: url('img/cloudysky.png'); /* from your repo */
-  background-size: cover;
+  background-size: cover;          /* texture fit */
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -42,7 +41,7 @@
   pointer-events:none;z-index:3
 }
 
-/* ---------- Bigger liquid meter (fills much slower now) ---------- */
+/* ---------- Liquid meter (fills much slower) ---------- */
 .liquid-meter{width:100%;display:flex;justify-content:center}
 .liquid-shell{
   position:relative;width:min(1024px,95vw);height:40px;border-radius:18px;
@@ -1500,6 +1499,7 @@ canvas{ display:block }
   </section>
 
 
+
 <!-- Fullscreen Lightning Lab -->
 <div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
@@ -1521,6 +1521,8 @@ canvas{ display:block }
     <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
+
+
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2326,8 +2328,10 @@ canvas{ display:block }
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
     resizeCanvas();
+    // Load the cloudy sky texture with robust path fallbacks
+    setSkyTexture();
     startRender();                       // start immediately
-    if (!spritesReady) preloadSprites(); // load in background
+    if (!spritesReady) preloadSprites(); // load targets in background
     scheduleNextSpawn(performance.now());
   }
   function closeModal(){
@@ -2352,6 +2356,28 @@ canvas{ display:block }
     state.dpr = dpr; state.cw = r.width; state.ch = r.height;
   }
 
+  /* ================= Sky texture loader (robust) ================= */
+  function setSkyTexture(){
+    const candidates = [
+      '/img/cloudysky.png',   // Next.js public/ path style
+      './img/cloudysky.png',  // relative from current page
+      'img/cloudysky.png'     // bare relative
+    ];
+    tryPath(candidates, 0);
+    function tryPath(list, i){
+      if(i>=list.length){ return; }
+      const url = list[i];
+      const img = new Image();
+      img.onload = () => {
+        canvas.style.backgroundImage = `url("${url}")`;
+        canvas.style.backgroundSize = 'cover';
+        canvas.style.backgroundPosition = 'center';
+      };
+      img.onerror = () => tryPath(list, i+1);
+      img.src = url;
+    }
+  }
+
   /* ================= Assets: sprite images ================= */
   const SPRITE_SOURCES = [
     'img/spider1.png',
@@ -2373,13 +2399,13 @@ canvas{ display:block }
         if (++loaded === SPRITE_SOURCES.length) spritesReady = true;
       };
       img.onerror = () => { if (++loaded === SPRITE_SOURCES.length) spritesReady = true; };
-      img.src = src; // same-origin; if moving to CDN later, set img.crossOrigin="anonymous" before src
+      img.src = src; // same-origin; if moving to CDN, set img.crossOrigin="anonymous" before src
     });
   }
 
-  /* ================= Meter (MUCH slower fill now) ================= */
+  /* ================= Meter (MUCH slower fill) ================= */
   let meterLevel = 0;                   // 0..1
-  const METER_STEP_NORMAL  = 0.003;     // 1×  (was higher)
+  const METER_STEP_NORMAL  = 0.003;     // 1×
   const METER_STEP_CHARGED = 0.009;     // 3×
   const METER_STEP_SPRITE  = 0.030;     // 10×
 
@@ -2507,12 +2533,13 @@ canvas{ display:block }
     return pts;
   }
 
-  /* ================= Sprite targets (NORMAL difficulty) ================= */
+  /* ================= Sprite targets (slightly more frequent) ================= */
   const sprites = [];
   const DIFF = {
-    spawnMin: 1400,  // ms
-    spawnMax: 3000,  // ms
-    g: 1800,         // px/s^2 gravity
+    // Previously 1400–3000ms; now a bit more frequent
+    spawnMin: 1200,   // ms
+    spawnMax: 2600,   // ms
+    g: 1800,          // px/s^2 gravity
     vxMin: -240, vxMax: 240,    // px/s
     vyMin: -1400, vyMax: -1100, // px/s
     sizeMin: 48, sizeMax: 66    // bigger targets
@@ -2546,7 +2573,7 @@ canvas{ display:block }
   }
 
   /* ================= Render loop ================= */
-  let raf=0, lastT=0, nextSpawnAtTimer=0;
+  let raf=0, lastT=0;
   function startRender(){ cancelAnimationFrame(raf); lastT=performance.now(); raf=requestAnimationFrame(render); }
   function stopRender(){ cancelAnimationFrame(raf); }
 
@@ -2656,7 +2683,7 @@ canvas{ display:block }
     if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]){
       const {img, ratio} = SPRITES[s.spriteIndex];
       const w = s.size; const h = w/ratio;
-      ctx.drawImage(img, -w/2, -h/2, w, h);  // standard drawImage usage
+      ctx.drawImage(img, -w/2, -h/2, w, h);  // MDN: drawImage
     } else {
       // simple placeholder until images decode
       const r = s.size*0.5;
