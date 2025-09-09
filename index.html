@@ -12,28 +12,22 @@
 .thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
 .thunder-window{position:absolute;inset:0;display:flex;flex-direction:column;background:#05070d;overflow:hidden}
 
-/* ---------- Fullscreen canvas + filmic look ---------- */
+/* ---------- Fullscreen canvas (no overlay blocking clicks) ---------- */
 #thunder-canvas{
   flex:1;display:block;width:100%;height:100%;
-  touch-action:none;               /* let canvas handle touch */
+  touch-action:none;               /* canvas handles touch itself */
   overscroll-behavior: contain;    /* keep parent from scrolling */
-  position:relative;
   background:
     radial-gradient(1200px 800px at 50% 62%, #0e1626 0%, #0b0f1a 60%, #06080f 100%),
     radial-gradient(120vmax 80vmax at 70% 10%, rgba(255,255,255,.05), transparent 60%),
     radial-gradient(120vmax 80vmax at 0% 90%, rgba(255,255,255,.04), transparent 60%);
-}
-#thunder-canvas::after{ /* subtle vignette overlay */
-  content:""; position:absolute; inset:-1px;
-  pointer-events:none;
-  background: radial-gradient(90% 70% at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,.45) 100%);
 }
 
 /* ---------- HUD & Close ---------- */
 .thunder-hud{
   position:absolute;top:0;left:0;right:0;height:88px;
   display:flex;align-items:center;justify-content:center;
-  padding:12px 72px; pointer-events:none; z-index:3;
+  padding:12px 72px; z-index:3; pointer-events:none;
 }
 .thunder-close{
   position:absolute;top:14px;right:14px;z-index:4;
@@ -54,16 +48,13 @@
   position:relative;width:min(1024px,95vw);height:40px;border-radius:18px;
   border:1px solid rgba(255,255,255,.18);
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
-  overflow:hidden;box-shadow:
-    inset 0 2px 8px rgba(0,0,0,.55),
-    0 6px 16px rgba(0,0,0,.35);
+  overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), 0 6px 16px rgba(0,0,0,.35);
 }
 .liquid-fill{
   --level:0; /* 0..1 */
   position:absolute;left:0;bottom:0;height:100%;
   width:calc(var(--level)*100%);
-  background:
-    linear-gradient(180deg,#ff4747 0%,#d01010 60%,#960909 100%);
+  background:linear-gradient(180deg,#ff4747 0%,#d01010 60%,#960909 100%);
   filter:saturate(1.15);
   transition:width .34s cubic-bezier(.3,.9,.2,1);
   overflow:hidden;
@@ -1511,7 +1502,6 @@ canvas{ display:block }
   </section>
 
 
-
 <!-- Fullscreen Lightning Lab -->
 <div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
@@ -1533,10 +1523,6 @@ canvas{ display:block }
     <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
-
-
-
-
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2329,6 +2315,7 @@ canvas{ display:block }
 
   const canvas   = document.getElementById('thunder-canvas');
   const ctx      = canvas.getContext('2d');
+  const state    = { dpr: 1, cw: 0, ch: 0 }; // CSS-px size & DPR
 
   // Meter elements
   const hud      = modal.querySelector('.thunder-hud');
@@ -2336,13 +2323,14 @@ canvas{ display:block }
   const fill     = hud.querySelector('.liquid-fill');
 
   // ================= Modal open/close =================
-  let assetsReady = false;
+  let spritesReady = false;
   function openModal(){
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
     resizeCanvas();
-    if (!assetsReady) loadSprites().then(() => { assetsReady = true; scheduleNextSpider(performance.now()); startRender(); });
-    else { scheduleNextSpider(performance.now()); startRender(); }
+    startRender();                       // start immediately (no waiting)
+    if (!spritesReady) preloadSprites(); // load in background
+    scheduleNextSpawn(performance.now());
   }
   function closeModal(){
     modal.removeAttribute('open');
@@ -2354,15 +2342,16 @@ canvas{ display:block }
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-  // ================= Canvas sizing (retina) =================
+  // ================= Canvas sizing (DPR-aware) =================
   const ro = new ResizeObserver(resizeCanvas);
-  ro.observe(canvas);
+  ro.observe(canvas); // watch size changes (e.g., rotation)  — MDN: ResizeObserver
   function resizeCanvas(){
     const r = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     canvas.width  = Math.max(2, Math.round(r.width  * dpr));
     canvas.height = Math.max(2, Math.round(r.height * dpr));
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+    state.dpr = dpr; state.cw = r.width; state.ch = r.height;
   }
 
   // ================= Assets: sprite images =================
@@ -2373,22 +2362,28 @@ canvas{ display:block }
     'img/bee.png'
   ];
   const SPRITES = []; // {img, ratio}
-  function loadSprites(){
-    const promises = SPRITE_SOURCES.map(src => new Promise((resolve, reject) => {
+  function preloadSprites(){
+    let loaded = 0;
+    SPRITE_SOURCES.forEach(src => {
       const img = new Image();
-      img.decoding = 'async'; // hint to decode off-thread
-      img.onload = () => resolve({img, ratio: img.naturalWidth && img.naturalHeight ? (img.naturalWidth / img.naturalHeight) : 1});
-      img.onerror = reject;
-      img.src = src; // same-origin repo path
-    }));
-    return Promise.all(promises).then(list => { SPRITES.push(...list); });
+      img.decoding = 'async';
+      img.onload = () => {
+        SPRITES.push({
+          img,
+          ratio: (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1
+        });
+        if (++loaded === SPRITE_SOURCES.length) spritesReady = true;
+      };
+      img.onerror = () => { if (++loaded === SPRITE_SOURCES.length) spritesReady = true; };
+      img.src = src; // same-origin; if you host elsewhere, set img.crossOrigin = "anonymous" first
+    });
   }
 
   // ================= Meter logic (bigger bar, smaller gain) =================
   let meterLevel = 0;                  // 0..1
-  const METER_STEP_NORMAL  = 0.012;    // 1× (smaller per strike)
+  const METER_STEP_NORMAL  = 0.012;    // 1× (small per strike)
   const METER_STEP_CHARGED = 0.036;    // 3×
-  const METER_STEP_SPIDER  = 0.120;    // 10×
+  const METER_STEP_SPRITE  = 0.120;    // 10×
 
   function addToMeter(amount){
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
@@ -2406,10 +2401,10 @@ canvas{ display:block }
   let autoReleaseTimer = null;
 
   canvas.addEventListener('pointerdown', (e)=>{
-    canvas.setPointerCapture(e.pointerId);
-    const p = xy(e);
+    canvas.setPointerCapture?.(e.pointerId); // keep events on canvas — MDN setPointerCapture
+    const p = getXY(e);
 
-    // If tap hits a sprite target (spider/bee), smite instantly (no charging)
+    // If tap hits a sprite (spider/bee), smite instantly (no charging)
     const hit = findSpriteAt(p.x, p.y);
     if (hit){
       smiteSprite(hit);
@@ -2419,18 +2414,18 @@ canvas{ display:block }
     charging = true; chargeStart = performance.now();
     lastPoint = p; drawCharge();
     autoReleaseTimer = setTimeout(()=> { if(charging) releaseStrike(true); }, 2000); // auto at 2s
-  });
-  canvas.addEventListener('pointermove', (e)=> { if(charging) lastPoint = xy(e); });
+  }, {passive:false});
+
+  canvas.addEventListener('pointermove', (e)=> { if(charging) lastPoint = getXY(e); }, {passive:true});
   canvas.addEventListener('pointerup',   ()=> releaseStrike(false));
   canvas.addEventListener('pointercancel',()=> releaseStrike(false));
   canvas.addEventListener('pointerleave', ()=> charging && releaseStrike(false));
 
-  function xy(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function getXY(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
 
   function releaseStrike(auto){
     if(!charging) return;
     charging=false; cancelAnimationFrame(chargeRAF); clearTimeout(autoReleaseTimer);
-
     const held = performance.now() - chargeStart;              // ms
     const ratio = Math.min(held/2000, 1);                      // 0..1
     const power = held>180 ? 1 + 2*ratio : 1;                  // tap ≈1, charged up to 3
@@ -2443,11 +2438,14 @@ canvas{ display:block }
     if(!charging) return;
     const t = performance.now() - chargeStart;
     const k = Math.min(t/2000, 1);
-    ctx.fillStyle = 'rgba(6,8,13,0.10)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // subtle trail fade (DPR-correct: use CSS pixel width/height)
+    ctx.fillStyle = 'rgba(6,8,13,0.10)';
+    ctx.fillRect(0,0,state.cw,state.ch);
 
     // pulsing corona at finger
     ctx.save();
-    ctx.globalCompositeOperation='lighter';
+    ctx.globalCompositeOperation='lighter';  // additive blend — MDN globalCompositeOperation
     ctx.shadowColor='rgba(150,200,255,1)';
     ctx.shadowBlur=10 + 38*k;
     ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
@@ -2476,9 +2474,9 @@ canvas{ display:block }
 
   function makeBolt(origin, angle, length, power, charged){
     const born = performance.now();
-    const life = 3000; // fade-out target (~3s)
+    const life = 3000; // auto-fade ~3s
     const core = growPath(origin, angle, length, 0, power, Math.random()*100);
-    const pulses = [0, 45, 95]; if (charged) pulses.push(150); // flicker bursts
+    const pulses = [0, 45, 95]; if (charged) pulses.push(150);
     return { core, born, life, power, charged, pulses };
   }
 
@@ -2501,7 +2499,7 @@ canvas{ display:block }
       pts.push({x:nx,y:ny});
       remaining -= step; energy *= 0.993;
 
-      if(branchCooldown<=0 && Math.random()<0.18*energy*(0.6+0.25*power) && depth<3){
+      if(branchCooldown<=0 && Math.random()<0.18*energy*(0.6 + 0.25*power) && depth<3){
         branchCooldown=3;
         const bAngle = dir + (Math.random()<0.5?-1:1)*(0.6 + Math.random()*1.0);
         const bLen   = remaining*(0.35 + Math.random()*0.5);
@@ -2509,7 +2507,7 @@ canvas{ display:block }
         pts.push({branch: child});
       } else { branchCooldown--; }
 
-      if(nx<-32||ny<-32||nx>canvas.width+32||ny>canvas.height+32) break;
+      if(nx<-32||ny<-32||nx>canvas.width/state.dpr+32||ny>canvas.height/state.dpr+32) break;
     }
     return pts;
   }
@@ -2522,33 +2520,33 @@ canvas{ display:block }
     g: 2400,        // px/s^2 gravity
     vxMin: -360, vxMax: 360,         // px/s
     vyMin: -1700, vyMax: -1300,      // px/s upward
-    rMin: 18, rMax: 26                // visual size (radius-ish)
+    sizeMin: 36, sizeMax: 52         // draw size in CSS px
   };
-  let nextSpriteAt = 0;
+  let nextSpawnAt = 0;
 
-  function scheduleNextSpider(now){ nextSpriteAt = now + rand(DIFF.spawnMin, DIFF.spawnMax); }
+  function scheduleNextSpawn(now){ nextSpawnAt = now + rand(DIFF.spawnMin, DIFF.spawnMax); }
   function spawnSprite(){
-    if (!SPRITES.length) return; // assets not ready yet
-    const side = Math.random()<0.5 ? 0 : canvas.width;
-    const x = side===0 ? -30 : canvas.width+30;
-    const y = canvas.height + 10;
+    // even if sprites not ready, spawn a placeholder (so game still works)
+    const side = Math.random()<0.5 ? 0 : state.cw;
+    const x = side===0 ? -30 : state.cw+30;
+    const y = state.ch + 10;
     const vx = (side===0 ? 1 : -1) * rand(Math.abs(DIFF.vxMin), DIFF.vxMax);
     const vy = rand(DIFF.vyMin, DIFF.vyMax);
-    const r  = rand(DIFF.rMin, DIFF.rMax);
-    const idx = (Math.random()*SPRITES.length)|0; // pick a random sprite image
-    sprites.push({ x,y,vx,vy,r,rot:0,alive:true,spawn:performance.now(), spriteIndex: idx, fade:1 });
+    const size = rand(DIFF.sizeMin, DIFF.sizeMax);
+    const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1; // -1 => placeholder
+    sprites.push({ x,y,vx,vy,size,rot:0,alive:true,spawn:performance.now(), spriteIndex: idx, fade:1 });
   }
   function findSpriteAt(x,y){
     for(let i=sprites.length-1;i>=0;i--){
       const s=sprites[i]; if(!s.alive) continue;
-      const dx=x-s.x, dy=y-s.y; if(dx*dx+dy*dy <= (s.r*1.05)*(s.r*1.05)) return s;
+      const dx=x-s.x, dy=y-s.y; if(dx*dx+dy*dy <= (s.size*0.55)*(s.size*0.55)) return s;
     }
     return null;
   }
   function smiteSprite(s){
     s.alive=false; s.fade=1;
-    strike({x:s.x,y:s.y}, 2.4, true); // strong bolt
-    addToMeter(METER_STEP_SPIDER);     // 10×
+    strike({x:s.x,y:s.y}, 2.4, true);      // strong bolt
+    addToMeter(METER_STEP_SPRITE);          // 10×
     rings.push({ x:s.x,y:s.y, r:4, maxR: 130, born: performance.now(), life: 420 });
   }
 
@@ -2559,35 +2557,29 @@ canvas{ display:block }
 
   function render(){
     const now=performance.now();
-    const dt = Math.min((now - lastT)/1000, 0.05); // clamp
+    const dt = Math.min((now - lastT)/1000, 0.05); // clamp to avoid big steps
     lastT = now;
 
-    // subtle persistence for trails
-    ctx.fillStyle='rgba(6,8,12,0.10)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // fade the frame slightly (use CSS-px size with DPR transform)
+    ctx.fillStyle='rgba(6,8,12,0.10)'; ctx.fillRect(0,0,state.cw,state.ch);
 
     // spawn sprites
-    if(now >= nextSpriteAt){ spawnSprite(); scheduleNextSpider(now); }
+    if(now >= nextSpawnAt){ spawnSprite(); scheduleNextSpawn(now); }
 
     // update & draw sprites (behind bolts)
     for(let i=sprites.length-1;i>=0;i--){
       const s=sprites[i];
-
-      // physics
       s.vy += DIFF.g*dt; s.x += s.vx*dt; s.y += s.vy*dt; s.rot += s.vx*dt*0.002;
 
-      // draw
       drawSprite(s);
 
-      // fade out dead ones
       if(!s.alive){ s.fade -= dt*2; if(s.fade<=0){ sprites.splice(i,1); continue; } }
-
-      // remove off-screen
-      if(s.y - s.r > canvas.height + 120 || s.x < -160 || s.x > canvas.width + 160){
+      if(s.y - s.size/2 > state.ch + 120 || s.x < -160 || s.x > state.cw + 160){
         sprites.splice(i,1);
       }
     }
 
-    // rings
+    // shock rings
     for(let i=rings.length-1;i>=0;i--){
       const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
       const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
@@ -2599,22 +2591,22 @@ canvas{ display:block }
       if(k>=1) rings.splice(i,1);
     }
 
-    // bolts
+    // lightning bolts
     for(let i=bolts.length-1;i>=0;i--){
       const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
 
-      // return-stroke flicker
+      // return-stroke flicker pulses
       let pulseBoost=0;
       for(const p of b.pulses){
         const dtp = Math.abs(age - p);
         if(dtp<70) pulseBoost += 1 - (dtp/70);
       }
-      drawBolt(b.core, b.power, fade, pulseBoost, b.charged);
+      drawBolt(b.core, b.power, fade, pulseBoost);
 
       if(t>=1){ bolts.splice(i,1); }
     }
 
-    raf=requestAnimationFrame(render);
+    raf=requestAnimationFrame(render); // MDN: requestAnimationFrame
   }
 
   function drawBolt(corePts, power, fade, pulseBoost){
@@ -2649,15 +2641,6 @@ canvas{ display:block }
     ctx.lineWidth = 6*power;
     strokeRecursive(corePts);
     ctx.restore();
-
-    // micro-sparks
-    if(power>1 && fade>0.1){
-      const sparks = Math.floor(10*power*fade*(1+0.6*pulseBoost));
-      for(let i=0;i<sparks;i++){
-        const p = randomPoint(corePts); if(!p) continue;
-        spark(p.x,p.y, power*fade);
-      }
-    }
   }
 
   function strokeRecursive(pts){
@@ -2670,19 +2653,31 @@ canvas{ display:block }
     }
     ctx.stroke();
   }
-  function randomPoint(pts){
-    const pool=[]; for(const p of pts){ if(!p.branch) pool.push(p); }
-    if(!pool.length) return null; return pool[(Math.random()*pool.length)|0];
+
+  // draw image sprite or a fallback circle
+  function drawSprite(s){
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(Math.atan2(s.vy, s.vx) + s.rot);
+    ctx.globalAlpha = s.fade;
+
+    // faint glow to improve tap legibility
+    ctx.globalCompositeOperation='lighter';
+    ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(180,200,255,.35)';
+
+    if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]){
+      const {img, ratio} = SPRITES[s.spriteIndex];
+      const w = s.size; const h = w/ratio;
+      ctx.drawImage(img, -w/2, -h/2, w, h); // MDN drawImage
+    } else {
+      // placeholder (if images not yet loaded)
+      const r = s.size*0.5;
+      ctx.fillStyle = '#222'; ctx.strokeStyle = 'rgba(210,220,255,.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
   }
-  function spark(x,y,scale){
-    const a = Math.random()*Math.PI*2;
-    const d = 4 + Math.random()*18*scale;
-    const nx = x + Math.cos(a)*d, ny = y + Math.sin(a)*d;
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nx,ny);
-    ctx.lineWidth=1; ctx.strokeStyle=`rgba(190,235,255,${0.6+0.4*Math.random()})`;
-    ctx.shadowBlur=8+12*scale; ctx.shadowColor='rgba(190,235,255,1)'; ctx.stroke(); ctx.restore();
-  }
+
   function flash(power){
     const flashEl=document.createElement('div');
     flashEl.className='thunder-flash';
@@ -2693,25 +2688,6 @@ canvas{ display:block }
       [{transform:'translate(0,0)'},{transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},{transform:'translate(0,0)'}],
       {duration: 160 + power*60, iterations:1}
     );
-  }
-
-  // draw a sprite image with rotation & scale from r
-  function drawSprite(s){
-    const {img, ratio} = SPRITES[s.spriteIndex];
-    const w = s.r*2;                 // fit width to 2r
-    const h = w/ratio;               // keep aspect
-    const angle = Math.atan2(s.vy, s.vx) + s.rot;
-
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(angle);
-    ctx.globalAlpha = s.fade;
-
-    // a faint glow around sprite to make taps readable
-    ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(180,200,255,.35)';
-
-    ctx.drawImage(img, -w/2, -h/2, w, h); // MDN drawImage usage
-    ctx.restore();
   }
 
   // utils
