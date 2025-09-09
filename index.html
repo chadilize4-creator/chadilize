@@ -6,95 +6,16 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* Modal shell */
-.thunder-modal {
-  position: fixed;
-  inset: 0;
-  display: none;            /* toggled via [open] */
-  z-index: 9999;
-}
-.thunder-modal[open] { display: block; }
-
-.thunder-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  backdrop-filter: blur(2px);
-}
-
-.thunder-window {
-  position: absolute;
-  inset: 8% 5% 12% 5%;
-  display: flex;
-  flex-direction: column;
-  border-radius: 16px;
-  background: #0b0e17;      /* neon-friendly dark */
-  box-shadow: 0 10px 40px rgba(0,0,0,.6);
-  overflow: hidden;
-}
-
-.thunder-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: linear-gradient(180deg, #121827 0%, #0b0e17 100%);
-  color: #cfe7ff;
-  font-weight: 700;
-  letter-spacing: .2px;
-  border-bottom: 1px solid rgba(120,170,255,.15);
-}
-
-.thunder-close {
-  all: unset;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(120,170,255,.09);
-  color: #dbeafe;
-}
-.thunder-close:active { transform: scale(.98); }
-
-/* Canvas takes the space */
-#thunder-canvas {
-  flex: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* Prevent the page from scrolling while drawing (mobile) */
-  touch-action: none;              /* stops UA panning/zooming */
-  overscroll-behavior: contain;    /* trap scroll here */
-  background: radial-gradient(1200px 800px at 50% 65%, #0f1629 0%, #0b0e17 60%, #070a12 100%);
-  image-rendering: pixelated;
-}
-
-.thunder-hint {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(30, 41, 59, .8);
-  color: #cfe7ff;
-  font-size: 12px;
-  border: 1px solid rgba(120,170,255,.18);
-  pointer-events: none;
-}
-
-/* brief flash element appended dynamically */
-.thunder-flash {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(170,210,255,.7) 0%, rgba(170,210,255,0) 60%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .thunder-window { scroll-behavior: auto; }
-}
+.thunder-modal{position:fixed;inset:0;display:none;z-index:9999}
+.thunder-modal[open]{display:block}
+.thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+.thunder-window{position:absolute;inset:8% 5% 12% 5%;display:flex;flex-direction:column;border-radius:16px;background:#0b0e17;box-shadow:0 10px 40px rgba(0,0,0,.6);overflow:hidden}
+.thunder-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(180deg,#121827 0%,#0b0e17 100%);color:#cfe7ff;font-weight:700;border-bottom:1px solid rgba(120,170,255,.15)}
+.thunder-close{all:unset;cursor:pointer;padding:6px 10px;border-radius:10px;background:rgba(120,170,255,.09);color:#dbeafe}
+#thunder-canvas{flex:1;display:block;width:100%;height:100%;touch-action:none;overscroll-behavior:contain;background:radial-gradient(1200px 800px at 50% 65%,#0f1629 0%,#0b0e17 60%,#070a12 100%)}
+.thunder-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(30,41,59,.8);color:#cfe7ff;font-size:12px;border:1px solid rgba(120,170,255,.18);pointer-events:none}
+.thunder-flash{position:absolute;inset:0;background:radial-gradient(50% 50% at 50% 50%,rgba(170,210,255,.65) 0%,rgba(170,210,255,0) 60%);mix-blend-mode:screen;pointer-events:none}
+@media (prefers-reduced-motion: reduce){.thunder-window{scroll-behavior:auto}}
 
 :root{
 
@@ -1526,11 +1447,11 @@ canvas{ display:block }
     <!-- Play surface -->
     <canvas id="thunder-canvas" aria-label="Lightning canvas"></canvas>
 
-    <div class="thunder-hint">
-      Tap = bolt • Hold = charged
-    </div>
+    <div class="thunder-hint">Tap = bolt • Hold (max 2s) = charged</div>
   </div>
 </div>
+
+
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2313,241 +2234,322 @@ canvas{ display:block }
 <script>
 (() => {
   // Hook your existing Thunderbolt button
-  const openBtn = document.querySelector('[data-id="thunder"]');
-  if (!openBtn) return; // button not on this page
+  const openBtn  = document.querySelector('[data-id="thunder"]');
+  if (!openBtn) return;
 
-  const modal   = document.getElementById('thunder-modal');
-  const canvas  = document.getElementById('thunder-canvas');
-  const ctx     = canvas.getContext('2d');
+  const modal    = document.getElementById('thunder-modal');
+  const canvas   = document.getElementById('thunder-canvas');
+  const ctx      = canvas.getContext('2d');
   const closeBtn = modal.querySelector('.thunder-close');
   const backdrop = modal.querySelector('.thunder-backdrop');
   const winEl    = modal.querySelector('.thunder-window');
 
-  // ——— Modal open/close ———
-  function openModal() {
-    modal.setAttribute('open', '');
-    document.body.style.overflow = 'hidden';       // lock page scroll
+  // ===== Modal open / close =====
+  function openModal(){
+    modal.setAttribute('open','');
+    document.body.style.overflow='hidden';
     resizeCanvas();
+    startRender();
   }
-  function closeModal() {
+  function closeModal(){
     modal.removeAttribute('open');
-    document.body.style.overflow = '';
-    // clear residual drawing
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.body.style.overflow='';
+    stopRender();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    bolts.length = 0;
+    rings.length = 0;
   }
-
   openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-  // ——— Canvas sizing (retina-friendly) ———
+  // ===== Canvas sizing (retina) =====
   const ro = new ResizeObserver(resizeCanvas);
   ro.observe(canvas);
-
-  function resizeCanvas() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr  = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width  = Math.max(2, Math.round(rect.width * dpr));
-    canvas.height = Math.max(2, Math.round(rect.height * dpr));
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
+  function resizeCanvas(){
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    canvas.width  = Math.max(2, Math.round(r.width  * dpr));
+    canvas.height = Math.max(2, Math.round(r.height * dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
   }
 
-  // ——— Input: tap = bolt, hold = charge ———
+  // ===== Input: tap = bolt, hold (2s max) = charge =====
   let charging = false;
   let chargeStart = 0;
-  let lastPoint = { x: 0, y: 0 };
-  let animId;
+  let lastPoint = {x:0,y:0};
+  let chargeRAF  = 0;
+  let autoReleaseTimer = null;
 
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     charging = true;
     chargeStart = performance.now();
     lastPoint = getPos(e);
-    drawChargeLoop(); // show pulsing ring while holding
+    drawCharge();
+    // Auto-release at 2s max
+    autoReleaseTimer = setTimeout(() => {
+      if (charging) releaseStrike();
+    }, 2000);
   });
 
   canvas.addEventListener('pointermove', (e) => {
     if (charging) lastPoint = getPos(e);
   });
 
-  function endCharge(e) {
+  function endCharge(e){
     if (!charging) return;
     canvas.releasePointerCapture(e.pointerId);
-    charging = false;
-    cancelAnimationFrame(animId);
-    const heldMs = performance.now() - chargeStart;
-    const power = 1 + Math.min(heldMs / 800, 2.5); // ~1..3.5x
-    strike(lastPoint, power);
+    releaseStrike();
   }
-
   canvas.addEventListener('pointerup', endCharge);
   canvas.addEventListener('pointercancel', endCharge);
-  canvas.addEventListener('pointerleave', (e) => { if (charging) endCharge(e); });
+  canvas.addEventListener('pointerleave', (e)=>{ if(charging) endCharge(e); });
 
-  function getPos(e) {
+  function getPos(e){
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
-  // ——— Charging ring animation ———
-  function drawChargeLoop() {
-    if (!charging) return;
-    const now = performance.now();
-    const power = 1 + Math.min((now - chargeStart) / 800, 2.5);
+  function releaseStrike(){
+    charging = false;
+    cancelAnimationFrame(chargeRAF);
+    clearTimeout(autoReleaseTimer);
+    const held = performance.now() - chargeStart;
+    const ratio = Math.min(held/2000, 1);          // 0..1
+    const power = 1 + ratio * 2;                   // 1..3
+    strike(lastPoint, power);
+  }
 
-    // soft fade to keep afterglow trails
-    ctx.fillStyle = 'rgba(8, 11, 18, 0.12)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  function drawCharge(){
+    if (!charging) return;
+    const t = performance.now() - chargeStart;
+    const ratio = Math.min(t/2000, 1);
+    // subtle pulsing ring
+    ctx.fillStyle = 'rgba(5,7,12,0.12)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    ctx.shadowColor = 'rgba(130,180,255,1)';
-    ctx.shadowBlur = 12 + power * 18;
+    ctx.shadowColor = 'rgba(140,190,255,1)';
+    ctx.shadowBlur  = 10 + 35*ratio;
     ctx.beginPath();
-    ctx.arc(lastPoint.x, lastPoint.y, 16 + 10 * power, 0, Math.PI * 2);
-    ctx.lineWidth = 2 + power * 0.8;
-    ctx.strokeStyle = 'rgba(140,190,255,0.95)';
+    ctx.arc(lastPoint.x, lastPoint.y, 18 + 26*ratio, 0, Math.PI*2);
+    ctx.lineWidth = 2 + ratio*1.5;
+    ctx.strokeStyle = `rgba(160,210,255,${0.8+0.2*Math.sin(performance.now()*0.01)})`;
     ctx.stroke();
     ctx.restore();
 
-    animId = requestAnimationFrame(drawChargeLoop);
+    chargeRAF = requestAnimationFrame(drawCharge);
   }
 
-  // ——— Lightning physics (stochastic leader with branching) ———
-  function strike(origin, power = 1) {
+  // ===== Lightning model =====
+  // Each bolt has a 3s lifetime and fades out.
+  const bolts = [];
+  const rings = [];
+
+  function strike(origin, power=1){
     flash(power);
 
-    // number of initial leaders
-    const seeds = Math.round(2 + power * 2);
-
-    for (let i = 0; i < seeds; i++) {
-      const angle  = Math.random() * Math.PI * 2;
-      const length = 180 + power * 90 + Math.random() * 80;
-      const energy = (0.9 + Math.random() * 0.3) * power;
-      castArc(origin, angle, length, energy, power);
+    const seeds = Math.round(2 + power*2); // number of leaders
+    for(let i=0;i<seeds;i++){
+      const angle  = Math.random()*Math.PI*2;
+      const length = 220 + power*120 + Math.random()*90;
+      const bolt = makeBolt(origin, angle, length, power);
+      bolts.push(bolt);
     }
+
+    // shock ring
+    rings.push({
+      x:origin.x, y:origin.y, r:6, maxR: 120 + power*80,
+      born: performance.now(), life: 450 + power*150
+    });
   }
 
-  function castArc(origin, angle, length, energy, power) {
-    const points = [{ x: origin.x, y: origin.y }];
+  function makeBolt(origin, angle, length, power){
+    const born = performance.now();
+    const life = 3000; // ms — required
+    const core = growPath(origin, angle, length, 0, power, 0);
+    return { core, born, life, power, seed: Math.random()*1000 };
+  }
 
+  // Recursive stepped-leader growth with probabilistic branching
+  function growPath(start, angle, length, depth, power, wobbleSeed){
+    const pts = [{x:start.x, y:start.y}];
     let dir = angle;
     let remaining = length;
+    let energy = (0.95 + Math.random()*0.2) * (1 - depth*0.12) * (0.85 + 0.15*power);
     let branchCooldown = 0;
 
-    // step tuning
-    const baseStep = 8 * (0.85 + Math.random() * 0.3); // pixels
-    const jitter   = 0.55;                               // angular noise per step
+    const base = 8 * (0.85 + Math.random()*0.3);
+    const jitter = 0.5 + 0.15*power;
 
-    while (remaining > 0 && energy > 0.12) {
-      const step = baseStep * (0.9 + Math.random() * 0.35) * (0.8 + 0.12 * power);
-      dir += (Math.random() - 0.5) * jitter;
+    while (remaining > 0 && energy > 0.1){
+      const step = base*(0.9+Math.random()*0.35);
+      dir += (Math.random()-0.5)*jitter;
 
-      const prev = points[points.length - 1];
-      const nx = prev.x + Math.cos(dir) * step;
-      const ny = prev.y + Math.sin(dir) * step;
-
-      points.push({ x: nx, y: ny });
+      // slight temporal flicker baked into geometry seed
+      const flick = (Math.sin((pts.length + wobbleSeed)*1.3) * 0.12);
+      const nx = pts[pts.length-1].x + Math.cos(dir + flick) * step;
+      const ny = pts[pts.length-1].y + Math.sin(dir + flick) * step;
+      pts.push({x:nx,y:ny});
       remaining -= step;
+      energy *= 0.993;
 
-      // energy loss (resistive + path spreading)
-      energy *= 0.992;
-
-      // branch with probability scaled by energy & power
-      if (branchCooldown <= 0 && Math.random() < 0.18 * energy * (0.6 + 0.25 * power)) {
-        branchCooldown = 3; // avoid branching every step
-        const bAngle  = dir + (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 0.9);
-        const bLen    = length * 0.45 * (0.6 + Math.random() * 0.6);
-        const bEnergy = energy * 0.7;
-        castArc({ x: nx, y: ny }, bAngle, bLen, bEnergy, power * 0.9);
+      // Branch?
+      if (branchCooldown<=0 && Math.random() < 0.18*energy*(0.6 + 0.25*power) && depth < 3){
+        branchCooldown = 3;
+        const bAngle = dir + (Math.random()<0.5?-1:1)*(0.6 + Math.random()*1.0);
+        const bLen   = remaining * (0.35 + Math.random()*0.5);
+        const child  = growPath({x:nx,y:ny}, bAngle, bLen, depth+1, power*0.85, wobbleSeed+1);
+        // splice child into list as virtual branch
+        pts.push({branch: child});
       } else {
         branchCooldown--;
       }
 
-      // bail if out of bounds
-      if (nx < -24 || ny < -24 || nx > canvas.width + 24 || ny > canvas.height + 24) break;
+      if (nx < -32 || ny < -32 || nx > canvas.width+32 || ny > canvas.height+32) break;
     }
-
-    drawArc(points, power);
+    return pts;
   }
 
-  function drawArc(points, power) {
-    // layered strokes: core + outer glow passes
-    const layers = 2 + Math.round(power);
-    for (let l = 0; l < layers; l++) {
-      const alpha = l === 0 ? 1 : 0.35 / (l);
-      const blur  = l === 0 ? 0 : 14 * l * power;
-      const width = (l === 0 ? 2.2 : 1.8) * power * (l === 0 ? 1.15 : (0.9 - 0.12 * l));
+  // ===== Rendering =====
+  let rafId = 0;
+  function startRender(){
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(render);
+  }
+  function stopRender(){
+    cancelAnimationFrame(rafId);
+  }
+
+  function render(){
+    const now = performance.now();
+
+    // persistent darkening for trails
+    ctx.fillStyle = 'rgba(8,10,16,0.10)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // draw rings (shockwaves)
+    for (let i=rings.length-1;i>=0;i--){
+      const ring = rings[i];
+      const age = now - ring.born;
+      const k = Math.min(age / ring.life, 1);
+      const r = ring.r + (ring.maxR - ring.r)*k;
+      const a = 0.35*(1-k);
 
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.lineJoin = 'round';
-      ctx.lineCap  = 'round';
-      ctx.shadowBlur = blur;
-      ctx.shadowColor = 'rgba(130,180,255,1)';
-      ctx.strokeStyle = `rgba(170,210,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, r, 0, Math.PI*2);
+      ctx.lineWidth = 1.5 + (1-k)*2;
+      ctx.strokeStyle = `rgba(160,210,255,${a})`;
+      ctx.shadowBlur = 12*(1-k);
+      ctx.shadowColor = 'rgba(150,200,255,1)';
+      ctx.stroke();
+      ctx.restore();
+
+      if (k>=1) rings.splice(i,1);
+    }
+
+    // draw bolts (and their fade)
+    for (let i=bolts.length-1;i>=0;i--){
+      const b = bolts[i];
+      const age = now - b.born;
+      const t = Math.min(age / b.life, 1); // 0..1
+      const fade = 1 - t;
+
+      drawBolt(b.core, b.power, fade);
+
+      if (t>=1){
+        bolts.splice(i,1);
+      }
+    }
+
+    rafId = requestAnimationFrame(render);
+  }
+
+  function drawBolt(corePts, power, fade){
+    // Recursively render including branches encoded as objects on the list
+    function drawPath(pts, layer){
+      const baseAlpha = (layer===0 ? 0.95 : 0.35/(layer));
+      const alpha = baseAlpha * fade;
+      const blur  = (layer===0 ? 0 : (12 + 10*layer) * (0.7 + 0.3*power));
+      const width = Math.max(1, (layer===0 ? 2.2 : 1.6) * power);
+
+      // jitter per-frame flicker
+      const flick = 0.9 + 0.12*Math.sin(performance.now()*0.03 + pts.length);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter'; // additive glow
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.shadowBlur = blur; ctx.shadowColor='rgba(130,180,255,1)';
+      ctx.strokeStyle = `rgba(175,220,255,${alpha})`;
+      ctx.lineWidth = width * flick;
 
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length; i++) {
-        const p = points[i];
-        ctx.lineTo(p.x, p.y);
+      let started = false;
+      for (let i=0;i<pts.length;i++){
+        const p = pts[i];
+        if (p.branch){
+          drawPath(p.branch, layer); // draw branches at same layer first
+          continue;
+        }
+        if (!started){ ctx.moveTo(p.x,p.y); started=true; }
+        else ctx.lineTo(p.x,p.y);
       }
-      ctx.lineWidth = Math.max(1, width);
       ctx.stroke();
       ctx.restore();
     }
 
-    // micro-sparks along the path for extra energy
-    if (power > 1) {
-      const sparks = Math.floor(12 * power);
-      for (let i = 0; i < sparks; i++) {
-        const p = points[(Math.random() * points.length) | 0];
-        spark(p.x, p.y, power);
+    // multiple layers: core + glow passes for drama
+    const layers = 3; // 0..2
+    for (let l=0;l<layers;l++){
+      drawPath(corePts, l);
+    }
+
+    // micro-sparks
+    if (power>1 && fade>0.1){
+      const sparks = Math.floor(10*power*fade);
+      for (let i=0;i<sparks;i++){
+        const idx = (Math.random() * corePts.length)|0;
+        const p = corePts[idx];
+        if (p.branch) continue;
+        spark(p.x, p.y, power*fade);
       }
     }
   }
 
-  function spark(x, y, power) {
-    const a = Math.random() * Math.PI * 2;
-    const d = 6 + Math.random() * 24 * power;
-    const nx = x + Math.cos(a) * d;
-    const ny = y + Math.sin(a) * d;
+  function spark(x,y,scale){
+    const a = Math.random()*Math.PI*2;
+    const d = 4 + Math.random()*18*scale;
+    const nx = x + Math.cos(a)*d;
+    const ny = y + Math.sin(a)*d;
 
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation='lighter';
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(nx, ny);
+    ctx.moveTo(x,y); ctx.lineTo(nx,ny);
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(180,220,255,0.85)';
-    ctx.shadowBlur  = 8 + 8 * power;
-    ctx.shadowColor = 'rgba(180,220,255,1)';
+    ctx.strokeStyle = `rgba(185,230,255,${0.6+0.4*Math.random()})`;
+    ctx.shadowBlur  = 8 + 12*scale;
+    ctx.shadowColor = 'rgba(185,230,255,1)';
     ctx.stroke();
     ctx.restore();
   }
 
-  function flash(power) {
-    // dim previous trails slightly
-    ctx.fillStyle = 'rgba(5,7,12,0.10)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // quick screen flash
+  function flash(power){
+    // quick screen flash + slight shake
     const flashEl = document.createElement('div');
     flashEl.className = 'thunder-flash';
-    flashEl.style.opacity = Math.min(0.6, 0.25 + power * 0.15);
+    flashEl.style.opacity = Math.min(0.6, 0.3 + power*0.15);
     winEl.appendChild(flashEl);
-    setTimeout(() => flashEl.remove(), 60 + power * 40);
+    setTimeout(()=>flashEl.remove(), 60 + power*40);
 
-    // subtle shake on impact
     winEl.animate(
-      [
-        { transform: 'translate(0,0)' },
-        { transform: `translate(${(Math.random() * 2 - 1) * 4 * power}px, ${(Math.random() * 2 - 1) * 4 * power}px)` },
-        { transform: 'translate(0,0)' }
-      ],
-      { duration: 140 + power * 60, iterations: 1 }
+      [{transform:'translate(0,0)'},{transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},{transform:'translate(0,0)'}],
+      {duration: 160 + power*60, iterations:1}
     );
   }
 })();
