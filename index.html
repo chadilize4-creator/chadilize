@@ -10,19 +10,19 @@
 .thunder-modal{position:fixed;inset:0;display:none;z-index:9999}
 .thunder-modal[open]{display:block}
 .thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
-/* Put the sky on the WINDOW behind the canvas */
+/* Sky texture here (behind the transparent canvas) */
 .thunder-window{
   position:absolute;inset:0;display:flex;flex-direction:column;
-  background:#05070d; /* fallback color */
+  background:#05070d; /* fallback */
   background-size:cover;background-position:center;background-repeat:no-repeat;
   overflow:hidden
 }
 
-/* ---------- Fullscreen canvas (transparent so the sky shows) ---------- */
+/* ---------- Fullscreen canvas (transparent) ---------- */
 #thunder-canvas{
   flex:1;display:block;width:100%;height:100%;
   touch-action:none;               /* canvas handles touch */
-  overscroll-behavior: contain;    /* keep parent from scrolling */
+  overscroll-behavior: contain;    /* avoid parent scroll */
   background: transparent;
 }
 
@@ -1501,10 +1501,13 @@ canvas{ display:block }
     </div>
   </section>
 
+
+
 <!-- Fullscreen Lightning Lab -->
 <div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
 
+  <!-- The sky texture lives on this window element -->
   <div class="thunder-window" data-sky="img/cloudysky.png">
     <!-- HUD: big liquid meter + close -->
     <div class="thunder-hud">
@@ -1522,6 +1525,8 @@ canvas{ display:block }
     <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
+
+
 
 
 <!-- Launcher -->
@@ -2314,7 +2319,7 @@ canvas{ display:block }
   const winEl    = modal.querySelector('.thunder-window');
 
   const canvas   = document.getElementById('thunder-canvas');
-  const ctx      = canvas.getContext('2d'); // alpha canvas so CSS bg shows through when cleared
+  const ctx      = canvas.getContext('2d'); // alpha canvas so background shows
   const state    = { dpr: 1, cw: 0, ch: 0 };
 
   // Meter elements
@@ -2328,7 +2333,7 @@ canvas{ display:block }
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
     resizeCanvas();
-    setSkyTexture();                    // make sure the sky shows
+    setSkyTexture();                    // apply the cloudy sky
     startRender();                      // start immediately
     if (!spritesReady) preloadSprites();
     scheduleNextSpawn(performance.now());
@@ -2355,11 +2360,11 @@ canvas{ display:block }
     state.dpr = dpr; state.cw = r.width; state.ch = r.height;
   }
 
-  /* ================= Sky texture: robust path fallbacks ================= */
+  /* ================= Sky texture (robust paths) ================= */
   function setSkyTexture(){
     const attr = winEl.getAttribute('data-sky') || 'img/cloudysky.png';
     const candidates = [
-      attr,                    // as given (e.g., "img/cloudysky.png")
+      attr,
       '/'+attr.replace(/^\.?\/*/,''),
       '/img/cloudysky.png',
       './img/cloudysky.png'
@@ -2379,7 +2384,7 @@ canvas{ display:block }
     }
   }
 
-  /* ================= Assets: sprite images ================= */
+  /* ================= Assets: spiders/bee ================= */
   const SPRITE_SOURCES = [
     'img/spider1.png',
     'img/spider2.png',
@@ -2406,9 +2411,9 @@ canvas{ display:block }
 
   /* ================= Meter (slow fill) ================= */
   let meterLevel = 0;                   // 0..1
-  const METER_STEP_NORMAL  = 0.003;     // 1×
+  const METER_STEP_NORMAL  = 0.003;     // tap
   const METER_STEP_CHARGED = 0.009;     // 3×
-  const METER_STEP_SPRITE  = 0.030;     // 10× (also the penalty for a miss)
+  const METER_STEP_SPRITE  = 0.030;     // 10× (hit) and -10× on miss
 
   function addToMeter(amount){
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
@@ -2426,15 +2431,12 @@ canvas{ display:block }
   let autoReleaseTimer = null;
 
   canvas.addEventListener('pointerdown', (e)=>{
-    canvas.setPointerCapture?.(e.pointerId); // keep events on canvas (pointer capture) :contentReference[oaicite:1]{index=1}
+    canvas.setPointerCapture?.(e.pointerId); // keep events on canvas (Pointer Events) :contentReference[oaicite:2]{index=2}
     const p = getXY(e);
 
-    // If tap hits a sprite, smite instantly (no charging)
+    // Tap a sprite? Smite instantly (no charging)
     const idx = findSpriteIndexAt(p.x, p.y);
-    if (idx >= 0){
-      smiteSpriteAtIndex(idx); // vanish immediately, add 10×
-      return;
-    }
+    if (idx >= 0){ smiteSpriteAtIndex(idx); return; }
 
     charging = true; chargeStart = performance.now();
     lastPoint = p; drawCharge();
@@ -2461,13 +2463,12 @@ canvas{ display:block }
 
   function drawCharge(){
     if(!charging) return;
-    // no screen-wide fill here—keep background visible
     const t = performance.now() - chargeStart;
     const k = Math.min(t/2000, 1);
 
     // pulsing corona at finger
     ctx.save();
-    ctx.globalCompositeOperation='lighter';              // additive glow :contentReference[oaicite:2]{index=2}
+    ctx.globalCompositeOperation='lighter';
     ctx.shadowColor='rgba(150,200,255,1)';
     ctx.shadowBlur=10 + 38*k;
     ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
@@ -2475,7 +2476,7 @@ canvas{ display:block }
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
 
-    chargeRAF = requestAnimationFrame(drawCharge);
+    chargeRAF = requestAnimationFrame(drawCharge); /* animation tick */ /* :contentReference[oaicite:3]{index=3} */
   }
 
   /* ================= Lightning model ================= */
@@ -2534,14 +2535,14 @@ canvas{ display:block }
     return pts;
   }
 
-  /* ================= Sprite targets (slightly more frequent) ================= */
+  /* ================= Sprite targets (a bit slower toss) ================= */
   const sprites = [];
   const DIFF = {
-    spawnMin: 1200,   // ms (a bit more than before)
+    spawnMin: 1200,   // ms (unchanged from prior slight increase)
     spawnMax: 2600,   // ms
-    g: 1800,          // px/s^2 gravity
-    vxMin: -240, vxMax: 240,
-    vyMin: -1400, vyMax: -1100,
+    g: 1500,          // ↓ from 1800 (slightly softer gravity)
+    vxMin: -200, vxMax: 200,        // ↓ from ±240
+    vyMin: -1200, vyMax: -950,      // ↓ upward speed a bit (slower arc)
     sizeMin: 48, sizeMax: 66
   };
   let nextSpawnAt = 0;
@@ -2566,7 +2567,7 @@ canvas{ display:block }
   }
   function smiteSpriteAtIndex(i){
     const s = sprites[i];
-    s.hit = true; // mark hit (so no penalty)
+    s.hit = true; // mark hit (no penalty on removal)
     strike({x:s.x,y:s.y}, 2.2, true);
     addToMeter(METER_STEP_SPRITE);   // +10× on hit
     rings.push({ x:s.x,y:s.y, r:4, maxR: 130, born: performance.now(), life: 420 });
@@ -2583,8 +2584,8 @@ canvas{ display:block }
     const dt = Math.min((now - lastT)/1000, 0.05);
     lastT = now;
 
-    // IMPORTANT: clear to transparent so CSS sky is visible
-    ctx.clearRect(0,0,state.cw,state.ch); // clears to transparent black :contentReference[oaicite:3]{index=3}
+    // Clear to transparent so the sky image shows through.
+    ctx.clearRect(0,0,state.cw,state.ch); /* clears pixels to transparent black */ /* :contentReference[oaicite:4]{index=4} */
 
     // spawn sprites
     if(now >= nextSpawnAt){ spawnSprite(); scheduleNextSpawn(now); }
@@ -2597,7 +2598,7 @@ canvas{ display:block }
 
       const off = (s.y - s.size/2 > state.ch + 120) || (s.x < -160) || (s.x > state.cw + 160);
       if(off){
-        if(!s.hit){ addToMeter(-METER_STEP_SPRITE); } // MISSED => penalty 10×
+        if(!s.hit){ addToMeter(-METER_STEP_SPRITE); } // MISSED => -10×
         sprites.splice(i,1);
       }
     }
@@ -2628,13 +2629,13 @@ canvas{ display:block }
       if(t>=1){ bolts.splice(i,1); }
     }
 
-    raf=requestAnimationFrame(render);     // smooth loop :contentReference[oaicite:4]{index=4}
+    raf=requestAnimationFrame(render); /* animation loop */ /* :contentReference[oaicite:5]{index=5} */
   }
 
   function drawBolt(corePts, power, fade, pulseBoost){
     // corona / outer halo
     ctx.save();
-    ctx.globalCompositeOperation='lighter'; // additive glow :contentReference[oaicite:5]{index=5}
+    ctx.globalCompositeOperation='lighter'; // additive glow
     ctx.lineJoin='round'; ctx.lineCap='round';
     ctx.shadowBlur = 18 + 30*power; ctx.shadowColor='rgba(120,170,255,1)';
     ctx.strokeStyle = `rgba(120,170,255,${0.06*power*fade})`;
@@ -2676,17 +2677,18 @@ canvas{ display:block }
     ctx.stroke();
   }
 
-  // draw sprites in original color (no tint)
+  // draw image sprites (original color)
   function drawSprite(s){
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(Math.atan2(s.vy, s.vx) + s.rot);
     ctx.globalCompositeOperation='source-over';
     ctx.globalAlpha = 1;
+
     if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]){
       const {img, ratio} = SPRITES[s.spriteIndex];
       const w = s.size; const h = w/ratio;
-      ctx.drawImage(img, -w/2, -h/2, w, h); // standard drawImage :contentReference[oaicite:6]{index=6}
+      ctx.drawImage(img, -w/2, -h/2, w, h);  // standard drawImage usage :contentReference[oaicite:6]{index=6}
     } else {
       const r = s.size*0.5;
       ctx.fillStyle = '#333'; ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2;
