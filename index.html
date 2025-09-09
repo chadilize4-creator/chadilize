@@ -10,7 +10,7 @@
 .thunder-modal{position:fixed;inset:0;display:none;z-index:9999}
 .thunder-modal[open]{display:block}
 .thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
-/* Sky texture here (behind the transparent canvas) */
+/* Sky texture goes here */
 .thunder-window{
   position:absolute;inset:0;display:flex;flex-direction:column;
   background:#05070d; /* fallback */
@@ -21,15 +21,13 @@
 /* ---------- Fullscreen canvas (transparent) ---------- */
 #thunder-canvas{
   flex:1;display:block;width:100%;height:100%;
-  touch-action:none;               /* canvas handles touch */
-  overscroll-behavior: contain;    /* avoid parent scroll */
-  background: transparent;
+  touch-action:none; overscroll-behavior:contain; background:transparent;
 }
 
 /* ---------- HUD & Close ---------- */
 .thunder-hud{
-  position:absolute;top:0;left:0;right:0;height:88px;
-  display:flex;align-items:center;justify-content:center;
+  position:absolute;top:0;left:0;right:0;height:140px; /* taller to fit the button */
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   padding:12px 72px; z-index:3; pointer-events:none;
 }
 .thunder-close{
@@ -76,6 +74,25 @@
   pointer-events:none;position:absolute;inset:0;border-radius:18px;
   background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),
              linear-gradient(0deg, rgba(255,255,255,.06), transparent);
+}
+
+/* ---------- Boost CTA under the bar ---------- */
+.boost-cta{margin-top:8px;display:flex;justify-content:center;width:100%}
+.boost-btn{
+  all:unset; pointer-events:auto; cursor:not-allowed;
+  padding:10px 16px;border-radius:14px;font-weight:800;
+  border:1px solid #4a4f57; background:#3b3f46; color:#c8cbd1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.boost-btn.ready{
+  cursor:pointer;
+  background:linear-gradient(180deg,#34d399,#10b981);
+  color:#062e24;border-color:#059669;
+  box-shadow:0 0 0 2px rgba(16,185,129,.22) inset, 0 8px 16px rgba(16,185,129,.35);
+}
+.boost-btn.active{
+  background:linear-gradient(180deg,#86efac,#22c55e);
+  color:#063618;border-color:#16a34a;
 }
 
 /* ---------- Flash overlay ---------- */
@@ -1507,9 +1524,9 @@ canvas{ display:block }
 <div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
 
-  <!-- The sky texture lives on this window element -->
+  <!-- Put the sky texture on this element (canvas stays transparent) -->
   <div class="thunder-window" data-sky="img/cloudysky.png">
-    <!-- HUD: big liquid meter + close -->
+    <!-- HUD: big liquid meter + boost button + close -->
     <div class="thunder-hud">
       <div class="liquid-meter" aria-label="Energy meter">
         <div class="liquid-shell">
@@ -1517,11 +1534,19 @@ canvas{ display:block }
           <div class="liquid-glass"></div>
         </div>
       </div>
+
+      <div class="boost-cta">
+        <button id="boost-btn" class="boost-btn" disabled>
+          ×2 boost generation/hr for 5 hours
+        </button>
+      </div>
+
       <button class="thunder-close" aria-label="Close">✕</button>
     </div>
 
-    <!-- Play surface -->
+    <!-- Play surface (transparent) -->
     <canvas id="thunder-canvas" aria-label="Lightning canvas"></canvas>
+
     <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
@@ -2309,7 +2334,7 @@ canvas{ display:block }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
-  // Hook your existing Thunder button
+  // Hook your existing Thunder icon button
   const openBtn  = document.querySelector('[data-id="thunder"]');
   if (!openBtn) return;
 
@@ -2319,24 +2344,65 @@ canvas{ display:block }
   const winEl    = modal.querySelector('.thunder-window');
 
   const canvas   = document.getElementById('thunder-canvas');
-  const ctx      = canvas.getContext('2d'); // alpha canvas so background shows
+  const ctx      = canvas.getContext('2d'); // alpha canvas (background shows)
   const state    = { dpr: 1, cw: 0, ch: 0 };
 
-  // Meter elements
+  // HUD
   const hud      = modal.querySelector('.thunder-hud');
   const shell    = hud.querySelector('.liquid-shell');
   const fill     = hud.querySelector('.liquid-fill');
+  const boostBtn = hud.querySelector('#boost-btn');
 
-  /* ================= Modal open/close ================= */
+  // ======= Boost persistence / wiring =======
+  const UID = (window.UID_HINT || 'guest'); // use your real UID if available
+  const LS_BOOST_UNTIL = `chad_boost_until_${UID}`;
+  const BOOST_MULT = 2;
+  const BOOST_MS   = 5 * 60 * 60 * 1000; // 5 hours
+
+  let boostUntil = Number(localStorage.getItem(LS_BOOST_UNTIL) || 0);
+  function isBoostActive(now = Date.now()){ return boostUntil && now < boostUntil; }
+  function activateBoost(){
+    boostUntil = Date.now() + BOOST_MS;
+    localStorage.setItem(LS_BOOST_UNTIL, String(boostUntil));
+    dispatchBoostEvent(true, boostUntil);
+    // UI feedback
+    meterLevel = 0; claimPending = false; pausedBecauseFull = false;
+    updateMeterUI();
+    updateBoostButton();
+  }
+  function clearBoost(){
+    boostUntil = 0;
+    localStorage.removeItem(LS_BOOST_UNTIL);
+    dispatchBoostEvent(false, 0);
+    updateBoostButton();
+  }
+  function dispatchBoostEvent(active, endsAt){
+    // Let the main UI update "generation/hr" immediately.
+    window.dispatchEvent(new CustomEvent('chad:boost-change', {
+      detail: { active, multiplier: active ? BOOST_MULT : 1, endsAt }
+    })); /* CustomEvent lets us pass detail data. */ /*  MDN  */ /*  */ /*  */
+  }
+
+  // periodic check to drop boost when time’s up
+  setInterval(() => {
+    if (boostUntil && Date.now() >= boostUntil){
+      clearBoost();
+    } else {
+      updateBoostButton(); // keep countdown text fresh if you like later
+    }
+  }, 30_000);
+
+  // ======= Modal open / close =======
   let spritesReady = false;
   function openModal(){
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
     resizeCanvas();
-    setSkyTexture();                    // apply the cloudy sky
-    startRender();                      // start immediately
+    setSkyTexture();                  // set cloudysky.png on the window
+    startRender();
     if (!spritesReady) preloadSprites();
     scheduleNextSpawn(performance.now());
+    updateBoostButton();
   }
   function closeModal(){
     modal.removeAttribute('open');
@@ -2348,7 +2414,7 @@ canvas{ display:block }
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-  /* ================= Canvas sizing (DPR-aware) ================= */
+  // ======= Canvas sizing (DPR aware) =======
   const ro = new ResizeObserver(resizeCanvas);
   ro.observe(canvas);
   function resizeCanvas(){
@@ -2356,19 +2422,14 @@ canvas{ display:block }
     const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     canvas.width  = Math.max(2, Math.round(r.width  * dpr));
     canvas.height = Math.max(2, Math.round(r.height * dpr));
-    ctx.setTransform(dpr,0,0,dpr,0,0); // draw using CSS pixel coords
+    ctx.setTransform(dpr,0,0,dpr,0,0); // draw using CSS px
     state.dpr = dpr; state.cw = r.width; state.ch = r.height;
   }
 
-  /* ================= Sky texture (robust paths) ================= */
+  // ======= Sky texture loader (robust paths) =======
   function setSkyTexture(){
     const attr = winEl.getAttribute('data-sky') || 'img/cloudysky.png';
-    const candidates = [
-      attr,
-      '/'+attr.replace(/^\.?\/*/,''),
-      '/img/cloudysky.png',
-      './img/cloudysky.png'
-    ];
+    const candidates = [ attr, '/'+attr.replace(/^\.?\/*/,'') , '/img/cloudysky.png', './img/cloudysky.png' ];
     tryPath(candidates, 0);
     function tryPath(list, i){
       if(i>=list.length){ return; }
@@ -2384,46 +2445,73 @@ canvas{ display:block }
     }
   }
 
-  /* ================= Assets: spiders/bee ================= */
-  const SPRITE_SOURCES = [
-    'img/spider1.png',
-    'img/spider2.png',
-    'img/spider3.png',
-    'img/bee.png'
-  ];
-  const SPRITES = []; // {img, ratio}
+  // ======= Assets: spiders / bee =======
+  const SPRITE_SOURCES = ['img/spider1.png','img/spider2.png','img/spider3.png','img/bee.png'];
+  const SPRITES = [];
   function preloadSprites(){
     let loaded = 0;
-    SPRITE_SOURCES.forEach(src => {
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        SPRITES.push({
-          img,
-          ratio: (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1
-        });
-        if (++loaded === SPRITE_SOURCES.length) spritesReady = true;
-      };
-      img.onerror = () => { if (++loaded === SPRITE_SOURCES.length) spritesReady = true; };
-      img.src = src; // same-origin; if you move to CDN, set img.crossOrigin="anonymous" before src
-    });
+    for(const src of SPRITE_SOURCES){
+      const img = new Image(); img.decoding='async';
+      img.onload = () => { SPRITES.push({img, ratio:(img.naturalWidth && img.naturalHeight)? img.naturalWidth/img.naturalHeight : 1});
+                           if(++loaded===SPRITE_SOURCES.length) spritesReady=true; };
+      img.onerror= () => { if(++loaded===SPRITE_SOURCES.length) spritesReady=true; };
+      img.src = src;
+    }
   }
 
-  /* ================= Meter (slow fill) ================= */
-  let meterLevel = 0;                   // 0..1
-  const METER_STEP_NORMAL  = 0.003;     // tap
-  const METER_STEP_CHARGED = 0.009;     // 3×
-  const METER_STEP_SPRITE  = 0.030;     // 10× (hit) and -10× on miss
+  // ======= Meter (very slow fill) + pause-on-full =======
+  let meterLevel = 0;            // 0..1
+  const METER_STEP_NORMAL  = 0.003;  // tap
+  const METER_STEP_CHARGED = 0.009;  // 3×
+  const METER_STEP_SPRITE  = 0.030;  // 10× (hit) and -10× on miss
 
-  function addToMeter(amount){
-    meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
-    fill.style.setProperty('--level', meterLevel.toFixed(4));
+  let pausedBecauseFull = false;
+  let claimPending = false; // meter hit 100% and waiting for claim
+
+  function updateMeterUI(){
+    fill.style.setProperty('--level', Math.max(0, Math.min(1, meterLevel)).toFixed(4));
     shell.classList.add('liquid-bump');
-    clearTimeout(addToMeter._t);
-    addToMeter._t = setTimeout(()=> shell.classList.remove('liquid-bump'), 420);
+    clearTimeout(updateMeterUI._t);
+    updateMeterUI._t = setTimeout(()=> shell.classList.remove('liquid-bump'), 420);
+  }
+  function addToMeter(amount){
+    if (pausedBecauseFull) return; // locked until player claims or boost expires
+    meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
+    updateMeterUI();
+
+    if (meterLevel >= 1 && !claimPending){
+      claimPending = true;
+      pausedBecauseFull = true;   // pause gameplay
+      updateBoostButton();        // enable the button
+    }
   }
 
-  /* ================= Input (tap vs. charge up to 2s) ================= */
+  // ======= Boost button state =======
+  function updateBoostButton(){
+    const active = isBoostActive();
+    boostBtn.classList.remove('ready','active');
+    boostBtn.disabled = true;
+    boostBtn.textContent = '×2 boost generation/hr for 5 hours';
+
+    if (active){
+      boostBtn.classList.add('active');
+      boostBtn.textContent = '×2 boost ACTIVE – returns to normal when time ends';
+      return; // active: button stays green but disabled
+    }
+    // Not active: if the meter is full (claimPending), let user claim
+    if (claimPending){
+      boostBtn.classList.add('ready');
+      boostBtn.disabled = false;
+      boostBtn.textContent = 'Activate ×2 boost for 5 hours';
+    }
+  }
+  boostBtn.addEventListener('click', () => {
+    if (boostBtn.disabled) return;
+    if (!claimPending) return;
+    activateBoost();           // saves state & emits event
+  });
+
+  // ======= Input (tap vs. charge 2s) =======
   let charging = false;
   let chargeStart = 0;
   let lastPoint = {x:0,y:0};
@@ -2431,10 +2519,10 @@ canvas{ display:block }
   let autoReleaseTimer = null;
 
   canvas.addEventListener('pointerdown', (e)=>{
-    canvas.setPointerCapture?.(e.pointerId); // keep events on canvas (Pointer Events) :contentReference[oaicite:2]{index=2}
+    if (pausedBecauseFull) return;                 // locked when bar is full
+    canvas.setPointerCapture?.(e.pointerId);       // keep events on the canvas (pointer capture) :contentReference[oaicite:2]{index=2}
     const p = getXY(e);
 
-    // Tap a sprite? Smite instantly (no charging)
     const idx = findSpriteIndexAt(p.x, p.y);
     if (idx >= 0){ smiteSpriteAtIndex(idx); return; }
 
@@ -2442,15 +2530,13 @@ canvas{ display:block }
     lastPoint = p; drawCharge();
     autoReleaseTimer = setTimeout(()=> { if(charging) releaseStrike(true); }, 2000);
   }, {passive:false});
-
   canvas.addEventListener('pointermove', (e)=> { if(charging) lastPoint = getXY(e); }, {passive:true});
   canvas.addEventListener('pointerup',   ()=> releaseStrike(false));
   canvas.addEventListener('pointercancel',()=> releaseStrike(false));
   canvas.addEventListener('pointerleave', ()=> charging && releaseStrike(false));
 
   function getXY(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
-
-  function releaseStrike(auto){
+  function releaseStrike(){
     if(!charging) return;
     charging=false; cancelAnimationFrame(chargeRAF); clearTimeout(autoReleaseTimer);
     const held = performance.now() - chargeStart;
@@ -2460,13 +2546,12 @@ canvas{ display:block }
     strike(lastPoint, power, charged);
     addToMeter(charged ? METER_STEP_CHARGED : METER_STEP_NORMAL);
   }
-
   function drawCharge(){
     if(!charging) return;
     const t = performance.now() - chargeStart;
     const k = Math.min(t/2000, 1);
 
-    // pulsing corona at finger
+    // finger corona
     ctx.save();
     ctx.globalCompositeOperation='lighter';
     ctx.shadowColor='rgba(150,200,255,1)';
@@ -2476,13 +2561,12 @@ canvas{ display:block }
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
 
-    chargeRAF = requestAnimationFrame(drawCharge); /* animation tick */ /* :contentReference[oaicite:3]{index=3} */
+    chargeRAF = requestAnimationFrame(drawCharge); /* rAF animation tick. */ /*  */ /*  */ /*  */ /*  */
   }
 
-  /* ================= Lightning model ================= */
+  // ======= Lightning model =======
   const bolts=[]; const rings=[];
-
-  function clearScene(){ bolts.length=0; rings.length=0; sprites.length=0; ctx.clearRect(0,0,canvas.width,canvas.height); }
+  function clearScene(){ bolts.length=0; rings.length=0; sprites.length=0; ctx.clearRect(0,0,state.cw,state.ch); }
 
   function strike(origin, power=1, charged=false){
     flash(power);
@@ -2494,16 +2578,13 @@ canvas{ display:block }
     }
     rings.push({ x:origin.x,y:origin.y, r:6, maxR: 140 + power*100, born: performance.now(), life: 520 + power*180 });
   }
-
   function makeBolt(origin, angle, length, power, charged){
     const born = performance.now();
-    const life = 3000; // fade-out ~3s
+    const life = 3000; // fade ~3s
     const core = growPath(origin, angle, length, 0, power, Math.random()*100);
     const pulses = [0, 45, 95]; if (charged) pulses.push(150);
     return { core, born, life, power, charged, pulses };
   }
-
-  // recursive stepped-leader with probabilistic branching
   function growPath(start, angle, length, depth, power, seed){
     const pts=[{x:start.x,y:start.y}];
     let dir=angle, remaining=length;
@@ -2511,7 +2592,6 @@ canvas{ display:block }
     const base=8*(0.85+Math.random()*0.3);
     const jitter=0.55+0.15*power;
     let branchCooldown=0;
-
     while(remaining>0 && energy>0.1){
       const step = base*(0.9+Math.random()*0.35);
       dir += (Math.random()-0.5)*jitter;
@@ -2535,14 +2615,13 @@ canvas{ display:block }
     return pts;
   }
 
-  /* ================= Sprite targets (a bit slower toss) ================= */
+  // ======= Sprite targets (slightly slower toss) =======
   const sprites = [];
   const DIFF = {
-    spawnMin: 1200,   // ms (unchanged from prior slight increase)
-    spawnMax: 2600,   // ms
-    g: 1500,          // ↓ from 1800 (slightly softer gravity)
-    vxMin: -200, vxMax: 200,        // ↓ from ±240
-    vyMin: -1200, vyMax: -950,      // ↓ upward speed a bit (slower arc)
+    spawnMin: 1200,  spawnMax: 2600,
+    g: 1500,                    // softer than before
+    vxMin: -200, vxMax: 200,    // slower sideways
+    vyMin: -1200, vyMax: -950,  // gentler launch
     sizeMin: 48, sizeMax: 66
   };
   let nextSpawnAt = 0;
@@ -2555,7 +2634,7 @@ canvas{ display:block }
     const vx = (side===0 ? 1 : -1) * rand(Math.abs(DIFF.vxMin), DIFF.vxMax);
     const vy = rand(DIFF.vyMin, DIFF.vyMax);
     const size = rand(DIFF.sizeMin, DIFF.sizeMax);
-    const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1; // -1 => placeholder
+    const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1;
     sprites.push({ x,y,vx,vy,size,rot:0,spawn:performance.now(), spriteIndex: idx, hit:false });
   }
   function findSpriteIndexAt(x,y){
@@ -2567,14 +2646,14 @@ canvas{ display:block }
   }
   function smiteSpriteAtIndex(i){
     const s = sprites[i];
-    s.hit = true; // mark hit (no penalty on removal)
+    s.hit = true;
     strike({x:s.x,y:s.y}, 2.2, true);
     addToMeter(METER_STEP_SPRITE);   // +10× on hit
     rings.push({ x:s.x,y:s.y, r:4, maxR: 130, born: performance.now(), life: 420 });
-    sprites.splice(i,1);             // vanish immediately
+    sprites.splice(i,1);
   }
 
-  /* ================= Render loop ================= */
+  // ======= Render loop =======
   let raf=0, lastT=0;
   function startRender(){ cancelAnimationFrame(raf); lastT=performance.now(); raf=requestAnimationFrame(render); }
   function stopRender(){ cancelAnimationFrame(raf); }
@@ -2584,11 +2663,11 @@ canvas{ display:block }
     const dt = Math.min((now - lastT)/1000, 0.05);
     lastT = now;
 
-    // Clear to transparent so the sky image shows through.
-    ctx.clearRect(0,0,state.cw,state.ch); /* clears pixels to transparent black */ /* :contentReference[oaicite:4]{index=4} */
+    // Clear to transparent so the CSS sky shows through. :contentReference[oaicite:3]{index=3}
+    ctx.clearRect(0,0,state.cw,state.ch);
 
-    // spawn sprites
-    if(now >= nextSpawnAt){ spawnSprite(); scheduleNextSpawn(now); }
+    // Spawn/update sprites only when not paused by a full bar
+    if(!pausedBecauseFull && now >= nextSpawnAt){ spawnSprite(); scheduleNextSpawn(now); }
 
     // update & draw sprites (behind bolts)
     for(let i=sprites.length-1;i>=0;i--){
@@ -2598,7 +2677,7 @@ canvas{ display:block }
 
       const off = (s.y - s.size/2 > state.ch + 120) || (s.x < -160) || (s.x > state.cw + 160);
       if(off){
-        if(!s.hit){ addToMeter(-METER_STEP_SPRITE); } // MISSED => -10×
+        if(!s.hit){ addToMeter(-METER_STEP_SPRITE); } // miss => -10×
         sprites.splice(i,1);
       }
     }
@@ -2615,27 +2694,21 @@ canvas{ display:block }
       if(k>=1) rings.splice(i,1);
     }
 
-    // lightning bolts
+    // lightning
     for(let i=bolts.length-1;i>=0;i--){
       const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
-
-      let pulseBoost=0;
-      for(const p of b.pulses){
-        const dtp = Math.abs(age - p);
-        if(dtp<70) pulseBoost += 1 - (dtp/70);
-      }
+      let pulseBoost=0; for(const p of b.pulses){ const dtp = Math.abs(age - p); if(dtp<70) pulseBoost += 1 - (dtp/70); }
       drawBolt(b.core, b.power, fade, pulseBoost);
-
       if(t>=1){ bolts.splice(i,1); }
     }
 
-    raf=requestAnimationFrame(render); /* animation loop */ /* :contentReference[oaicite:5]{index=5} */
+    raf=requestAnimationFrame(render); // animate next frame. :contentReference[oaicite:4]{index=4}
   }
 
   function drawBolt(corePts, power, fade, pulseBoost){
-    // corona / outer halo
+    // corona
     ctx.save();
-    ctx.globalCompositeOperation='lighter'; // additive glow
+    ctx.globalCompositeOperation='lighter';
     ctx.lineJoin='round'; ctx.lineCap='round';
     ctx.shadowBlur = 18 + 30*power; ctx.shadowColor='rgba(120,170,255,1)';
     ctx.strokeStyle = `rgba(120,170,255,${0.06*power*fade})`;
@@ -2643,7 +2716,7 @@ canvas{ display:block }
     strokeRecursive(corePts);
     ctx.restore();
 
-    // bright core (return-stroke flicker)
+    // bright core
     const coreAlpha = Math.min(1, 0.95*fade + 0.55*pulseBoost);
     const coreWidth = (2.2*power) * (1 + 0.25*pulseBoost);
     ctx.save();
@@ -2656,7 +2729,7 @@ canvas{ display:block }
     strokeRecursive(corePts);
     ctx.restore();
 
-    // violet sheath hint
+    // violet sheath
     ctx.save();
     ctx.globalCompositeOperation='lighter';
     ctx.lineJoin='round'; ctx.lineCap='round';
@@ -2665,7 +2738,6 @@ canvas{ display:block }
     strokeRecursive(corePts);
     ctx.restore();
   }
-
   function strokeRecursive(pts){
     ctx.beginPath();
     let started=false;
@@ -2677,18 +2749,16 @@ canvas{ display:block }
     ctx.stroke();
   }
 
-  // draw image sprites (original color)
   function drawSprite(s){
     ctx.save();
     ctx.translate(s.x, s.y);
     ctx.rotate(Math.atan2(s.vy, s.vx) + s.rot);
     ctx.globalCompositeOperation='source-over';
     ctx.globalAlpha = 1;
-
     if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]){
       const {img, ratio} = SPRITES[s.spriteIndex];
       const w = s.size; const h = w/ratio;
-      ctx.drawImage(img, -w/2, -h/2, w, h);  // standard drawImage usage :contentReference[oaicite:6]{index=6}
+      ctx.drawImage(img, -w/2, -h/2, w, h);
     } else {
       const r = s.size*0.5;
       ctx.fillStyle = '#333'; ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2;
@@ -2712,6 +2782,26 @@ canvas{ display:block }
   // utils
   function rand(min,max){ return min + Math.random()*(max-min); }
 })();
+</script>
+Integration tip for your main screen
+The script fires a global event whenever the boost starts or ends:
+
+js
+Copy code
+window.addEventListener('chad:boost-change', (e) => {
+  const {active, multiplier, endsAt} = e.detail; // multiplier = 2 or 1
+  // Example: if your base gen/hr is shown in an element
+  const el = document.querySelector('[data-role="gen-hr"]'); // adjust to your selector
+  if (!el) return;
+  const base = Number(el.dataset.base) || Number(el.textContent.replace(/[^\d]/g,'')) || 0;
+  if (active){
+    el.dataset.base = base;          // remember
+    el.textContent = (base * multiplier).toLocaleString();
+  } else {
+    const remembered = Number(el.dataset.base || base);
+    el.textContent = remembered.toLocaleString();
+  }
+});
 (function(){
   'use strict';
 
