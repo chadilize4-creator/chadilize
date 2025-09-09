@@ -6,16 +6,90 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* ---------- Modal layout ---------- */
 .thunder-modal{position:fixed;inset:0;display:none;z-index:9999}
 .thunder-modal[open]{display:block}
-.thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
-.thunder-window{position:absolute;inset:8% 5% 12% 5%;display:flex;flex-direction:column;border-radius:16px;background:#0b0e17;box-shadow:0 10px 40px rgba(0,0,0,.6);overflow:hidden}
-.thunder-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(180deg,#121827 0%,#0b0e17 100%);color:#cfe7ff;font-weight:700;border-bottom:1px solid rgba(120,170,255,.15)}
-.thunder-close{all:unset;cursor:pointer;padding:6px 10px;border-radius:10px;background:rgba(120,170,255,.09);color:#dbeafe}
-#thunder-canvas{flex:1;display:block;width:100%;height:100%;touch-action:none;overscroll-behavior:contain;background:radial-gradient(1200px 800px at 50% 65%,#0f1629 0%,#0b0e17 60%,#070a12 100%)}
-.thunder-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:999px;background:rgba(30,41,59,.8);color:#cfe7ff;font-size:12px;border:1px solid rgba(120,170,255,.18);pointer-events:none}
-.thunder-flash{position:absolute;inset:0;background:radial-gradient(50% 50% at 50% 50%,rgba(170,210,255,.65) 0%,rgba(170,210,255,0) 60%);mix-blend-mode:screen;pointer-events:none}
-@media (prefers-reduced-motion: reduce){.thunder-window{scroll-behavior:auto}}
+.thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
+.thunder-window{position:absolute;inset:0;display:flex;flex-direction:column;background:#070a12}
+
+/* ---------- Fullscreen canvas ---------- */
+#thunder-canvas{
+  flex:1;display:block;width:100%;height:100%;
+  touch-action:none;overscroll-behavior:contain;
+  background:
+    radial-gradient(1200px 800px at 50% 65%, #101727 0%, #0b0e17 55%, #070a12 100%);
+}
+
+/* ---------- HUD & Close ---------- */
+.thunder-hud{
+  position:absolute;top:0;left:0;right:0;height:64px;
+  display:flex;align-items:center;justify-content:center;
+  padding:10px 52px 10px 52px; /* leaves space for close */
+  pointer-events:none; /* meter is visual only */
+}
+.thunder-close{
+  position:absolute;top:10px;right:10px;z-index:3;
+  all:unset;cursor:pointer;padding:8px 12px;border-radius:12px;
+  background:rgba(120,170,255,.10);color:#dbeafe;font-weight:700;
+  border:1px solid rgba(120,170,255,.22);pointer-events:auto;
+}
+.thunder-hint{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  padding:6px 10px;border-radius:999px;background:rgba(30,41,59,.75);
+  color:#cfe7ff;font-size:12px;border:1px solid rgba(120,170,255,.18);
+  pointer-events:none
+}
+
+/* ---------- Liquid meter ---------- */
+.liquid-meter{width:100%;display:flex;justify-content:center}
+.liquid-shell{
+  position:relative;width:min(740px,92vw);height:18px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  overflow:hidden;box-shadow:inset 0 2px 6px rgba(0,0,0,.5);
+}
+.liquid-fill{
+  --level:0; /* 0..1 */
+  position:absolute;left:0;bottom:0;height:100%;
+  width:calc(var(--level)*100%);
+  background:
+    linear-gradient(180deg,#ff4747 0%,#cf1010 65%,#910808 100%);
+  filter:saturate(1.15);
+  transition:width .28s cubic-bezier(.4,.8,.2,1);
+  overflow:hidden;
+}
+/* waves inside liquid */
+.liquid-fill::before,
+.liquid-fill::after{
+  content:"";position:absolute;inset:-30% -5% -50% -5%;
+  background:
+    radial-gradient(12px 7px at 16px 10px, rgba(255,255,255,.22), rgba(255,255,255,0) 60%) repeat-x,
+    radial-gradient(10px 6px at 8px 6px,  rgba(255,255,255,.16), rgba(255,255,255,0) 60%) repeat-x;
+  mix-blend-mode:screen;opacity:.65;pointer-events:none;
+  animation:slosh 4.8s linear infinite;
+}
+.liquid-fill::after{opacity:.4;animation:slosh 6.5s linear infinite reverse}
+@keyframes slosh{
+  from{transform:translateX(0) translateY(0)}
+  to  {transform:translateX(-50%) translateY(0)}
+}
+/* brief amplitude bump when meter increases */
+.liquid-bump .liquid-fill::before,
+.liquid-bump .liquid-fill::after{animation-duration:3.2s}
+
+/* glass highlight */
+.liquid-glass{
+  pointer-events:none;position:absolute;inset:0;border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 48%),
+             linear-gradient(0deg, rgba(255,255,255,.06), transparent);
+}
+
+/* ---------- Flash overlay ---------- */
+.thunder-flash{
+  position:absolute;inset:0;
+  background:radial-gradient(60% 60% at 50% 55%, rgba(170,210,255,.55) 0%, rgba(170,210,255,0) 60%);
+  mix-blend-mode:screen;pointer-events:none
+}
 
 :root{
 
@@ -1435,19 +1509,25 @@ canvas{ display:block }
 
 
 
-<!-- Thunder Modal -->
-<div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Thunder Lab">
+<!-- Fullscreen Lightning Lab -->
+<div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
+
   <div class="thunder-window">
-    <header class="thunder-header">
-      <span>⚡ Lightning Lab</span>
+    <!-- Top HUD: liquid meter -->
+    <div class="thunder-hud">
+      <div class="liquid-meter" aria-label="Energy meter">
+        <div class="liquid-shell">
+          <div class="liquid-fill" style="--level:0"></div>
+          <div class="liquid-glass"></div>
+        </div>
+      </div>
       <button class="thunder-close" aria-label="Close">✕</button>
-    </header>
+    </div>
 
     <!-- Play surface -->
     <canvas id="thunder-canvas" aria-label="Lightning canvas"></canvas>
-
-    <div class="thunder-hint">Tap = bolt • Hold (max 2s) = charged</div>
+    <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged</div>
   </div>
 </div>
 
@@ -2233,320 +2313,296 @@ canvas{ display:block }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
-  // Hook your existing Thunderbolt button
+  // Hook to your existing Thunder button
   const openBtn  = document.querySelector('[data-id="thunder"]');
   if (!openBtn) return;
 
   const modal    = document.getElementById('thunder-modal');
-  const canvas   = document.getElementById('thunder-canvas');
-  const ctx      = canvas.getContext('2d');
   const closeBtn = modal.querySelector('.thunder-close');
   const backdrop = modal.querySelector('.thunder-backdrop');
   const winEl    = modal.querySelector('.thunder-window');
 
-  // ===== Modal open / close =====
+  const canvas   = document.getElementById('thunder-canvas');
+  const ctx      = canvas.getContext('2d');
+
+  // Meter elements
+  const hud      = modal.querySelector('.thunder-hud');
+  const shell    = hud.querySelector('.liquid-shell');
+  const fill     = hud.querySelector('.liquid-fill');
+
+  // =============== Modal open/close ===============
   function openModal(){
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
-    resizeCanvas();
-    startRender();
+    resizeCanvas(); startRender();
   }
   function closeModal(){
     modal.removeAttribute('open');
     document.body.style.overflow='';
-    stopRender();
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    bolts.length = 0;
-    rings.length = 0;
+    stopRender(); clearScene();
   }
   openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', closeModal);
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-  // ===== Canvas sizing (retina) =====
+  // =============== Canvas sizing ===============
   const ro = new ResizeObserver(resizeCanvas);
   ro.observe(canvas);
   function resizeCanvas(){
     const r = canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio||1, 2);
-    canvas.width  = Math.max(2, Math.round(r.width  * dpr));
-    canvas.height = Math.max(2, Math.round(r.height * dpr));
-    ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+    canvas.width = Math.max(2, Math.round(r.width*dpr));
+    canvas.height= Math.max(2, Math.round(r.height*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  // ===== Input: tap = bolt, hold (2s max) = charge =====
+  // =============== Meter logic ===============
+  let meterLevel = 0;               // 0..1
+  const METER_STEP_NORMAL  = 0.05;  // add per normal bolt
+  const METER_STEP_CHARGED = 0.15;  // 3x normal
+
+  function addToMeter(amount){
+    meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
+    fill.style.setProperty('--level', meterLevel.toFixed(4));
+    // bump wave animation briefly
+    shell.classList.add('liquid-bump');
+    clearTimeout(addToMeter._t);
+    addToMeter._t = setTimeout(()=> shell.classList.remove('liquid-bump'), 400);
+  }
+
+  // =============== Input (tap vs charged) ===============
   let charging = false;
   let chargeStart = 0;
   let lastPoint = {x:0,y:0};
-  let chargeRAF  = 0;
+  let chargeRAF = 0;
   let autoReleaseTimer = null;
 
-  canvas.addEventListener('pointerdown', (e) => {
+  canvas.addEventListener('pointerdown', (e)=>{
     canvas.setPointerCapture(e.pointerId);
-    charging = true;
-    chargeStart = performance.now();
-    lastPoint = getPos(e);
-    drawCharge();
-    // Auto-release at 2s max
-    autoReleaseTimer = setTimeout(() => {
-      if (charging) releaseStrike();
-    }, 2000);
+    charging = true; chargeStart = performance.now();
+    lastPoint = xy(e); drawCharge();
+    autoReleaseTimer = setTimeout(()=> { if(charging) releaseStrike(true); }, 2000); // auto at 2s
   });
+  canvas.addEventListener('pointermove', (e)=> { if(charging) lastPoint = xy(e); });
+  canvas.addEventListener('pointerup',   ()=> releaseStrike(false));
+  canvas.addEventListener('pointercancel',()=> releaseStrike(false));
+  canvas.addEventListener('pointerleave', ()=> charging && releaseStrike(false));
 
-  canvas.addEventListener('pointermove', (e) => {
-    if (charging) lastPoint = getPos(e);
-  });
+  function xy(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
 
-  function endCharge(e){
-    if (!charging) return;
-    canvas.releasePointerCapture(e.pointerId);
-    releaseStrike();
-  }
-  canvas.addEventListener('pointerup', endCharge);
-  canvas.addEventListener('pointercancel', endCharge);
-  canvas.addEventListener('pointerleave', (e)=>{ if(charging) endCharge(e); });
+  function releaseStrike(auto){
+    if(!charging) return;
+    charging=false; cancelAnimationFrame(chargeRAF); clearTimeout(autoReleaseTimer);
 
-  function getPos(e){
-    const r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
-
-  function releaseStrike(){
-    charging = false;
-    cancelAnimationFrame(chargeRAF);
-    clearTimeout(autoReleaseTimer);
-    const held = performance.now() - chargeStart;
-    const ratio = Math.min(held/2000, 1);          // 0..1
-    const power = 1 + ratio * 2;                   // 1..3
-    strike(lastPoint, power);
+    const held = performance.now() - chargeStart;              // ms
+    const ratio = Math.min(held/2000, 1);                      // 0..1
+    const power = held>180 ? 1 + 2*ratio : 1;                  // tap ≈1, charged up to 3
+    const charged = power>1.05;                                // treat as charged if held a bit
+    strike(lastPoint, power, charged);
+    addToMeter(charged ? METER_STEP_CHARGED : METER_STEP_NORMAL);
   }
 
   function drawCharge(){
-    if (!charging) return;
+    if(!charging) return;
     const t = performance.now() - chargeStart;
-    const ratio = Math.min(t/2000, 1);
-    // subtle pulsing ring
-    ctx.fillStyle = 'rgba(5,7,12,0.12)';
+    const k = Math.min(t/2000, 1);
+    // soft trail
+    ctx.fillStyle = 'rgba(7,10,18,0.10)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
+    // pulsing corona at finger
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.shadowColor = 'rgba(140,190,255,1)';
-    ctx.shadowBlur  = 10 + 35*ratio;
-    ctx.beginPath();
-    ctx.arc(lastPoint.x, lastPoint.y, 18 + 26*ratio, 0, Math.PI*2);
-    ctx.lineWidth = 2 + ratio*1.5;
-    ctx.strokeStyle = `rgba(160,210,255,${0.8+0.2*Math.sin(performance.now()*0.01)})`;
-    ctx.stroke();
-    ctx.restore();
+    ctx.globalCompositeOperation='lighter';
+    ctx.shadowColor='rgba(150,200,255,1)';
+    ctx.shadowBlur=10 + 38*k;
+    ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 20+28*k, 0, Math.PI*2);
+    ctx.lineWidth = 1.8 + k*1.6;
+    ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
+    ctx.stroke(); ctx.restore();
 
     chargeRAF = requestAnimationFrame(drawCharge);
   }
 
-  // ===== Lightning model =====
-  // Each bolt has a 3s lifetime and fades out.
-  const bolts = [];
-  const rings = [];
+  // =============== Lightning model ===============
+  const bolts=[]; const rings=[];
 
-  function strike(origin, power=1){
+  function clearScene(){ bolts.length=0; rings.length=0; ctx.clearRect(0,0,canvas.width,canvas.height); }
+
+  function strike(origin, power=1, charged=false){
     flash(power);
-
-    const seeds = Math.round(2 + power*2); // number of leaders
+    // spawn multiple leaders
+    const seeds = Math.round(2 + power*2);
     for(let i=0;i<seeds;i++){
-      const angle  = Math.random()*Math.PI*2;
-      const length = 220 + power*120 + Math.random()*90;
-      const bolt = makeBolt(origin, angle, length, power);
-      bolts.push(bolt);
+      const angle = Math.random()*Math.PI*2;
+      const length= 240 + power*130 + Math.random()*120;
+      bolts.push(makeBolt(origin, angle, length, power, charged));
     }
-
     // shock ring
-    rings.push({
-      x:origin.x, y:origin.y, r:6, maxR: 120 + power*80,
-      born: performance.now(), life: 450 + power*150
-    });
+    rings.push({ x:origin.x,y:origin.y, r:6, maxR: 130 + power*90, born: performance.now(), life: 500 + power*150 });
   }
 
-  function makeBolt(origin, angle, length, power){
+  function makeBolt(origin, angle, length, power, charged){
     const born = performance.now();
-    const life = 3000; // ms — required
-    const core = growPath(origin, angle, length, 0, power, 0);
-    return { core, born, life, power, seed: Math.random()*1000 };
+    const life = 3000; // fade-out target
+    const core = growPath(origin, angle, length, 0, power, Math.random()*100);
+    // return-stroke flicker timings (dart leaders)
+    const pulses = [0, 45, 95]; // ms relative to born
+    if (charged) pulses.push(150);
+    return { core, born, life, power, charged, pulses };
   }
 
-  // Recursive stepped-leader growth with probabilistic branching
-  function growPath(start, angle, length, depth, power, wobbleSeed){
-    const pts = [{x:start.x, y:start.y}];
-    let dir = angle;
-    let remaining = length;
-    let energy = (0.95 + Math.random()*0.2) * (1 - depth*0.12) * (0.85 + 0.15*power);
-    let branchCooldown = 0;
+  // recursive stepped-leader with probabilistic branching
+  function growPath(start, angle, length, depth, power, seed){
+    const pts=[{x:start.x,y:start.y}];
+    let dir=angle, remaining=length;
+    let energy=(0.95+Math.random()*0.2)*(1-depth*0.12)*(0.85+0.15*power);
+    const base=8*(0.85+Math.random()*0.3);
+    const jitter=0.55+0.15*power;
+    let branchCooldown=0;
 
-    const base = 8 * (0.85 + Math.random()*0.3);
-    const jitter = 0.5 + 0.15*power;
-
-    while (remaining > 0 && energy > 0.1){
+    while(remaining>0 && energy>0.1){
       const step = base*(0.9+Math.random()*0.35);
       dir += (Math.random()-0.5)*jitter;
-
-      // slight temporal flicker baked into geometry seed
-      const flick = (Math.sin((pts.length + wobbleSeed)*1.3) * 0.12);
-      const nx = pts[pts.length-1].x + Math.cos(dir + flick) * step;
-      const ny = pts[pts.length-1].y + Math.sin(dir + flick) * step;
+      const flick = Math.sin((pts.length+seed)*1.3)*0.12;
+      const prev = pts[pts.length-1];
+      const nx = prev.x + Math.cos(dir+flick)*step;
+      const ny = prev.y + Math.sin(dir+flick)*step;
       pts.push({x:nx,y:ny});
-      remaining -= step;
-      energy *= 0.993;
+      remaining -= step; energy *= 0.993;
 
-      // Branch?
-      if (branchCooldown<=0 && Math.random() < 0.18*energy*(0.6 + 0.25*power) && depth < 3){
-        branchCooldown = 3;
+      if(branchCooldown<=0 && Math.random()<0.18*energy*(0.6+0.25*power) && depth<3){
+        branchCooldown=3;
         const bAngle = dir + (Math.random()<0.5?-1:1)*(0.6 + Math.random()*1.0);
-        const bLen   = remaining * (0.35 + Math.random()*0.5);
-        const child  = growPath({x:nx,y:ny}, bAngle, bLen, depth+1, power*0.85, wobbleSeed+1);
-        // splice child into list as virtual branch
+        const bLen   = remaining*(0.35 + Math.random()*0.5);
+        const child  = growPath({x:nx,y:ny}, bAngle, bLen, depth+1, power*0.85, seed+1);
         pts.push({branch: child});
-      } else {
-        branchCooldown--;
-      }
+      } else { branchCooldown--; }
 
-      if (nx < -32 || ny < -32 || nx > canvas.width+32 || ny > canvas.height+32) break;
+      if(nx<-32||ny<-32||nx>canvas.width+32||ny>canvas.height+32) break;
     }
     return pts;
   }
 
-  // ===== Rendering =====
-  let rafId = 0;
-  function startRender(){
-    cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(render);
-  }
-  function stopRender(){
-    cancelAnimationFrame(rafId);
-  }
+  // =============== Render loop ===============
+  let raf=0;
+  function startRender(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(render); }
+  function stopRender(){ cancelAnimationFrame(raf); }
 
   function render(){
-    const now = performance.now();
-
-    // persistent darkening for trails
-    ctx.fillStyle = 'rgba(8,10,16,0.10)';
+    const now=performance.now();
+    // gentle persistence
+    ctx.fillStyle='rgba(7,9,14,0.10)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // draw rings (shockwaves)
-    for (let i=rings.length-1;i>=0;i--){
-      const ring = rings[i];
-      const age = now - ring.born;
-      const k = Math.min(age / ring.life, 1);
-      const r = ring.r + (ring.maxR - ring.r)*k;
-      const a = 0.35*(1-k);
-
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.beginPath();
-      ctx.arc(ring.x, ring.y, r, 0, Math.PI*2);
+    // rings
+    for(let i=rings.length-1;i>=0;i--){
+      const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
+      const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      ctx.beginPath(); ctx.arc(rg.x,rg.y,rad,0,Math.PI*2);
       ctx.lineWidth = 1.5 + (1-k)*2;
       ctx.strokeStyle = `rgba(160,210,255,${a})`;
-      ctx.shadowBlur = 12*(1-k);
-      ctx.shadowColor = 'rgba(150,200,255,1)';
-      ctx.stroke();
-      ctx.restore();
-
-      if (k>=1) rings.splice(i,1);
+      ctx.shadowBlur = 12*(1-k); ctx.shadowColor='rgba(160,210,255,1)'; ctx.stroke(); ctx.restore();
+      if(k>=1) rings.splice(i,1);
     }
 
-    // draw bolts (and their fade)
-    for (let i=bolts.length-1;i>=0;i--){
-      const b = bolts[i];
-      const age = now - b.born;
-      const t = Math.min(age / b.life, 1); // 0..1
-      const fade = 1 - t;
+    // bolts
+    for(let i=bolts.length-1;i>=0;i--){
+      const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
 
-      drawBolt(b.core, b.power, fade);
-
-      if (t>=1){
-        bolts.splice(i,1);
+      // return-stroke flicker burst
+      let pulseBoost=0;
+      for(const p of b.pulses){
+        const dt = Math.abs(age - p);
+        if(dt<60) pulseBoost += 1 - (dt/60); // triangular envelope
       }
+      drawBolt(b.core, b.power, fade, pulseBoost, b.charged);
+
+      if(t>=1) bolts.splice(i,1);
     }
 
-    rafId = requestAnimationFrame(render);
+    raf=requestAnimationFrame(render);
   }
 
-  function drawBolt(corePts, power, fade){
-    // Recursively render including branches encoded as objects on the list
-    function drawPath(pts, layer){
-      const baseAlpha = (layer===0 ? 0.95 : 0.35/(layer));
-      const alpha = baseAlpha * fade;
-      const blur  = (layer===0 ? 0 : (12 + 10*layer) * (0.7 + 0.3*power));
-      const width = Math.max(1, (layer===0 ? 2.2 : 1.6) * power);
+  function drawBolt(corePts, power, fade, pulseBoost, charged){
+    // corona/glow pass (very soft, wide)
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowBlur = 18 + 28*power; ctx.shadowColor='rgba(120,170,255,1)';
+    ctx.strokeStyle = `rgba(120,170,255,${0.06*power*fade})`;
+    ctx.lineWidth = 14*power;
+    strokeRecursive(corePts);
+    ctx.restore();
 
-      // jitter per-frame flicker
-      const flick = 0.9 + 0.12*Math.sin(performance.now()*0.03 + pts.length);
+    // bright core + flicker pulses
+    const coreAlpha = Math.min(1, 0.95*fade + 0.55*pulseBoost);
+    const coreWidth = (2.1*power) * (1 + 0.25*pulseBoost);
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowBlur = 10 + 10*power*(1+0.2*pulseBoost);
+    ctx.shadowColor='rgba(160,210,255,1)';
+    ctx.strokeStyle = `rgba(185,230,255,${coreAlpha})`;
+    ctx.lineWidth = coreWidth;
+    strokeRecursive(corePts);
+    ctx.restore();
 
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter'; // additive glow
-      ctx.lineJoin='round'; ctx.lineCap='round';
-      ctx.shadowBlur = blur; ctx.shadowColor='rgba(130,180,255,1)';
-      ctx.strokeStyle = `rgba(175,220,255,${alpha})`;
-      ctx.lineWidth = width * flick;
-
-      ctx.beginPath();
-      let started = false;
-      for (let i=0;i<pts.length;i++){
-        const p = pts[i];
-        if (p.branch){
-          drawPath(p.branch, layer); // draw branches at same layer first
-          continue;
-        }
-        if (!started){ ctx.moveTo(p.x,p.y); started=true; }
-        else ctx.lineTo(p.x,p.y);
-      }
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // multiple layers: core + glow passes for drama
-    const layers = 3; // 0..2
-    for (let l=0;l<layers;l++){
-      drawPath(corePts, l);
-    }
+    // violet sheath (nitrogen glow hint)
+    ctx.save();
+    ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.strokeStyle = `rgba(150,120,255,${0.18*fade})`;
+    ctx.lineWidth = 6*power;
+    strokeRecursive(corePts);
+    ctx.restore();
 
     // micro-sparks
-    if (power>1 && fade>0.1){
-      const sparks = Math.floor(10*power*fade);
-      for (let i=0;i<sparks;i++){
-        const idx = (Math.random() * corePts.length)|0;
-        const p = corePts[idx];
-        if (p.branch) continue;
-        spark(p.x, p.y, power*fade);
+    if(power>1 && fade>0.1){
+      const sparks = Math.floor(10*power*fade*(1+0.6*pulseBoost));
+      for(let i=0;i<sparks;i++){
+        const p = randomPoint(corePts); if(!p) continue;
+        spark(p.x,p.y, power*fade);
       }
     }
+  }
+
+  function strokeRecursive(pts){
+    ctx.beginPath();
+    let started=false;
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i];
+      if(p.branch){ strokeRecursive(p.branch); continue; }
+      if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+  }
+
+  function randomPoint(pts){
+    // pick a non-branch point
+    const available = pts.filter(p=>!p.branch);
+    if(!available.length) return null;
+    return available[(Math.random()*available.length)|0];
   }
 
   function spark(x,y,scale){
     const a = Math.random()*Math.PI*2;
     const d = 4 + Math.random()*18*scale;
-    const nx = x + Math.cos(a)*d;
-    const ny = y + Math.sin(a)*d;
-
-    ctx.save();
-    ctx.globalCompositeOperation='lighter';
-    ctx.beginPath();
-    ctx.moveTo(x,y); ctx.lineTo(nx,ny);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = `rgba(185,230,255,${0.6+0.4*Math.random()})`;
-    ctx.shadowBlur  = 8 + 12*scale;
-    ctx.shadowColor = 'rgba(185,230,255,1)';
-    ctx.stroke();
-    ctx.restore();
+    const nx = x + Math.cos(a)*d, ny = y + Math.sin(a)*d;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nx,ny);
+    ctx.lineWidth=1; ctx.strokeStyle=`rgba(190,235,255,${0.6+0.4*Math.random()})`;
+    ctx.shadowBlur=8+12*scale; ctx.shadowColor='rgba(190,235,255,1)'; ctx.stroke(); ctx.restore();
   }
 
   function flash(power){
-    // quick screen flash + slight shake
-    const flashEl = document.createElement('div');
-    flashEl.className = 'thunder-flash';
-    flashEl.style.opacity = Math.min(0.6, 0.3 + power*0.15);
+    const flashEl=document.createElement('div');
+    flashEl.className='thunder-flash';
+    flashEl.style.opacity = Math.min(.6, .28 + .14*power);
     winEl.appendChild(flashEl);
-    setTimeout(()=>flashEl.remove(), 60 + power*40);
-
+    setTimeout(()=>flashEl.remove(), 70 + power*50);
+    // subtle shake
     winEl.animate(
       [{transform:'translate(0,0)'},{transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},{transform:'translate(0,0)'}],
       {duration: 160 + power*60, iterations:1}
