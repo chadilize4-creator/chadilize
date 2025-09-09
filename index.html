@@ -4,19 +4,20 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>ChadiliZe — Telegram Mini App</title>
+<link rel="stylesheet" href="thunder.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ===== MODAL LAYER ===== */
+/* ===== Modal ===== */
 .tz-modal{position:fixed;inset:0;z-index:9999;display:block}
 .tz-modal[hidden]{display:none}
 .tz-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
 .tz-window{
   position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;
-  background:#05070d;
+  background:#05070d; /* fallback */
   background-size:cover;background-position:center;background-repeat:no-repeat;
 }
 
-/* ===== CANVAS (transparent so the sky shows) ===== */
+/* ===== Canvas (transparent so the sky shows) ===== */
 #tz-canvas{
   flex:1;display:block;width:100%;height:100%;
   touch-action:none;overscroll-behavior:contain;background:transparent;
@@ -24,7 +25,7 @@
 
 /* ===== HUD ===== */
 .tz-hud{
-  position:absolute;top:0;left:0;right:0;height:164px;
+  position:absolute;top:0;left:0;right:0;height:168px;
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   padding:12px 72px;z-index:3;pointer-events:none;
 }
@@ -41,10 +42,10 @@
   pointer-events:none;z-index:3;
 }
 
-/* ===== METER ===== */
+/* ===== Meter ===== */
 .tz-meter{width:100%;display:flex;justify-content:center}
 .tz-meter-shell{
-  position:relative;width:min(1024px,95vw);height:40px;border-radius:18px;
+  position:relative;width:min(1024px,95vw);height:44px;border-radius:18px;
   border:1px solid rgba(255,255,255,.18);
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
   overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), 0 6px 16px rgba(0,0,0,.35);
@@ -72,7 +73,7 @@
 .tz-meter-bump .tz-meter-fill::before,
 .tz-meter-bump .tz-meter-fill::after{animation-duration:3.3s}
 
-/* ===== BOOST CTA ===== */
+/* ===== Boost CTA ===== */
 .tz-boost-cta{margin-top:8px;display:flex;justify-content:center;width:100%}
 .tz-boost{
   all:unset;pointer-events:auto;cursor:not-allowed;
@@ -91,7 +92,7 @@
   color:#063618;border-color:#16a34a;
 }
 
-/* ===== TIMERS ===== */
+/* ===== Timers ===== */
 .tz-timers{margin-top:8px;display:flex;gap:10px}
 .tz-timer{
   pointer-events:none;user-select:none;
@@ -110,7 +111,7 @@
   border-color:#555b67;
 }
 
-/* ===== SCREEN FLASH ===== */
+/* ===== Flash overlay ===== */
 .tz-flash{
   position:absolute;inset:0;
   background:radial-gradient(60% 60% at 50% 55%, rgba(170,210,255,.55) 0%, rgba(170,210,255,0) 60%);
@@ -1535,14 +1536,14 @@ canvas{ display:block }
 
 
 
-<!-- Thunder Lab (namespaced tz-*) -->
+<!-- Thunder Lab Modal -->
 <div id="tz-thunder" class="tz-modal" hidden>
   <div class="tz-backdrop" data-close></div>
 
-  <!-- The sky texture lives on this window; canvas is transparent -->
+  <!-- Fullscreen window; the sky image is applied as its background -->
   <section class="tz-window" role="dialog" aria-modal="true" aria-label="Lightning Lab" data-sky="img/cloudysky.png" tabindex="-1">
-    <!-- HUD -->
     <header class="tz-hud">
+      <!-- Red liquid meter -->
       <div class="tz-meter">
         <div class="tz-meter-shell">
           <div class="tz-meter-fill" style="--level:0"></div>
@@ -1550,12 +1551,14 @@ canvas{ display:block }
         </div>
       </div>
 
+      <!-- Boost button (becomes green when bar hits 100%) -->
       <div class="tz-boost-cta">
         <button id="tz-boost-btn" class="tz-boost" disabled>
           ×2 boost generation/hr for 5 hours
         </button>
       </div>
 
+      <!-- Timers: gold (5h boost), grey (24h cooldown) -->
       <div class="tz-timers">
         <div id="tz-boost-timer" class="tz-timer tz-gold" hidden>05:00:00</div>
         <div id="tz-cooldown-timer" class="tz-timer tz-grey" hidden>24:00:00</div>
@@ -1564,10 +1567,10 @@ canvas{ display:block }
       <button class="tz-close" aria-label="Close">✕</button>
     </header>
 
-    <!-- Play surface -->
+    <!-- Play surface (transparent; sky shows behind it) -->
     <canvas id="tz-canvas" aria-label="Lightning canvas"></canvas>
 
-    <div class="tz-hint">Tap = bolt • Hold (auto 2s) = charged • Tap spider/bee for 10×</div>
+    <div class="tz-hint">Tap = bolt • Hold (≤2s) = charged • Tap spider/bee for 10×</div>
   </section>
 </div>
 
@@ -2352,134 +2355,99 @@ canvas{ display:block }
 <!-- SDKs -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="thunder.js"></script>
 <script>
-/* ===== Boost helpers (shared with thunder) ===== */
-const BOOST_KEY = `chad_boost_until_${(typeof UID_HINT !== 'undefined' && UID_HINT) ? UID_HINT : 'guest'}`;
-const isBoostActive = () => {
-  const until = Number(localStorage.getItem(BOOST_KEY) || 0);   // Web Storage API :contentReference[oaicite:8]{index=8}
-  return until > Date.now();
-};
-const boostMulBig = () => (isBoostActive() ? 2n : 1n);          // BigInt literal 2n (don’t use 2) :contentReference[oaicite:9]{index=9}
+/* Chadilize — Thunder Lab (separate JS)
+   - Opens from button: [data-id="thunder"] (no extra button is created)
+   - Sky: img/cloudysky.png (robust path loader)
+   - Bolts: tap (normal), hold ≤2s (charged). Bolts fade in ~3s.
+   - Targets: spider1.png, spider2.png, spider3.png, bee.png (tap to smite)
+   - Meter: slow fill; normal +x, charged +3x, smite +10x; misses −10x
+   - At 100%: game pauses; green button enables → starts 5h ×2 boost (gold timer)
+   - After 5h: auto 24h cooldown (grey timer); game disabled during cooldown
+   - Doubles generation/hr using an overlay BigInt tick (does NOT mutate state.gen)
+   - Emits CustomEvents: 'chad:boost-change', 'chad:cooldown-change'
+   - Namespaced tz-* and careful with DOM/CSS to avoid collisions
+*/
+(function(){
+  'use strict';
+  if (window.__tzMounted) return; window.__tzMounted = true;
 
-/* ===== Display: update your "generation / hr" number ===== */
-function renderGenHr(){
-  const el = document.querySelector('[data-role="gen-hr"]'); // adjust selector
-  if (!el) return;
-  const eff = state.gen * boostMulBig();  // BigInt × BigInt
-  el.textContent = fmt(eff);
-}
-window.addEventListener('chad:boost-change', renderGenHr);       // react to game events (CustomEvent.detail) :contentReference[oaicite:10]{index=10}
+  /* ---------- DOM refs ---------- */
+  const root   = document.getElementById('tz-thunder');
+  const backdrop = root?.querySelector('.tz-backdrop');
+  const winEl    = root?.querySelector('.tz-window');
+  const canvas   = root?.querySelector('#tz-canvas');
+  const ctx      = canvas?.getContext('2d');
+  const closeBtn = root?.querySelector('.tz-close');
 
-/* ===== Passive accrual tick (uses effective gen/hr) ===== */
-function tickPassive(){
-  const nowSec = Math.floor(Date.now()/1000);
-  const elapsed = nowSec - (state.last || nowSec);
-  if (elapsed <= 0) return;
+  const meterShell = root?.querySelector('.tz-meter-shell');
+  const meterFill  = root?.querySelector('.tz-meter-fill');
+  const boostBtn   = root?.querySelector('#tz-boost-btn');
+  const boostTimerEl = root?.querySelector('#tz-boost-timer');
+  const cdTimerEl    = root?.querySelector('#tz-cooldown-timer');
 
-  state.last = nowSec;
+  /* ---------- Open from your existing button ---------- */
+  const openerSelector = '[data-id="thunder"]';
+  document.addEventListener('click', (e)=>{
+    const t = e.target.closest(openerSelector);
+    if (t) openModal();
+  });
 
-  const effGen = state.gen * boostMulBig(); // BigInt
-  state.acc += effGen * BigInt(elapsed);    // BigInt math
+  /* ---------- Helpers from host app (safe fallbacks) ---------- */
+  const fmt = (typeof window.fmt === 'function')
+    ? window.fmt
+    : (n)=> (typeof n === 'bigint' ? n.toString() : String(n));
 
-  const gain = state.acc / 3600n;           // 3600 seconds/hour as BigInt
-  if (gain > 0n){
-    state.chads += gain;
-    state.acc -= gain * 3600n;
-    saveStateLocal(state);
-    if (typeof refreshUI === 'function') refreshUI();
+  function whenStateReady(cb){
+    if (window.state && typeof window.saveStateLocal === 'function') return cb();
+    const t = setInterval(()=>{
+      if (window.state && typeof window.saveStateLocal === 'function'){ clearInterval(t); cb(); }
+    }, 60);
   }
-}
 
-/* ===== Ensure refreshUI also re-renders gen/hr ===== */
-const _oldRefresh = window.refreshUI;
-window.refreshUI = function(){
-  if (typeof _oldRefresh === 'function') _oldRefresh();
-  renderGenHr();
-};
-/* Call renderGenHr() once on boot too */
-renderGenHr();
-
-(() => {
-  // ===== Safe mount guard =====
-  const BTN = document.querySelector('[data-id="thunder"]');
-  if (!BTN || document.getElementById('tz-thunder-mounted')) return;
-  document.body.insertAdjacentHTML('beforeend','<i id="tz-thunder-mounted" hidden></i>');
-
-  // DOM
-  const modal   = document.getElementById('tz-thunder');
-  const backdrop= modal.querySelector('.tz-backdrop');
-  const winEl   = modal.querySelector('.tz-window');
-  const canvas  = modal.querySelector('#tz-canvas');
-  const ctx     = canvas.getContext('2d'); // transparent canvas (sky shows)
-  const closeBtn= modal.querySelector('.tz-close');
-
-  const meterShell = modal.querySelector('.tz-meter-shell');
-  const meterFill  = modal.querySelector('.tz-meter-fill');
-  const boostBtn   = modal.querySelector('#tz-boost-btn');
-  const boostTimerEl = modal.querySelector('#tz-boost-timer');
-  const cdTimerEl    = modal.querySelector('#tz-cooldown-timer');
-
-  // preserve body scroll
-  let prevOverflow = '';
-
-  // ====== IDs & storage keys
+  /* ---------- Storage keys & durations ---------- */
   const UID = (window.UID_HINT || 'guest');
-  const LS_BOOST_UNTIL    = `chad_boost_until_${UID}`;
-  const LS_COOLDOWN_UNTIL = `chad_boost_cooldown_until_${UID}`;
+  const KEYS = {
+    BOOST_UNTIL   : `chad_boost_until_${UID}`,
+    COOLDOWN_UNTIL: `chad_boost_cooldown_until_${UID}`,
+    OVERLAY_ACC   : `chad_boost_acc_${UID}`, // BigInt accumulator for the extra half
+  };
+  const DUR = {
+    BOOST_MS:    5 * 60 * 60 * 1000,   // 5h
+    COOLDOWN_MS: 24 * 60 * 60 * 1000,  // 24h
+  };
 
-  // ====== Durations
-  const BOOST_MS    = 5 * 60 * 60 * 1000;     // 5h
-  const COOLDOWN_MS = 24 * 60 * 60 * 1000;    // 24h
-
-  // ====== State
-  const state = { dpr:1, cw:0, ch:0 };
-  let boostUntil    = Number(localStorage.getItem(LS_BOOST_UNTIL) || 0);
-  let cooldownUntil = Number(localStorage.getItem(LS_COOLDOWN_UNTIL) || 0);
+  /* ---------- Local state ---------- */
+  const view = { dpr:1, cw:0, ch:0 };
+  let boostUntil    = Number(localStorage.getItem(KEYS.BOOST_UNTIL) || 0);
+  let cooldownUntil = Number(localStorage.getItem(KEYS.COOLDOWN_UNTIL) || 0);
   let timersId = 0;
+  let raf = 0, lastT=0, looping=false;
 
-  // meter
-  let meterLevel = 0; // 0..1
-  const STEP_TAP     = 0.003;
-  const STEP_CHARGED = 0.009; // 3×
-  const STEP_SPRITE  = 0.030; // 10× (+ on hit, - on miss)
-
-  // pause flags
+  // Meter
   let pausedForFull = false;
+  let meterLevel = 0; // 0..1 (slow)
+  const STEP_TAP     = 0.003;
+  const STEP_CHARGED = 0.009;  // 3×
+  const STEP_SPRITE  = 0.030;  // 10× (+ on hit / − on miss)
 
-  // helpers
   const isBoostActive    = () => boostUntil && Date.now() < boostUntil;
   const isCooldownActive = () => cooldownUntil && Date.now() < cooldownUntil;
   const isPaused         = () => pausedForFull || isCooldownActive();
 
-  // ======= Events for your main UI (×2 multiplier)
-  function fireBoostEvent(active){
-    window.dispatchEvent(new CustomEvent('chad:boost-change', {
-      detail: { active, multiplier: active ? 2 : 1, endsAt: active ? boostUntil : 0 }
-    })); // pass data in CustomEvent.detail :contentReference[oaicite:2]{index=2}
-  }
-  function fireCooldownEvent(active){
-    window.dispatchEvent(new CustomEvent('chad:cooldown-change', {
-      detail: { active, endsAt: active ? cooldownUntil : 0 }
-    }));
-  }
-
-  // ======= Open / Close =======
-  BTN.addEventListener('click', openModal);
-  backdrop.addEventListener('click', closeModal);
-  closeBtn.addEventListener('click', closeModal);
-  document.addEventListener('keydown', (e)=> { if(modal.hidden) return; if(e.key==='Escape') closeModal(); });
-
+  /* ---------- Modal open/close ---------- */
+  let prevOverflow = '';
   function openModal(){
+    if (!root) return;
     prevOverflow = document.body.style.overflow;
-    document.body.style.overflow='hidden';
-    modal.hidden=false;
+    document.body.style.overflow = 'hidden';
+    root.hidden = false;
     applySky();
     resizeCanvas();
     startLoop();
     ro.observe(canvas);
-    winEl.focus();
-
-    // If a boost expired while closed, roll into cooldown once.
+    winEl?.focus();
     reconcileTimersOnOpen();
     startTimers();
     updateBoostButton();
@@ -2488,150 +2456,141 @@ renderGenHr();
     stopLoop();
     stopTimers();
     ro.unobserve(canvas);
-    modal.hidden=true;
-    document.body.style.overflow=prevOverflow;
+    root.hidden = true;
+    document.body.style.overflow = prevOverflow;
   }
+  backdrop?.addEventListener('click', closeModal);
+  closeBtn?.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e)=>{ if(root?.hidden) return; if(e.key === 'Escape') closeModal(); });
 
-  // ======= DPR sizing
-  const ro = new ResizeObserver(resizeCanvas);
-  function resizeCanvas(){
-    const r=canvas.getBoundingClientRect();
-    const dpr=Math.max(1, Math.min(window.devicePixelRatio||1, 2));
-    canvas.width=Math.max(2,Math.round(r.width*dpr));
-    canvas.height=Math.max(2,Math.round(r.height*dpr));
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    state.dpr=dpr; state.cw=r.width; state.ch=r.height;
-  }
-
-  // ======= Sky texture (robust paths)
+  /* ---------- Sky loader (robust path tries) ---------- */
   function applySky(){
-    const attr = winEl.getAttribute('data-sky') || 'img/cloudysky.png';
-    const cands = [attr, '/'+attr.replace(/^\.?\/*/,''), '/img/cloudysky.png', './img/cloudysky.png'];
+    const attr = winEl?.getAttribute('data-sky') || 'img/cloudysky.png';
+    const candidates = [attr, '/'+attr.replace(/^\.?\/*/,''), '/img/cloudysky.png', './img/cloudysky.png'];
     tryPath(0);
     function tryPath(i){
-      if(i>=cands.length) return;
-      const url=cands[i], img=new Image();
-      img.onload=()=>{ winEl.style.backgroundImage=`url("${url}")`; };
-      img.onerror=()=>tryPath(i+1);
-      img.src=url;
+      if (i>=candidates.length) return;
+      const url = candidates[i];
+      const img = new Image();
+      img.onload = ()=>{ if (winEl) winEl.style.backgroundImage = `url("${url}")`; };
+      img.onerror= ()=> tryPath(i+1);
+      img.src = url;
     }
   }
 
-  // ======= Meter
+  /* ---------- Canvas sizing (DPR aware) ---------- */
+  const ro = new ResizeObserver(resizeCanvas);
+  function resizeCanvas(){
+    if (!canvas) return;
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
+    canvas.width  = Math.max(2, Math.round(r.width * dpr));
+    canvas.height = Math.max(2, Math.round(r.height * dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    view.dpr = dpr; view.cw = r.width; view.ch = r.height;
+  }
+
+  /* ---------- Meter ---------- */
   function updateMeter(bump){
-    meterFill.style.setProperty('--level', Math.max(0,Math.min(1,meterLevel)).toFixed(4));
-    if(bump){
+    if (meterFill) meterFill.style.setProperty('--level', Math.max(0,Math.min(1,meterLevel)).toFixed(4));
+    if (bump && meterShell){
       meterShell.classList.add('tz-meter-bump');
       clearTimeout(updateMeter._t);
-      updateMeter._t=setTimeout(()=>meterShell.classList.remove('tz-meter-bump'),420);
+      updateMeter._t = setTimeout(()=> meterShell.classList.remove('tz-meter-bump'), 420);
     }
   }
   function addToMeter(amount){
-    if(isPaused()) return;
+    if (isPaused()) return;
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
     updateMeter(true);
-    if(meterLevel>=1 && !pausedForFull){
+    if (meterLevel >= 1 && !pausedForFull){
       pausedForFull = true; // lock play
       updateBoostButton();
     }
   }
 
-  // ======= Boost / Cooldown
+  /* ---------- Boost & Cooldown ---------- */
   function startBoost(){
-    boostUntil = Date.now() + BOOST_MS;
-    localStorage.setItem(LS_BOOST_UNTIL, String(boostUntil)); // persist :contentReference[oaicite:3]{index=3}
-    pausedForFull=false; meterLevel=0; updateMeter(true);
+    boostUntil = Date.now() + DUR.BOOST_MS;
+    localStorage.setItem(KEYS.BOOST_UNTIL, String(boostUntil));
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostButton();
     fireBoostEvent(true);
+    startBoostOverlayTick(); // begin doubling accrual
   }
   function endBoostToCooldown(){
-    // end boost
     boostUntil = 0;
-    localStorage.removeItem(LS_BOOST_UNTIL);
+    localStorage.removeItem(KEYS.BOOST_UNTIL);
     fireBoostEvent(false);
 
-    // start cooldown
-    cooldownUntil = Date.now() + COOLDOWN_MS;
-    localStorage.setItem(LS_COOLDOWN_UNTIL, String(cooldownUntil));
+    cooldownUntil = Date.now() + DUR.COOLDOWN_MS;
+    localStorage.setItem(KEYS.COOLDOWN_UNTIL, String(cooldownUntil));
     fireCooldownEvent(true);
 
-    pausedForFull = false; // reason changes to cooldown
-    meterLevel = 0; updateMeter(true);
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostButton();
+
+    stopBoostOverlayTick(); // stop extra accrual
+    saveOverlayAcc(0n);
   }
   function clearCooldown(){
     cooldownUntil = 0;
-    localStorage.removeItem(LS_COOLDOWN_UNTIL);
+    localStorage.removeItem(KEYS.COOLDOWN_UNTIL);
     fireCooldownEvent(false);
-    pausedForFull = false;
-    meterLevel = 0; updateMeter(true);
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostButton();
   }
   function reconcileTimersOnOpen(){
-    const now=Date.now();
-    if (boostUntil && now >= boostUntil){
-      // If user left during boost, roll into cooldown
-      endBoostToCooldown();
-    } else if (cooldownUntil && now >= cooldownUntil){
-      clearCooldown();
-    }
+    const now = Date.now();
+    if (boostUntil && now >= boostUntil) endBoostToCooldown();
+    else if (cooldownUntil && now >= cooldownUntil) clearCooldown();
+
+    if (isBoostActive()) startBoostOverlayTick();
+    else { stopBoostOverlayTick(); saveOverlayAcc(0n); }
   }
 
-  // ======= Boost button state
   function updateBoostButton(){
-    boostBtn.className='tz-boost';
-    boostBtn.disabled=true;
-    boostBtn.textContent='×2 boost generation/hr for 5 hours';
+    if (!boostBtn) return;
+    boostBtn.className = 'tz-boost';
+    boostBtn.disabled = true;
+    boostBtn.textContent = '×2 boost generation/hr for 5 hours';
 
-    if(isCooldownActive()){
-      // Cooldown: show grey timer; button disabled
+    if (isCooldownActive()){
+      // grey timer visible; button disabled
       return;
     }
-    if(isBoostActive()){
+    if (isBoostActive()){
       boostBtn.classList.add('active');
-      boostBtn.textContent='×2 boost ACTIVE – auto-ends';
+      boostBtn.textContent = '×2 boost ACTIVE – auto-ends';
       return;
     }
-    if(pausedForFull && meterLevel>=1){
+    if (pausedForFull && meterLevel >= 1){
       boostBtn.classList.add('ready');
-      boostBtn.disabled=false;
-      boostBtn.textContent='Activate ×2 boost for 5 hours';
+      boostBtn.disabled = false;
+      boostBtn.textContent = 'Activate ×2 boost for 5 hours';
     }
   }
-  boostBtn.addEventListener('click', () => {
-    if (boostBtn.disabled) return;
-    startBoost();
-  });
+  boostBtn?.addEventListener('click', ()=>{ if (!boostBtn.disabled) startBoost(); });
 
-  // ======= Timers UI (gold boost / grey cooldown)
-  function startTimers(){
-    updateTimers();
-    clearInterval(timersId);
-    timersId = setInterval(updateTimers, 1000);
-  }
+  /* ---------- Timers UI ---------- */
+  function startTimers(){ updateTimers(); clearInterval(timersId); timersId = setInterval(updateTimers, 1000); }
   function stopTimers(){ clearInterval(timersId); }
   function updateTimers(){
     const now = Date.now();
 
-    // BOOST countdown
+    // BOOST (gold)
     if (isBoostActive()){
       const left = boostUntil - now;
-      if (left <= 0) { endBoostToCooldown(); return; }
-      boostTimerEl.hidden = false;
-      boostTimerEl.textContent = fmtHMS(left);
-    } else {
-      boostTimerEl.hidden = true;
-    }
+      if (left <= 0){ endBoostToCooldown(); return; }
+      if (boostTimerEl){ boostTimerEl.hidden = false; boostTimerEl.textContent = fmtHMS(left); }
+    } else if (boostTimerEl){ boostTimerEl.hidden = true; }
 
-    // COOLDOWN countdown
+    // COOLDOWN (grey)
     if (isCooldownActive()){
       const left = cooldownUntil - now;
-      if (left <= 0) { clearCooldown(); return; }
-      cdTimerEl.hidden = false;
-      cdTimerEl.textContent = fmtHMS(left);
-    } else {
-      cdTimerEl.hidden = true;
-    }
+      if (left <= 0){ clearCooldown(); return; }
+      if (cdTimerEl){ cdTimerEl.hidden = false; cdTimerEl.textContent = fmtHMS(left); }
+    } else if (cdTimerEl){ cdTimerEl.hidden = true; }
   }
   function fmtHMS(ms){
     const s = Math.max(0, Math.floor(ms/1000));
@@ -2641,25 +2600,38 @@ renderGenHr();
     return `${h}:${m}:${sec}`;
   }
 
-  // ======= Input (Pointer Events + capture) & charge
+  /* ---------- Events to shell ---------- */
+  function fireBoostEvent(active){
+    window.dispatchEvent(new CustomEvent('chad:boost-change', {
+      detail: { active, multiplier: active ? 2 : 1, endsAt: active ? boostUntil : 0 }
+    }));
+  }
+  function fireCooldownEvent(active){
+    window.dispatchEvent(new CustomEvent('chad:cooldown-change', {
+      detail: { active, endsAt: active ? cooldownUntil : 0 }
+    }));
+  }
+
+  /* ---------- Input (Pointer Events + charge up to 2s) ---------- */
   let charging=false, chargeStart=0, lastPoint={x:0,y:0}, chargeRAF=0, autoRelease=0;
 
-  canvas.addEventListener('pointerdown', (e)=>{
-    if (isPaused()) return;                       // paused (full or cooldown)
-    canvas.setPointerCapture?.(e.pointerId);      // capture stream :contentReference[oaicite:4]{index=4}
+  canvas?.addEventListener('pointerdown', (e)=>{
+    if (isPaused()) return;
+    canvas.setPointerCapture?.(e.pointerId);
     const p = getXY(e);
 
-    const idx = hitSprite(p.x, p.y);
-    if (idx >= 0){ smiteSprite(idx); return; }    // instant smite on target
+    // sprite hit?
+    const idx = hitSprite(p.x,p.y);
+    if (idx>=0){ smiteSprite(idx); return; }
 
     charging = true; chargeStart = performance.now();
     lastPoint = p; drawCharge();
-    autoRelease = setTimeout(()=> { if(charging) releaseStrike(true); }, 2000);
+    autoRelease = setTimeout(()=>{ if(charging) releaseStrike(true); }, 2000); // auto at 2s
   }, {passive:false});
-  canvas.addEventListener('pointermove', (e)=> { if(charging) lastPoint = getXY(e); }, {passive:true});
-  canvas.addEventListener('pointerup',   ()=> releaseStrike(false));
-  canvas.addEventListener('pointercancel',()=> releaseStrike(false));
-  canvas.addEventListener('pointerleave', ()=> charging && releaseStrike(false));
+  canvas?.addEventListener('pointermove', (e)=>{ if(charging) lastPoint = getXY(e); }, {passive:true});
+  canvas?.addEventListener('pointerup',   ()=> releaseStrike(false));
+  canvas?.addEventListener('pointercancel',()=> releaseStrike(false));
+  canvas?.addEventListener('pointerleave', ()=> charging && releaseStrike(false));
 
   function getXY(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
   function releaseStrike(){
@@ -2667,7 +2639,7 @@ renderGenHr();
     charging=false; cancelAnimationFrame(chargeRAF); clearTimeout(autoRelease);
     const held = performance.now() - chargeStart;
     const ratio = Math.min(held/2000, 1);
-    const power = held>180 ? 1 + 2*ratio : 1; // tap ≈1, charged up to 3
+    const power = held>180 ? 1 + 2*ratio : 1;   // tap ≈1, charged up to 3
     const charged = power>1.05;
     strike(lastPoint, power, charged);
     addToMeter(charged ? STEP_CHARGED : STEP_TAP);
@@ -2676,7 +2648,6 @@ renderGenHr();
     if(!charging) return;
     const t = performance.now() - chargeStart;
     const k = Math.min(t/2000, 1);
-
     ctx.save();
     ctx.globalCompositeOperation='lighter';
     ctx.shadowColor='rgba(150,200,255,1)';
@@ -2685,11 +2656,10 @@ renderGenHr();
     ctx.lineWidth = 1.8 + k*1.6;
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
-
-    chargeRAF = requestAnimationFrame(drawCharge); // rAF repaint :contentReference[oaicite:5]{index=5}
+    chargeRAF = requestAnimationFrame(drawCharge);
   }
 
-  // ======= Lightning model
+  /* ---------- Lightning model & draw ---------- */
   const bolts=[], rings=[];
   function strike(origin, power=1, charged=false){
     flash(power);
@@ -2733,23 +2703,65 @@ renderGenHr();
         pts.push({branch: child});
       } else { branchCooldown--; }
 
-      if(nx<-32||ny<-32||nx>canvas.width/state.dpr+32||ny>canvas.height/state.dpr+32) break;
+      if(nx<-32||ny<-32||nx>canvas.width/view.dpr+32||ny>canvas.height/view.dpr+32) break;
     }
     return pts;
   }
+  function drawBolt(corePts, power, fade, pulseBoost){
+    // corona
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowBlur=18+30*power; ctx.shadowColor='rgba(120,170,255,1)';
+    ctx.strokeStyle=`rgba(120,170,255,${0.06*power*fade})`;
+    ctx.lineWidth=16*power; strokeRecursive(corePts); ctx.restore();
 
-  // ======= Targets (slightly slower toss)
+    // bright core
+    const alpha = Math.min(1, 0.95*fade + 0.55*pulseBoost);
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowBlur=10 + 10*power*(1+0.2*pulseBoost);
+    ctx.shadowColor='rgba(165,215,255,1)';
+    ctx.strokeStyle=`rgba(190,235,255,${alpha})`;
+    ctx.lineWidth=(2.2*power)*(1+0.25*pulseBoost); strokeRecursive(corePts); ctx.restore();
+
+    // violet sheath
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.strokeStyle=`rgba(150,120,255,${0.18*fade})`;
+    ctx.lineWidth=6*power; strokeRecursive(corePts); ctx.restore();
+  }
+  function strokeRecursive(pts){
+    ctx.beginPath(); let started=false;
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i]; if(p.branch){ strokeRecursive(p.branch); continue; }
+      if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+  }
+  function flash(power){
+    const el=document.createElement('div'); el.className='tz-flash';
+    el.style.opacity = Math.min(.6, .28 + .14*power);
+    winEl?.appendChild(el);
+    setTimeout(()=>el.remove(), 70 + power*50);
+    winEl?.animate(
+      [{transform:'translate(0,0)'},
+       {transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},
+       {transform:'translate(0,0)'}],
+      {duration:160+power*60,iterations:1}
+    );
+  }
+
+  /* ---------- Targets (spiders/bee) ---------- */
   const SPRITE_SOURCES = ['img/spider1.png','img/spider2.png','img/spider3.png','img/bee.png'];
   const SPRITES=[]; let spritesReady=false;
-  function preloadSprites(){
-    let loaded=0;
-    for(const src of SPRITE_SOURCES){
+  (function preload(){
+    let loaded=0; for(const src of SPRITE_SOURCES){
       const img=new Image(); img.decoding='async';
       img.onload=()=>{ SPRITES.push({img,ratio:(img.naturalWidth&&img.naturalHeight)? img.naturalWidth/img.naturalHeight : 1}); if(++loaded===SPRITE_SOURCES.length) spritesReady=true; };
       img.onerror=()=>{ if(++loaded===SPRITE_SOURCES.length) spritesReady=true; };
       img.src=src;
     }
-  }
+  })();
   const sprites=[];
   const DIFF={
     spawnMin:1200, spawnMax:2600,
@@ -2757,16 +2769,16 @@ renderGenHr();
     sizeMin:48, sizeMax:66
   };
   let nextSpawnAt=0;
-  function scheduleSpawn(now){ nextSpawnAt = now + rand(DIFF.spawnMin, DIFF.spawnMax); }
+  function scheduleSpawn(now){ nextSpawnAt = now + (DIFF.spawnMin + Math.random()*(DIFF.spawnMax - DIFF.spawnMin)); }
   function spawnSprite(){
-    const side = Math.random()<0.5 ? 0 : state.cw;
-    const x = side===0 ? -30 : state.cw+30;
-    const y = state.ch + 10;
-    const vx = (side===0 ? 1 : -1) * rand(Math.abs(DIFF.vxMin), DIFF.vxMax);
-    const vy = rand(DIFF.vyMin, DIFF.vyMax);
-    const size = rand(DIFF.sizeMin, DIFF.sizeMax);
+    const side = Math.random()<0.5 ? 0 : view.cw;
+    const x = side===0 ? -30 : view.cw+30;
+    const y = view.ch + 10;
+    const vx = (side===0 ? 1 : -1) * (Math.abs(DIFF.vxMin) + Math.random()*(DIFF.vxMax - Math.abs(DIFF.vxMin)));
+    const vy = DIFF.vyMin + Math.random()*(DIFF.vyMax - DIFF.vyMin);
+    const size = DIFF.sizeMin + Math.random()*(DIFF.sizeMax - DIFF.sizeMin);
     const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1;
-    sprites.push({ x,y,vx,vy,size,rot:0,spawn:performance.now(), spriteIndex: idx, hit:false });
+    sprites.push({ x,y,vx,vy,size,rot:0,spawn:performance.now(), spriteIndex:idx, hit:false });
   }
   function hitSprite(x,y){
     for(let i=sprites.length-1;i>=0;i--){
@@ -2777,49 +2789,41 @@ renderGenHr();
   function smiteSprite(i){
     const s=sprites[i]; s.hit=true;
     strike({x:s.x,y:s.y}, 2.2, true);
-    addToMeter(STEP_SPRITE);
+    addToMeter(STEP_SPRITE); // +10×
     rings.push({ x:s.x,y:s.y, r:4, maxR:130, born:performance.now(), life:420 });
-    sprites.splice(i,1);
+    sprites.splice(i,1); // vanish
   }
 
-  // ======= Render loop
-  let raf=0, lastT=0, loopRunning=false;
-  function startLoop(){
-    if(loopRunning) return;
-    loopRunning=true;
-    lastT=performance.now();
-    raf=requestAnimationFrame(tick);
-    if(!spritesReady) preloadSprites();
-    scheduleSpawn(performance.now());
-  }
-  function stopLoop(){ loopRunning=false; cancelAnimationFrame(raf); }
-
+  /* ---------- Render loop ---------- */
+  function startLoop(){ if(looping) return; looping=true; lastT=performance.now(); raf=requestAnimationFrame(tick); scheduleSpawn(performance.now()); }
+  function stopLoop(){ looping=false; cancelAnimationFrame(raf); }
   function tick(){
-    if(!loopRunning) return;
+    if(!looping) return;
     const now=performance.now();
     const dt=Math.min((now-lastT)/1000, 0.05);
     lastT=now;
 
-    // Clear to transparent so CSS sky shows. (localStorage & rAF used elsewhere) :contentReference[oaicite:6]{index=6}
-    ctx.clearRect(0,0,state.cw,state.ch);
+    ctx.clearRect(0,0,view.cw,view.ch);
 
     if(!isPaused() && now>=nextSpawnAt){ spawnSprite(); scheduleSpawn(now); }
 
+    // draw sprites behind bolts
     for(let i=sprites.length-1;i>=0;i--){
       const s=sprites[i];
       s.vy += DIFF.g*dt; s.x += s.vx*dt; s.y += s.vy*dt; s.rot += s.vx*dt*0.002;
       ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(Math.atan2(s.vy,s.vx)+s.rot);
       ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
-      if(s.spriteIndex>=0 && SPRITES[s.spriteIndex]){
+      if (s.spriteIndex>=0 && SPRITES[s.spriteIndex]){
         const {img,ratio}=SPRITES[s.spriteIndex]; const w=s.size,h=w/ratio;
         ctx.drawImage(img,-w/2,-h/2,w,h);
       } else { const r=s.size*0.5; ctx.fillStyle='#333'; ctx.strokeStyle='#bbb'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke(); }
       ctx.restore();
 
-      const off=(s.y - s.size/2 > state.ch + 120) || (s.x < -160) || (s.x > state.cw + 160);
+      const off = (s.y - s.size/2 > view.ch + 120) || (s.x < -160) || (s.x > view.cw + 160);
       if(off){ if(!s.hit) addToMeter(-STEP_SPRITE); sprites.splice(i,1); }
     }
 
+    // rings
     for(let i=rings.length-1;i>=0;i--){
       const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
       const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
@@ -2831,6 +2835,7 @@ renderGenHr();
       if(k>=1) rings.splice(i,1);
     }
 
+    // bolts
     for(let i=bolts.length-1;i>=0;i--){
       const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
       let pulse=0; for(const p of b.pulses){ const d=Math.abs(age-p); if(d<70) pulse+=1-d/70; }
@@ -2838,47 +2843,91 @@ renderGenHr();
       if(t>=1) bolts.splice(i,1);
     }
 
-    raf=requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
   }
 
-  function drawBolt(corePts, power, fade, pulseBoost){
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowBlur=18+30*power; ctx.shadowColor='rgba(120,170,255,1)';
-    ctx.strokeStyle=`rgba(120,170,255,${0.06*power*fade})`;
-    ctx.lineWidth=16*power; strokeRecursive(corePts); ctx.restore();
+  /* ---------- Overlay tick: add the extra half so total = 2× ---------- */
+  let overlayTickId = 0;
+  function startBoostOverlayTick(){ stopBoostOverlayTick(); doOverlayTick(); overlayTickId = setInterval(doOverlayTick, 1000); }
+  function stopBoostOverlayTick(){ if (overlayTickId) clearInterval(overlayTickId); overlayTickId=0; }
+  function loadOverlayAcc(){ try { return BigInt(localStorage.getItem(KEYS.OVERLAY_ACC) || '0'); } catch { return 0n; } }
+  function saveOverlayAcc(v){ localStorage.setItem(KEYS.OVERLAY_ACC, v.toString()); }
 
-    const alpha = Math.min(1, 0.95*fade + 0.55*pulseBoost);
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowBlur=10 + 10*power*(1+0.2*pulseBoost);
-    ctx.shadowColor='rgba(165,215,255,1)';
-    ctx.strokeStyle=`rgba(190,235,255,${alpha})`;
-    ctx.lineWidth=(2.2*power) * (1 + 0.25*pulseBoost); strokeRecursive(corePts); ctx.restore();
+  function doOverlayTick(){
+    if(!isBoostActive()) { stopBoostOverlayTick(); return; }
+    if(!window.state) return; // wait for app bootstrap
 
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.strokeStyle=`rgba(150,120,255,${0.18*fade})`;
-    ctx.lineWidth=6*power; strokeRecursive(corePts); ctx.restore();
-  }
-  function strokeRecursive(pts){
-    ctx.beginPath(); let started=false;
-    for(let i=0;i<pts.length;i++){
-      const p=pts[i]; if(p.branch){ strokeRecursive(p.branch); continue; }
-      if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
-    } ctx.stroke();
-  }
-  function flash(power){
-    const el=document.createElement('div'); el.className='tz-flash';
-    el.style.opacity = Math.min(.6, .28 + .14*power);
-    winEl.appendChild(el); setTimeout(()=>el.remove(), 70 + power*50);
-    winEl.animate([{transform:'translate(0,0)'},{transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},{transform:'translate(0,0)'}], {duration:160+power*60,iterations:1});
+    const baseGen = window.state.gen || 0n; // BigInt baseline from your app
+    // We add baseGen/3600 per second using an accumulator measured in "gen-seconds"
+    let acc = loadOverlayAcc(); acc += baseGen;
+    const gain = acc / 3600n;
+    if (gain > 0n){
+      window.state.chads = (window.state.chads || 0n) + gain;
+      acc -= gain * 3600n; saveOverlayAcc(acc);
+      try { window.saveStateLocal(window.state); } catch{}
+      if (typeof window.refreshUI === 'function') window.refreshUI();
+    } else saveOverlayAcc(acc);
   }
 
-  // utils
-  function rand(min,max){ return min + Math.random()*(max-min); }
+  /* ---------- Double the displayed gen/hr number while active ---------- */
+  let genNode = null;
+  function findGenNode(){
+    genNode = document.querySelector('[data-role="gen-hr"]'); // add this hook in your UI for precision
+    if (genNode) return;
+    // fallback heuristic (label + number sibling)
+    const all = Array.from(document.querySelectorAll('div,span,b,strong,p,h1,h2,h3,h4'));
+    for (const el of all){
+      const txt=(el.textContent||'').toLowerCase();
+      if (txt.includes('generation / hr')){
+        const parent = el.parentElement || el;
+        for (const child of parent.children){
+          if (child===el) continue;
+          const t=(child.textContent||'').trim().replace(/[, ]/g,'');
+          if (/^\d+$/.test(t)) { genNode = child; return; }
+        }
+      }
+    }
+  }
+  function updateGenHrLabel(){
+    if (!window.state) return;
+    if (!genNode) findGenNode();
+    if (!genNode) return;
+    const base = window.state.gen || 0n;
+    const eff  = isBoostActive() ? (base*2n) : base;
+    genNode.textContent = fmt(eff);
+  }
+  setInterval(updateGenHrLabel, 1000);
+  window.addEventListener('chad:boost-change', updateGenHrLabel);
+  window.addEventListener('chad:cooldown-change', updateGenHrLabel);
+  window.addEventListener('storage', (e)=>{ if (e.key===KEYS.BOOST_UNTIL||e.key===KEYS.COOLDOWN_UNTIL) updateGenHrLabel(); });
+
+  /* ---------- Hooks & reconciliation ---------- */
+  function startTimers(){ updateTimers(); clearInterval(timersId); timersId=setInterval(updateTimers, 1000); }
+  function stopTimers(){ clearInterval(timersId); }
+
+  whenStateReady(()=>{
+    // Ensure refreshUI also refreshes gen/hr display
+    const oldRefresh = window.refreshUI;
+    window.refreshUI = function(){
+      if (typeof oldRefresh === 'function') oldRefresh();
+      updateGenHrLabel();
+    };
+    // Start/stop overlay tick as needed on load
+    if (isBoostActive()) startBoostOverlayTick(); else { stopBoostOverlayTick(); saveOverlayAcc(0n); }
+    updateGenHrLabel();
+  });
+
+  /* ---------- Utils shared by renderer ---------- */
+  function fmtHMS(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return `${h}:${m}:${sec}`; }
+
+  // rings store (declared here to avoid TDZ)
+  const rings=[];
+
+  /* ---------- Drawing helpers reused above ---------- */
+  function strokeRecursive(pts){ ctx.beginPath(); let started=false; for(let i=0;i<pts.length;i++){ const p=pts[i]; if(p.branch){ strokeRecursive(p.branch); continue; } if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);} ctx.stroke(); }
 
 })();
+
 (function(){
   'use strict';
 
