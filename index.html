@@ -6,6 +6,96 @@
 <title>ChadiliZe — Telegram Mini App</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
+/* Modal shell */
+.thunder-modal {
+  position: fixed;
+  inset: 0;
+  display: none;            /* toggled via [open] */
+  z-index: 9999;
+}
+.thunder-modal[open] { display: block; }
+
+.thunder-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(2px);
+}
+
+.thunder-window {
+  position: absolute;
+  inset: 8% 5% 12% 5%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: #0b0e17;      /* neon-friendly dark */
+  box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  overflow: hidden;
+}
+
+.thunder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #121827 0%, #0b0e17 100%);
+  color: #cfe7ff;
+  font-weight: 700;
+  letter-spacing: .2px;
+  border-bottom: 1px solid rgba(120,170,255,.15);
+}
+
+.thunder-close {
+  all: unset;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(120,170,255,.09);
+  color: #dbeafe;
+}
+.thunder-close:active { transform: scale(.98); }
+
+/* Canvas takes the space */
+#thunder-canvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Prevent the page from scrolling while drawing (mobile) */
+  touch-action: none;              /* stops UA panning/zooming */
+  overscroll-behavior: contain;    /* trap scroll here */
+  background: radial-gradient(1200px 800px at 50% 65%, #0f1629 0%, #0b0e17 60%, #070a12 100%);
+  image-rendering: pixelated;
+}
+
+.thunder-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, .8);
+  color: #cfe7ff;
+  font-size: 12px;
+  border: 1px solid rgba(120,170,255,.18);
+  pointer-events: none;
+}
+
+/* brief flash element appended dynamically */
+.thunder-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(170,210,255,.7) 0%, rgba(170,210,255,0) 60%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .thunder-window { scroll-behavior: auto; }
+}
+
 :root{
 
   /* Space below the rectangle so it sits right ABOVE your "Get Rewards" row */
@@ -1424,6 +1514,24 @@ canvas{ display:block }
 
 
 
+<!-- Thunder Modal -->
+<div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Thunder Lab">
+  <div class="thunder-backdrop" data-close></div>
+  <div class="thunder-window">
+    <header class="thunder-header">
+      <span>⚡ Lightning Lab</span>
+      <button class="thunder-close" aria-label="Close">✕</button>
+    </header>
+
+    <!-- Play surface -->
+    <canvas id="thunder-canvas" aria-label="Lightning canvas"></canvas>
+
+    <div class="thunder-hint">
+      Tap = bolt • Hold = charged
+    </div>
+  </div>
+</div>
+
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
 <div><div id="inviteBtnWrap" class="luck-btn-wrap">
@@ -2203,6 +2311,246 @@ canvas{ display:block }
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+(() => {
+  // Hook your existing Thunderbolt button
+  const openBtn = document.querySelector('[data-id="thunder"]');
+  if (!openBtn) return; // button not on this page
+
+  const modal   = document.getElementById('thunder-modal');
+  const canvas  = document.getElementById('thunder-canvas');
+  const ctx     = canvas.getContext('2d');
+  const closeBtn = modal.querySelector('.thunder-close');
+  const backdrop = modal.querySelector('.thunder-backdrop');
+  const winEl    = modal.querySelector('.thunder-window');
+
+  // ——— Modal open/close ———
+  function openModal() {
+    modal.setAttribute('open', '');
+    document.body.style.overflow = 'hidden';       // lock page scroll
+    resizeCanvas();
+  }
+  function closeModal() {
+    modal.removeAttribute('open');
+    document.body.style.overflow = '';
+    // clear residual drawing
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ——— Canvas sizing (retina-friendly) ———
+  const ro = new ResizeObserver(resizeCanvas);
+  ro.observe(canvas);
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr  = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.max(2, Math.round(rect.width * dpr));
+    canvas.height = Math.max(2, Math.round(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
+  }
+
+  // ——— Input: tap = bolt, hold = charge ———
+  let charging = false;
+  let chargeStart = 0;
+  let lastPoint = { x: 0, y: 0 };
+  let animId;
+
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    charging = true;
+    chargeStart = performance.now();
+    lastPoint = getPos(e);
+    drawChargeLoop(); // show pulsing ring while holding
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (charging) lastPoint = getPos(e);
+  });
+
+  function endCharge(e) {
+    if (!charging) return;
+    canvas.releasePointerCapture(e.pointerId);
+    charging = false;
+    cancelAnimationFrame(animId);
+    const heldMs = performance.now() - chargeStart;
+    const power = 1 + Math.min(heldMs / 800, 2.5); // ~1..3.5x
+    strike(lastPoint, power);
+  }
+
+  canvas.addEventListener('pointerup', endCharge);
+  canvas.addEventListener('pointercancel', endCharge);
+  canvas.addEventListener('pointerleave', (e) => { if (charging) endCharge(e); });
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  // ——— Charging ring animation ———
+  function drawChargeLoop() {
+    if (!charging) return;
+    const now = performance.now();
+    const power = 1 + Math.min((now - chargeStart) / 800, 2.5);
+
+    // soft fade to keep afterglow trails
+    ctx.fillStyle = 'rgba(8, 11, 18, 0.12)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = 'rgba(130,180,255,1)';
+    ctx.shadowBlur = 12 + power * 18;
+    ctx.beginPath();
+    ctx.arc(lastPoint.x, lastPoint.y, 16 + 10 * power, 0, Math.PI * 2);
+    ctx.lineWidth = 2 + power * 0.8;
+    ctx.strokeStyle = 'rgba(140,190,255,0.95)';
+    ctx.stroke();
+    ctx.restore();
+
+    animId = requestAnimationFrame(drawChargeLoop);
+  }
+
+  // ——— Lightning physics (stochastic leader with branching) ———
+  function strike(origin, power = 1) {
+    flash(power);
+
+    // number of initial leaders
+    const seeds = Math.round(2 + power * 2);
+
+    for (let i = 0; i < seeds; i++) {
+      const angle  = Math.random() * Math.PI * 2;
+      const length = 180 + power * 90 + Math.random() * 80;
+      const energy = (0.9 + Math.random() * 0.3) * power;
+      castArc(origin, angle, length, energy, power);
+    }
+  }
+
+  function castArc(origin, angle, length, energy, power) {
+    const points = [{ x: origin.x, y: origin.y }];
+
+    let dir = angle;
+    let remaining = length;
+    let branchCooldown = 0;
+
+    // step tuning
+    const baseStep = 8 * (0.85 + Math.random() * 0.3); // pixels
+    const jitter   = 0.55;                               // angular noise per step
+
+    while (remaining > 0 && energy > 0.12) {
+      const step = baseStep * (0.9 + Math.random() * 0.35) * (0.8 + 0.12 * power);
+      dir += (Math.random() - 0.5) * jitter;
+
+      const prev = points[points.length - 1];
+      const nx = prev.x + Math.cos(dir) * step;
+      const ny = prev.y + Math.sin(dir) * step;
+
+      points.push({ x: nx, y: ny });
+      remaining -= step;
+
+      // energy loss (resistive + path spreading)
+      energy *= 0.992;
+
+      // branch with probability scaled by energy & power
+      if (branchCooldown <= 0 && Math.random() < 0.18 * energy * (0.6 + 0.25 * power)) {
+        branchCooldown = 3; // avoid branching every step
+        const bAngle  = dir + (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 0.9);
+        const bLen    = length * 0.45 * (0.6 + Math.random() * 0.6);
+        const bEnergy = energy * 0.7;
+        castArc({ x: nx, y: ny }, bAngle, bLen, bEnergy, power * 0.9);
+      } else {
+        branchCooldown--;
+      }
+
+      // bail if out of bounds
+      if (nx < -24 || ny < -24 || nx > canvas.width + 24 || ny > canvas.height + 24) break;
+    }
+
+    drawArc(points, power);
+  }
+
+  function drawArc(points, power) {
+    // layered strokes: core + outer glow passes
+    const layers = 2 + Math.round(power);
+    for (let l = 0; l < layers; l++) {
+      const alpha = l === 0 ? 1 : 0.35 / (l);
+      const blur  = l === 0 ? 0 : 14 * l * power;
+      const width = (l === 0 ? 2.2 : 1.8) * power * (l === 0 ? 1.15 : (0.9 - 0.12 * l));
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineJoin = 'round';
+      ctx.lineCap  = 'round';
+      ctx.shadowBlur = blur;
+      ctx.shadowColor = 'rgba(130,180,255,1)';
+      ctx.strokeStyle = `rgba(170,210,255,${alpha})`;
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i];
+        ctx.lineTo(p.x, p.y);
+      }
+      ctx.lineWidth = Math.max(1, width);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // micro-sparks along the path for extra energy
+    if (power > 1) {
+      const sparks = Math.floor(12 * power);
+      for (let i = 0; i < sparks; i++) {
+        const p = points[(Math.random() * points.length) | 0];
+        spark(p.x, p.y, power);
+      }
+    }
+  }
+
+  function spark(x, y, power) {
+    const a = Math.random() * Math.PI * 2;
+    const d = 6 + Math.random() * 24 * power;
+    const nx = x + Math.cos(a) * d;
+    const ny = y + Math.sin(a) * d;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(nx, ny);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(180,220,255,0.85)';
+    ctx.shadowBlur  = 8 + 8 * power;
+    ctx.shadowColor = 'rgba(180,220,255,1)';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function flash(power) {
+    // dim previous trails slightly
+    ctx.fillStyle = 'rgba(5,7,12,0.10)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // quick screen flash
+    const flashEl = document.createElement('div');
+    flashEl.className = 'thunder-flash';
+    flashEl.style.opacity = Math.min(0.6, 0.25 + power * 0.15);
+    winEl.appendChild(flashEl);
+    setTimeout(() => flashEl.remove(), 60 + power * 40);
+
+    // subtle shake on impact
+    winEl.animate(
+      [
+        { transform: 'translate(0,0)' },
+        { transform: `translate(${(Math.random() * 2 - 1) * 4 * power}px, ${(Math.random() * 2 - 1) * 4 * power}px)` },
+        { transform: 'translate(0,0)' }
+      ],
+      { duration: 140 + power * 60, iterations: 1 }
+    );
+  }
+})();
 (function(){
   'use strict';
 
