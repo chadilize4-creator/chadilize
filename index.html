@@ -12,15 +12,15 @@
 .thunder-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(2px)}
 .thunder-window{position:absolute;inset:0;display:flex;flex-direction:column;background:#05070d;overflow:hidden}
 
-/* ---------- Fullscreen canvas ---------- */
+/* ---------- Fullscreen canvas with your cloudy sky texture ---------- */
 #thunder-canvas{
   flex:1;display:block;width:100%;height:100%;
   touch-action:none;               /* canvas handles touch */
   overscroll-behavior: contain;    /* keep parent from scrolling */
-  background:
-    radial-gradient(1200px 800px at 50% 62%, #0e1626 0%, #0b0f1a 60%, #06080f 100%),
-    radial-gradient(120vmax 80vmax at 70% 10%, rgba(255,255,255,.05), transparent 60%),
-    radial-gradient(120vmax 80vmax at 0% 90%, rgba(255,255,255,.04), transparent 60%);
+  background-image: url('img/cloudysky.png'); /* from your repo */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* ---------- HUD & Close ---------- */
@@ -42,7 +42,7 @@
   pointer-events:none;z-index:3
 }
 
-/* ---------- Bigger liquid meter (fills less per strike) ---------- */
+/* ---------- Bigger liquid meter (fills much slower now) ---------- */
 .liquid-meter{width:100%;display:flex;justify-content:center}
 .liquid-shell{
   position:relative;width:min(1024px,95vw);height:40px;border-radius:18px;
@@ -1500,7 +1500,6 @@ canvas{ display:block }
   </section>
 
 
-
 <!-- Fullscreen Lightning Lab -->
 <div id="thunder-modal" class="thunder-modal" aria-hidden="true" role="dialog" aria-label="Lightning Lab">
   <div class="thunder-backdrop" data-close></div>
@@ -1522,9 +1521,6 @@ canvas{ display:block }
     <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
-
-
-
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2377,15 +2373,15 @@ canvas{ display:block }
         if (++loaded === SPRITE_SOURCES.length) spritesReady = true;
       };
       img.onerror = () => { if (++loaded === SPRITE_SOURCES.length) spritesReady = true; };
-      img.src = src;
+      img.src = src; // same-origin; if moving to CDN later, set img.crossOrigin="anonymous" before src
     });
   }
 
-  /* ================= Meter (bigger bar, smaller gain) ================= */
-  let meterLevel = 0;                  // 0..1
-  const METER_STEP_NORMAL  = 0.012;    // 1×
-  const METER_STEP_CHARGED = 0.036;    // 3×
-  const METER_STEP_SPRITE  = 0.120;    // 10×
+  /* ================= Meter (MUCH slower fill now) ================= */
+  let meterLevel = 0;                   // 0..1
+  const METER_STEP_NORMAL  = 0.003;     // 1×  (was higher)
+  const METER_STEP_CHARGED = 0.009;     // 3×
+  const METER_STEP_SPRITE  = 0.030;     // 10×
 
   function addToMeter(amount){
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
@@ -2406,7 +2402,7 @@ canvas{ display:block }
     canvas.setPointerCapture?.(e.pointerId);
     const p = getXY(e);
 
-    // If tap hits a sprite (spider/bee), smite instantly (no charging)
+    // If tap hits a sprite, smite instantly (no charging)
     const idx = findSpriteIndexAt(p.x, p.y);
     if (idx >= 0){
       smiteSpriteAtIndex(idx); // vanish immediately
@@ -2514,12 +2510,12 @@ canvas{ display:block }
   /* ================= Sprite targets (NORMAL difficulty) ================= */
   const sprites = [];
   const DIFF = {
-    spawnMin: 1400,  // ms (less frequent than hard)
+    spawnMin: 1400,  // ms
     spawnMax: 3000,  // ms
-    g: 1800,         // px/s^2 gravity (softer)
-    vxMin: -240, vxMax: 240,    // px/s (slower sideways)
-    vyMin: -1400, vyMax: -1100, // px/s upward (a bit gentler)
-    sizeMin: 48, sizeMax: 66    // larger targets
+    g: 1800,         // px/s^2 gravity
+    vxMin: -240, vxMax: 240,    // px/s
+    vyMin: -1400, vyMax: -1100, // px/s
+    sizeMin: 48, sizeMax: 66    // bigger targets
   };
   let nextSpawnAt = 0;
 
@@ -2550,7 +2546,7 @@ canvas{ display:block }
   }
 
   /* ================= Render loop ================= */
-  let raf=0, lastT=0;
+  let raf=0, lastT=0, nextSpawnAtTimer=0;
   function startRender(){ cancelAnimationFrame(raf); lastT=performance.now(); raf=requestAnimationFrame(render); }
   function stopRender(){ cancelAnimationFrame(raf); }
 
@@ -2649,7 +2645,7 @@ canvas{ display:block }
     ctx.stroke();
   }
 
-  // draw sprites in ORIGINAL color (no additive blend, no tint)
+  // draw sprites in original color (no tint)
   function drawSprite(s){
     ctx.save();
     ctx.translate(s.x, s.y);
@@ -2660,7 +2656,7 @@ canvas{ display:block }
     if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]){
       const {img, ratio} = SPRITES[s.spriteIndex];
       const w = s.size; const h = w/ratio;
-      ctx.drawImage(img, -w/2, -h/2, w, h); // draw as-is
+      ctx.drawImage(img, -w/2, -h/2, w, h);  // standard drawImage usage
     } else {
       // simple placeholder until images decode
       const r = s.size*0.5;
