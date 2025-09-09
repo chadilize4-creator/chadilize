@@ -17,13 +17,13 @@
   flex:1;display:block;width:100%;height:100%;
   touch-action:none;               /* let canvas handle touch */
   overscroll-behavior: contain;    /* keep parent from scrolling */
+  position:relative;
   background:
     radial-gradient(1200px 800px at 50% 62%, #0e1626 0%, #0b0f1a 60%, #06080f 100%),
     radial-gradient(120vmax 80vmax at 70% 10%, rgba(255,255,255,.05), transparent 60%),
     radial-gradient(120vmax 80vmax at 0% 90%, rgba(255,255,255,.04), transparent 60%);
-  position:relative;
 }
-#thunder-canvas::after{ /* subtle vignette */
+#thunder-canvas::after{ /* subtle vignette overlay */
   content:""; position:absolute; inset:-1px;
   pointer-events:none;
   background: radial-gradient(90% 70% at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,.45) 100%);
@@ -31,12 +31,12 @@
 
 /* ---------- HUD & Close ---------- */
 .thunder-hud{
-  position:absolute;top:0;left:0;right:0;height:78px;
+  position:absolute;top:0;left:0;right:0;height:88px;
   display:flex;align-items:center;justify-content:center;
-  padding:10px 64px; pointer-events:none; z-index:3;
+  padding:12px 72px; pointer-events:none; z-index:3;
 }
 .thunder-close{
-  position:absolute;top:12px;right:12px;z-index:4;
+  position:absolute;top:14px;right:14px;z-index:4;
   all:unset;cursor:pointer;padding:10px 14px;border-radius:14px;
   background:rgba(120,170,255,.12);color:#e5f0ff;font-weight:800;
   border:1px solid rgba(120,170,255,.28);backdrop-filter:blur(6px);pointer-events:auto;
@@ -48,10 +48,10 @@
   pointer-events:none;z-index:3
 }
 
-/* ---------- Bigger Liquid meter ---------- */
+/* ---------- Bigger Liquid meter (fills less per strike) ---------- */
 .liquid-meter{width:100%;display:flex;justify-content:center}
 .liquid-shell{
-  position:relative;width:min(920px,94vw);height:32px;border-radius:16px;
+  position:relative;width:min(1024px,95vw);height:40px;border-radius:18px;
   border:1px solid rgba(255,255,255,.18);
   background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
   overflow:hidden;box-shadow:
@@ -68,7 +68,6 @@
   transition:width .34s cubic-bezier(.3,.9,.2,1);
   overflow:hidden;
 }
-/* waves inside liquid */
 .liquid-fill::before,
 .liquid-fill::after{
   content:"";position:absolute;inset:-40% -5% -50% -5%;
@@ -82,10 +81,8 @@
 @keyframes slosh{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .liquid-bump .liquid-fill::before,
 .liquid-bump .liquid-fill::after{animation-duration:3.3s}
-
-/* glass highlight */
 .liquid-glass{
-  pointer-events:none;position:absolute;inset:0;border-radius:16px;
+  pointer-events:none;position:absolute;inset:0;border-radius:18px;
   background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),
              linear-gradient(0deg, rgba(255,255,255,.06), transparent);
 }
@@ -1533,9 +1530,10 @@ canvas{ display:block }
 
     <!-- Play surface -->
     <canvas id="thunder-canvas" aria-label="Lightning canvas"></canvas>
-    <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap the spider for 10×</div>
+    <div class="thunder-hint">Tap = bolt • Hold (auto 2s) = charged • Tap a spider/bee for 10×</div>
   </div>
 </div>
+
 
 
 
@@ -2338,11 +2336,13 @@ canvas{ display:block }
   const fill     = hud.querySelector('.liquid-fill');
 
   // ================= Modal open/close =================
+  let assetsReady = false;
   function openModal(){
     modal.setAttribute('open','');
     document.body.style.overflow='hidden';
-    resizeCanvas(); startRender();
-    scheduleNextSpider(performance.now());
+    resizeCanvas();
+    if (!assetsReady) loadSprites().then(() => { assetsReady = true; scheduleNextSpider(performance.now()); startRender(); });
+    else { scheduleNextSpider(performance.now()); startRender(); }
   }
   function closeModal(){
     modal.removeAttribute('open');
@@ -2365,11 +2365,30 @@ canvas{ display:block }
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
+  // ================= Assets: sprite images =================
+  const SPRITE_SOURCES = [
+    'img/spider1.png',
+    'img/spider2.png',
+    'img/spider3.png',
+    'img/bee.png'
+  ];
+  const SPRITES = []; // {img, ratio}
+  function loadSprites(){
+    const promises = SPRITE_SOURCES.map(src => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.decoding = 'async'; // hint to decode off-thread
+      img.onload = () => resolve({img, ratio: img.naturalWidth && img.naturalHeight ? (img.naturalWidth / img.naturalHeight) : 1});
+      img.onerror = reject;
+      img.src = src; // same-origin repo path
+    }));
+    return Promise.all(promises).then(list => { SPRITES.push(...list); });
+  }
+
   // ================= Meter logic (bigger bar, smaller gain) =================
-  let meterLevel = 0;                 // 0..1
-  const METER_STEP_NORMAL  = 0.02;    // small fill per tap
-  const METER_STEP_CHARGED = 0.06;    // 3× normal
-  const METER_STEP_SPIDER  = 0.20;    // 10× normal
+  let meterLevel = 0;                  // 0..1
+  const METER_STEP_NORMAL  = 0.012;    // 1× (smaller per strike)
+  const METER_STEP_CHARGED = 0.036;    // 3×
+  const METER_STEP_SPIDER  = 0.120;    // 10×
 
   function addToMeter(amount){
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
@@ -2390,10 +2409,10 @@ canvas{ display:block }
     canvas.setPointerCapture(e.pointerId);
     const p = xy(e);
 
-    // If tap hits a spider, smite it immediately (no charging)
-    const hit = findSpiderAt(p.x, p.y);
+    // If tap hits a sprite target (spider/bee), smite instantly (no charging)
+    const hit = findSpriteAt(p.x, p.y);
     if (hit){
-      smiteSpider(hit);
+      smiteSprite(hit);
       return;
     }
 
@@ -2442,7 +2461,7 @@ canvas{ display:block }
   // ================= Lightning model =================
   const bolts=[]; const rings=[];
 
-  function clearScene(){ bolts.length=0; rings.length=0; spiders.length=0; ctx.clearRect(0,0,canvas.width,canvas.height); }
+  function clearScene(){ bolts.length=0; rings.length=0; sprites.length=0; ctx.clearRect(0,0,canvas.width,canvas.height); }
 
   function strike(origin, power=1, charged=false){
     flash(power);
@@ -2459,8 +2478,7 @@ canvas{ display:block }
     const born = performance.now();
     const life = 3000; // fade-out target (~3s)
     const core = growPath(origin, angle, length, 0, power, Math.random()*100);
-    // return-stroke flicker timings (simulating dart leaders)
-    const pulses = [0, 45, 95]; if (charged) pulses.push(150);
+    const pulses = [0, 45, 95]; if (charged) pulses.push(150); // flicker bursts
     return { core, born, life, power, charged, pulses };
   }
 
@@ -2496,42 +2514,42 @@ canvas{ display:block }
     return pts;
   }
 
-  // ================= Spider toss targets (hard) =================
-  const spiders = [];
+  // ================= Sprite targets (spiders/bee) =================
+  const sprites = [];
   const DIFF = {
-    spawnMin: 1200,  // ms
-    spawnMax: 2400,  // ms
-    g: 2200,         // px/s^2 gravity
-    vxMin: -320, vxMax: 320, // px/s
-    vyMin: -1600, vyMax: -1200, // px/s upward
-    rMin: 12, rMax: 18
+    spawnMin: 900,  // ms (harder = more frequent)
+    spawnMax: 1800, // ms
+    g: 2400,        // px/s^2 gravity
+    vxMin: -360, vxMax: 360,         // px/s
+    vyMin: -1700, vyMax: -1300,      // px/s upward
+    rMin: 18, rMax: 26                // visual size (radius-ish)
   };
-  let nextSpiderAt = 0;
+  let nextSpriteAt = 0;
 
-  function scheduleNextSpider(now){ nextSpiderAt = now + rand(DIFF.spawnMin, DIFF.spawnMax); }
-  function spawnSpider(){
+  function scheduleNextSpider(now){ nextSpriteAt = now + rand(DIFF.spawnMin, DIFF.spawnMax); }
+  function spawnSprite(){
+    if (!SPRITES.length) return; // assets not ready yet
     const side = Math.random()<0.5 ? 0 : canvas.width;
-    const x = side===0 ? -20 : canvas.width+20;
+    const x = side===0 ? -30 : canvas.width+30;
     const y = canvas.height + 10;
     const vx = (side===0 ? 1 : -1) * rand(Math.abs(DIFF.vxMin), DIFF.vxMax);
     const vy = rand(DIFF.vyMin, DIFF.vyMax);
     const r  = rand(DIFF.rMin, DIFF.rMax);
-    spiders.push({ x,y,vx,vy,r,rot:0,alive:true,spawn:performance.now() });
+    const idx = (Math.random()*SPRITES.length)|0; // pick a random sprite image
+    sprites.push({ x,y,vx,vy,r,rot:0,alive:true,spawn:performance.now(), spriteIndex: idx, fade:1 });
   }
-  function findSpiderAt(x,y){
-    // search topmost (last)
-    for(let i=spiders.length-1;i>=0;i--){
-      const s=spiders[i]; if(!s.alive) continue;
-      const dx=x-s.x, dy=y-s.y; if(dx*dx+dy*dy <= s.r*s.r*1.1*1.1) return s;
+  function findSpriteAt(x,y){
+    for(let i=sprites.length-1;i>=0;i--){
+      const s=sprites[i]; if(!s.alive) continue;
+      const dx=x-s.x, dy=y-s.y; if(dx*dx+dy*dy <= (s.r*1.05)*(s.r*1.05)) return s;
     }
     return null;
   }
-  function smiteSpider(s){
-    s.alive=false;
-    strike({x:s.x,y:s.y}, 2.2, true); // strong bolt
-    addToMeter(METER_STEP_SPIDER);    // 10×
-    // small ring bonus
-    rings.push({ x:s.x,y:s.y, r:4, maxR: 120, born: performance.now(), life: 420 });
+  function smiteSprite(s){
+    s.alive=false; s.fade=1;
+    strike({x:s.x,y:s.y}, 2.4, true); // strong bolt
+    addToMeter(METER_STEP_SPIDER);     // 10×
+    rings.push({ x:s.x,y:s.y, r:4, maxR: 130, born: performance.now(), life: 420 });
   }
 
   // ================= Render loop =================
@@ -2547,20 +2565,25 @@ canvas{ display:block }
     // subtle persistence for trails
     ctx.fillStyle='rgba(6,8,12,0.10)'; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // spawn spiders
-    if(now >= nextSpiderAt){ spawnSpider(); scheduleNextSpider(now); }
+    // spawn sprites
+    if(now >= nextSpriteAt){ spawnSprite(); scheduleNextSpider(now); }
 
-    // update & draw spiders (behind bolts)
-    for(let i=spiders.length-1;i>=0;i--){
-      const s=spiders[i];
-      if(!s.alive && now - s.spawn > 600) { spiders.splice(i,1); continue; }
-      s.vy += DIFF.g*dt; s.x += s.vx*dt; s.y += s.vy*dt; s.rot += s.vx*dt*0.02;
+    // update & draw sprites (behind bolts)
+    for(let i=sprites.length-1;i>=0;i--){
+      const s=sprites[i];
 
-      drawSpider(s);
+      // physics
+      s.vy += DIFF.g*dt; s.x += s.vx*dt; s.y += s.vy*dt; s.rot += s.vx*dt*0.002;
+
+      // draw
+      drawSprite(s);
+
+      // fade out dead ones
+      if(!s.alive){ s.fade -= dt*2; if(s.fade<=0){ sprites.splice(i,1); continue; } }
 
       // remove off-screen
-      if(s.y - s.r > canvas.height + 80 || s.x < -120 || s.x > canvas.width + 120){
-        spiders.splice(i,1);
+      if(s.y - s.r > canvas.height + 120 || s.x < -160 || s.x > canvas.width + 160){
+        sprites.splice(i,1);
       }
     }
 
@@ -2576,10 +2599,11 @@ canvas{ display:block }
       if(k>=1) rings.splice(i,1);
     }
 
-    // bolts (with ~3s lifetime + flicker pulses)
+    // bolts
     for(let i=bolts.length-1;i>=0;i--){
       const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
 
+      // return-stroke flicker
       let pulseBoost=0;
       for(const p of b.pulses){
         const dtp = Math.abs(age - p);
@@ -2593,7 +2617,7 @@ canvas{ display:block }
     raf=requestAnimationFrame(render);
   }
 
-  function drawBolt(corePts, power, fade, pulseBoost, charged){
+  function drawBolt(corePts, power, fade, pulseBoost){
     // corona / outer halo
     ctx.save();
     ctx.globalCompositeOperation='lighter';
@@ -2646,12 +2670,10 @@ canvas{ display:block }
     }
     ctx.stroke();
   }
-
   function randomPoint(pts){
     const pool=[]; for(const p of pts){ if(!p.branch) pool.push(p); }
     if(!pool.length) return null; return pool[(Math.random()*pool.length)|0];
   }
-
   function spark(x,y,scale){
     const a = Math.random()*Math.PI*2;
     const d = 4 + Math.random()*18*scale;
@@ -2661,7 +2683,6 @@ canvas{ display:block }
     ctx.lineWidth=1; ctx.strokeStyle=`rgba(190,235,255,${0.6+0.4*Math.random()})`;
     ctx.shadowBlur=8+12*scale; ctx.shadowColor='rgba(190,235,255,1)'; ctx.stroke(); ctx.restore();
   }
-
   function flash(power){
     const flashEl=document.createElement('div');
     flashEl.className='thunder-flash';
@@ -2674,45 +2695,22 @@ canvas{ display:block }
     );
   }
 
-  // simple spider drawing (silhouette with glow)
-  function drawSpider(s){
-    const a = Math.atan2(s.vy, s.vx) + s.rot*0.02;
+  // draw a sprite image with rotation & scale from r
+  function drawSprite(s){
+    const {img, ratio} = SPRITES[s.spriteIndex];
+    const w = s.r*2;                 // fit width to 2r
+    const h = w/ratio;               // keep aspect
+    const angle = Math.atan2(s.vy, s.vx) + s.rot;
+
     ctx.save();
     ctx.translate(s.x, s.y);
-    ctx.rotate(a);
+    ctx.rotate(angle);
+    ctx.globalAlpha = s.fade;
 
-    // glow
-    ctx.globalCompositeOperation='lighter';
-    ctx.shadowBlur = 8; ctx.shadowColor='rgba(180,200,255,.35)';
+    // a faint glow around sprite to make taps readable
+    ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(180,200,255,.35)';
 
-    // body
-    ctx.fillStyle = 'rgba(10,10,14,1)';
-    ctx.strokeStyle = 'rgba(210,220,255,.5)';
-    ctx.lineWidth = 1;
-
-    // abdomen
-    ctx.beginPath();
-    ctx.ellipse(0, 0, s.r*0.9, s.r*1.1, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-
-    // cephalothorax
-    ctx.beginPath();
-    ctx.ellipse(-s.r*0.9, -s.r*0.05, s.r*0.45, s.r*0.55, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
-
-    // legs
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(210,220,255,.4)';
-    const L = s.r*0.9;
-    ctx.beginPath();
-    for(let i=-1;i<=1;i+=2){
-      ctx.moveTo(-s.r*0.5, 0); ctx.lineTo(-s.r*0.5 + i*L*0.7, -L*0.3);
-      ctx.moveTo(-s.r*0.3,  s.r*0.3); ctx.lineTo(-s.r*0.3 + i*L*0.8,  s.r*0.6);
-      ctx.moveTo(-s.r*0.2, -s.r*0.35); ctx.lineTo(-s.r*0.2 + i*L*0.9, -s.r*0.8);
-      ctx.moveTo( s.r*0.3,   0); ctx.lineTo( s.r*0.3 + i*L*0.9,  L*0.1);
-    }
-    ctx.stroke();
-
+    ctx.drawImage(img, -w/2, -h/2, w, h); // MDN drawImage usage
     ctx.restore();
   }
 
