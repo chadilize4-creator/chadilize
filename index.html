@@ -32,10 +32,15 @@
 .tz-meter{width:100%;display:flex;justify-content:center}
 .tz-meter-shell{position:relative;width:min(1024px,95vw);height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), 0 6px 16px rgba(0,0,0,.35)}
 .tz-meter-fill{--level:0;position:absolute;left:0;bottom:0;height:100%;width:calc(var(--level)*100%);background:linear-gradient(180deg,#ff4747 0%,#d01010 60%,#960909 100%);filter:saturate(1.15);transition:width .34s cubic-bezier(.3,.9,.2,1)}
-.tz-meter-fill::before,.tz-meter-fill::after{content:"";position:absolute;inset:-40% -5% -50% -5%;background:radial-gradient(14px 8px at 16px 10px, rgba(255,255,255,.22), rgba(255,255,255,0) 60%) repeat-x, radial-gradient(10px 6px at 8px 6px, rgba(255,255,255,.16), rgba(255,255,255,0) 60%) repeat-x;mix-blend-mode:screen;opacity:.65;pointer-events:none;animation:tz-slosh 5.5s linear infinite}
+.tz-meter-fill::before,.tz-meter-fill::after{content:"";position:absolute;inset:-40% -5% -50% -5%;background:
+  radial-gradient(14px 8px at 16px 10px, rgba(255,255,255,.22), rgba(255,255,255,0) 60%) repeat-x,
+  radial-gradient(10px 6px at 8px 6px, rgba(255,255,255,.16), rgba(255,255,255,0) 60%) repeat-x;
+mix-blend-mode:screen;opacity:.65;pointer-events:none;animation:tz-slosh 5.5s linear infinite}
 .tz-meter-fill::after{opacity:.4;animation:tz-slosh 7.2s linear infinite reverse}
 @keyframes tz-slosh{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tz-meter-glass{pointer-events:none;position:absolute;inset:0;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),linear-gradient(0deg, rgba(255,255,255,.06), transparent)}
+.tz-meter-glass{pointer-events:none;position:absolute;inset:0;border-radius:18px;background:
+  linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),
+  linear-gradient(0deg, rgba(255,255,255,.06), transparent)}
 .tz-meter-bump .tz-meter-fill::before,.tz-meter-bump .tz-meter-fill::after{animation-duration:3.3s}
 
 /* ===== Boost button ===== */
@@ -1470,7 +1475,6 @@ canvas{ display:block }
 
 
 
-
 <div id="tz-thunder" class="tz-modal" hidden>
   <div class="tz-backdrop" data-close></div>
 
@@ -1506,6 +1510,7 @@ canvas{ display:block }
     <div class="tz-hint">Tap = bolt • Hold (≤2s) = charged • Tap spider/bee for 10×</div>
   </section>
 </div>
+
 
 
 
@@ -2291,8 +2296,10 @@ canvas{ display:block }
 <script>
 (() => {
   'use strict';
-  const root   = document.getElementById('tz-thunder');
-  if (!root) return;
+
+  // ---------- Basic DOM ----------
+  const root = document.getElementById('tz-thunder');
+  if (!root) return; // Nothing to do if container isn't present.
 
   const winEl  = root.querySelector('.tz-window');
   const canvas = root.querySelector('#tz-canvas');
@@ -2306,70 +2313,76 @@ canvas{ display:block }
   const cdTimerEl    = root.querySelector('#tz-cooldown-timer');
   const lockBanner   = root.querySelector('.tz-lock');
 
-  // Public opener & bind your thunder button (data-id="thunder")
+  // Public opener & bind any element with data-id="thunder"
   window.openThunderLab = openModal;
-  document.addEventListener('click', (e)=>{
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-id="thunder"]');
     if (btn) openModal();
   });
 
-  // ==== Helpers ====
-  const bi  = (x)=> (typeof x==='bigint' ? x : BigInt(x||0));
-  const fmt = (typeof window.fmt === 'function') ? window.fmt : (n)=> (typeof n==='bigint' ? n.toString() : String(n));
-  const whenStateReady = (cb)=>{
+  // ---------- Helpers ----------
+  const bi  = (x) => (typeof x === 'bigint' ? x : BigInt(x || 0));
+  const fmt = (typeof window.fmt === 'function')
+    ? window.fmt
+    : (n) => (typeof n === 'bigint' ? n.toString() : String(n));
+
+  const whenStateReady = (cb) => {
     if (window.state && typeof window.saveStateLocal === 'function') return cb();
-    const t=setInterval(()=>{ if (window.state && typeof window.saveStateLocal === 'function'){ clearInterval(t); cb(); } }, 60);
+    const t = setInterval(() => {
+      if (window.state && typeof window.saveStateLocal === 'function') {
+        clearInterval(t); cb();
+      }
+    }, 60);
   };
 
-  // ---------------------------------------------------------------------------
-  // Storage keys & durations  **WITH VERSIONING**  => reset on code update
-  // Bump BUILD_ID (e.g. 'dev-1' -> 'dev-2') to reset boost/cooldown/acc keys.
-  // Also includes optional dev helpers:
-  //   - DEV_ALWAYS_RESET: wipe every refresh while true
-  //   - window.resetThunderLabTimers(): manual reset (or use ?resetBoost=1)
-  // ---------------------------------------------------------------------------
-  const BUILD_ID = 'dev-1'; // ⬅️ bump this to reset timers after a code update
-  const DEV_ALWAYS_RESET = false; // set true while testing to reset on every refresh
-
+  // ---------- Keys & durations ----------
   const UID = (window.UID_HINT || 'guest');
-  const KEY_PREFIX = `tz_${BUILD_ID}_${UID}`;
-
   const KEYS = {
-    BOOST_UNTIL    : `${KEY_PREFIX}_boost_until`,
-    COOLDOWN_UNTIL : `${KEY_PREFIX}_cooldown_until`,
-    OVERLAY_ACC    : `${KEY_PREFIX}_acc`, // BigInt gen-seconds accumulator
+    BOOST_UNTIL    : `chad_boost_until_${UID}`,
+    COOLDOWN_UNTIL : `chad_boost_cooldown_until_${UID}`,
+    OVERLAY_ACC    : `chad_boost_acc_${UID}`, // BigInt gen-seconds accumulator
+    CODE_SIG       : `tz_code_sig_${UID}`,
   };
+  const DUR = { BOOST_MS: 5 * 60 * 60 * 1000, COOLDOWN_MS: 24 * 60 * 60 * 1000 };
 
-  if (DEV_ALWAYS_RESET) {
-    [KEYS.BOOST_UNTIL, KEYS.COOLDOWN_UNTIL, KEYS.OVERLAY_ACC].forEach(k => {
-      try { localStorage.removeItem(k); } catch {}
-    });
+  // ---------- Version signature (auto reset on code update) ----------
+  // Computes a simple signature from core function source lengths; if the code changes, reset boost/cooldown.
+  let _didSig = false;
+  function codeSignature() {
+    try {
+      return [
+        String(updateGenHrDisplay).length,
+        String(doOverlayTick).length,
+        String(startBoost).length,
+        String(strike).length
+      ].join(':');
+    } catch { return 'na'; }
+  }
+  function ensureVersionReset() {
+    if (_didSig) return;
+    const sig = codeSignature();
+    const prev = localStorage.getItem(KEYS.CODE_SIG) || '';
+    if (sig && prev && sig !== prev) {
+      // reset boost + cooldown + accumulator so testing starts fresh on update
+      localStorage.removeItem(KEYS.BOOST_UNTIL);
+      localStorage.removeItem(KEYS.COOLDOWN_UNTIL);
+      localStorage.removeItem(KEYS.OVERLAY_ACC);
+    }
+    localStorage.setItem(KEYS.CODE_SIG, sig);
+    _didSig = true;
   }
 
-  window.resetThunderLabTimers = function(){
-    [KEYS.BOOST_UNTIL, KEYS.COOLDOWN_UNTIL, KEYS.OVERLAY_ACC].forEach(k => {
-      try { localStorage.removeItem(k); } catch {}
-    });
-  };
-
-  if (new URLSearchParams(location.search).get('resetBoost') === '1') {
-    window.resetThunderLabTimers();
-  }
-
-  // Durations
-  const DUR = { BOOST_MS: 5*60*60*1000, COOLDOWN_MS: 24*60*60*1000 };
-
-  // View & loop
-  const view = { dpr:1, cw:0, ch:0 };
+  // ---------- View & loop ----------
+  const view = { dpr: 1, cw: 0, ch: 0 };
   const ro = new ResizeObserver(resizeCanvas);
-  let raf=0, loopOn=false, lastT=0, timersId=0, prevOverflow='';
+  let raf = 0, loopOn = false, lastT = 0, timersId = 0, prevOverflow = '';
 
-  // Gameplay state
-  let meterLevel=0;                 // 0..1
-  let pausedForFull=false;          // lock when meter hits 100%
-  const STEP_TAP=0.003, STEP_CHARGED=0.009, STEP_SPRITE=0.030;
+  // ---------- Gameplay state ----------
+  let meterLevel = 0;                 // 0..1
+  let pausedForFull = false;          // lock when meter hits 100%
+  const STEP_TAP = 0.003, STEP_CHARGED = 0.009, STEP_SPRITE = 0.030;
 
-  // Boost/cooldown state
+  // ---------- Boost/cooldown state ----------
   let boostUntil    = Number(localStorage.getItem(KEYS.BOOST_UNTIL) || 0);
   let cooldownUntil = Number(localStorage.getItem(KEYS.COOLDOWN_UNTIL) || 0);
   const isBoostActive    = () => boostUntil && Date.now() < boostUntil;
@@ -2377,7 +2390,7 @@ canvas{ display:block }
   const isPaused = () => pausedForFull || isBoostActive() || isCooldownActive();
 
   /* ---------- modal ---------- */
-  function openModal(){
+  function openModal() {
     prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     root.hidden = false;
@@ -2386,12 +2399,13 @@ canvas{ display:block }
     startLoop();
     ro.observe(canvas);
     winEl.focus();
+    ensureVersionReset();   // <-- auto reset on code change
     reconcileOnOpen();
     startTimers();
     updateBoostBtn();
     applyPauseUI();
   }
-  function closeModal(){
+  function closeModal() {
     stopLoop();
     stopTimers();
     ro.unobserve(canvas);
@@ -2400,46 +2414,46 @@ canvas{ display:block }
   }
   backdrop.addEventListener('click', closeModal);
   closeBtn.addEventListener('click', closeModal);
-  document.addEventListener('keydown', e=>{ if(!root.hidden && e.key==='Escape') closeModal(); });
+  document.addEventListener('keydown', (e) => { if (!root.hidden && e.key === 'Escape') closeModal(); });
 
   /* ---------- sky (robust path resolution) ---------- */
-  function applySky(){
+  function applySky() {
     const attr = winEl.getAttribute('data-sky') || 'img/cloudysky.png';
-    const tries = [attr, '/'+attr.replace(/^\.?\/*/,''), '/img/cloudysky.png', './img/cloudysky.png'];
-    (function next(i){
-      if (i>=tries.length) return;
-      const url=tries[i], img=new Image();
-      img.onload = ()=> { winEl.style.backgroundImage = `url("${url}")`; };
-      img.onerror= ()=> next(i+1);
+    const tries = [attr, '/' + attr.replace(/^\.?\/*/, ''), '/img/cloudysky.png', './img/cloudysky.png'];
+    (function next(i) {
+      if (i >= tries.length) return;
+      const url = tries[i], img = new Image();
+      img.onload = () => { winEl.style.backgroundImage = `url("${url}")`; };
+      img.onerror = () => next(i + 1);
       img.src = url;
     })(0);
   }
 
   /* ---------- sizing (DPR-aware) ---------- */
-  function resizeCanvas(){
+  function resizeCanvas() {
     const r = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
+    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     canvas.width  = Math.max(2, Math.round(r.width  * dpr));
     canvas.height = Math.max(2, Math.round(r.height * dpr));
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    view.dpr=dpr; view.cw=r.width; view.ch=r.height;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    view.dpr = dpr; view.cw = r.width; view.ch = r.height;
   }
 
   /* ---------- meter ---------- */
-  function updateMeter(bump){
-    meterFill.style.setProperty('--level', Math.max(0,Math.min(1,meterLevel)).toFixed(4));
-    if (bump){
+  function updateMeter(bump) {
+    meterFill.style.setProperty('--level', Math.max(0, Math.min(1, meterLevel)).toFixed(4));
+    if (bump) {
       meterShell.classList.add('tz-meter-bump');
       clearTimeout(updateMeter._t);
-      updateMeter._t = setTimeout(()=> meterShell.classList.remove('tz-meter-bump'), 420);
+      updateMeter._t = setTimeout(() => meterShell.classList.remove('tz-meter-bump'), 420);
     }
     applyPauseUI();
   }
-  function addToMeter(amount){
+  function addToMeter(amount) {
     if (isPaused()) return;
     meterLevel = Math.max(0, Math.min(1, meterLevel + amount));
     updateMeter(true);
-    if (meterLevel >= 1 && !pausedForFull){
+    if (meterLevel >= 1 && !pausedForFull) {
       pausedForFull = true;      // pause immediately at 100%
       updateBoostBtn();
       applyPauseUI();
@@ -2447,37 +2461,37 @@ canvas{ display:block }
   }
 
   /* ---------- boost & cooldown flow ---------- */
-  function startBoost(){
+  function startBoost() {
     boostUntil = Date.now() + DUR.BOOST_MS;
     localStorage.setItem(KEYS.BOOST_UNTIL, String(boostUntil));
-    pausedForFull=false; meterLevel=0; updateMeter(true);
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostBtn();
     fireBoostEvent(true);
     startOverlayTick();    // credit the missing half each second
     applyPauseUI();        // gameplay frozen during boost
     updateGenHrDisplay();  // show ×2 immediately
   }
-  function endBoostToCooldown(){
+  function endBoostToCooldown() {
     boostUntil = 0; localStorage.removeItem(KEYS.BOOST_UNTIL);
     fireBoostEvent(false);
     cooldownUntil = Date.now() + DUR.COOLDOWN_MS;
     localStorage.setItem(KEYS.COOLDOWN_UNTIL, String(cooldownUntil));
     fireCooldownEvent(true);
-    pausedForFull=false; meterLevel=0; updateMeter(true);
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostBtn();
     stopOverlayTick(); saveAcc(0n);
     applyPauseUI();
     updateGenHrDisplay(); // back to normal
   }
-  function clearCooldown(){
+  function clearCooldown() {
     cooldownUntil = 0; localStorage.removeItem(KEYS.COOLDOWN_UNTIL);
     fireCooldownEvent(false);
-    pausedForFull=false; meterLevel=0; updateMeter(true);
+    pausedForFull = false; meterLevel = 0; updateMeter(true);
     updateBoostBtn();
     applyPauseUI();
   }
-  function reconcileOnOpen(){
-    const now=Date.now();
+  function reconcileOnOpen() {
+    const now = Date.now();
     if (boostUntil && now >= boostUntil) { endBoostToCooldown(); }
     else if (cooldownUntil && now >= cooldownUntil) { clearCooldown(); }
     if (isBoostActive()) startOverlayTick(); else { stopOverlayTick(); saveAcc(0n); }
@@ -2485,283 +2499,293 @@ canvas{ display:block }
     updateGenHrDisplay();
   }
 
-  function updateBoostBtn(){
-    boostBtn.className='tz-boost';
-    boostBtn.disabled=true;
-    boostBtn.textContent='×2 boost generation/hr for 5 hours';
+  function updateBoostBtn() {
+    boostBtn.className = 'tz-boost';
+    boostBtn.disabled = true;
+    boostBtn.textContent = '×2 boost generation/hr for 5 hours';
     if (isCooldownActive()) return;
-    if (isBoostActive()){
+    if (isBoostActive()) {
       boostBtn.classList.add('active');
-      boostBtn.textContent='×2 boost ACTIVE – auto-ends';
+      boostBtn.textContent = '×2 boost ACTIVE – auto-ends';
       return;
     }
-    if (pausedForFull && meterLevel>=1){
+    if (pausedForFull && meterLevel >= 1) {
       boostBtn.classList.add('ready');
-      boostBtn.disabled=false;
-      boostBtn.textContent='Activate ×2 boost for 5 hours';
+      boostBtn.disabled = false;
+      boostBtn.textContent = 'Activate ×2 boost for 5 hours';
     }
   }
-  boostBtn.addEventListener('click', ()=>{ if(!boostBtn.disabled) startBoost(); });
+  boostBtn.addEventListener('click', () => { if (!boostBtn.disabled) startBoost(); });
 
   /* ---------- timers ---------- */
-  function startTimers(){ updateTimers(); clearInterval(timersId); timersId=setInterval(updateTimers,1000); }
-  function stopTimers(){ clearInterval(timersId); }
-  function updateTimers(){
-    const now=Date.now();
-    if (isBoostActive()){
-      const left=boostUntil-now; if (left<=0){ endBoostToCooldown(); return; }
-      boostTimerEl.hidden=false; boostTimerEl.textContent=fmtHMS(left);
-    } else boostTimerEl.hidden=true;
+  function startTimers() { updateTimers(); clearInterval(timersId); timersId = setInterval(updateTimers, 1000); }
+  function stopTimers()  { clearInterval(timersId); }
+  function updateTimers() {
+    const now = Date.now();
+    if (isBoostActive()) {
+      const left = boostUntil - now; if (left <= 0) { endBoostToCooldown(); return; }
+      boostTimerEl.hidden = false; boostTimerEl.textContent = fmtHMS(left);
+    } else boostTimerEl.hidden = true;
 
-    if (isCooldownActive()){
-      const left=cooldownUntil-now; if (left<=0){ clearCooldown(); return; }
-      cdTimerEl.hidden=false; cdTimerEl.textContent=fmtHMS(left);
-    } else cdTimerEl.hidden=true;
+    if (isCooldownActive()) {
+      const left = cooldownUntil - now; if (left <= 0) { clearCooldown(); return; }
+      cdTimerEl.hidden = false; cdTimerEl.textContent = fmtHMS(left);
+    } else cdTimerEl.hidden = true;
   }
-  function fmtHMS(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return `${h}:${m}:${sec}`; }
+  function fmtHMS(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const h = String(Math.floor(s / 3600)).padStart(2,'0');
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+    const sec = String(s % 60).padStart(2,'0');
+    return `${h}:${m}:${sec}`;
+  }
 
   /* ---------- apply hard pause to UI ---------- */
-  function applyPauseUI(){
+  function applyPauseUI() {
     const locked = isPaused();
     winEl.classList.toggle('is-locked', locked);
     lockBanner.hidden = !locked;
   }
 
   /* ---------- input (tap/hold≤2s) ---------- */
-  let charging=false, chargeStart=0, lastPoint={x:0,y:0}, chargeRAF=0, autoRelease=0;
-  canvas.addEventListener('pointerdown', (e)=>{
+  let charging = false, chargeStart = 0, lastPoint = { x:0, y:0 }, chargeRAF = 0, autoRelease = 0;
+  canvas.addEventListener('pointerdown', (e) => {
     if (isPaused()) return;
-    canvas.setPointerCapture?.(e.pointerId);
-    const p=getXY(e);
+    if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId); // capture pointer
+    const p = getXY(e);
 
     // hit sprite?
-    const idx=hitSprite(p.x,p.y);
-    if (idx>=0){ smiteSprite(idx); return; }
+    const idx = hitSprite(p.x, p.y);
+    if (idx >= 0) { smiteSprite(idx); return; }
 
-    charging=true; chargeStart=performance.now(); lastPoint=p; drawCharge();
-    autoRelease=setTimeout(()=>{ if(charging) releaseStrike(); }, 2000);
-  }, {passive:false});
-  canvas.addEventListener('pointermove', (e)=>{ if(charging) lastPoint=getXY(e); }, {passive:true});
-  canvas.addEventListener('pointerup',   ()=> releaseStrike());
-  canvas.addEventListener('pointercancel',()=> releaseStrike());
-  canvas.addEventListener('pointerleave', ()=> charging && releaseStrike());
-  function getXY(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
-  function releaseStrike(){
-    if(!charging) return;
-    charging=false; cancelAnimationFrame(chargeRAF); clearTimeout(autoRelease);
-    const held=performance.now()-chargeStart;
-    const ratio=Math.min(held/2000,1);
-    const power= held>180 ? 1 + 2*ratio : 1; // up to 3×
-    const charged = power>1.05;
-    strike(lastPoint, power, charged);
-    addToMeter(charged?STEP_CHARGED:STEP_TAP);
+    charging = true; chargeStart = performance.now(); lastPoint = p; drawCharge();
+    autoRelease = setTimeout(() => { if (charging) releaseStrike(); }, 2000);
+  }, { passive: false });
+  canvas.addEventListener('pointermove', (e) => { if (charging) lastPoint = getXY(e); }, { passive: true });
+  canvas.addEventListener('pointerup',   () => releaseStrike());
+  canvas.addEventListener('pointercancel',() => releaseStrike());
+  canvas.addEventListener('pointerleave', () => { if (charging) releaseStrike(); });
+  function getXY(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
-  function drawCharge(){
-    if(!charging) return;
-    const t=performance.now()-chargeStart, k=Math.min(t/2000,1);
+  function releaseStrike() {
+    if (!charging) return;
+    charging = false; cancelAnimationFrame(chargeRAF); clearTimeout(autoRelease);
+    const held = performance.now() - chargeStart;
+    const ratio = Math.min(held / 2000, 1);
+    const power = held > 180 ? 1 + 2 * ratio : 1; // up to 3×
+    const charged = power > 1.05;
+    strike(lastPoint, power, charged);
+    addToMeter(charged ? STEP_CHARGED : STEP_TAP);
+  }
+  function drawCharge() {
+    if (!charging) return;
+    const t = performance.now() - chargeStart, k = Math.min(t / 2000, 1);
     ctx.save();
-    ctx.globalCompositeOperation='lighter';
-    ctx.shadowColor='rgba(150,200,255,1)'; ctx.shadowBlur=10+38*k;
-    ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
-    ctx.lineWidth=1.8+k*1.6;
-    ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
+    ctx.globalCompositeOperation = 'lighter'; // additive glow
+    ctx.shadowColor = 'rgba(150,200,255,1)'; ctx.shadowBlur = 10 + 38 * k;
+    ctx.beginPath(); ctx.arc(lastPoint.x, lastPoint.y, 22 + 30 * k, 0, Math.PI * 2);
+    ctx.lineWidth = 1.8 + k * 1.6;
+    ctx.strokeStyle = `rgba(165,215,255,${0.85 + 0.15 * Math.sin(performance.now() * 0.01)})`;
     ctx.stroke(); ctx.restore();
-    chargeRAF=requestAnimationFrame(drawCharge);
+    chargeRAF = requestAnimationFrame(drawCharge);
   }
 
   /* ---------- lightning ---------- */
-  const bolts=[], rings=[];
-  function strike(origin, power=1, charged=false){
+  const bolts = [], rings = [];
+  function strike(origin, power = 1, charged = false) {
     flash(power);
-    const seeds=Math.round(2+power*2);
-    for(let i=0;i<seeds;i++){
-      const angle=Math.random()*Math.PI*2;
-      const length=260+power*150+Math.random()*120;
+    const seeds = Math.round(2 + power * 2);
+    for (let i = 0; i < seeds; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const length = 260 + power * 150 + Math.random() * 120;
       bolts.push(makeBolt(origin, angle, length, power, charged));
     }
-    rings.push({x:origin.x,y:origin.y,r:6,maxR:140+power*100,born:performance.now(),life:520+power*180});
+    rings.push({ x: origin.x, y: origin.y, r: 6, maxR: 140 + power * 100, born: performance.now(), life: 520 + power * 180 });
   }
-  function makeBolt(origin, angle, length, power, charged){
-    const born=performance.now(); const life=3000;
-    const core=growPath(origin, angle, length, 0, power, Math.random()*100);
-    const pulses=[0,45,95]; if (charged) pulses.push(150);
-    return { core,born,life,power,charged,pulses };
+  function makeBolt(origin, angle, length, power, charged) {
+    const born = performance.now(); const life = 3000; // ~3s
+    const core = growPath(origin, angle, length, 0, power, Math.random() * 100);
+    const pulses = [0, 45, 95]; if (charged) pulses.push(150);
+    return { core, born, life, power, charged, pulses };
   }
-  function growPath(start, angle, length, depth, power, seed){
-    const pts=[{x:start.x,y:start.y}]; let dir=angle, remaining=length;
-    let energy=(0.95+Math.random()*0.2)*(1-depth*0.12)*(0.85+0.15*power);
-    const base=8*(0.85+Math.random()*0.3), jitter=0.55+0.15*power; let branchCooldown=3;
-    while(remaining>0 && energy>0.1){
-      const step=base*(0.9+Math.random()*0.35);
-      dir += (Math.random()-0.5)*jitter;
-      const flick=Math.sin((pts.length+seed)*1.3)*0.12;
-      const prev=pts[pts.length-1];
-      const nx=prev.x+Math.cos(dir+flick)*step, ny=prev.y+Math.sin(dir+flick)*step;
-      pts.push({x:nx,y:ny}); remaining -= step; energy *= 0.993;
+  function growPath(start, angle, length, depth, power, seed) {
+    const pts = [{ x: start.x, y: start.y }]; let dir = angle, remaining = length;
+    let energy = (0.95 + Math.random() * 0.2) * (1 - depth * 0.12) * (0.85 + 0.15 * power);
+    const base = 8 * (0.85 + Math.random() * 0.3), jitter = 0.55 + 0.15 * power; let branchCooldown = 3;
+    while (remaining > 0 && energy > 0.1) {
+      const step = base * (0.9 + Math.random() * 0.35);
+      dir += (Math.random() - 0.5) * jitter;
+      const flick = Math.sin((pts.length + seed) * 1.3) * 0.12;
+      const prev = pts[pts.length - 1];
+      const nx = prev.x + Math.cos(dir + flick) * step, ny = prev.y + Math.sin(dir + flick) * step;
+      pts.push({ x: nx, y: ny }); remaining -= step; energy *= 0.993;
 
-      if(--branchCooldown<=0 && Math.random()<0.18*energy*(0.6+0.25*power) && depth<3){
-        branchCooldown=3;
-        const bAngle=dir + (Math.random()<0.5?-1:1)*(0.6+Math.random()*1.0);
-        const bLen=remaining*(0.35+Math.random()*0.5);
-        const child=growPath({x:nx,y:ny}, bAngle, bLen, depth+1, power*0.85, seed+1);
-        pts.push({branch:child});
+      if (--branchCooldown <= 0 && Math.random() < 0.18 * energy * (0.6 + 0.25 * power) && depth < 3) {
+        branchCooldown = 3;
+        const bAngle = dir + (Math.random() < 0.5 ? -1 : 1) * (0.6 + Math.random() * 1.0);
+        const bLen = remaining * (0.35 + Math.random() * 0.5);
+        const child = growPath({ x: nx, y: ny }, bAngle, bLen, depth + 1, power * 0.85, seed + 1);
+        pts.push({ branch: child });
       }
 
-      if(nx<-32||ny<-32||nx>canvas.width/view.dpr+32||ny>canvas.height/view.dpr+32) break;
+      if (nx < -32 || ny < -32 || nx > canvas.width / view.dpr + 32 || ny > canvas.height / view.dpr + 32) break;
     }
     return pts;
   }
-  function drawBolt(corePts, power, fade, pulseBoost){
+  function drawBolt(corePts, power, fade, pulseBoost) {
     // corona
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowBlur=18+30*power; ctx.shadowColor='rgba(120,170,255,1)';
-    ctx.strokeStyle=`rgba(120,170,255,${0.06*power*fade})`;
-    ctx.lineWidth=16*power; strokeRecursive(corePts); ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowBlur = 18 + 30 * power; ctx.shadowColor = 'rgba(120,170,255,1)';
+    ctx.strokeStyle = `rgba(120,170,255,${0.06 * power * fade})`;
+    ctx.lineWidth = 16 * power; strokeRecursive(corePts); ctx.restore();
 
     // bright core
-    const alpha=Math.min(1, 0.95*fade + 0.55*pulseBoost);
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowBlur=10 + 10*power*(1+0.2*pulseBoost);
-    ctx.shadowColor='rgba(165,215,255,1)';
-    ctx.strokeStyle=`rgba(190,235,255,${alpha})`;
-    ctx.lineWidth=(2.2*power)*(1+0.25*pulseBoost); strokeRecursive(corePts); ctx.restore();
+    const alpha = Math.min(1, 0.95 * fade + 0.55 * pulseBoost);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowBlur = 10 + 10 * power * (1 + 0.2 * pulseBoost);
+    ctx.shadowColor = 'rgba(165,215,255,1)';
+    ctx.strokeStyle = `rgba(190,235,255,${alpha})`;
+    ctx.lineWidth = (2.2 * power) * (1 + 0.25 * pulseBoost); strokeRecursive(corePts); ctx.restore();
 
     // violet sheath
-    ctx.save(); ctx.globalCompositeOperation='lighter';
-    ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.strokeStyle=`rgba(150,120,255,${0.18*fade})`;
-    ctx.lineWidth=6*power; strokeRecursive(corePts); ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = `rgba(150,120,255,${0.18 * fade})`;
+    ctx.lineWidth = 6 * power; strokeRecursive(corePts); ctx.restore();
   }
-  function strokeRecursive(pts){
-    ctx.beginPath(); let started=false;
-    for(let i=0;i<pts.length;i++){
-      const p=pts[i]; if(p.branch){ strokeRecursive(p.branch); continue; }
-      if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
+  function strokeRecursive(pts) {
+    ctx.beginPath(); let started = false;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i]; if (p.branch) { strokeRecursive(p.branch); continue; }
+      if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
     } ctx.stroke();
   }
-  function flash(power){
-    const el=document.createElement('div'); el.className='tz-flash';
-    el.style.opacity = Math.min(.6, .28 + .14*power);
-    winEl.appendChild(el); setTimeout(()=>el.remove(), 70 + power*50);
+  function flash(power) {
+    const el = document.createElement('div'); el.className = 'tz-flash';
+    el.style.opacity = Math.min(.6, .28 + .14 * power);
+    winEl.appendChild(el); setTimeout(() => el.remove(), 70 + power * 50);
     winEl.animate(
-      [{transform:'translate(0,0)'},
-       {transform:`translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)`},
-       {transform:'translate(0,0)'}],
-      {duration:160+power*60,iterations:1}
+      [{ transform: 'translate(0,0)' },
+       { transform: `translate(${(Math.random()*2-1)*5*power}px, ${(Math.random()*2-1)*5*power}px)` },
+       { transform: 'translate(0,0)' }],
+      { duration: 160 + power * 60, iterations: 1 }
     );
   }
 
   /* ---------- sprites (spiders/bee) ---------- */
-  const SPRITES_SRC=['img/spider1.png','img/spider2.png','img/spider3.png','img/bee.png'];
-  const SPRITES=[]; let spritesReady=false;
-  (function preload(){
-    let loaded=0; for(const src of SPRITES_SRC){
-      const img=new Image(); img.decoding='async';
-      img.onload=()=>{ SPRITES.push({img,ratio:(img.naturalWidth&&img.naturalHeight)? img.naturalWidth/img.naturalHeight : 1}); if(++loaded===SPRITES_SRC.length) spritesReady=true; };
-      img.onerror=()=>{ if(++loaded===SPRITES_SRC.length) spritesReady=true; };
-      img.src=src;
+  const SPRITES_SRC = ['img/spider1.png','img/spider2.png','img/spider3.png','img/bee.png'];
+  const SPRITES = []; let spritesReady = false;
+  (function preload() {
+    let loaded = 0;
+    for (const src of SPRITES_SRC) {
+      const img = new Image(); img.decoding = 'async';
+      img.onload  = () => { SPRITES.push({ img, ratio: (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 1 }); if (++loaded === SPRITES_SRC.length) spritesReady = true; };
+      img.onerror = () => { if (++loaded === SPRITES_SRC.length) spritesReady = true; };
+      img.src = src;
     }
   })();
-  const sprites=[];
-  const DIFF={ spawnMin:1400, spawnMax:3000, g:1500, vxMin:-200, vxMax:200, vyMin:-1200, vyMax:-950, sizeMin:48, sizeMax:66 };
-  let nextSpawnAt=0;
-  function scheduleSpawn(now){ nextSpawnAt = now + (DIFF.spawnMin + Math.random()*(DIFF.spawnMax-DIFF.spawnMin)); }
-  function spawnSprite(){
-    const side=Math.random()<0.5 ? 0 : view.cw;
-    const x = side===0 ? -30 : view.cw+30;
+  const sprites = [];
+  const DIFF = { spawnMin:1400, spawnMax:3000, g:1500, vxMin:-200, vxMax:200, vyMin:-1200, vyMax:-950, sizeMin:48, sizeMax:66 };
+  let nextSpawnAt = 0;
+  function scheduleSpawn(now) { nextSpawnAt = now + (DIFF.spawnMin + Math.random() * (DIFF.spawnMax - DIFF.spawnMin)); }
+  function spawnSprite() {
+    const side = Math.random() < 0.5 ? 0 : view.cw;
+    const x = side === 0 ? -30 : view.cw + 30;
     const y = view.ch + 10;
-    const vx = (side===0 ? 1 : -1) * (Math.abs(DIFF.vxMin) + Math.random()*(DIFF.vxMax - Math.abs(DIFF.vxMin)));
-    const vy = DIFF.vyMin + Math.random()*(DIFF.vyMax - DIFF.vyMin);
-    const size = DIFF.sizeMin + Math.random()*(DIFF.sizeMax - DIFF.sizeMin);
-    const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1;
-    sprites.push({x,y,vx,vy,size,rot:0,spawn:performance.now(),spriteIndex:idx,hit:false});
+    const vx = (side === 0 ? 1 : -1) * (Math.abs(DIFF.vxMin) + Math.random() * (DIFF.vxMax - Math.abs(DIFF.vxMin)));
+    const vy = DIFF.vyMin + Math.random() * (DIFF.vyMax - DIFF.vyMin);
+    const size = DIFF.sizeMin + Math.random() * (DIFF.sizeMax - DIFF.sizeMin);
+    const idx = spritesReady && SPRITES.length ? (Math.random() * SPRITES.length | 0) : -1;
+    sprites.push({ x, y, vx, vy, size, rot: 0, spawn: performance.now(), spriteIndex: idx, hit: false });
   }
-  function hitSprite(x,y){
-    for(let i=sprites.length-1;i>=0;i--){
-      const s=sprites[i]; const dx=x-s.x, dy=y-s.y;
-      if(dx*dx+dy*dy <= (s.size*0.55)*(s.size*0.55)) return i;
+  function hitSprite(x, y) {
+    for (let i = sprites.length - 1; i >= 0; i--) {
+      const s = sprites[i]; const dx = x - s.x, dy = y - s.y;
+      if (dx*dx + dy*dy <= (s.size * 0.55) * (s.size * 0.55)) return i;
     } return -1;
   }
-  function smiteSprite(i){
-    const s=sprites[i]; s.hit=true;
-    strike({x:s.x,y:s.y}, 2.2, true);
+  function smiteSprite(i) {
+    const s = sprites[i]; s.hit = true;
+    strike({ x: s.x, y: s.y }, 2.2, true);
     addToMeter(STEP_SPRITE); // +10×
-    rings.push({x:s.x,y:s.y,r:4,maxR:130,born:performance.now(),life:420});
-    sprites.splice(i,1); // vanish
+    rings.push({ x: s.x, y: s.y, r: 4, maxR: 130, born: performance.now(), life: 420 });
+    sprites.splice(i, 1); // vanish
   }
 
   /* ---------- render loop ---------- */
-  function startLoop(){ if(loopOn) return; loopOn=true; lastT=performance.now(); raf=requestAnimationFrame(tick); scheduleSpawn(performance.now()); }
-  function stopLoop(){ loopOn=false; cancelAnimationFrame(raf); }
-  function tick(){
-    if(!loopOn) return;
-    const now=performance.now();
-    const dt=Math.min((now-lastT)/1000, 0.05);
-    lastT=now;
+  function startLoop() { if (loopOn) return; loopOn = true; lastT = performance.now(); raf = requestAnimationFrame(tick); scheduleSpawn(performance.now()); }
+  function stopLoop()  { loopOn = false; cancelAnimationFrame(raf); }
+  function tick() {
+    if (!loopOn) return;
+    const now = performance.now();
+    const dt  = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
 
-    ctx.clearRect(0,0,view.cw,view.ch);
+    ctx.clearRect(0, 0, view.cw, view.ch);
 
-    if(!isPaused() && now>=nextSpawnAt){ spawnSprite(); scheduleSpawn(now); }
+    if (!isPaused() && now >= nextSpawnAt) { spawnSprite(); scheduleSpawn(now); }
 
     // sprites behind bolts
-    for(let i=sprites.length-1;i>=0;i--){
-      const s=sprites[i];
-      s.vy += DIFF.g*dt; s.x += s.vx*dt; s.y += s.vy*dt; s.rot += s.vx*dt*0.002;
-      ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(Math.atan2(s.vy,s.vx)+s.rot);
-      if (s.spriteIndex>=0 && SPRITES[s.spriteIndex]){
-        const {img,ratio}=SPRITES[s.spriteIndex]; const w=s.size,h=w/ratio;
-        ctx.drawImage(img,-w/2,-h/2,w,h);
+    for (let i = sprites.length - 1; i >= 0; i--) {
+      const s = sprites[i];
+      s.vy += DIFF.g * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.rot += s.vx * dt * 0.002;
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(Math.atan2(s.vy, s.vx) + s.rot);
+      if (s.spriteIndex >= 0 && SPRITES[s.spriteIndex]) {
+        const { img, ratio } = SPRITES[s.spriteIndex]; const w = s.size, h = w / ratio;
+        ctx.drawImage(img, -w/2, -h/2, w, h);
       } else {
-        const r=s.size*0.5; ctx.fillStyle='#333'; ctx.strokeStyle='#bbb'; ctx.lineWidth=2;
+        const r = s.size * 0.5; ctx.fillStyle = '#333'; ctx.strokeStyle = '#bbb'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
       }
       ctx.restore();
 
-      const off=(s.y - s.size/2 > view.ch + 120) || (s.x < -160) || (s.x > view.cw + 160);
-      if(off){ if(!s.hit) addToMeter(-STEP_SPRITE); sprites.splice(i,1); }
+      const off = (s.y - s.size/2 > view.ch + 120) || (s.x < -160) || (s.x > view.cw + 160);
+      if (off) { if (!s.hit) addToMeter(-STEP_SPRITE); sprites.splice(i, 1); }
     }
 
     // rings
-    for(let i=rings.length-1;i>=0;i--){
-      const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
-      const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
-      ctx.save(); ctx.globalCompositeOperation='lighter';
-      ctx.beginPath(); ctx.arc(rg.x,rg.y,rad,0,Math.PI*2);
-      ctx.lineWidth = 1.5 + (1-k)*2;
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const rg = rings[i]; const age = now - rg.born; const k = Math.min(age / rg.life, 1);
+      const rad = rg.r + (rg.maxR - rg.r) * k; const a = 0.36 * (1 - k);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.beginPath(); ctx.arc(rg.x, rg.y, rad, 0, Math.PI * 2);
+      ctx.lineWidth = 1.5 + (1 - k) * 2;
       ctx.strokeStyle = `rgba(160,210,255,${a})`;
-      ctx.shadowBlur = 12*(1-k); ctx.shadowColor='rgba(160,210,255,1)'; ctx.stroke();
+      ctx.shadowBlur = 12 * (1 - k); ctx.shadowColor = 'rgba(160,210,255,1)'; ctx.stroke();
       ctx.restore();
-      if(k>=1) rings.splice(i,1);
+      if (k >= 1) rings.splice(i, 1);
     }
 
     // bolts
-    for(let i=bolts.length-1;i>=0;i--){
-      const b=bolts[i]; const age=now-b.born; const t=Math.min(age/b.life,1); const fade=1-t;
-      let pulse=0; for(const p of b.pulses){ const d=Math.abs(age-p); if(d<70) pulse+=1-d/70; }
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const b = bolts[i]; const age = now - b.born; const t = Math.min(age / b.life, 1); const fade = 1 - t;
+      let pulse = 0; for (const p of b.pulses) { const d = Math.abs(age - p); if (d < 70) pulse += 1 - d/70; }
       drawBolt(b.core, b.power, fade, pulse);
-      if(t>=1) bolts.splice(i,1);
+      if (t >= 1) bolts.splice(i, 1);
     }
 
-    raf=requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
   }
 
   /* ---------- overlay tick for ×2 (adds the extra half) ---------- */
-  let overlayId=0;
-  const loadAcc = ()=> { try { return BigInt(localStorage.getItem(KEYS.OVERLAY_ACC)||'0'); } catch { return 0n; } };
-  const saveAcc = (v)=> localStorage.setItem(KEYS.OVERLAY_ACC, v.toString());
-  function startOverlayTick(){ stopOverlayTick(); doOverlayTick(); overlayId=setInterval(doOverlayTick,1000); }
-  function stopOverlayTick(){ if(overlayId) clearInterval(overlayId); overlayId=0; }
-  function doOverlayTick(){
-    if(!isBoostActive()) { stopOverlayTick(); return; }
-    if(!window.state) return;
+  let overlayId = 0;
+  const loadAcc = () => { try { return BigInt(localStorage.getItem(KEYS.OVERLAY_ACC) || '0'); } catch { return 0n; } };
+  const saveAcc = (v) => localStorage.setItem(KEYS.OVERLAY_ACC, v.toString());
+  function startOverlayTick(){ stopOverlayTick(); doOverlayTick(); overlayId = setInterval(doOverlayTick, 1000); }
+  function stopOverlayTick(){ if (overlayId) clearInterval(overlayId); overlayId = 0; }
+  function doOverlayTick() {
+    if (!isBoostActive()) { stopOverlayTick(); return; }
+    if (!window.state) return;
     window.state.gen   = bi(window.state.gen);
     window.state.chads = bi(window.state.chads);
     const baseGen = window.state.gen;     // per hour (BigInt)
-    let acc = loadAcc(); acc += baseGen;  // accumulate gen-seconds
+    let acc = loadAcc(); acc += baseGen;  // accumulate the *extra* gen (so total becomes 2×)
     const gain = acc / 3600n;             // whole CHADs since last credit
-    if (gain > 0n){
+    if (gain > 0n) {
       window.state.chads += gain;
       acc -= gain * 3600n; saveAcc(acc);
       try { window.saveStateLocal(window.state); } catch {}
@@ -2770,82 +2794,81 @@ canvas{ display:block }
   }
 
   // ========= DYNAMIC “generation / hr” NUMBER (per user) =========
-  // Doubles displayed gen/hr while boost is active, returns to normal after.
+  // Finds and updates the numeric DOM near the "generation / hr" label.
   const genTargets = new Set();
 
-  function textHasGenHr(el){
-    const t = (el.textContent||'').toLowerCase().replace(/\s+/g,' ');
-    return t.includes('generation') && t.includes('/ hr');
+  function textHasGenHr(el) {
+    const t = (el.textContent || '').toLowerCase().replace(/\s+/g, ' ');
+    return t.includes('generation') && (t.includes('/ hr') || t.includes('/hr'));
   }
-
-  function findNearestNumberNode(labelEl){
+  function findNearestNumberNode(labelEl) {
     const labelRect = labelEl.getBoundingClientRect();
     const pool = new Set();
-    const descendants = labelEl.querySelectorAll('*');
-    descendants.forEach(n=> { if (/\d/.test(n.textContent||'')) pool.add(n); });
-    if (pool.size===0 && labelEl.parentElement){
-      labelEl.parentElement.querySelectorAll('*').forEach(n=>{
-        if (n!==labelEl && /\d/.test(n.textContent||'')) pool.add(n);
+    labelEl.querySelectorAll('*').forEach(n => { if (/\d/.test(n.textContent || '')) pool.add(n); });
+    if (pool.size === 0 && labelEl.parentElement) {
+      labelEl.parentElement.querySelectorAll('*').forEach(n => {
+        if (n !== labelEl && /\d/.test(n.textContent || '')) pool.add(n);
       });
     }
-    if (pool.size===0) return null;
-
-    let best=null, bestScore=1e9;
-    pool.forEach(n=>{
-      const r=n.getBoundingClientRect();
-      const score = Math.abs(r.top - labelRect.top) + Math.abs(r.left - labelRect.left)*0.1;
-      if (score < bestScore){ bestScore=score; best=n; }
+    if (pool.size === 0) return null;
+    let best = null, bestScore = 1e9;
+    pool.forEach(n => {
+      const r = n.getBoundingClientRect();
+      const score = Math.abs(r.top - labelRect.top) + Math.abs(r.left - labelRect.left) * 0.1;
+      if (score < bestScore) { bestScore = score; best = n; }
     });
     return best;
   }
-
-  function scanForGenTargets(rootNode=document.body){
-    rootNode.querySelectorAll('[data-role="gen-hr"]').forEach(n=> genTargets.add(n));
+  function scanForGenTargets(rootNode = document.body) {
+    // If developer adds a hint, prefer it
+    rootNode.querySelectorAll('[data-role="gen-hr"]').forEach(n => genTargets.add(n));
+    // Otherwise, find any element that contains the "generation / hr" label text
     const all = rootNode.querySelectorAll('*');
-    for (const el of all){
+    for (const el of all) {
       if (!textHasGenHr(el)) continue;
       const target = findNearestNumberNode(el) || el; // fallback to label container
       genTargets.add(target);
     }
   }
-
-  function updateGenHrDisplay(){
+  function updateGenHrDisplay() {
     if (!window.state) return;
-    const base = bi(window.state.gen||0n);
-    const show = isBoostActive() ? base*2n : base;
+    const base = bi(window.state.gen || 0n);
+    const show = isBoostActive() ? base * 2n : base;
 
-    if (genTargets.size===0) scanForGenTargets();
+    if (genTargets.size === 0) scanForGenTargets();
 
-    for (const node of Array.from(genTargets)){
-      if (!document.contains(node)){ genTargets.delete(node); continue; }
-      if (!textHasGenHr(node)){
-        const old = node.textContent||'';
+    for (const node of Array.from(genTargets)) {
+      if (!document.contains(node)) { genTargets.delete(node); continue; }
+      if (!textHasGenHr(node)) {
+        const old = node.textContent || '';
         node.textContent = /\d/.test(old) ? old.replace(/[\d,._\s]+/, fmt(show)) : fmt(show);
       } else {
-        const txt = node.textContent||'';
+        const txt = node.textContent || '';
         const replaced = txt.replace(/(generation\s*\/\s*hr\s*:?\s*)[\d,._\s]+/i, `$1${fmt(show)}`);
         node.textContent = replaced.includes('generation') ? replaced : `generation / hr: ${fmt(show)}`;
       }
     }
   }
 
-  // Keep display correct across re-renders
+  // Keep display correct across re-renders (MutationObserver)
   const genObserver = new MutationObserver((_mut) => {
-    scanForGenTargets();
-    updateGenHrDisplay();
+    scanForGenTargets();          // (re)collect targets when DOM changes
+    updateGenHrDisplay();         // write current value (×2 if boost is on)
   });
-  genObserver.observe(document.body, { childList:true, subtree:true, characterData:true });
+  genObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
 
   // Periodic refresh + our own events
   setInterval(updateGenHrDisplay, 1000);
   window.addEventListener('chad:boost-change', updateGenHrDisplay);
   window.addEventListener('chad:cooldown-change', updateGenHrDisplay);
-  window.addEventListener('storage', (e)=>{ if (e.key===KEYS.BOOST_UNTIL || e.key===KEYS.COOLDOWN_UNTIL) updateGenHrDisplay(); });
+  window.addEventListener('storage', (e) => { // multi-tab support
+    if (e.key === KEYS.BOOST_UNTIL || e.key === KEYS.COOLDOWN_UNTIL) updateGenHrDisplay();
+  });
 
   // Hook into host refresh
-  whenStateReady(()=>{
+  whenStateReady(() => {
     const prev = window.refreshUI;
-    window.refreshUI = function(){ if (typeof prev==='function') prev(); updateGenHrDisplay(); };
+    window.refreshUI = function(){ if (typeof prev === 'function') prev(); updateGenHrDisplay(); };
     if (isBoostActive()) startOverlayTick(); else { stopOverlayTick(); saveAcc(0n); }
     updateGenHrDisplay();
   });
