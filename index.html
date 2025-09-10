@@ -41,7 +41,7 @@
   pointer-events:none;z-index:3;
 }
 
-/* ===== Lock banner (for boost & cooldown) ===== */
+/* ===== Lock banner ===== */
 .tz-lock{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-weight:800;letter-spacing:.4px;color:#102a43;z-index:2;pointer-events:none;
@@ -1534,7 +1534,6 @@ canvas{ display:block }
   </section>
 
 
-
 <!-- Thunder Lab Modal -->
 <div id="tz-thunder" class="tz-modal" hidden>
   <div class="tz-backdrop" data-close></div>
@@ -1567,20 +1566,15 @@ canvas{ display:block }
     </header>
 
     <!-- gameplay lock banner (shown during boost & cooldown) -->
-    <div class="tz-lock" hidden>
-      Boost/Cooldown active — gameplay paused
-    </div>
+    <div class="tz-lock" hidden>Boost/Cooldown active — gameplay paused</div>
 
-    <!-- Play surface -->
+    <!-- Play surface (transparent; sky shows behind) -->
     <canvas id="tz-canvas" aria-label="Lightning canvas"></canvas>
 
     <div class="tz-hint">Tap = bolt • Hold (≤2s) = charged • Tap spider/bee for 10×</div>
   </section>
 </div>
-<!-- Your existing button just needs data-id="thunder" (no extra handlers needed) -->
-
-
-
+<!-- Your opener must have data-id="thunder" (or call openThunderLab()) -->
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2361,7 +2355,7 @@ canvas{ display:block }
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Thunder Lab — fixed: hard pause during boost & cooldown; robust gen/hr rewrite.
+// Thunder Lab — pause fixed + gen/hr doubling shows & accrues correctly, then reverts.
 
 (() => {
   'use strict';
@@ -2380,16 +2374,17 @@ canvas{ display:block }
   const cdTimerEl    = root.querySelector('#tz-cooldown-timer');
   const lockBanner   = root.querySelector('.tz-lock');
 
-  // Public opener; also auto-bind any [data-id="thunder"] button
+  // Public opener; also auto-bind your thunder icon/button
   window.openThunderLab = openModal;
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-id="thunder"]');
     if (btn) openModal();
   });
 
-  // Safe helpers
+  // Helpers (BigInt + safe fmt)
   const bi  = (x)=> (typeof x==='bigint' ? x : BigInt(x||0));
   const fmt = (typeof window.fmt === 'function') ? window.fmt : (n)=> (typeof n==='bigint' ? n.toString() : String(n));
+
   const whenStateReady = (cb)=>{
     if (window.state && typeof window.saveStateLocal === 'function') return cb();
     const t=setInterval(()=>{ if (window.state && typeof window.saveStateLocal === 'function'){ clearInterval(t); cb(); } }, 60);
@@ -2414,12 +2409,13 @@ canvas{ display:block }
   let pausedForFull=false;          // lock when meter hits 100%
   const STEP_TAP=0.003, STEP_CHARGED=0.009, STEP_SPRITE=0.030;
 
+  // Boost/cooldown state
   let boostUntil    = Number(localStorage.getItem(KEYS.BOOST_UNTIL) || 0);
   let cooldownUntil = Number(localStorage.getItem(KEYS.COOLDOWN_UNTIL) || 0);
   const isBoostActive    = () => boostUntil && Date.now() < boostUntil;
   const isCooldownActive = () => cooldownUntil && Date.now() < cooldownUntil;
 
-  // **Hard pause rule**: gameplay is paused if meter-full OR boost OR cooldown
+  // **Hard pause rule**: paused if meter-full OR boost OR cooldown
   const isPaused = () => pausedForFull || isBoostActive() || isCooldownActive();
 
   /* ---------- modal ---------- */
@@ -2461,7 +2457,7 @@ canvas{ display:block }
     })(0);
   }
 
-  /* ---------- sizing ---------- */
+  /* ---------- sizing (DPR-aware) ---------- */
   function resizeCanvas(){
     const r = canvas.getBoundingClientRect();
     const dpr = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
@@ -2499,9 +2495,9 @@ canvas{ display:block }
     pausedForFull=false; meterLevel=0; updateMeter(true);
     updateBoostBtn();
     fireBoostEvent(true);
-    startOverlayTick();
-    applyPauseUI();
-    updateGenHr(); // reflect ×2 immediately
+    startOverlayTick();          // credit the missing half each second
+    applyPauseUI();              // gameplay frozen during boost
+    updateGenHr();               // show ×2 immediately
   }
   function endBoostToCooldown(){
     boostUntil = 0; localStorage.removeItem(KEYS.BOOST_UNTIL);
@@ -2513,7 +2509,7 @@ canvas{ display:block }
     updateBoostBtn();
     stopOverlayTick(); saveAcc(0n);
     applyPauseUI();
-    updateGenHr(); // back to normal
+    updateGenHr();               // back to normal display
   }
   function clearCooldown(){
     cooldownUntil = 0; localStorage.removeItem(KEYS.COOLDOWN_UNTIL);
@@ -2577,7 +2573,7 @@ canvas{ display:block }
   let charging=false, chargeStart=0, lastPoint={x:0,y:0}, chargeRAF=0, autoRelease=0;
   canvas.addEventListener('pointerdown', (e)=>{
     if (isPaused()) return;
-    canvas.setPointerCapture?.(e.pointerId);
+    canvas.setPointerCapture?.(e.pointerId); // keep future pointer events on the canvas  :contentReference[oaicite:1]{index=1}
     const p=getXY(e);
 
     // hit sprite?
@@ -2606,13 +2602,13 @@ canvas{ display:block }
     if(!charging) return;
     const t=performance.now()-chargeStart, k=Math.min(t/2000,1);
     ctx.save();
-    ctx.globalCompositeOperation='lighter';
+    ctx.globalCompositeOperation='lighter'; // additive glow  :contentReference[oaicite:2]{index=2}
     ctx.shadowColor='rgba(150,200,255,1)'; ctx.shadowBlur=10+38*k;
     ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
     ctx.lineWidth=1.8+k*1.6;
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
-    chargeRAF=requestAnimationFrame(drawCharge);
+    chargeRAF=requestAnimationFrame(drawCharge); // smooth animation  :contentReference[oaicite:3]{index=3}
   }
 
   /* ---------- lightning ---------- */
@@ -2636,7 +2632,7 @@ canvas{ display:block }
   function growPath(start, angle, length, depth, power, seed){
     const pts=[{x:start.x,y:start.y}]; let dir=angle, remaining=length;
     let energy=(0.95+Math.random()*0.2)*(1-depth*0.12)*(0.85+0.15*power);
-    const base=8*(0.85+Math.random()*0.3), jitter=0.55+0.15*power; let branchCooldown=0;
+    const base=8*(0.85+Math.random()*0.3), jitter=0.55+0.15*power; let branchCooldown=3;
     while(remaining>0 && energy>0.1){
       const step=base*(0.9+Math.random()*0.35);
       dir += (Math.random()-0.5)*jitter;
@@ -2645,13 +2641,13 @@ canvas{ display:block }
       const nx=prev.x+Math.cos(dir+flick)*step, ny=prev.y+Math.sin(dir+flick)*step;
       pts.push({x:nx,y:ny}); remaining -= step; energy *= 0.993;
 
-      if(branchCooldown<=0 && Math.random()<0.18*energy*(0.6+0.25*power) && depth<3){
+      if(--branchCooldown<=0 && Math.random()<0.18*energy*(0.6+0.25*power) && depth<3){
         branchCooldown=3;
         const bAngle=dir + (Math.random()<0.5?-1:1)*(0.6+Math.random()*1.0);
         const bLen=remaining*(0.35+Math.random()*0.5);
         const child=growPath({x:nx,y:ny}, bAngle, bLen, depth+1, power*0.85, seed+1);
         pts.push({branch:child});
-      } else branchCooldown--;
+      }
 
       if(nx<-32||ny<-32||nx>canvas.width/view.dpr+32||ny>canvas.height/view.dpr+32) break;
     }
@@ -2772,14 +2768,19 @@ canvas{ display:block }
 
     // rings
     for(let i=rings.length-1;i>=0;i--){
+      const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/r.glife ?? (rg.life),1);
+    }
+
+    // rings draw (fixed)
+    for(let i=rings.length-1;i>=0;i--){
       const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
       const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
       ctx.save(); ctx.globalCompositeOperation='lighter';
       ctx.beginPath(); ctx.arc(rg.x,rg.y,rad,0,Math.PI*2);
       ctx.lineWidth = 1.5 + (1-k)*2;
       ctx.strokeStyle = `rgba(160,210,255,${a})`;
-      ctx.shadowBlur = 12*(1-k); ctx.shadowColor='rgba(160,210,255,1)';
-      ctx.stroke(); ctx.restore();
+      ctx.shadowBlur = 12*(1-k); ctx.shadowColor='rgba(160,210,255,1)'; ctx.stroke();
+      ctx.restore();
       if(k>=1) rings.splice(i,1);
     }
 
@@ -2803,11 +2804,11 @@ canvas{ display:block }
   function doOverlayTick(){
     if(!isBoostActive()) { stopOverlayTick(); return; }
     if(!window.state) return;
-    window.state.gen   = bi(window.state.gen);
+    window.state.gen   = bi(window.state.gen);   // BigInt math  :contentReference[oaicite:4]{index=4}
     window.state.chads = bi(window.state.chads);
-    const baseGen = window.state.gen;     // per hour (BigInt)
+    const baseGen = window.state.gen;     // per hour
     let acc = loadAcc(); acc += baseGen;  // accumulate gen-seconds
-    const gain = acc / 3600n;             // whole CHADs gained since last credit
+    const gain = acc / 3600n;             // whole CHADs to add since last credit
     if (gain > 0n){
       window.state.chads += gain;
       acc -= gain * 3600n; saveAcc(acc);
@@ -2817,34 +2818,28 @@ canvas{ display:block }
   }
 
   /* ---------- robust gen/hr label rewrite ---------- */
-  let genLabelEl=null, baseGenCached=null;
+  let genLabelEl=null;
   function locateGenLabel(){
     genLabelEl=null;
     const all=[...document.body.querySelectorAll('*')];
     for (const el of all){
-      const txt=(el.textContent||'').toLowerCase();
-      if (txt.includes('generation') && txt.includes('/ hr')){
-        genLabelEl = el; break;
-      }
+      const txt=(el.textContent||'').toLowerCase().replace(/\s+/g,' ');
+      if (txt.includes('generation') && txt.includes('/ hr')){ genLabelEl = el; break; }
     }
   }
   function updateGenHr(){
     if (!window.state) return;
     if (!genLabelEl) locateGenLabel();
     const base = bi(window.state.gen||0n);
-    if (baseGenCached===null) baseGenCached = base; // remember base to stabilize formatting if host updates later
     const show = isBoostActive() ? base*2n : base;
     if (genLabelEl){
-      // Replace number inside the element text
-      const raw = genLabelEl.textContent || '';
-      const replaced = raw.replace(/\b[\d,._ ]+\b(?!.*\b[\d,._ ]+\b)/, fmt(show)); // replace the last number in that line
-      genLabelEl.textContent = replaced.includes('generation') ? replaced : `generation / hr: ${fmt(show)}`;
+      genLabelEl.textContent = `generation / hr: ${fmt(show)}`;
     }
   }
-  // keep it fresh
   setInterval(updateGenHr, 1000);
   window.addEventListener('chad:boost-change', updateGenHr);
   window.addEventListener('chad:cooldown-change', updateGenHr);
+  window.addEventListener('storage', (e)=>{ if (e.key===KEYS.BOOST_UNTIL || e.key===KEYS.COOLDOWN_UNTIL) updateGenHr(); });
 
   // host refresh hook
   whenStateReady(()=>{
@@ -2857,8 +2852,7 @@ canvas{ display:block }
   /* ---------- utils ---------- */
   function fmtHMS(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return `${h}:${m}:${sec}`; }
 
-  // bolt storage (defined late so hoisting is clear)
-  const bolts=[]; const rings=[];
+  // bolt storage helpers
   function strokeRecursive(pts){
     ctx.beginPath(); let started=false;
     for(let i=0;i<pts.length;i++){
