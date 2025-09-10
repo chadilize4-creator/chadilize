@@ -17,105 +17,41 @@
 }
 
 /* ===== Canvas ===== */
-#tz-canvas{
-  flex:1;display:block;width:100%;height:100%;
-  touch-action:none;overscroll-behavior:contain;background:transparent;
-}
+#tz-canvas{flex:1;display:block;width:100%;height:100%;touch-action:none;overscroll-behavior:contain;background:transparent}
 
 /* ===== HUD ===== */
-.tz-hud{
-  position:absolute;top:0;left:0;right:0;height:168px;
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
-  padding:12px 72px;z-index:3;pointer-events:none;
-}
-.tz-close{
-  position:absolute;top:14px;right:14px;z-index:4;
-  all:unset;cursor:pointer;padding:10px 14px;border-radius:14px;
-  background:rgba(120,170,255,.12);color:#e5f0ff;font-weight:800;
-  border:1px solid rgba(120,170,255,.28);backdrop-filter:blur(6px);pointer-events:auto;
-}
-.tz-hint{
-  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
-  padding:8px 12px;border-radius:999px;background:rgba(30,41,59,.75);
-  color:#cfe7ff;font-size:12px;border:1px solid rgba(120,170,255,.18);
-  pointer-events:none;z-index:3;
-}
+.tz-hud{position:absolute;top:0;left:0;right:0;height:168px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:12px 72px;z-index:3;pointer-events:none}
+.tz-close{position:absolute;top:14px;right:14px;z-index:4;all:unset;cursor:pointer;padding:10px 14px;border-radius:14px;background:rgba(120,170,255,.12);color:#e5f0ff;font-weight:800;border:1px solid rgba(120,170,255,.28);backdrop-filter:blur(6px);pointer-events:auto}
+.tz-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:8px 12px;border-radius:999px;background:rgba(30,41,59,.75);color:#cfe7ff;font-size:12px;border:1px solid rgba(120,170,255,.18);pointer-events:none;z-index:3}
 
 /* ===== Lock banner ===== */
-.tz-lock{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-weight:800;letter-spacing:.4px;color:#102a43;z-index:2;pointer-events:none;
-  background:radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.28), rgba(255,255,255,.05));
-  border-bottom:1px solid rgba(255,255,255,.15);
-}
+.tz-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.4px;color:#102a43;z-index:2;pointer-events:none;background:radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.28), rgba(255,255,255,.05));border-bottom:1px solid rgba(255,255,255,.15)}
 .tz-window.is-locked #tz-canvas{pointer-events:none}
 
 /* ===== Meter ===== */
 .tz-meter{width:100%;display:flex;justify-content:center}
-.tz-meter-shell{
-  position:relative;width:min(1024px,95vw);height:44px;border-radius:18px;
-  border:1px solid rgba(255,255,255,.18);
-  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
-  overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), 0 6px 16px rgba(0,0,0,.35);
-}
-.tz-meter-fill{
-  --level:0; position:absolute;left:0;bottom:0;height:100%;
-  width:calc(var(--level)*100%);
-  background:linear-gradient(180deg,#ff4747 0%,#d01010 60%,#960909 100%);
-  filter:saturate(1.15);transition:width .34s cubic-bezier(.3,.9,.2,1);
-}
-.tz-meter-fill::before,.tz-meter-fill::after{
-  content:"";position:absolute;inset:-40% -5% -50% -5%;
-  background:
-    radial-gradient(14px 8px at 16px 10px, rgba(255,255,255,.22), rgba(255,255,255,0) 60%) repeat-x,
-    radial-gradient(10px 6px at 8px 6px,  rgba(255,255,255,.16), rgba(255,255,255,0) 60%) repeat-x;
-  mix-blend-mode:screen;opacity:.65;pointer-events:none;animation:tz-slosh 5.5s linear infinite;
-}
+.tz-meter-shell{position:relative;width:min(1024px,95vw);height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), 0 6px 16px rgba(0,0,0,.35)}
+.tz-meter-fill{--level:0;position:absolute;left:0;bottom:0;height:100%;width:calc(var(--level)*100%);background:linear-gradient(180deg,#ff4747 0%,#d01010 60%,#960909 100%);filter:saturate(1.15);transition:width .34s cubic-bezier(.3,.9,.2,1)}
+.tz-meter-fill::before,.tz-meter-fill::after{content:"";position:absolute;inset:-40% -5% -50% -5%;background:radial-gradient(14px 8px at 16px 10px, rgba(255,255,255,.22), rgba(255,255,255,0) 60%) repeat-x, radial-gradient(10px 6px at 8px 6px, rgba(255,255,255,.16), rgba(255,255,255,0) 60%) repeat-x;mix-blend-mode:screen;opacity:.65;pointer-events:none;animation:tz-slosh 5.5s linear infinite}
 .tz-meter-fill::after{opacity:.4;animation:tz-slosh 7.2s linear infinite reverse}
 @keyframes tz-slosh{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tz-meter-glass{
-  pointer-events:none;position:absolute;inset:0;border-radius:18px;
-  background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),
-             linear-gradient(0deg, rgba(255,255,255,.06), transparent);
-}
-.tz-meter-bump .tz-meter-fill::before,
-.tz-meter-bump .tz-meter-fill::after{animation-duration:3.3s}
+.tz-meter-glass{pointer-events:none;position:absolute;inset:0;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0) 48%),linear-gradient(0deg, rgba(255,255,255,.06), transparent)}
+.tz-meter-bump .tz-meter-fill::before,.tz-meter-bump .tz-meter-fill::after{animation-duration:3.3s}
 
 /* ===== Boost button ===== */
 .tz-boost-cta{margin-top:8px;display:flex;justify-content:center;width:100%}
-.tz-boost{
-  all:unset;pointer-events:auto;cursor:not-allowed;
-  padding:10px 16px;border-radius:14px;font-weight:800;text-align:center;
-  border:1px solid #4a4f57;background:#3b3f46;color:#c8cbd1;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-}
-.tz-boost.ready{
-  cursor:pointer;background:linear-gradient(180deg,#34d399,#10b981);
-  color:#062e24;border-color:#059669;
-  box-shadow:0 0 0 2px rgba(16,185,129,.22) inset, 0 8px 16px rgba(16,185,129,.35);
-}
-.tz-boost.active{
-  background:linear-gradient(180deg,#86efac,#22c55e);
-  color:#063618;border-color:#16a34a;
-}
+.tz-boost{all:unset;pointer-events:auto;cursor:not-allowed;padding:10px 16px;border-radius:14px;font-weight:800;text-align:center;border:1px solid #4a4f57;background:#3b3f46;color:#c8cbd1;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.tz-boost.ready{cursor:pointer;background:linear-gradient(180deg,#34d399,#10b981);color:#062e24;border-color:#059669;box-shadow:0 0 0 2px rgba(16,185,129,.22) inset, 0 8px 16px rgba(16,185,129,.35)}
+.tz-boost.active{background:linear-gradient(180deg,#86efac,#22c55e);color:#063618;border-color:#16a34a}
 
 /* ===== Timers ===== */
 .tz-timers{margin-top:8px;display:flex;gap:10px}
-.tz-timer{
-  pointer-events:none;user-select:none;
-  padding:6px 12px;border-radius:999px;font-weight:800;letter-spacing:.5px;
-  border:1px solid rgba(255,255,255,.25);
-  backdrop-filter:blur(6px); box-shadow:0 1px 4px rgba(0,0,0,.25);
-}
+.tz-timer{pointer-events:none;user-select:none;padding:6px 12px;border-radius:999px;font-weight:800;letter-spacing:.5px;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .tz-gold{color:#3b2903;background:linear-gradient(180deg,#ffd166,#eab308);border-color:#d4a40a}
 .tz-grey{color:#e4e7ee;background:linear-gradient(180deg,#3f4450,#2f333d);border-color:#555b67}
 
 /* ===== Flash overlay ===== */
-.tz-flash{
-  position:absolute;inset:0;
-  background:radial-gradient(60% 60% at 50% 55%, rgba(170,210,255,.55) 0%, rgba(170,210,255,0) 60%);
-  mix-blend-mode:screen;pointer-events:none
-}
+.tz-flash{position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 55%, rgba(170,210,255,.55) 0%, rgba(170,210,255,0) 60%);mix-blend-mode:screen;pointer-events:none}
 
 :root{
 
@@ -1534,6 +1470,7 @@ canvas{ display:block }
   </section>
 
 
+
 <!-- Thunder Lab Modal -->
 <div id="tz-thunder" class="tz-modal" hidden>
   <div class="tz-backdrop" data-close></div>
@@ -1565,16 +1502,14 @@ canvas{ display:block }
       <button class="tz-close" aria-label="Close">✕</button>
     </header>
 
-    <!-- gameplay lock banner (shown during boost & cooldown) -->
     <div class="tz-lock" hidden>Boost/Cooldown active — gameplay paused</div>
-
-    <!-- Play surface (transparent; sky shows behind) -->
     <canvas id="tz-canvas" aria-label="Lightning canvas"></canvas>
-
     <div class="tz-hint">Tap = bolt • Hold (≤2s) = charged • Tap spider/bee for 10×</div>
   </section>
 </div>
-<!-- Your opener must have data-id="thunder" (or call openThunderLab()) -->
+
+
+
 
 <!-- Launcher -->
 <!-- Launcher (we anchor this above the Buy Cards row in JS) -->
@@ -2355,7 +2290,7 @@ canvas{ display:block }
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Thunder Lab — pause fixed + gen/hr doubling shows & accrues correctly, then reverts.
+// Thunder Lab — dynamic gen/hr per-user, robust label targeting, boost/cooldown, bolts + sprites.
 
 (() => {
   'use strict';
@@ -2374,17 +2309,16 @@ canvas{ display:block }
   const cdTimerEl    = root.querySelector('#tz-cooldown-timer');
   const lockBanner   = root.querySelector('.tz-lock');
 
-  // Public opener; also auto-bind your thunder icon/button
+  // Public opener & bind your thunder button (data-id="thunder")
   window.openThunderLab = openModal;
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('[data-id="thunder"]');
     if (btn) openModal();
   });
 
-  // Helpers (BigInt + safe fmt)
+  // ==== Helpers ====
   const bi  = (x)=> (typeof x==='bigint' ? x : BigInt(x||0));
   const fmt = (typeof window.fmt === 'function') ? window.fmt : (n)=> (typeof n==='bigint' ? n.toString() : String(n));
-
   const whenStateReady = (cb)=>{
     if (window.state && typeof window.saveStateLocal === 'function') return cb();
     const t=setInterval(()=>{ if (window.state && typeof window.saveStateLocal === 'function'){ clearInterval(t); cb(); } }, 60);
@@ -2414,8 +2348,6 @@ canvas{ display:block }
   let cooldownUntil = Number(localStorage.getItem(KEYS.COOLDOWN_UNTIL) || 0);
   const isBoostActive    = () => boostUntil && Date.now() < boostUntil;
   const isCooldownActive = () => cooldownUntil && Date.now() < cooldownUntil;
-
-  // **Hard pause rule**: paused if meter-full OR boost OR cooldown
   const isPaused = () => pausedForFull || isBoostActive() || isCooldownActive();
 
   /* ---------- modal ---------- */
@@ -2444,7 +2376,7 @@ canvas{ display:block }
   closeBtn.addEventListener('click', closeModal);
   document.addEventListener('keydown', e=>{ if(!root.hidden && e.key==='Escape') closeModal(); });
 
-  /* ---------- sky (robust paths) ---------- */
+  /* ---------- sky (robust path resolution) ---------- */
   function applySky(){
     const attr = winEl.getAttribute('data-sky') || 'img/cloudysky.png';
     const tries = [attr, '/'+attr.replace(/^\.?\/*/,''), '/img/cloudysky.png', './img/cloudysky.png'];
@@ -2495,9 +2427,9 @@ canvas{ display:block }
     pausedForFull=false; meterLevel=0; updateMeter(true);
     updateBoostBtn();
     fireBoostEvent(true);
-    startOverlayTick();          // credit the missing half each second
-    applyPauseUI();              // gameplay frozen during boost
-    updateGenHr();               // show ×2 immediately
+    startOverlayTick();    // credit the missing half each second
+    applyPauseUI();        // gameplay frozen during boost
+    updateGenHrDisplay();  // show ×2 immediately
   }
   function endBoostToCooldown(){
     boostUntil = 0; localStorage.removeItem(KEYS.BOOST_UNTIL);
@@ -2509,7 +2441,7 @@ canvas{ display:block }
     updateBoostBtn();
     stopOverlayTick(); saveAcc(0n);
     applyPauseUI();
-    updateGenHr();               // back to normal display
+    updateGenHrDisplay(); // back to normal
   }
   function clearCooldown(){
     cooldownUntil = 0; localStorage.removeItem(KEYS.COOLDOWN_UNTIL);
@@ -2524,7 +2456,7 @@ canvas{ display:block }
     else if (cooldownUntil && now >= cooldownUntil) { clearCooldown(); }
     if (isBoostActive()) startOverlayTick(); else { stopOverlayTick(); saveAcc(0n); }
     applyPauseUI();
-    updateGenHr();
+    updateGenHrDisplay();
   }
 
   function updateBoostBtn(){
@@ -2573,7 +2505,7 @@ canvas{ display:block }
   let charging=false, chargeStart=0, lastPoint={x:0,y:0}, chargeRAF=0, autoRelease=0;
   canvas.addEventListener('pointerdown', (e)=>{
     if (isPaused()) return;
-    canvas.setPointerCapture?.(e.pointerId); // keep future pointer events on the canvas  :contentReference[oaicite:1]{index=1}
+    canvas.setPointerCapture?.(e.pointerId); // capture future pointer events on this canvas (MDN). :contentReference[oaicite:0]{index=0}
     const p=getXY(e);
 
     // hit sprite?
@@ -2602,13 +2534,13 @@ canvas{ display:block }
     if(!charging) return;
     const t=performance.now()-chargeStart, k=Math.min(t/2000,1);
     ctx.save();
-    ctx.globalCompositeOperation='lighter'; // additive glow  :contentReference[oaicite:2]{index=2}
+    ctx.globalCompositeOperation='lighter'; // additive glow (MDN). :contentReference[oaicite:1]{index=1}
     ctx.shadowColor='rgba(150,200,255,1)'; ctx.shadowBlur=10+38*k;
     ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
     ctx.lineWidth=1.8+k*1.6;
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
-    chargeRAF=requestAnimationFrame(drawCharge); // smooth animation  :contentReference[oaicite:3]{index=3}
+    chargeRAF=requestAnimationFrame(drawCharge); // smooth animation. :contentReference[oaicite:2]{index=2}
   }
 
   /* ---------- lightning ---------- */
@@ -2720,7 +2652,6 @@ canvas{ display:block }
     const idx = spritesReady && SPRITES.length ? (Math.random()*SPRITES.length|0) : -1;
     sprites.push({x,y,vx,vy,size,rot:0,spawn:performance.now(),spriteIndex:idx,hit:false});
   }
-
   function hitSprite(x,y){
     for(let i=sprites.length-1;i>=0;i--){
       const s=sprites[i]; const dx=x-s.x, dy=y-s.y;
@@ -2768,11 +2699,6 @@ canvas{ display:block }
 
     // rings
     for(let i=rings.length-1;i>=0;i--){
-      const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/r.glife ?? (rg.life),1);
-    }
-
-    // rings draw (fixed)
-    for(let i=rings.length-1;i>=0;i--){
       const rg=rings[i]; const age=now-rg.born; const k=Math.min(age/rg.life,1);
       const rad = rg.r + (rg.maxR-rg.r)*k; const a = 0.36*(1-k);
       ctx.save(); ctx.globalCompositeOperation='lighter';
@@ -2804,11 +2730,11 @@ canvas{ display:block }
   function doOverlayTick(){
     if(!isBoostActive()) { stopOverlayTick(); return; }
     if(!window.state) return;
-    window.state.gen   = bi(window.state.gen);   // BigInt math  :contentReference[oaicite:4]{index=4}
+    window.state.gen   = bi(window.state.gen);
     window.state.chads = bi(window.state.chads);
-    const baseGen = window.state.gen;     // per hour
+    const baseGen = window.state.gen;     // per hour (BigInt)
     let acc = loadAcc(); acc += baseGen;  // accumulate gen-seconds
-    const gain = acc / 3600n;             // whole CHADs to add since last credit
+    const gain = acc / 3600n;             // whole CHADs since last credit
     if (gain > 0n){
       window.state.chads += gain;
       acc -= gain * 3600n; saveAcc(acc);
@@ -2817,48 +2743,101 @@ canvas{ display:block }
     } else saveAcc(acc);
   }
 
-  /* ---------- robust gen/hr label rewrite ---------- */
-  let genLabelEl=null;
-  function locateGenLabel(){
-    genLabelEl=null;
-    const all=[...document.body.querySelectorAll('*')];
+  // ========= DYNAMIC “generation / hr” NUMBER (per user) =========
+  // Finds the numeric DOM node that belongs to the "generation / hr" label, even if re-rendered.
+  const genTargets = new Set();
+
+  function textHasGenHr(el){
+    const t = (el.textContent||'').toLowerCase().replace(/\s+/g,' ');
+    return t.includes('generation') && t.includes('/ hr');
+  }
+
+  function findNearestNumberNode(labelEl){
+    const labelRect = labelEl.getBoundingClientRect();
+    // Prefer descendants with digits; if none, include siblings in same parent.
+    const pool = new Set();
+    const descendants = labelEl.querySelectorAll('*');
+    descendants.forEach(n=> { if (/\d/.test(n.textContent||'')) pool.add(n); });
+    if (pool.size===0 && labelEl.parentElement){
+      labelEl.parentElement.querySelectorAll('*').forEach(n=>{
+        if (n!==labelEl && /\d/.test(n.textContent||'')) pool.add(n);
+      });
+    }
+    if (pool.size===0) return null;
+
+    let best=null, bestScore=1e9;
+    pool.forEach(n=>{
+      const r=n.getBoundingClientRect();
+      const score = Math.abs(r.top - labelRect.top) + Math.abs(r.left - labelRect.left)*0.1;
+      if (score < bestScore){ bestScore=score; best=n; }
+    });
+    return best;
+  }
+
+  function scanForGenTargets(rootNode=document.body){
+    // If developer adds a hint, prefer it
+    rootNode.querySelectorAll('[data-role="gen-hr"]').forEach(n=> genTargets.add(n));
+
+    // Otherwise, find any element that contains the "generation / hr" label text
+    const all = rootNode.querySelectorAll('*');
     for (const el of all){
-      const txt=(el.textContent||'').toLowerCase().replace(/\s+/g,' ');
-      if (txt.includes('generation') && txt.includes('/ hr')){ genLabelEl = el; break; }
+      if (!textHasGenHr(el)) continue;
+      const target = findNearestNumberNode(el) || el; // fallback to label container
+      genTargets.add(target);
     }
   }
-  function updateGenHr(){
+
+  function updateGenHrDisplay(){
     if (!window.state) return;
-    if (!genLabelEl) locateGenLabel();
     const base = bi(window.state.gen||0n);
     const show = isBoostActive() ? base*2n : base;
-    if (genLabelEl){
-      genLabelEl.textContent = `generation / hr: ${fmt(show)}`;
+
+    if (genTargets.size===0) scanForGenTargets();
+
+    // Clean dead nodes & write value
+    for (const node of Array.from(genTargets)){
+      if (!document.contains(node)){ genTargets.delete(node); continue; }
+      // If the node is just the number, replace that number only
+      if (!textHasGenHr(node)){
+        // replace first numeric token in this node
+        const old = node.textContent||'';
+        node.textContent = /\d/.test(old) ? old.replace(/[\d,._\s]+/, fmt(show)) : fmt(show);
+      } else {
+        // node also contains the label; replace the number after label only
+        const txt = node.textContent||'';
+        const replaced = txt.replace(/(generation\s*\/\s*hr\s*:?\s*)[\d,._\s]+/i, `$1${fmt(show)}`);
+        node.textContent = replaced.includes('generation') ? replaced : `generation / hr: ${fmt(show)}`;
+      }
     }
   }
-  setInterval(updateGenHr, 1000);
-  window.addEventListener('chad:boost-change', updateGenHr);
-  window.addEventListener('chad:cooldown-change', updateGenHr);
-  window.addEventListener('storage', (e)=>{ if (e.key===KEYS.BOOST_UNTIL || e.key===KEYS.COOLDOWN_UNTIL) updateGenHr(); });
 
-  // host refresh hook
+  // Keep display correct across re-renders (MutationObserver)
+  const genObserver = new MutationObserver((_mut) => {
+    scanForGenTargets();          // (re)collect targets when DOM changes
+    updateGenHrDisplay();         // write current value (×2 if boost is on)
+  });
+  genObserver.observe(document.body, { childList:true, subtree:true, characterData:true }); // watch the DOM (MDN). :contentReference[oaicite:3]{index=3}
+
+  // Periodic refresh + our own events
+  setInterval(updateGenHrDisplay, 1000);
+  window.addEventListener('chad:boost-change', updateGenHrDisplay);
+  window.addEventListener('chad:cooldown-change', updateGenHrDisplay);
+  window.addEventListener('storage', (e)=>{ if (e.key===KEYS.BOOST_UNTIL || e.key===KEYS.COOLDOWN_UNTIL) updateGenHrDisplay(); });
+
+  // Hook into host refresh
   whenStateReady(()=>{
     const prev = window.refreshUI;
-    window.refreshUI = function(){ if (typeof prev==='function') prev(); updateGenHr(); };
+    window.refreshUI = function(){ if (typeof prev==='function') prev(); updateGenHrDisplay(); };
     if (isBoostActive()) startOverlayTick(); else { stopOverlayTick(); saveAcc(0n); }
-    updateGenHr();
+    updateGenHrDisplay();
   });
 
-  /* ---------- utils ---------- */
-  function fmtHMS(ms){ const s=Math.max(0,Math.floor(ms/1000)); const h=String(Math.floor(s/3600)).padStart(2,'0'); const m=String(Math.floor((s%3600)/60)).padStart(2,'0'); const sec=String(s%60).padStart(2,'0'); return `${h}:${m}:${sec}`; }
-
-  // bolt storage helpers
-  function strokeRecursive(pts){
-    ctx.beginPath(); let started=false;
-    for(let i=0;i<pts.length;i++){
-      const p=pts[i]; if(p.branch){ strokeRecursive(p.branch); continue; }
-      if(!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
-    } ctx.stroke();
+  /* ---------- host events (optional) ---------- */
+  function fireBoostEvent(active){
+    window.dispatchEvent(new CustomEvent('chad:boost-change', { detail: { active, multiplier: active ? 2 : 1, endsAt: active ? boostUntil : 0 } }));
+  }
+  function fireCooldownEvent(active){
+    window.dispatchEvent(new CustomEvent('chad:cooldown-change', { detail: { active, endsAt: active ? cooldownUntil : 0 } }));
   }
 
 })();
