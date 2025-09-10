@@ -52,7 +52,6 @@
 
 /* ===== Flash overlay ===== */
 .tz-flash{position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 55%, rgba(170,210,255,.55) 0%, rgba(170,210,255,0) 60%);mix-blend-mode:screen;pointer-events:none}
-
 :root{
 
   /* Space below the rectangle so it sits right ABOVE your "Get Rewards" row */
@@ -1471,7 +1470,7 @@ canvas{ display:block }
 
 
 
-<!-- Thunder Lab Modal -->
+
 <div id="tz-thunder" class="tz-modal" hidden>
   <div class="tz-backdrop" data-close></div>
 
@@ -2290,8 +2289,6 @@ canvas{ display:block }
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// Thunder Lab — dynamic gen/hr per-user, robust label targeting, boost/cooldown, bolts + sprites.
-
 (() => {
   'use strict';
   const root   = document.getElementById('tz-thunder');
@@ -2324,13 +2321,42 @@ canvas{ display:block }
     const t=setInterval(()=>{ if (window.state && typeof window.saveStateLocal === 'function'){ clearInterval(t); cb(); } }, 60);
   };
 
-  // Storage keys & durations
+  // ---------------------------------------------------------------------------
+  // Storage keys & durations  **WITH VERSIONING**  => reset on code update
+  // Bump BUILD_ID (e.g. 'dev-1' -> 'dev-2') to reset boost/cooldown/acc keys.
+  // Also includes optional dev helpers:
+  //   - DEV_ALWAYS_RESET: wipe every refresh while true
+  //   - window.resetThunderLabTimers(): manual reset (or use ?resetBoost=1)
+  // ---------------------------------------------------------------------------
+  const BUILD_ID = 'dev-1'; // ⬅️ bump this to reset timers after a code update
+  const DEV_ALWAYS_RESET = false; // set true while testing to reset on every refresh
+
   const UID = (window.UID_HINT || 'guest');
+  const KEY_PREFIX = `tz_${BUILD_ID}_${UID}`;
+
   const KEYS = {
-    BOOST_UNTIL    : `chad_boost_until_${UID}`,
-    COOLDOWN_UNTIL : `chad_boost_cooldown_until_${UID}`,
-    OVERLAY_ACC    : `chad_boost_acc_${UID}`, // BigInt gen-seconds accumulator
+    BOOST_UNTIL    : `${KEY_PREFIX}_boost_until`,
+    COOLDOWN_UNTIL : `${KEY_PREFIX}_cooldown_until`,
+    OVERLAY_ACC    : `${KEY_PREFIX}_acc`, // BigInt gen-seconds accumulator
   };
+
+  if (DEV_ALWAYS_RESET) {
+    [KEYS.BOOST_UNTIL, KEYS.COOLDOWN_UNTIL, KEYS.OVERLAY_ACC].forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+  }
+
+  window.resetThunderLabTimers = function(){
+    [KEYS.BOOST_UNTIL, KEYS.COOLDOWN_UNTIL, KEYS.OVERLAY_ACC].forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+  };
+
+  if (new URLSearchParams(location.search).get('resetBoost') === '1') {
+    window.resetThunderLabTimers();
+  }
+
+  // Durations
   const DUR = { BOOST_MS: 5*60*60*1000, COOLDOWN_MS: 24*60*60*1000 };
 
   // View & loop
@@ -2505,7 +2531,7 @@ canvas{ display:block }
   let charging=false, chargeStart=0, lastPoint={x:0,y:0}, chargeRAF=0, autoRelease=0;
   canvas.addEventListener('pointerdown', (e)=>{
     if (isPaused()) return;
-    canvas.setPointerCapture?.(e.pointerId); // capture future pointer events on this canvas (MDN). :contentReference[oaicite:0]{index=0}
+    canvas.setPointerCapture?.(e.pointerId);
     const p=getXY(e);
 
     // hit sprite?
@@ -2534,13 +2560,13 @@ canvas{ display:block }
     if(!charging) return;
     const t=performance.now()-chargeStart, k=Math.min(t/2000,1);
     ctx.save();
-    ctx.globalCompositeOperation='lighter'; // additive glow (MDN). :contentReference[oaicite:1]{index=1}
+    ctx.globalCompositeOperation='lighter';
     ctx.shadowColor='rgba(150,200,255,1)'; ctx.shadowBlur=10+38*k;
     ctx.beginPath(); ctx.arc(lastPoint.x,lastPoint.y, 22+30*k, 0, Math.PI*2);
     ctx.lineWidth=1.8+k*1.6;
     ctx.strokeStyle=`rgba(165,215,255,${0.85+0.15*Math.sin(performance.now()*0.01)})`;
     ctx.stroke(); ctx.restore();
-    chargeRAF=requestAnimationFrame(drawCharge); // smooth animation. :contentReference[oaicite:2]{index=2}
+    chargeRAF=requestAnimationFrame(drawCharge);
   }
 
   /* ---------- lightning ---------- */
@@ -2556,7 +2582,7 @@ canvas{ display:block }
     rings.push({x:origin.x,y:origin.y,r:6,maxR:140+power*100,born:performance.now(),life:520+power*180});
   }
   function makeBolt(origin, angle, length, power, charged){
-    const born=performance.now(); const life=3000; // ~3s
+    const born=performance.now(); const life=3000;
     const core=growPath(origin, angle, length, 0, power, Math.random()*100);
     const pulses=[0,45,95]; if (charged) pulses.push(150);
     return { core,born,life,power,charged,pulses };
@@ -2744,7 +2770,7 @@ canvas{ display:block }
   }
 
   // ========= DYNAMIC “generation / hr” NUMBER (per user) =========
-  // Finds the numeric DOM node that belongs to the "generation / hr" label, even if re-rendered.
+  // Doubles displayed gen/hr while boost is active, returns to normal after.
   const genTargets = new Set();
 
   function textHasGenHr(el){
@@ -2754,7 +2780,6 @@ canvas{ display:block }
 
   function findNearestNumberNode(labelEl){
     const labelRect = labelEl.getBoundingClientRect();
-    // Prefer descendants with digits; if none, include siblings in same parent.
     const pool = new Set();
     const descendants = labelEl.querySelectorAll('*');
     descendants.forEach(n=> { if (/\d/.test(n.textContent||'')) pool.add(n); });
@@ -2775,10 +2800,7 @@ canvas{ display:block }
   }
 
   function scanForGenTargets(rootNode=document.body){
-    // If developer adds a hint, prefer it
     rootNode.querySelectorAll('[data-role="gen-hr"]').forEach(n=> genTargets.add(n));
-
-    // Otherwise, find any element that contains the "generation / hr" label text
     const all = rootNode.querySelectorAll('*');
     for (const el of all){
       if (!textHasGenHr(el)) continue;
@@ -2794,16 +2816,12 @@ canvas{ display:block }
 
     if (genTargets.size===0) scanForGenTargets();
 
-    // Clean dead nodes & write value
     for (const node of Array.from(genTargets)){
       if (!document.contains(node)){ genTargets.delete(node); continue; }
-      // If the node is just the number, replace that number only
       if (!textHasGenHr(node)){
-        // replace first numeric token in this node
         const old = node.textContent||'';
         node.textContent = /\d/.test(old) ? old.replace(/[\d,._\s]+/, fmt(show)) : fmt(show);
       } else {
-        // node also contains the label; replace the number after label only
         const txt = node.textContent||'';
         const replaced = txt.replace(/(generation\s*\/\s*hr\s*:?\s*)[\d,._\s]+/i, `$1${fmt(show)}`);
         node.textContent = replaced.includes('generation') ? replaced : `generation / hr: ${fmt(show)}`;
@@ -2811,12 +2829,12 @@ canvas{ display:block }
     }
   }
 
-  // Keep display correct across re-renders (MutationObserver)
+  // Keep display correct across re-renders
   const genObserver = new MutationObserver((_mut) => {
-    scanForGenTargets();          // (re)collect targets when DOM changes
-    updateGenHrDisplay();         // write current value (×2 if boost is on)
+    scanForGenTargets();
+    updateGenHrDisplay();
   });
-  genObserver.observe(document.body, { childList:true, subtree:true, characterData:true }); // watch the DOM (MDN). :contentReference[oaicite:3]{index=3}
+  genObserver.observe(document.body, { childList:true, subtree:true, characterData:true });
 
   // Periodic refresh + our own events
   setInterval(updateGenHrDisplay, 1000);
@@ -2841,7 +2859,6 @@ canvas{ display:block }
   }
 
 })();
-
 (function(){
   'use strict';
 
